@@ -1,0 +1,24 @@
+{
+  "name": "hymnal",
+  "version": "0.3.0",
+  "private": true,
+  "description": "multilingual christian hymnal",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "lint:md": "markdownlint-cli2",
+    "lint:ts": "biome lint .",
+    "lint": "bun run lint:md && bun run lint:ts",
+    "format:md": "prettier --write \"**/*.md\"",
+    "format:ts": "biome format --write .",
+    "format": "bun run format:md && bun run format:ts",
+    "check:md": "prettier --check \"**/*.md\" && markdownlint-cli2",
+    "check:ts": "biome check .",
+    "check": "bun run check:md && bun run check:ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
+    "markdownlint-cli2": "^0.18.1",
+    "prettier": "^3.6.2"
+  }
+}

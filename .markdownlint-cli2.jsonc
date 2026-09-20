@@ -1,0 +1,30 @@
+{
+  // Markdown linting only. Formatting is prettier's job; see .prettierrc.
+  "globs": ["**/*.md"],
+  "ignores": [
+    "archive/**",
+    "node_modules/**",
+    "build/**",
+    "dist/**",
+    "target/**",
+    "db/**",
+    ".svelte-kit/**",
+    "**/CHANGELOG.md"
+  ],
+  "config": {
+    "default": true,
+
+    // Prose is held to 80 columns. Tables are exempt: prettier pads them to
+    // align, so their width is the formatter's decision, not the author's.
+    // Long lines with no spaces (bare URLs) are already exempt by default,
+    // since `strict` is off.
+    "MD013": { "tables": false },
+
+    // ADRs legitimately repeat headings such as "Consequences" across files,
+    // and nested option sections repeat within one file.
+    "MD024": { "siblings_only": true },
+
+    // Mermaid blocks and the occasional inline element need raw HTML.
+    "MD033": false
+  }
+}
