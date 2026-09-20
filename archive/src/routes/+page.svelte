@@ -22,10 +22,10 @@
     <div class="copyleft-footer">
       All songs are owned by their respective authors<br />
       <a href="https://en.wikipedia.org/wiki/Copyleft"
-        >Proprietary modifications to the source-code will NOT be allowed</a
+        >Proprietary modifications to the source-code is forbidden</a
       >
       |
-      <a href="https://github.com/yozachar/hymnal/blob/main/LICENSE">🄯 Yozachar</a>
+      <a href="https://github.com/nandgator/hymnal/blob/main/LICENSE">🄯 Nandgator</a>
     </div>
   </footer>
 </div>

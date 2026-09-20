@@ -1,4 +1,4 @@
-# [Hymnal](https://yozachar.github.io/hymnal/)
+# [Hymnal](https://nandgator.github.io/hymnal/)
 
 > _O sing unto the Lord a new song..._
 
@@ -11,7 +11,7 @@
 ## Preview locally
 
 ```sh
-git clone "https://github.com/yozachar/hymnal.git"
+git clone "https://github.com/nandgator/hymnal.git"
 cd hymnal
 ./run.sh
 ```
