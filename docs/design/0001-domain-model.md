@@ -1,0 +1,374 @@
+# SDD-0001 — Domain Model
+
+- **Status:** Draft
+- **Date:** 2026-09-20
+- **Implements:** [ADR-0003](../decisions/0003-model-hymns-as-parts-and-an-occurrence-sequence.md),
+  [ADR-0008](../decisions/0008-sqlite-as-the-on-device-content-store.md)
+
+Detailed design for the core domain. Everything else depends on this, so it is
+specified before anything is built.
+
+---
+
+## 1. Purpose
+
+Define the entities, their identity, their invariants, and the address space
+used to refer to a position within a hymn. Two things in particular have to be
+unambiguous:
+
+1. **A part is stored once and may be sung many times.**
+2. **An occurrence — one position in the sung order — is addressable
+   independently of the part whose text it shows.**
+
+Everything the presentation layer needs in order to signal "this refrain again"
+follows from the second point.
+
+---
+
+## 2. Entities
+
+```mermaid
+erDiagram
+    HYMNBOOK ||--o{ HYMN : contains
+    HYMN ||--|{ PART : owns
+    HYMN ||--|{ SEQUENCE_ENTRY : "sung order"
+    SEQUENCE_ENTRY }o--|| PART : references
+    PART ||--|{ LINE : contains
+```
+
+Note the cardinality on `SEQUENCE_ENTRY → PART`: **many-to-one**. That single
+edge is the whole design.
+
+### 2.1 Types
+
+```ts
+/** Stable slug, e.g. "mal-ymef-16". Never a display string. */
+type HymnbookId = string;
+
+/** Hymn number as printed. Unique within a hymnbook, not globally. */
+type HymnNumber = number;
+
+/** Unique within one hymn, e.g. "s1", "s2", "r". */
+type PartId = string;
+
+type PartKind = "stanza" | "refrain" | "bridge" | "tag";
+
+interface Hymnbook {
+  id: HymnbookId;
+  title: string; // native-script title
+  language: string; // BCP-47, e.g. "ml"
+  script: string; // ISO 15924, e.g. "Mlym"
+  publisher?: string;
+  edition?: string;
+  hymnCount: number;
+}
+
+interface Part {
+  id: PartId;
+  kind: PartKind;
+  lines: string[];
+  /** Display label, e.g. "1". Absent for refrains. */
+  label?: string;
+}
+
+interface SequenceEntry {
+  partId: PartId;
+}
+
+interface HymnMeta {
+  author?: string;
+  tune?: string;
+  meter?: string;
+  topics?: string[];
+  scripture?: string[];
+  copyright?: string;
+}
+
+interface Hymn {
+  hymnbookId: HymnbookId;
+  number: HymnNumber;
+  title: string;
+  parts: Part[];
+  sequence: SequenceEntry[];
+  meta: HymnMeta;
+}
+```
+
+Everything in `HymnMeta` is optional. The corpus has almost none of it
+([ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)), and fields are
+backfilled as they become available rather than invented.
+
+### 2.2 Occurrence — derived, never stored
+
+```ts
+interface Occurrence {
+  /** Position in the effective sequence. */
+  index: number;
+  part: Part;
+  /** Prior showings of this part. 0 is the first showing. */
+  recurrenceIndex: number;
+  /** Total showings of this part across the effective sequence. */
+  totalRecurrences: number;
+  /** True when produced by live navigation rather than stored data. */
+  isAdHoc: boolean;
+}
+```
+
+`recurrenceIndex` is the value the renderer needs. `> 0` means this text has
+been shown before, and the visual treatment for repetition applies.
+
+`totalRecurrences` allows a cue like "final time", which reads differently from
+an intermediate repeat.
+
+These are **computed from the sequence**, never persisted. Storing them would
+create a second source of truth that could drift.
+
+---
+
+## 3. Address space
+
+One scheme, used everywhere.
+
+```ts
+interface Position {
+  hymnbookId: HymnbookId;
+  hymnNumber: HymnNumber;
+  occurrenceIndex: number;
+  /** null focuses the whole part rather than a single line. */
+  lineIndex: number | null;
+}
+```
+
+Used by navigation, by restored position in user state, and — in Phase 2 — by
+a follow source reporting where it believes the singing is
+([ADR-0010](../decisions/0010-model-liveness-as-pluggable-follow-sources.md)).
+Defining it once prevents three incompatible schemes appearing separately.
+
+A `Position` addresses an **occurrence**, not a part. Pointing at a part would
+be ambiguous the moment a refrain repeats — which is precisely the case that
+matters.
+
+---
+
+## 4. Invariants
+
+Enforced at **build time**, where a human can act on a failure. Violations fail
+the content pipeline; they are never repaired silently
+([arc42 §8.6](../architecture/arc42.md#86-handling-imperfect-content)).
+
+| #   | Invariant                                                        | Rationale                                          |
+| --- | ---------------------------------------------------------------- | -------------------------------------------------- |
+| I1  | `PartId` is unique within a hymn                                 | References must resolve unambiguously              |
+| I2  | Every `SequenceEntry.partId` resolves to a part in the same hymn | No dangling references                             |
+| I3  | `sequence.length >= 1`                                           | A hymn with no sung order cannot be presented      |
+| I4  | Every part has at least one line                                 | An empty part would render as a blank screen       |
+| I5  | Every part is referenced by at least one sequence entry          | An unreferenced part is unreachable — a data error |
+| I6  | Line text is non-empty after trimming                            | Blank lines are formatting, not content            |
+| I7  | `HymnNumber` is unique within a hymnbook                         | It is the primary means of retrieval               |
+| I8  | The sequence contains no unreferenced gaps in `idx`              | Ordering must be total and contiguous              |
+
+I5 is worth stating explicitly: under the old model a chorus could exist while
+no template branch ever displayed it. That failure becomes detectable here.
+
+---
+
+## 5. Sequence Engine
+
+The one piece with genuinely intricate logic. **Pure** — no DOM, no framework,
+no storage. It must be testable in isolation, and must not import SolidJS
+([ADR-0005](../decisions/0005-use-solidjs.md)).
+
+```ts
+interface SequenceEngine {
+  readonly hymn: Hymn;
+  readonly cursor: Position;
+  /** Length of the effective sequence, including ad-hoc entries. */
+  readonly length: number;
+
+  occurrenceAt(index: number): Occurrence | undefined;
+  current(): Occurrence;
+
+  next(): void;
+  previous(): void;
+  nextLine(): void;
+  previousLine(): void;
+
+  goTo(occurrenceIndex: number, lineIndex?: number | null): void;
+
+  /** Append an ad-hoc occurrence of `partId` and move to it. */
+  jumpToPart(partId: PartId): void;
+}
+```
+
+### 5.1 Effective sequence
+
+```text
+effective = storedSequence ++ adHocEntries
+```
+
+The stored sequence is **never mutated**. Live deviation appends to a separate
+list, so the corpus is not modified by presentation, and a hymn presented twice
+starts identically both times.
+
+### 5.2 Recurrence computation
+
+For occurrence at index `i` with part `p`:
+
+```text
+recurrenceIndex(i)   = count of j < i  where effective[j].partId == p.id
+totalRecurrences(p)  = count of j      where effective[j].partId == p.id
+```
+
+Computed over the **effective** sequence, so an ad-hoc repeat correctly
+increments the count — the presenter jumping back to the chorus produces a
+genuine fourth showing, and the cue reflects that.
+
+### 5.3 Why append rather than rewind
+
+`jumpToPart` appends rather than moving the cursor backwards. This keeps
+history linear and monotonic, keeps `recurrenceIndex` truthful — rewinding
+would show "third time" when it is really the fourth — and keeps a Phase 2
+follow source and the local cursor in one consistent, forward-moving address
+space.
+
+### 5.4 Line navigation
+
+`nextLine` advances within the current occurrence and rolls into the next
+occurrence at its end. `lineIndex: null` means the whole part is focused, which
+is the default when arriving at a new occurrence.
+
+`OPEN:` Whether the default on arrival should be whole-part or first-line. This
+is a feel question, answerable only with something on screen.
+
+---
+
+## 6. Storage schema
+
+One SQLite database per hymnbook
+([ADR-0008](../decisions/0008-sqlite-as-the-on-device-content-store.md)), so
+`hymnbook` holds exactly one row and hymn numbers need no book qualifier.
+
+```sql
+CREATE TABLE hymnbook (
+  id             TEXT PRIMARY KEY,
+  title          TEXT NOT NULL,
+  language       TEXT NOT NULL,   -- BCP-47
+  script         TEXT NOT NULL,   -- ISO 15924
+  publisher      TEXT,
+  edition        TEXT,
+  schema_version INTEGER NOT NULL
+) STRICT;
+
+CREATE TABLE hymn (
+  number  INTEGER PRIMARY KEY,
+  title   TEXT NOT NULL,
+  author  TEXT,
+  tune    TEXT,
+  meter   TEXT
+) STRICT;
+
+CREATE TABLE part (
+  hymn_number INTEGER NOT NULL REFERENCES hymn(number),
+  id          TEXT NOT NULL,
+  kind        TEXT NOT NULL CHECK (kind IN ('stanza','refrain','bridge','tag')),
+  label       TEXT,
+  PRIMARY KEY (hymn_number, id)
+) STRICT;
+
+CREATE TABLE line (
+  hymn_number INTEGER NOT NULL,
+  part_id     TEXT    NOT NULL,
+  idx         INTEGER NOT NULL,
+  text        TEXT    NOT NULL,
+  PRIMARY KEY (hymn_number, part_id, idx),
+  FOREIGN KEY (hymn_number, part_id) REFERENCES part(hymn_number, id)
+) STRICT;
+
+CREATE TABLE sequence_entry (
+  hymn_number INTEGER NOT NULL,
+  idx         INTEGER NOT NULL,
+  part_id     TEXT    NOT NULL,
+  PRIMARY KEY (hymn_number, idx),
+  FOREIGN KEY (hymn_number, part_id) REFERENCES part(hymn_number, id)
+) STRICT;
+
+-- Search over whole hymns; retrieval is by number thereafter.
+CREATE VIRTUAL TABLE hymn_fts USING fts5(
+  title,
+  body,
+  content = '',
+  tokenize = 'unicode61'
+);
+```
+
+Notes:
+
+- `STRICT` tables — type affinity errors in a content pipeline are exactly the
+  class of bug that reaches a congregation as a wrong word.
+- `sequence_entry` is the **only** place repetition is expressed. Nothing else
+  in the schema knows about it.
+- `hymn_fts` is contentless and rebuilt by the pipeline, not maintained by
+  triggers; content is immutable at runtime.
+- `schema_version` permits validating a downloaded package against the
+  application before installing it.
+
+`OPEN:` `tokenize = 'unicode61'` is provisional. Malayalam needs NFC
+normalisation and correct handling of chillu and ZWJ/ZWNJ, and unicode61 may
+segment it poorly. This requires an experiment against the real corpus — risk
+R5 in [arc42 §11](../architecture/arc42.md#11-risks-and-technical-debt).
+
+---
+
+## 7. Migration from the legacy corpus
+
+Per [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md). Legacy record:
+
+```jsonc
+{
+  "id": 1,
+  "author": "KVS",
+  "starts": "chorus",
+  "chorus": [],
+  "bridge": [],
+  "verses": [[]]
+}
+```
+
+| Legacy               | Becomes                                                     |
+| -------------------- | ----------------------------------------------------------- |
+| `id`                 | `hymn.number`                                               |
+| `author`             | `hymn.author`, `NULL` when empty (325 hymns)                |
+| `verses[i]`          | Part `s{i+1}`, kind `stanza`, label `{i+1}`                 |
+| `chorus` (non-empty) | Part `r`, kind `refrain`                                    |
+| `bridge`             | **Dropped.** Empty in all 1,631 records; survives as a kind |
+| `starts`             | Determines the first sequence entry                         |
+| —                    | `hymn.title` := first line of the first sequence entry      |
+
+Sequence derivation:
+
+| Legacy shape                     | Count | Sequence                     |
+| -------------------------------- | ----- | ---------------------------- |
+| Chorus + verses                  | 918   | `r, s1, r, s2, r, … sN, r`   |
+| Verses + chorus, starts at verse | 270   | `s1, r, s2, r, … sN, r`      |
+| Verses, no chorus                | 345   | `s1, s2, … sN`               |
+| Chorus only, no verses           | 98    | `s1` — one stanza, no repeat |
+
+The last row is a deliberate reinterpretation. A part that never repeats is not
+a refrain; calling it one was an artefact of the old template switch. These
+become a single stanza with a one-entry sequence.
+
+**Migration output is source, not a build artifact.** It is committed, and
+corrections are applied to it directly. Re-running the migration wholesale
+would discard accumulated corrections, so it must not run as part of the build.
+
+---
+
+## 8. Open questions
+
+| Question                                            | Resolve by                                  |
+| --------------------------------------------------- | ------------------------------------------- |
+| FTS5 tokenisation for Malayalam                     | Experiment against the real corpus          |
+| Default focus on arrival — whole part or first line | Trying it on screen                         |
+| Whether `tag` and `bridge` kinds are ever populated | A second hymnbook                           |
+| Cross-book hymn identity for parallel translations  | Deferred until a second book exists         |
+| Word-level addressing below `lineIndex`             | Phase 2, if lyric alignment proves feasible |
