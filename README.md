@@ -11,8 +11,10 @@ it is printed.
 **Phase 1, design stage.** No implementation yet. The architecture is settled
 and documented; the previous implementation has been archived.
 
-Start with the [architecture](docs/architecture/arc42.md), or the
-[decision records](docs/decisions/README.md) for why things are as they are.
+> **Picking up work — human or agent — start at
+> [`docs/PLAN.md`](docs/PLAN.md).** It is the live control document: current
+> state, ordered board, and the invariants that must not be broken. The rest of
+> `docs/` is reference behind it.
 
 ## What makes this different
 
@@ -33,6 +35,7 @@ and the [domain model](docs/design/0001-domain-model.md).
 
 | Document                                         | Purpose                            |
 | ------------------------------------------------ | ---------------------------------- |
+| [Plan](docs/PLAN.md)                             | Live state, board, invariants      |
 | [Architecture](docs/architecture/arc42.md)       | arc42 — how the system is shaped   |
 | [Decisions](docs/decisions/README.md)            | ADRs — why it is shaped that way   |
 | [Domain model](docs/design/0001-domain-model.md) | SDD — entities, invariants, schema |

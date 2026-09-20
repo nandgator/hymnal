@@ -14,7 +14,8 @@
     "format": "bun run format:md && bun run format:ts",
     "check:md": "prettier --check \"**/*.md\" && markdownlint-cli2",
     "check:ts": "biome check .",
-    "check": "bun run check:md && bun run check:ts"
+    "check": "bun run check:md && bun run check:ts",
+    "cqa:fix": "bun run lint && bun run format"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

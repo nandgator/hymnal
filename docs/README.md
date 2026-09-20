@@ -1,14 +1,18 @@
 # Documentation
 
-Three kinds of document live here, at three different altitudes. Keeping them
-distinct is the whole point — when they blur, the architecture document becomes
-a changelog and the decision records become documentation.
+Four documents live here, at four different altitudes. Keeping them distinct is
+the whole point — when they blur, the architecture document becomes a changelog
+and the decision records become documentation.
 
 | Artifact  | Answers                              | Changes when               | Lives in                                         |
 | --------- | ------------------------------------ | -------------------------- | ------------------------------------------------ |
+| **Plan**  | _What is done, what is next?_        | Every session              | [`PLAN.md`](PLAN.md)                             |
 | **arc42** | _How is the system shaped, and why?_ | The shape changes          | [`architecture/arc42.md`](architecture/arc42.md) |
 | **ADR**   | _Why did we choose this over that?_  | Never — superseded instead | [`decisions/`](decisions/)                       |
 | **SDD**   | _How does this part actually work?_  | The part is redesigned     | [`design/`](design/)                             |
+
+The plan is **state**; the other three are **reference**. Start at the plan and
+come here for detail — never the other way round.
 
 ## The rule
 
