@@ -84,6 +84,13 @@ Bad:
 
 Neutral:
 
-- `bun run check` runs everything; `bun run format` fixes what is fixable.
+- Scripts split by intent. `check` is read-only and is what CI runs. `format`
+  applies formatting, `lint` applies the lint rules' own autofixes, and
+  `cqa:fix` runs both in that order. Formatting first, then linting, because a
+  lint fix can be the last edit to a file and must survive the formatter —
+  verified with a bare URL, which markdownlint rewrites and prettier then
+  leaves alone.
+- `biome lint --write` applies only safe fixes. `--unsafe` is deliberately not
+  used: a fixer that changes behaviour is not a formatter.
 - No framework-specific linting yet. SolidJS rules
   ([ADR-0005](0005-use-solidjs.md)) are added when there is TypeScript to lint.
