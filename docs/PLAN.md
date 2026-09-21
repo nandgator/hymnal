@@ -28,11 +28,11 @@ built.
 
 ## Now
 
-**Phase 1, domain layer started.** Sequence Engine implemented and unit
-tested; FTS5 tokenisation validated. No UI, persistence or content pipeline
-yet.
+**Phase 1, corpus migrated.** Domain layer and migrated corpus in place; no UI,
+persistence or content pipeline yet.
 
-**Next:** Board #4 — migrate the archived corpus to the new corpus source.
+**Next:** Board #5 — content pipeline: corpus → SQLite package + invariant
+validation. Needs a design discussion first (SDD-0001 §4 and §6).
 
 ## State
 
@@ -42,7 +42,7 @@ yet.
 | Tooling | bun, biome, prettier, markdownlint — `bun run check` green          |
 | App     | Vite + SolidJS + TS scaffolded; vitest chosen as test runner        |
 | Domain  | Types + Sequence Engine (`src/domain/`) — pure, 15 unit tests green |
-| Corpus  | 1,631 hymns, unmigrated; `archive/` removed from tree — see README  |
+| Corpus  | 1,631 hymns migrated to `content/`; 12 flagged for hand review      |
 
 ## Board
 
@@ -50,8 +50,7 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                             | Blocked by |
 | --- | ---------------------------------------------------------------- | ---------- |
-| 4   | Migration: archived corpus → new corpus source                   | —          |
-| 5   | Content pipeline: corpus → SQLite package + invariant validation | 4          |
+| 5   | Content pipeline: corpus → SQLite package + invariant validation | —          |
 | 6   | Persistence: OPFS content store, IndexedDB user state            | 5          |
 | 7   | Library — hymnbook selector                                      | 6          |
 | 8   | Finder — number and lyric search                                 | 6          |
@@ -93,25 +92,19 @@ ones only, here:
 
 ## Log
 
-- 2026-09-21 — Board #3 done: FTS5 tokenisation spiked against the real
-  1,631-hymn corpus (risk R5). Default `unicode61` fragments Malayalam
-  words to bare consonants; `tokenchars` covering vowel signs, virama and
-  ZWJ/ZWNJ fixes it. Schema updated in SDD-0001 §6, risk closed in arc42.
-- 2026-09-21 — Added `Hymnbook.isbn` (natural id). Kept `HymnbookId` as a
-  human slug rather than a synthetic id (uuid7 etc.) — deferred to Board
-  #11 (CMS), the point at which multi-publisher coordination would matter.
-  Documented the idea → discuss → document → build → review loop as
-  **Workflow**, above.
+- 2026-09-21 — Board #4 done: `content/mal-ymef-athmeeya-geethangal-16/`
+  written (1,631 hymns + hymnbook.json), invariants I1-I7 checked clean.
+  Rerun is refused by design. Hymns 156, 666, 753, 856, 864, 890, 895, 901,
+  924, 930, 1066, 1335 need hand correction of their multi-paragraph choruses.
+- 2026-09-21 — Board #3 done: default `unicode61` fragments Malayalam;
+  `tokenchars` fix validated on the real corpus (SDD-0001 §6, R5 closed).
+- 2026-09-21 — Added `Hymnbook.isbn`; kept `HymnbookId` a slug, uuid7
+  deferred to Board #11. Documented the **Workflow** loop.
 - 2026-09-21 — Board #2 done: domain types + Sequence Engine in
-  `src/domain/`, pure and framework-free (ADR-0005). 15 unit tests cover
-  recurrence computation, ad-hoc jumps and the whole-part/line-index walk
-  across occurrence boundaries (open question in SDD-0001 §5.4).
-- 2026-09-21 — Board #1 done: Vite + SolidJS + TS scaffolded, vitest chosen,
-  biome's solid domain wired in. `bun run check` green, dev server and build
-  verified in a real browser.
-- 2026-09-21 — Removed `archive/` from the tree (kept in git history at
-  `155baea`); dropped its now-dead exclusions from every tool config. Added
-  Board #11 — CMS for managing hymnal content.
-- 2026-09-21 — Pushed 5 commits: archive move, tooling, docs. No code yet.
+  `src/domain/`, framework-free, 15 unit tests.
+- 2026-09-21 — Board #1 done: Vite + SolidJS + TS scaffold, vitest, biome
+  solid domain; verified in a real browser.
+- 2026-09-21 — Removed `archive/` (in git history at `155baea`); added
+  Board #11, the CMS.
 - 2026-09-20 — Requirements settled; arc42, 13 ADRs and SDD-0001 written;
   previous implementation archived.

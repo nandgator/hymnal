@@ -1,4 +1,7 @@
-/** Stable slug, e.g. "mal-ymef-16". Never a display string. */
+/**
+ * Stable opaque slug, e.g. "mal-ymef-athmeeya-geethangal-16".
+ * Never a display string.
+ */
 export type HymnbookId = string;
 
 /** Hymn number as printed. Unique within a hymnbook, not globally. */

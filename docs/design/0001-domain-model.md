@@ -42,7 +42,10 @@ edge is the whole design.
 ### 2.1 Types
 
 ```ts
-/** Stable slug, e.g. "mal-ymef-16". Never a display string. */
+/**
+ * Stable opaque slug, e.g. "mal-ymef-athmeeya-geethangal-16".
+ * Never a display string.
+ */
 type HymnbookId = string;
 
 /** Hymn number as printed. Unique within a hymnbook, not globally. */
@@ -106,6 +109,13 @@ uniqueness at build time the same way `HymnNumber` uniqueness is checked
 slug's legibility in URLs, filenames and debug output. Revisit this once
 the CMS (Board #11) allows hymnbooks from more than one contributor — see
 §8.
+
+Slug convention: `<ISO 639-3 language>-<publisher>-<title>-<edition>[-<isbn>]`,
+hyphen-separated, e.g. `mal-ymef-athmeeya-geethangal-16` (ISBN omitted when the
+book has none). The id is **opaque**: it is used whole, as a filename, URL
+segment and storage key, and never parsed. Publisher, edition and ISBN live in
+their own fields. Slashes were rejected as separators because they would make
+the id a path rather than a single token.
 
 ### 2.2 Occurrence — derived, never stored
 
@@ -380,6 +390,44 @@ become a single stanza with a one-entry sequence.
 **Migration output is source, not a build artifact.** It is committed, and
 corrections are applied to it directly. Re-running the migration wholesale
 would discard accumulated corrections, so it must not run as part of the build.
+
+### 7.1 Output layout and script
+
+```text
+content/<hymnbook-id>/hymnbook.json   # Hymnbook metadata
+content/<hymnbook-id>/0001.json …     # one hymn each
+```
+
+A hymn file is the domain `Hymn` minus `hymnbookId` (the directory supplies
+it): `number`, `title`, `parts`, `sequence`, `meta`. Source and runtime types
+are the same, so there is no second schema to maintain.
+
+The conversion is a pure function in `scripts/legacy-convert.ts`, unit tested;
+`scripts/migrate-legacy.ts` is the thin filesystem and git wrapper around it.
+Both are kept in the repo as the record of how the corpus was derived:
+
+- Reads the legacy JSON from git history (`155baea`), since `archive/` is gone.
+- **Refuses to run if the output directory exists**, so accumulated corrections
+  cannot be overwritten. This enforces the invariant in code.
+- Text is otherwise copied verbatim (no Unicode normalisation; the corpus is
+  already NFC), with two deliberate exceptions found by measuring the corpus:
+  - **Leading and trailing whitespace is trimmed** (11 lines).
+  - **Empty lines are dropped** (37 lines, all inside the choruses of 12 hymns:
+    156, 666, 753, 856, 864, 890, 895, 901, 924, 930, 1066, 1335). Those
+    choruses are multi-paragraph and every one of the 12 also has verses,
+    e.g. 930 has 10 verses and 11 chorus paragraphs, which suggests a different
+    refrain after each verse. The rules cannot infer that, so each becomes a
+    single refrain and the report flags the 12 for hand correction. The original
+    paragraphing remains in git history.
+- Fails on any legacy shape the rules do not cover: non-empty `bridge`, an
+  empty verse, an unknown `starts`, or a `starts` inconsistent with the shape.
+- Reports shape counts, which must match the table above (918 / 270 / 345 / 98),
+  and asserts every non-empty legacy line appears exactly once in the output,
+  in order.
+
+The first hymnbook is _Athmeeya Geethangal / Spiritual Hymns_, 16th edition,
+General YMEF and Premier Bible Publication, 1,631 hymns. No ISBN was found in
+any listing; `isbn` stays absent until the printed copy is checked.
 
 ---
 
