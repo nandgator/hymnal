@@ -1,7 +1,6 @@
 # Prettier is scoped to markdown in this project; biome owns TypeScript.
 # See ADR-0013.
 
-archive/
 node_modules/
 build/
 dist/

@@ -2,7 +2,6 @@
   // Markdown linting only. Formatting is prettier's job; see .prettierrc.
   "globs": ["**/*.md"],
   "ignores": [
-    "archive/**",
     "node_modules/**",
     "build/**",
     "dist/**",

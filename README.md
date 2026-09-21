@@ -58,13 +58,17 @@ handled by biome. The scopes do not overlap — see
 ## Archive
 
 The previous implementation — a Rust build-time generator producing static
-reveal.js decks, with a SvelteKit front end — lives in [`archive/`](archive/).
-It is excluded from the build and from all tooling, and is retained only as a
-reference for the corpus migration. See
-[ADR-0002](docs/decisions/0002-rebuild-from-a-clean-slate.md).
+reveal.js decks, with a SvelteKit front end — is no longer in the tree. It was
+kept under `archive/` for a time as a migration reference; see
+[ADR-0002](docs/decisions/0002-rebuild-from-a-clean-slate.md). It remains
+fully available in git history up to and including commit `155baea`.
 
-The hymn corpus in `archive/data/lyrics/mal/` — 1,631 Malayalam hymns — is the
-input to that migration and the most valuable thing in this repository.
+The hymn corpus, 1,631 Malayalam hymns, lived at `archive/data/lyrics/mal/`
+and is the input to the corpus migration (Board #4). Recover it with:
+
+```sh
+git checkout 155baea -- archive/data/lyrics/mal
+```
 
 ## Licence
 

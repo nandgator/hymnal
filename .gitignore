@@ -36,17 +36,6 @@ yarn-debug.log*
 yarn-error.log*
 bun-debug.log*
 
-# Leftovers from the archived stack (see ADR-0002).
-# Regenerable artifacts that predate the rewrite; safe to delete.
-target/
-db/
-.svelte-kit/
-
-# Vendored clone (a nested git repo) and generated decks from the old build.
-# Never tracked; both are reproducible from archive/ sources.
-archive/static/lib/reveal.js/
-archive/static/g11n/
-
 # Generated hymnbook packages. Built by the content pipeline, never committed.
 # The corpus itself is source and IS committed.
 *.sqlite
