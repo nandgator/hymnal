@@ -6,6 +6,10 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
     "lint:md": "markdownlint-cli2 --fix",
     "lint:ts": "biome lint --write .",
     "lint": "bun run lint:md && bun run lint:ts",
@@ -14,12 +18,23 @@
     "format": "bun run format:md && bun run format:ts",
     "check:md": "prettier --check \"**/*.md\" && markdownlint-cli2",
     "check:ts": "biome check .",
-    "check": "bun run check:md && bun run check:ts",
+    "check": "bun run check:md && bun run check:ts && tsc -b && vitest run",
     "cqa:fix": "bun run format && bun run lint"
+  },
+  "dependencies": {
+    "solid-js": "^1.9.15"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
+    "@solidjs/testing-library": "^0.8.10",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@types/node": "^26.6.2",
+    "jsdom": "^30.1.0",
     "markdownlint-cli2": "^0.18.1",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0",
+    "vite-plugin-solid": "^2.11.14",
+    "vitest": "^5.0.1"
   }
 }
