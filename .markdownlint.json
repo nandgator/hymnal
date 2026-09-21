@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint/main/schema/markdownlint-config-schema.json",
+  "code-block-style": {
+    "style": "fenced"
+  },
+  "default": true,
+  "first-line-heading": false,
+  "line-length": {
+    "tables": false
+  },
+  "no-duplicate-heading": {
+    "siblings_only": true
+  },
+  "no-inline-html": false
+}

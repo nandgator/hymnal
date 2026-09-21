@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/SchemaStore/schemastore/refs/heads/master/src/schemas/json/prettierrc.json",
   "proseWrap": "preserve",
   "printWidth": 80,
   "tabWidth": 2,
@@ -11,7 +12,8 @@
     {
       "files": "*.md",
       "options": {
-        "embeddedLanguageFormatting": "off"
+        "parser":"markdown",
+        "embeddedLanguageFormatting": "auto"
       }
     }
   ]
