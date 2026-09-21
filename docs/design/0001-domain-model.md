@@ -303,11 +303,15 @@ CREATE TABLE sequence_entry (
 ) STRICT;
 
 -- Search over whole hymns; retrieval is by number thereafter.
+-- tokenchars: Malayalam dependent vowel signs (U+0D3E-U+0D4C), virama
+-- (U+0D4D), and ZWJ/ZWNJ — unicode61 treats these as separators by
+-- default, which fragments Malayalam words down to bare consonants. See
+-- the note on risk R5 below.
 CREATE VIRTUAL TABLE hymn_fts USING fts5(
   title,
   body,
   content = '',
-  tokenize = 'unicode61'
+  tokenize = 'unicode61 tokenchars ''ാിീുൂൃൄെേൈൊോൌ്‌‍'''
 );
 ```
 
@@ -322,10 +326,16 @@ Notes:
 - `schema_version` permits validating a downloaded package against the
   application before installing it.
 
-`OPEN:` `tokenize = 'unicode61'` is provisional. Malayalam needs NFC
-normalisation and correct handling of chillu and ZWJ/ZWNJ, and unicode61 may
-segment it poorly. This requires an experiment against the real corpus — risk
-R5 in [arc42 §11](../architecture/arc42.md#11-risks-and-technical-debt).
+Resolved — risk R5 in
+[arc42 §11](../architecture/arc42.md#11-risks-and-technical-debt). Spiked
+against the real 1,631-hymn corpus (Board #3): the corpus is already NFC, and
+chillu letters tokenise correctly by default (they're ordinary Letter-category
+codepoints). Default `unicode61` fragments words at every vowel sign and
+virama, though — `വാഴ്ത്തുക` ("praise") reduced to bare consonants `ക`/`ത`/`ഴ`/`വ`,
+which would make search match almost everything. Adding those marks (plus
+ZWJ/ZWNJ) to `tokenchars`, as above, fixed it: the same word survives whole,
+and word and prefix search both work correctly across the full corpus. A
+custom tokenizer or the `trigram` fallback proved unnecessary.
 
 ---
 
@@ -377,7 +387,6 @@ would discard accumulated corrections, so it must not run as part of the build.
 
 | Question                                            | Resolve by                                  |
 | --------------------------------------------------- | ------------------------------------------- |
-| FTS5 tokenisation for Malayalam                     | Experiment against the real corpus          |
 | Default focus on arrival — whole part or first line | Trying it on screen                         |
 | Whether `tag` and `bridge` kinds are ever populated | A second hymnbook                           |
 | Cross-book hymn identity for parallel translations  | Deferred until a second book exists         |

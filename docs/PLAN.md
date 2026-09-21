@@ -29,9 +29,10 @@ built.
 ## Now
 
 **Phase 1, domain layer started.** Sequence Engine implemented and unit
-tested; no UI, persistence or content pipeline yet.
+tested; FTS5 tokenisation validated. No UI, persistence or content pipeline
+yet.
 
-**Next:** Board #3 — FTS5 tokenisation spike for Malayalam (risk R5).
+**Next:** Board #4 — migrate the archived corpus to the new corpus source.
 
 ## State
 
@@ -49,9 +50,8 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                             | Blocked by |
 | --- | ---------------------------------------------------------------- | ---------- |
-| 3   | Spike: FTS5 tokenisation for Malayalam (risk R5)                 | —          |
 | 4   | Migration: archived corpus → new corpus source                   | —          |
-| 5   | Content pipeline: corpus → SQLite package + invariant validation | 3, 4       |
+| 5   | Content pipeline: corpus → SQLite package + invariant validation | 4          |
 | 6   | Persistence: OPFS content store, IndexedDB user state            | 5          |
 | 7   | Library — hymnbook selector                                      | 6          |
 | 8   | Finder — number and lyric search                                 | 6          |
@@ -59,7 +59,6 @@ Ordered. Top unblocked item is next.
 | 10  | PWA shell, offline, responsive phone → large display             | 7, 8, 9    |
 | 11  | CMS for managing hymnal content (add/edit hymns, hymnbooks)      | 5          |
 
-Do #3 early despite its position: it can change the schema in SDD-0001 §6.
 Item 11 sits past the Phase 1 scope guard below — sequence it after Phase 1
 unless scope is deliberately widened.
 
@@ -89,12 +88,15 @@ ones only, here:
 
 | Question                           | Blocks      |
 | ---------------------------------- | ----------- |
-| FTS5 tokenisation for Malayalam    | Board #5    |
 | Visual language for repeated parts | Board #9    |
 | Lyrics copyright / redistribution  | Any release |
 
 ## Log
 
+- 2026-09-21 — Board #3 done: FTS5 tokenisation spiked against the real
+  1,631-hymn corpus (risk R5). Default `unicode61` fragments Malayalam
+  words to bare consonants; `tokenchars` covering vowel signs, virama and
+  ZWJ/ZWNJ fixes it. Schema updated in SDD-0001 §6, risk closed in arc42.
 - 2026-09-21 — Added `Hymnbook.isbn` (natural id). Kept `HymnbookId` as a
   human slug rather than a synthetic id (uuid7 etc.) — deferred to Board
   #11 (CMS), the point at which multi-publisher coordination would matter.
