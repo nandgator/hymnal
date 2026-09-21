@@ -1,0 +1,108 @@
+{
+  "number": 1409,
+  "title": "O happy day that fixed my choice",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Happy day, happy day",
+        "When Jesus wash'd my sins away!",
+        "He teaches me to watch and pray",
+        "And live rejoicing every day",
+        "Happy day, happy day",
+        "When Jesus wash'd my sins away!"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "O happy day that fixed my choice",
+        "On Thee, my Saviour and my God!",
+        "Well may this glowing heart rejoice",
+        "And tell its raptures all abroad"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "O happy bond that seals my vows",
+        "To Him who merits all my love",
+        "Let cheerful anthems fill His house",
+        "While to that sacred shrine I move"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "'Tis done, the great transaction's done",
+        "I am my Lord's, and He is mine",
+        "He drew me, and I followed on",
+        "Charmed to confess the voice divine"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Now rest, my long divided heart",
+        "Fixed on this blissful centre, rest",
+        "Nor ever from Thy Lord depart",
+        "With Him of every good possessed"
+      ]
+    },
+    {
+      "id": "s5",
+      "kind": "stanza",
+      "label": "5",
+      "lines": [
+        "High Heaven, that heard that solemn vow",
+        "That vow renewed shall daily hear",
+        "Till in life's latest hour I bow",
+        "And bless in death a bond so dear"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s5"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "P Doddridge"
+  }
+}

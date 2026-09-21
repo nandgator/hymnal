@@ -1,0 +1,114 @@
+{
+  "number": 1501,
+  "title": "Making melody in your heart",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Making melody in your heart",
+        "Unto the King of kings",
+        "Worship and adore Him",
+        "Worship and adore Him",
+        "Making melody in your heart",
+        "Unto the King of kings"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "King of kings and Lord of lords",
+        "Glorify His name"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Love and serve Him from your heart",
+        "Praise His lovely name"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Joy in Him eternally",
+        "And bless His Holy Name"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Shout His praises everywhere",
+        "The king is coming soon"
+      ]
+    },
+    {
+      "id": "s5",
+      "kind": "stanza",
+      "label": "5",
+      "lines": [
+        "Clap your hands unto the Lord",
+        "Rejoice forever more"
+      ]
+    },
+    {
+      "id": "s6",
+      "kind": "stanza",
+      "label": "6",
+      "lines": [
+        "Love Him, love Him, more and more",
+        "And dance before His throne"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s5"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s6"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {}
+}

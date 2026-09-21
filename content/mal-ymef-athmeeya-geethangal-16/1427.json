@@ -1,0 +1,88 @@
+{
+  "number": 1427,
+  "title": "My hope is built on nothing less",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "O Christ, the Solid Rock, I stand",
+        "All other ground is sinking sand",
+        "All other ground is sinking sand"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "My hope is built on nothing less",
+        "Than Jesus' blood and righteousness",
+        "I dare not trust the sweetest frame",
+        "But wholly lean on Jesus' name"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "When darkness seems to veil His face",
+        "I rest on His unchanging grace",
+        "In every high and stormy gale",
+        "My anchor holds within the veil"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "His oath, His covenant, and blood",
+        "Support me in the whelming flood",
+        "When all around my soul gives way",
+        "He then is all my hope and stay"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "And when I hear the trumpet sound",
+        "Oh, may I then in Him be found",
+        "Clothed in His righteousness alone",
+        "Faultless to stand before His throne"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "E Mote"
+  }
+}

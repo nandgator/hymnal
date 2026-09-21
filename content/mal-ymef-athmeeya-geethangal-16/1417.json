@@ -1,0 +1,89 @@
+{
+  "number": 1417,
+  "title": "O Christ, in Thee my soul hath found",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Now none but Christ can satisfy",
+        "Nine other Name for me",
+        "There's love and life and lasting joy",
+        "Lord Jesus, found in Thee"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "O Christ, in Thee my soul hath found",
+        "And found in Thee alone",
+        "The peace, the joy I sought so long",
+        "The bliss till now unknown"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "I sighed for rest and happiness",
+        "I yearned for them, not Thee",
+        "But while I passed my Saviour by",
+        "His love laid hold on me"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "I tried the broken cisterns, Lord",
+        "But, ah, the waters failed!",
+        "E'en as I stopped to drink they fled",
+        "And mocked me as I wailed"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "The pleasures lost I sadly mourned",
+        "But never wept for Thee",
+        "Till grace the sightless eyes received",
+        "Thy loveliness to see"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "F Bevan"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "number": 1450,
+  "title": "Sing them over again to me",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Beautiful words!",
+        "Wonderful words!",
+        "Wonderful words of life!"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Sing them over again to me",
+        "Wonderful words of life!",
+        "Let me more of their beauty see",
+        "Wonderful words of life!",
+        "Words of life and beauty",
+        "Teach me faith and duty!"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Christ, the blessed One gives to all",
+        "Wonderful words of life!",
+        "Sinner, list to the loving call",
+        "Wonderful words of life!",
+        "All so freely given",
+        "Wooing us to heaven!"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Sweetly echo the Gospel call",
+        "Wonderful words of life!",
+        "Offer pardon and peace to all",
+        "Wonderful words of life!",
+        "Jesus only Saviour",
+        "Sanctify forever!"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {}
+}

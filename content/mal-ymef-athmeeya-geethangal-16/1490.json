@@ -1,0 +1,25 @@
+{
+  "number": 1490,
+  "title": "Let the little children come",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Let the little children come",
+        "Let the little children come",
+        "Let the little children come to me",
+        "And do not forbid them",
+        "And do not forbid them",
+        "For such is the kingdom of Heaven"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

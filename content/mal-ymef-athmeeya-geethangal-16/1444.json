@@ -1,0 +1,83 @@
+{
+  "number": 1444,
+  "title": "Stand up! Stand up for Jesus!",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Stand up! Stand up for Jesus!",
+        "Ye soldiers of the Cross",
+        "Lift high His royal banner",
+        "It must not suffer loss",
+        "From victory unto victory",
+        "His army shall He lead",
+        "Till every foe is vanquished",
+        "And Christ is Lord indeed"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Stand up! Stand up for Jesus!",
+        "The trumpet call obey!",
+        "Forth to the mighty conflict",
+        "In this His glorious day",
+        "Ye that are men, now serve Him",
+        "Against unnumbered foes",
+        "Let courage rise with danger",
+        "And strength to strength oppose"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Stand up! Stand up for Jesus!",
+        "Stand in His strength alone",
+        "The arm of flesh will fail you",
+        "Ye dare not trust your own",
+        "Put on the Gospel armor",
+        "And watching unto prayer",
+        "Where duty calls or danger",
+        "Be never wanting there"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Stand up! Stand up for Jesus!",
+        "The strife will not be long",
+        "The day the noise of battle",
+        "The next the victor's song",
+        "To him that overcometh",
+        "A crown of life shall be",
+        "He with the King of Glory",
+        "Shall regain eternally"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "s4"
+    }
+  ],
+  "meta": {
+    "author": "G Duffield"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "number": 1498,
+  "title": "This is the day",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "This is the day",
+        "That the Lord hath made",
+        "We will rejoice",
+        "And be glad in it",
+        "This is the day",
+        "That the Lord hath made",
+        "We will rejoice and be glad in it",
+        "This is the day",
+        "That the Lord hath made"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

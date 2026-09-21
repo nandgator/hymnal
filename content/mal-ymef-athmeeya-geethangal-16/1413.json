@@ -1,0 +1,89 @@
+{
+  "number": 1413,
+  "title": "More about Jesus would I know",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "More, more about Jesus",
+        "More, more about Jesus",
+        "More of His saving fullness see",
+        "More of His love who died for me"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "More about Jesus would I know",
+        "More of His grace to others show",
+        "More of His saving fullness see",
+        "More of His love who died for me"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "More about Jesus let me learn",
+        "More of His holy will discern",
+        "Spirit of God, my Teacher be",
+        "Showing the things of Christ to me"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "More about Jesus in His Word",
+        "Holding communion with my Lord",
+        "Hearing His voice in every line",
+        "Making each faithful saying mine"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "More about Jesus, on His throne",
+        "Riches in glory all His own",
+        "More of His kingdom's sure increase",
+        "More of His coming, Prince of Peace"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "E E Hewitt"
+  }
+}

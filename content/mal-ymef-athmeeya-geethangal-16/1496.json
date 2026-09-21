@@ -1,0 +1,27 @@
+{
+  "number": 1496,
+  "title": "Abba Father let me be",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Abba Father let me be",
+        "Yours and Yours alone",
+        "May my will forever be",
+        "Evermore Your own",
+        "Never let my heart grow cold",
+        "Never let me go",
+        "Abba Father let me be",
+        "Evermore Your own"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

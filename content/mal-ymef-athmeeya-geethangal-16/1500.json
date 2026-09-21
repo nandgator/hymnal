@@ -1,0 +1,23 @@
+{
+  "number": 1500,
+  "title": "Happy happy family with Jesus in the home",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Happy happy family with Jesus in the home",
+        "Jesus in the home Jesus in the home",
+        "Happy happy family with Jesus in the home",
+        "Jesus in the home"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

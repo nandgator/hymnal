@@ -1,0 +1,25 @@
+{
+  "number": 1495,
+  "title": "I am a C",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "I am a C",
+        "I am a CH",
+        "I am a CHRISTIAN",
+        "For I have CHRIST in my HEART",
+        "And I shall LIVE ETERNALLY",
+        "I am a C"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

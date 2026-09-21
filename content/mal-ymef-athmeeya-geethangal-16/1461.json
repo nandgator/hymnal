@@ -1,0 +1,37 @@
+{
+  "number": 1461,
+  "title": "Trust in the Lord and don't despair",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Trust in the Lord and don't despair",
+        "He is a friend so true",
+        "No matter what your troubles are",
+        "Jesus will see you through"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Sing when the day is bright",
+        "Sing through the darkest night",
+        "Every day, all the way",
+        "Let me sing, sing, sing"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    }
+  ],
+  "meta": {}
+}

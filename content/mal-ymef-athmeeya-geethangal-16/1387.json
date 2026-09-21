@@ -1,0 +1,95 @@
+{
+  "number": 1387,
+  "title": "All hail the power of Jesus' Name",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "All hail the power of Jesus' Name",
+        "Let angels prostrate fall",
+        "Bring forth the royal diadem",
+        "And Crown Him Lord of all"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Crown Him, ye Martyrs of our God",
+        "Who from the altar call?",
+        "Extol the stem of Jesse's rod",
+        "And crown Him Lord of all"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Ye saints redeemed of Adam's race",
+        "Ye ransomed from the fall",
+        "Hail Him who saves you by His grace",
+        "And Crown Him Lord of all"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Sinners, whose love can ne'er forget",
+        "The wormwood and the gall",
+        "Go spread your trophies at His feet",
+        "And Crown Him Lord of all"
+      ]
+    },
+    {
+      "id": "s5",
+      "kind": "stanza",
+      "label": "5",
+      "lines": [
+        "Let every kindred, every tribe",
+        "On this terrestrial ball",
+        "To Him all majesty ascribe",
+        "And Crown Him Lord of all"
+      ]
+    },
+    {
+      "id": "s6",
+      "kind": "stanza",
+      "label": "6",
+      "lines": [
+        "Oh, that with yonder sacred throng",
+        "We at His feet may fall",
+        "Join in the everlasting song",
+        "And Crown Him Lord of all"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "s5"
+    },
+    {
+      "partId": "s6"
+    }
+  ],
+  "meta": {
+    "author": "E Perronet"
+  }
+}

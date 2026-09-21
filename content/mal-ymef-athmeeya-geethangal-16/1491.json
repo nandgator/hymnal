@@ -1,0 +1,26 @@
+{
+  "number": 1491,
+  "title": "Wonderful, wonderful Jesus is to me",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Wonderful, wonderful Jesus is to me",
+        "Counselor, Prince of peace",
+        "Mighty God is He",
+        "Saving me, keeping me",
+        "From all sin and shame",
+        "Wonderful is Redeemer",
+        "Praise His Name"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

@@ -1,0 +1,27 @@
+{
+  "number": 1510,
+  "title": "Beautiful, beautiful",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Beautiful, beautiful",
+        "Jesus is beautiful",
+        "And Jesus makes",
+        "Beautiful things of my life",
+        "Carefully touching me",
+        "Causing my eyes to see",
+        "Jesus makes beautiful",
+        "Things of my life"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

@@ -1,0 +1,68 @@
+{
+  "number": 1434,
+  "title": "Have Thine own way Lord!",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Have Thine own way Lord!",
+        "Have Thine own way!",
+        "Thou art the potter I am the clay",
+        "Mould me and make me after Thy will",
+        "While I am waiting, yielded and still!"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Have Thine own way Lord have Thine own way!",
+        "Search me and try me, Master today",
+        "Whiter than snow, Lord, wash me just now",
+        "As in Thy presence, humbly I bow"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Have Thine own way, Lord have Thine own way",
+        "Wounded and weary, help me, I pray",
+        "Power all power surely is Thine",
+        "Touch me and heal me, Saviour divine!"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "HaveThine own way, Lord, have Thine own way!",
+        "Hold o'er my being, absolute sway!",
+        "Fill with Thy spirit, till all shall see",
+        "Christ only, always living in me"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "s4"
+    }
+  ],
+  "meta": {
+    "author": "A A Pollard"
+  }
+}

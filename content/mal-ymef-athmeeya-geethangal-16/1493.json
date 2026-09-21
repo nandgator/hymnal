@@ -1,0 +1,25 @@
+{
+  "number": 1493,
+  "title": "I'm H-A-P-P-Y I'm H-A-P-P-Y",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "I'm H-A-P-P-Y I'm H-A-P-P-Y",
+        "I know I'm, Am sure I am",
+        "I'm H-A-P-P-Y",
+        "I'm S-A-V-E-D",
+        "In J-E-S-U-S",
+        "Through His B-L-O-O-D"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

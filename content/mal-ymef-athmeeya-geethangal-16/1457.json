@@ -1,0 +1,65 @@
+{
+  "number": 1457,
+  "title": "Happiness is to know the Saviour",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Happiness is to know the Saviour",
+        "Living a life within His favor",
+        "Having a change in my behavior",
+        "Happiness is the Lord"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Happiness is a new creation",
+        "Jesus and me in close relation",
+        "Having a part in His salvation",
+        "Happiness is the Lord"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Real joy is mine",
+        "No matter if tear drops start",
+        "I found the secret",
+        "It's Jesus in my heart"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Happiness is to be forgiven",
+        "Living a life that's worth the living",
+        "Taking a trip that leads to heaven",
+        "Happiness is the Lord"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "s4"
+    }
+  ],
+  "meta": {}
+}

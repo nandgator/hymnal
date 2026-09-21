@@ -1,0 +1,104 @@
+{
+  "number": 1408,
+  "title": "Be glad in the Lord, and rejoice",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Rejoice! Rejoice",
+        "Be glad in the Lord and rejoice!"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Be glad in the Lord, and rejoice",
+        "All ye that are upright in heart",
+        "And ye that made Him your choice",
+        "Bid sadness and sorrow depart"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Be joyful, for He is the Lord",
+        "On earth and in heaven supreme",
+        "He fashions and rules by His word",
+        "The Mighty and Strong to redeem"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "What though in the conflict for right",
+        "Your enemies almost prevail!",
+        "God's armies, just hid from your sight",
+        "Are more than the foes which assail?"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Though darkness surround you by day",
+        "Your sky by the night be overcast",
+        "Let nothing your spirit dismay",
+        "But trust till the danger is past"
+      ]
+    },
+    {
+      "id": "s5",
+      "kind": "stanza",
+      "label": "5",
+      "lines": [
+        "Be glad in the Lord, and rejoice",
+        "His praises proclaiming in song",
+        "With harp, and with organ, and voice",
+        "The loud hallelujahs prolong!"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s5"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "M E Servoss"
+  }
+}

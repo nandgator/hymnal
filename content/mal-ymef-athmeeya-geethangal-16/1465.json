@@ -1,0 +1,39 @@
+{
+  "number": 1465,
+  "title": "In the name of Jesus",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "In the name of Jesus",
+        "Through the blood of Jesus",
+        "We have victory",
+        "In the name of Jesus",
+        "Through the blood of Jesus"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Satan will have to flee",
+        "Who can tell what God can do?",
+        "Who can tell of His love for you?",
+        "In the mighty name of Jesus",
+        "We have victory"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    }
+  ],
+  "meta": {}
+}

@@ -1,0 +1,105 @@
+{
+  "number": 1424,
+  "title": "All to Jesus I surrender",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "I surrender all I surrender all",
+        "All to Thee, my blessed Saviour",
+        "I surrender all"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "All to Jesus I surrender",
+        "All to Him I freely give",
+        "I will ever love and trust Him",
+        "In His presence daily live"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "All to Jesus I surrender",
+        "Humbly at his feet I bow",
+        "Worldly pleasures all forsaken",
+        "Take me, Jesus, take me now"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "All to Jesus I surrender",
+        "Make me, Saviour, wholly Thine",
+        "Let the Holy Spirit Witness",
+        "I am Thine and Thou art mine"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "All to Jesus I surrender",
+        "Lord, I give myself to Thee",
+        "Fill me with Thy love and power",
+        "Let Thy blessing rest on me"
+      ]
+    },
+    {
+      "id": "s5",
+      "kind": "stanza",
+      "label": "5",
+      "lines": [
+        "All to Jesus I surrender",
+        "Now I feel the sacred flame",
+        "Oh the joy of full salvation!",
+        "Glory, glory to His name!"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s5"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "J V DeVenter"
+  }
+}

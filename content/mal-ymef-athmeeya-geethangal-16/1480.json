@@ -1,0 +1,23 @@
+{
+  "number": 1480,
+  "title": "Living, He loved me dying, He saved me",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Living, He loved me dying, He saved me",
+        "Buried, He carried my, sins far away",
+        "Rising, He justifies freely for ever",
+        "One day He's coming O glorious day"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

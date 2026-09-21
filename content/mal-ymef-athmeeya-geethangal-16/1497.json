@@ -1,0 +1,23 @@
+{
+  "number": 1497,
+  "title": "Jesus, name above all names",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Jesus, name above all names",
+        "Beautiful Saviour, Glorious Lord!",
+        "Emmanuel, God is with us",
+        "Blessed Redeemer, Living Word"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

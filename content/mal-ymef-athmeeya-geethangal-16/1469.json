@@ -1,0 +1,57 @@
+{
+  "number": 1469,
+  "title": "I have decided to follow Jesus",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "I have decided to follow Jesus",
+        "No turning back, no turning back"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Though all may leave me, still I will follow",
+        "No turning back, no turning back"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "The cross before me, the world behind me",
+        "No turning back, no turning back"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "You take the whole world, but give me Jesus",
+        "No turning back, no turning back"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "s4"
+    }
+  ],
+  "meta": {}
+}

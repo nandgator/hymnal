@@ -1,0 +1,24 @@
+{
+  "number": 1479,
+  "title": "Follow, follow, I would follow Jesus",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Follow, follow, I would follow Jesus",
+        "Anywhere, everywhere, I would follow on",
+        "Follow, follow, I would follow Jesus",
+        "Everywhere He leads me",
+        "I would follow on"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

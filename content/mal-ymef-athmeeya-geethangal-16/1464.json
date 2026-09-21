@@ -1,0 +1,34 @@
+{
+  "number": 1464,
+  "title": "He is the same unchanging Jesus",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Hallelujah, Hallelujah, Hallelujah",
+        "Hallelujah, Hallelujah, Hallelujah"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "He is the same unchanging Jesus",
+        "Unchanging Jesus, unchanging Jesus",
+        "He's just the same unchanging Jesus",
+        "Through eternity"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {}
+}

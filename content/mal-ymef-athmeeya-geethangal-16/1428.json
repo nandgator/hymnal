@@ -1,0 +1,106 @@
+{
+  "number": 1428,
+  "title": "How I praise Thee, precious Saviour",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Channels only, blessed Master",
+        "But With all Thy wondrous power",
+        "Flowing through us, Thou canst use us",
+        "Every day and every hour"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "How I praise Thee, precious Saviour",
+        "That Thy love laid hold of me",
+        "Thou hast saved and cleansed and filled me",
+        "That I might Thy channel be"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Just a channel, full of blessing",
+        "To the thirsty hearts around",
+        "To tell out Thy full salvation",
+        "All Thy loving message sound"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Emptied that Thou shouldest fill me",
+        "A clean vessel in Thine hand",
+        "With no power but as Thou givest",
+        "Graciously with each command"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Witnessing Thy power to save me",
+        "Setting free from self and sin",
+        "Thou hast bought me to posses me",
+        "In Thy fullness, Lord, come in"
+      ]
+    },
+    {
+      "id": "s5",
+      "kind": "stanza",
+      "label": "5",
+      "lines": [
+        "Jesus, fill now with Thy Spirit",
+        "Hearts that full surrender know",
+        "That the streams of living water",
+        "From our inner man may flow"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s5"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "M E Maxwell"
+  }
+}

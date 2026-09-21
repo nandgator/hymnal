@@ -1,0 +1,96 @@
+{
+  "number": 1426,
+  "title": "Nearer, my God, to Thee",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Nearer, my God, to Thee",
+        "Nearer to Thee",
+        "E'en though it be a cross",
+        "That raiseth me",
+        "Still all my song shall be",
+        "Nearer, my God to Thee",
+        "Nearer to Thee"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Though, like the wanderer",
+        "The sun gone down",
+        "Darkness comes over me",
+        "My rest a stone",
+        "Yet in my dreams I'd be",
+        "Nearer, my God to Thee",
+        "Nearer to Thee"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "There let my way appear",
+        "Steps unto heaven",
+        "All that Thou sendest me",
+        "In mercy given",
+        "Angels to beckon me",
+        "Nearer, my God to Thee",
+        "Nearer to Thee"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Then with my waking thoughts",
+        "Bright with Thy praise",
+        "Out of my stony grief's",
+        "Bethel I'll raise",
+        "So by my woes to be",
+        "Nearer, my God to Thee",
+        "Nearer to Thee"
+      ]
+    },
+    {
+      "id": "s5",
+      "kind": "stanza",
+      "label": "5",
+      "lines": [
+        "Or if on joyful wing",
+        "Cleaving the sky",
+        "Sun, moon, and stars forgot",
+        "Upward I fly",
+        "Still all my song shall be",
+        "Nearer, my God to Thee",
+        "Nearer to Thee"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "s5"
+    }
+  ],
+  "meta": {
+    "author": "S F Adams"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "number": 1455,
+  "title": "Give me oil in my lamp keep me burning",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Sing Hosanna, sing Hosanna",
+        "Sing Hosanna, to the King of Kings",
+        "Sing Hosanna, to the King"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Give me oil in my lamp keep me burning",
+        "Give me oil in my lamp I pray",
+        "Give me oil in my lamp keep me burning",
+        "Keep me burning, till the break of day"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {}
+}

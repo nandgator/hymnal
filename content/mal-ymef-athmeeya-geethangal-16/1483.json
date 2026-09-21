@@ -1,0 +1,61 @@
+{
+  "number": 1483,
+  "title": "I've got a home in glory land",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "I've got a home in glory land",
+        "That outshines the sun",
+        "Way beyond the blue"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Do Lord, O, do Lord",
+        "O do remember me",
+        "Way beyond the blue"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "The Lord is my Shepherd",
+        "And I shall not want",
+        "I look beyond the blue"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "I took Jesus as my Saviour",
+        "You take Him, too",
+        "While He's calling you"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "s4"
+    }
+  ],
+  "meta": {}
+}

@@ -1,0 +1,27 @@
+{
+  "number": 1502,
+  "title": "Bless the Lord Oh! My soul",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Bless the Lord Oh! My soul",
+        "Bless the Lord Oh! My soul",
+        "And all that is within me",
+        "Bless His Holy Name",
+        "King of kings forever and ever",
+        "Lord of lords forever and ever",
+        "King of kings forever and ever",
+        "King of kings and Lord of lords"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

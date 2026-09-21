@@ -1,0 +1,25 @@
+{
+  "number": 1506,
+  "title": "We worship and adore you",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "We worship and adore you",
+        "Bowing down before you",
+        "Songs of praises singing",
+        "Hallelujahs ringing",
+        "Hallelujah, hallelujah",
+        "Hallelujah, Amen"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

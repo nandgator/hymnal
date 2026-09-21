@@ -1,0 +1,41 @@
+{
+  "number": 1462,
+  "title": "Everybody ought to know",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Everybody ought to know",
+        "Everybody ought to know who Jesus is",
+        "He's the lily of the valley",
+        "He's the bright and morning star",
+        "He's the fairest of ten thousand",
+        "Everybody ought to know"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Everybody ought to tell",
+        "Everybody ought to tell who Jesus is",
+        "On the cross He died for sinners",
+        "And His blood makes white as snow",
+        "Loving, living coming Saviour",
+        "He's the one you ought to know"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    }
+  ],
+  "meta": {}
+}

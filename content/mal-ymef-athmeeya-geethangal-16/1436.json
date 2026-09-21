@@ -1,0 +1,81 @@
+{
+  "number": 1436,
+  "title": "Alas! And did my Saviour bleed?",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Alas! And did my Saviour bleed?",
+        "And did my Sovereign die?",
+        "Would He devote that sacred head?",
+        "For such a worm as I?"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Was it for crimes that I had done?",
+        "He groaned upon the tree?",
+        "Amazing pity! Grace unknown!",
+        "And love beyond degree!"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Well might the sun in darkness hide?",
+        "And shut his glories in",
+        "When Christ, the mighty Maker, died",
+        "For man the creature's sin"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Thus might I hide my blushing face?",
+        "While His dear Cross appears",
+        "Dissolve my heart in thankfulness",
+        "And melt my eyes to tears"
+      ]
+    },
+    {
+      "id": "s5",
+      "kind": "stanza",
+      "label": "5",
+      "lines": [
+        "But drops of grief can ne'er repay",
+        "The debt of love I owe",
+        "Here, Lord, I give myself away",
+        "'Tis all that I can do"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "s5"
+    }
+  ],
+  "meta": {
+    "author": "I Watts"
+  }
+}

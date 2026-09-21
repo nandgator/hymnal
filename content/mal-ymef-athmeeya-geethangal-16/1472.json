@@ -1,0 +1,28 @@
+{
+  "number": 1472,
+  "title": "Wide, wide as the ocean",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Wide, wide as the ocean",
+        "High as the heavens above",
+        "Deep, deep as the deepest sea",
+        "Is my Saviour's love?",
+        "I, tho' so unworthy",
+        "Still am a child of His care",
+        "For His word teaches me",
+        "That His love reaches me",
+        "Everywhere"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

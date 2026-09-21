@@ -1,0 +1,27 @@
+{
+  "number": 1492,
+  "title": "Zaccheus was a very little man",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Zaccheus was a very little man",
+        "And a very little man was he",
+        "He climbed upon a sycamore tree",
+        "For the Lord he wanted to see",
+        "And as the Saviour passed that way",
+        "He looked in the tree",
+        "And He said, \"Zaccheus, you come down",
+        "For I'm coming to your house today\""
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

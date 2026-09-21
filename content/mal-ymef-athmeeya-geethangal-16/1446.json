@@ -1,0 +1,89 @@
+{
+  "number": 1446,
+  "title": "Pass me not, O gracious Saviour",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Saviour! Saviour!",
+        "Hear my humble cry",
+        "While on others Thou art calling",
+        "Do not pass me by"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Pass me not, O gracious Saviour",
+        "Hear my humble cry",
+        "While on others Thou art calling",
+        "Do not pass me by"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Let me at the throne of mercy",
+        "Find a sweet relief",
+        "As I kneel in deep condition",
+        "Help my unbelief"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Trusting only in Thy merit",
+        "Would I seek Thy face?",
+        "Heal my wounded, broken spirit",
+        "Save me by Thy grace"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "4.Thou the spring of all my comfort",
+        "More than life to me",
+        "Whom have I on earth beside Thee?",
+        "Whom in heaven but Thee?"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "F J Crosby"
+  }
+}

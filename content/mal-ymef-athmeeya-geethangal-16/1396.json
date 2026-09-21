@@ -1,0 +1,89 @@
+{
+  "number": 1396,
+  "title": "The love that Jesus had for me",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "His love is more than",
+        "Tongue can tell",
+        "The love that Jesus had for me",
+        "Is more than tongue can tell!"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "The love that Jesus had for me",
+        "To suffer on the cruel tree",
+        "That I a ransomed soul might be",
+        "Is more than tongue can tell!"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "The bitter sorrow that He bore",
+        "And, oh that crown of thorns He wore",
+        "That, might live for evermore",
+        "Is more than tongue can tell!"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "The peace I have in Him my Lord",
+        "Who pleads before the throne of God?",
+        "The merit of His precious blood",
+        "Is more than tongue can tell!"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "The joy that comes when He is near",
+        "The rest He gives, so free from fear",
+        "The hope in Him, so bright and clear",
+        "Is more than tongue can tell!"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "J E Hall"
+  }
+}

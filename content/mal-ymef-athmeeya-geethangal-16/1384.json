@@ -1,0 +1,67 @@
+{
+  "number": 1384,
+  "title": "Holy, Holy, Holy Lord God Almighty!",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Holy, Holy, Holy Lord God Almighty!",
+        "Early in the morning our song shall rise to Thee",
+        "Holy, Holy, Holy merciful and mighty",
+        "God in three Persons blessed Trinity!"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Holy, Holy, Holy! All the saints adore Thee",
+        "Casting down their golden crowns around the glassy sea",
+        "Cherubim and seraphim falling down before Thee",
+        "Who wert, and art and evermore shalt be"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Holy, Holy, Holy! Though the darkness hide Thee",
+        "Though the eye of sinful man Thy glory may not see",
+        "Only Thou art holy, there is none beside Thee",
+        "Perfect in power, in love and purity"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Holy, Holy, Holy Lord God Almighty!",
+        "All Thy works shall praise Thy Name, in earth, and sky, and sea",
+        "Holy, Holy, Holy merciful and mighty",
+        "God in three Persons, blessed Trinity!"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "s4"
+    }
+  ],
+  "meta": {
+    "author": "R Heber"
+  }
+}

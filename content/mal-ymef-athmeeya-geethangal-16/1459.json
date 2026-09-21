@@ -1,0 +1,45 @@
+{
+  "number": 1459,
+  "title": "Whisper a prayer in the morning",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Whisper a prayer in the morning",
+        "Whisper a prayer at noon",
+        "Whisper a prayer in the evening",
+        "And keep your heart in tune"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "God answers prayer"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Jesus may come"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    }
+  ],
+  "meta": {}
+}

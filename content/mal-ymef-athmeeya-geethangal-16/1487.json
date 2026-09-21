@@ -1,0 +1,27 @@
+{
+  "number": 1487,
+  "title": "Life is wonderful oh so wonderful",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Life is wonderful oh so wonderful",
+        "Life is wonderful now to me",
+        "I took Jesus in He changed everything",
+        "Life is wonderful now",
+        "Since His blessings came into my heart",
+        "Joy unspeakable fills my every part",
+        "Now I want to live for my Lord",
+        "Life is wonderful now"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

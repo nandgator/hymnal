@@ -1,0 +1,46 @@
+{
+  "number": 1481,
+  "title": "I will make you fishers of men",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "I will make you fishers of men",
+        "Fishers of men, fishers of men",
+        "I will make you fishers of men",
+        "If you follow Me",
+        "If you follow Me",
+        "If you follow Me",
+        "I will make you fishers of men",
+        "If you follow Me"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Hear Christ calling, come unto Me",
+        "Come unto Me, come unto Me",
+        "Hear Christ calling, come unto Me",
+        "I will give you rest",
+        "I will give you rest",
+        "I will give you rest",
+        "Hear Christ calling",
+        "Come unto Me",
+        "I will give you rest"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    }
+  ],
+  "meta": {}
+}

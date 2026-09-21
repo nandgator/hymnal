@@ -1,0 +1,54 @@
+{
+  "number": 1486,
+  "title": "The best book to read is the Bible",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "The best book to read is the Bible",
+        "The best book to read is the Bible",
+        "If you read it every day",
+        "It will help you on your way",
+        "Oh, the best book to read is the Bible"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "The best friend to have is Jesus",
+        "The best friend to have is Jesus",
+        "He will hear me when I call",
+        "He will keep me lest I fall",
+        "Oh, the best friend to have is Jesus"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "The best thing to do is to trust Him",
+        "The best thing to do is to trust Him",
+        "And if you on Him depend",
+        "He will keep you to the end",
+        "Oh, the best thing to do is to trust Him"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    }
+  ],
+  "meta": {}
+}

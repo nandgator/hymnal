@@ -1,0 +1,25 @@
+{
+  "number": 1478,
+  "title": "Happy day, Happy day",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Happy day, Happy day",
+        "When Jesus washed my sins away!",
+        "He teaches me to watch and pray",
+        "And live rejoicing every day",
+        "Happy day, happy day",
+        "When Jesus washed my sins away!"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

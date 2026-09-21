@@ -1,0 +1,23 @@
+{
+  "number": 1474,
+  "title": "A sunbeam, a sunbeam",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "A sunbeam, a sunbeam",
+        "Jesus wants me for a sunbeam",
+        "A sunbeam, a sunbeam",
+        "I'll be a sunbeam for Him"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

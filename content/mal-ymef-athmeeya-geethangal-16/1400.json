@@ -1,0 +1,116 @@
+{
+  "number": 1400,
+  "title": "In tenderness He sought me",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Oh the love and that sought me!",
+        "Oh the blood that bought me!",
+        "Oh, the grace that brought me to the fold",
+        "Wondrous grace that brought me to the fold"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "In tenderness He sought me",
+        "Weary and sick with sin",
+        "And on His shoulders brought me",
+        "Back to His fold again",
+        "While angels in His presence sang",
+        "Until the courts of heaven rang"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "He found me bruised and dying",
+        "And poured in oil and wind",
+        "He whispered to assure me",
+        "\"I've found thee thou art mine!",
+        "I never heard a sweeter voice",
+        "It made my aching heart rejoice"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "He pointed to the nail prints",
+        "For me His blood was shed",
+        "A mocking crown so thorny",
+        "Was placed upon His head",
+        "I wondered what He saw in me",
+        "To suffer such deep agony"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "I'm sitting in His presence",
+        "The sunshine of His face",
+        "While with adoring wonder",
+        "His blessings I retrace",
+        "It seems as if eternal days",
+        "Are far too short to sound His praise"
+      ]
+    },
+    {
+      "id": "s5",
+      "kind": "stanza",
+      "label": "5",
+      "lines": [
+        "So, while the hours are passing",
+        "All now is perfect rest",
+        "I'm waiting for the morning",
+        "The brightest and the best",
+        "When He will call us to His side",
+        "To be with Him, His spotless Bride"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s5"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "W S Walton"
+  }
+}

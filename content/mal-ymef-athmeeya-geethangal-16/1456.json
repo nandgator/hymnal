@@ -1,0 +1,48 @@
+{
+  "number": 1456,
+  "title": "My beloved is mine and I am His",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "My beloved is mine and I am His",
+        "His banner over me is love",
+        "His banner over me is love"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "He brought me to his banqueting table",
+        "His banner over me is love",
+        "His banner over me is love"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "He lifted me up into heavenly places",
+        "His banner over me is love",
+        "His banner over me is love"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    }
+  ],
+  "meta": {}
+}

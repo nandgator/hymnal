@@ -1,0 +1,89 @@
+{
+  "number": 1394,
+  "title": "There shall be showers of blessing",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Showers of blessing",
+        "Showers of blessing we need",
+        "Mercy drops round us are falling",
+        "But for the showers we plead"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "There shall be showers of blessing",
+        "This is the promise of love",
+        "There shall be seasons refreshing",
+        "Sent from the Saviour above"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "“There shall be showers of blessing",
+        "Precious reviving again",
+        "Over the hills and the valleys",
+        "Sound of abundance of rain"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "“There shall be showers of blessing”",
+        "Send them upon us O Lord",
+        "Grant to us now a refreshing",
+        "Come, and now honour Thy word"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "There shall be showers of blessing",
+        "Oh, that today might fall",
+        "Now as to God we're confessing",
+        "Now as on Jesus we call"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "D W Whittle"
+  }
+}

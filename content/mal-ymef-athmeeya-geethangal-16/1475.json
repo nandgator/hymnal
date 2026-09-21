@@ -1,0 +1,25 @@
+{
+  "number": 1475,
+  "title": "Rejoice in the Lord always",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Rejoice in the Lord always",
+        "And again I say rejoice",
+        "Rejoice, rejoice",
+        "And again I say rejoice",
+        "Rejoice in the Lord always",
+        "And again I say rejoice"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

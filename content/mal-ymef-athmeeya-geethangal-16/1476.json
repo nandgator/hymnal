@@ -1,0 +1,27 @@
+{
+  "number": 1476,
+  "title": "Yesterday, today forever",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Yesterday, today forever",
+        "Jesus is the same",
+        "All may change, but Jesus never",
+        "Glory to His name",
+        "Glory to His name",
+        "Glory to His name",
+        "All may change but Jesus never",
+        "Glory to His name"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

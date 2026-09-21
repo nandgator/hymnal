@@ -1,0 +1,73 @@
+{
+  "number": 1430,
+  "title": "Great is thy faithfulness, O God my Father",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Great is thy faithfulness",
+        "Great is thy faithfulness",
+        "Morning by morning new mercies I see",
+        "All I have needed Thy hand hath provided",
+        "Great is thy faithfulness, Lord, unto me"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Great is thy faithfulness, O God my Father",
+        "There is no shadow of turning with Thee",
+        "Thou changeset not Thy compassions they fail not",
+        "As Thou hast been, Thou forever wilt be"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Summer and winter, springtime and harvest",
+        "Sun, moon and stars in their courses above",
+        "Join with all nature in manifold witness",
+        "To Thy great faithfulness, mercy and love"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Pardon for sin and a peace that endureth by",
+        "Thy own dear presence to cheer and to guide",
+        "Strength for today and bright hope for tomorrow",
+        "Blessings all mine with ten thousand beside"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "T O Chisholm"
+  }
+}

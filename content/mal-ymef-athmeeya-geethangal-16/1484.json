@@ -1,0 +1,24 @@
+{
+  "number": 1484,
+  "title": "Let the beauty of Jesus be seen in me",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Let the beauty of Jesus be seen in me",
+        "All His wondrous compassion and purity",
+        "Oh, Thou Spirit Divine",
+        "Make all Thy nature mine",
+        "Till the beauty of Jesus be seen in me"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

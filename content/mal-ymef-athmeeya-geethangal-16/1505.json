@@ -1,0 +1,25 @@
+{
+  "number": 1505,
+  "title": "There is power power",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "There is power power",
+        "Wonder working power",
+        "In the blood of the Lamb",
+        "There is power power",
+        "Wonder working power",
+        "In the precious blood of the Lamb"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

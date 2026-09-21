@@ -1,0 +1,23 @@
+{
+  "number": 1508,
+  "title": "King of kings and Lord of lords",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "King of kings and Lord of lords",
+        "Glory hallelujah!",
+        "Jesus, Prince of peace",
+        "Glory, hallelujah!"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

@@ -1,0 +1,105 @@
+{
+  "number": 1447,
+  "title": "Tell me the old, old story",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Tell me the old, old story",
+        "Tell me the old, old story",
+        "Tell me the old, old story",
+        "Of Jesus and His Love"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Tell me the old, old story",
+        "Of unseen things above",
+        "Of Jesus and His glory",
+        "Of Jesus and His love",
+        "Tell me the story simply",
+        "As to a little child",
+        "For I am weak and weary",
+        "And helpless and defiled"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Tell me the story slowly",
+        "That I may take it in -",
+        "That wonderful redemption",
+        "God's remedy for sin",
+        "Tell me the story often",
+        "For I forget so soon",
+        "The early dew of morning",
+        "Has passed away a noon"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Tell me the story, softly",
+        "With earnest tones and grave",
+        "Remember! I'm the sinner",
+        "Whom Jesus came to save",
+        "Tell me that story always",
+        "If you would really be",
+        "In any time of trouble",
+        "A comforter to me"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Tell me the same old story",
+        "When you have cause to fear",
+        "That this world's empty glory",
+        "It's costing me too dear",
+        "Yes, and when that world's glory",
+        "Is dawning on my soul",
+        "Tell me the old, old story",
+        "Christ Jesus makes thee whole"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "K Hankey"
+  }
+}

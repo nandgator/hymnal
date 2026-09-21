@@ -1,0 +1,23 @@
+{
+  "number": 1482,
+  "title": "Count your blessings name them one by one",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Count your blessings name them one by one",
+        "Count your blessings see what God hath done",
+        "Count your blessings name them one by one",
+        "And it will surprise you what the Lord hath done"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    }
+  ],
+  "meta": {}
+}

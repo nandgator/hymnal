@@ -1,0 +1,95 @@
+{
+  "number": 1453,
+  "title": "Just as I am, without one plea",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Just as I am, without one plea",
+        "But that Thy blood was shed for me",
+        "And that Thou bid'st me come to Thee",
+        "O Lamb of God, I come"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Just as I am and waiting not",
+        "To rid my soul of one dark blot",
+        "To Thee whose blood can cleanse each spot?",
+        "O Lamb of God I come"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Just as I am, though tossed about",
+        "With many a conflict, many doubt",
+        "Fighting's within, and fears without",
+        "O Lamb of God, I come"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Just as I am, poor, wretched, blind",
+        "Sight, riches, healing of the mind",
+        "Yea, all I need, to find",
+        "O Lamb of God, I come"
+      ]
+    },
+    {
+      "id": "s5",
+      "kind": "stanza",
+      "label": "5",
+      "lines": [
+        "Just as I am, Thou wilt receive",
+        "Wilt welcome, pardon, cleanse, relieve",
+        "Because Thy promise I believe",
+        "O Lamb of God, I come"
+      ]
+    },
+    {
+      "id": "s6",
+      "kind": "stanza",
+      "label": "6",
+      "lines": [
+        "Just as I am, Thy love unknown",
+        "Has broken every barrier down",
+        "Now, to be Thine, yea, Thine alone",
+        "O Lamb of God, I come"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "s5"
+    },
+    {
+      "partId": "s6"
+    }
+  ],
+  "meta": {
+    "author": "C Elliott"
+  }
+}

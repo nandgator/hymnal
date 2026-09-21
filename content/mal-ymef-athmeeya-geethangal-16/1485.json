@@ -1,0 +1,41 @@
+{
+  "number": 1485,
+  "title": "Heaven is a wonderful place",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Heaven is a wonderful place",
+        "Filled with His glory and grace",
+        "There I shall see my Saviour's face",
+        "Heaven is a marvelous",
+        "Heaven is a glorious",
+        "Heaven is a wonderful place"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Jesus is a wonderful friend",
+        "Every broken heart He can mend",
+        "He will keep you to the end",
+        "Jesus is a marvelous",
+        "Jesus is a glorious",
+        "Jesus is a wonderful friend"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    }
+  ],
+  "meta": {}
+}

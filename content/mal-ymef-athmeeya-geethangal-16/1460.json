@@ -1,0 +1,50 @@
+{
+  "number": 1460,
+  "title": "There is a joy, joy, joy, joy",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "There is a joy, joy, joy, joy",
+        "Down in my heart",
+        "Glory to His name"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "I know the devil doesn't like it",
+        "But it's down in my heart",
+        "Down in my heart",
+        "Glory to His name"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "I have the peace that",
+        "passeth under standing",
+        "Down in my heart",
+        "Glory to His name"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    }
+  ],
+  "meta": {}
+}

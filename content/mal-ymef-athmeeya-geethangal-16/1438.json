@@ -1,0 +1,89 @@
+{
+  "number": 1438,
+  "title": "What can wash away my stain?",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "Oh, precious is the flow",
+        "That makes me white as snow!",
+        "No other fount I know",
+        "Nothing but the blood of Jesus!"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "What can wash away my stain?",
+        "Nothing but the blood of Jesus!",
+        "What can make me whole again?",
+        "Nothing but the blood of Jesus!"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "For my cleansing this I see",
+        "Nothing but the blood of Jesus!",
+        "For my pardon this my plea",
+        "Nothing but the blood of Jesus!"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Nothing can for sin atone",
+        "Nothing but the blood of Jesus!",
+        "Naught of good that I have done",
+        "Nothing but the blood of Jesus!"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "This is all my hope and peace",
+        "Nothing but the blood of Jesus!",
+        "This is all my righteousness",
+        "Nothing but the blood of Jesus!"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "R Lowry"
+  }
+}

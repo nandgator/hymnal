@@ -1,0 +1,76 @@
+{
+  "number": 1432,
+  "title": "When the trumpet of the Lord shall",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "When the roll is called up yonder",
+        "When the roll is called up yonder",
+        "When the roll is called up yonder, I'll be there"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "When the trumpet of the Lord shall",
+        "Sound and time shall be no more",
+        "And the morning breaks, eternal, bright, and fair",
+        "When the saved of earth shall gather over on the other shore",
+        "And the roll is called up yonder, I'll be there"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "On that bright and cloudless morning",
+        "When the dead in Christ shall rise",
+        "And the glory of His resurrection share",
+        "When His chosen ones shall gather",
+        "To their home beyond the skies",
+        "And the roll is called up yonder, I'll be there"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Let me labour for the Master from",
+        "The dawn till setting sun",
+        "Let me talk of all His wondrous love and care",
+        "Then when all of life is over",
+        "And my work on earth is done",
+        "And the roll is called up yonder, I'll be there"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "J M Black"
+  }
+}

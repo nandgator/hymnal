@@ -1,0 +1,70 @@
+{
+  "number": 1403,
+  "title": "Let us sing of His love once again",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "In the sweet by and by",
+        "We shall meet on that beautiful shore",
+        "In the sweet by and by",
+        "We shall meet on that beautiful shore"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Let us sing of His love once again",
+        "Of the love that can never decay",
+        "Of the blood of the Lamb who was slain",
+        "Till we praise Him again in that day"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "There is cleansing and healing for all",
+        "Who will wash in the life giving flood?",
+        "There is life everlasting and joy",
+        "At the right hand of God through the blood"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Even now while we taste of His love",
+        "We are filled with delight at His Name",
+        "But what will it be when above",
+        "We shall join in the song of the Lamb?"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {}
+}

@@ -1,0 +1,95 @@
+{
+  "number": 1398,
+  "title": "Amazing grace! How sweet the sound",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Amazing grace! How sweet the sound",
+        "That saved a wretch like me",
+        "I once was lost, but now am found",
+        "Was blind, but now I see"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "'Twas grace that taught my heart to fear",
+        "And grace my fears relieved",
+        "How precious did that grace appear?",
+        "The hour I first believed!"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Through many dangers, toils and snares",
+        "I have already come",
+        "'Tis grace that brought me safe thus far",
+        "And grace will lead me home"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "The Lord has promised good to me",
+        "His Word my hope secures",
+        "He will my shield and portion be",
+        "As long as life endures"
+      ]
+    },
+    {
+      "id": "s5",
+      "kind": "stanza",
+      "label": "5",
+      "lines": [
+        "Yes, when this heart and flesh shall fail",
+        "And mortal life shall cease",
+        "I shall possess within the veil",
+        "A life of joy and peace"
+      ]
+    },
+    {
+      "id": "s6",
+      "kind": "stanza",
+      "label": "6",
+      "lines": [
+        "When we've been there a thousand years",
+        "Bright shining as the sun",
+        "We've no less days to sing God's praise",
+        "Than when we first begun"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "s5"
+    },
+    {
+      "partId": "s6"
+    }
+  ],
+  "meta": {
+    "author": "J Newton"
+  }
+}

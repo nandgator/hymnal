@@ -1,0 +1,106 @@
+{
+  "number": 1431,
+  "title": "Who can cheer the heart like Jesus?",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "All that thrills my soul is Jesus",
+        "He is more than life to me",
+        "And the fairest of ten thousand",
+        "In my blessed Lord I see"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Who can cheer the heart like Jesus?",
+        "By His presence all divine?",
+        "True and tender, pure and precious",
+        "O how blest to call Him mine!"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Love of Christ so freely given",
+        "Grace of God beyond degree",
+        "Mercy higher than the heaven",
+        "Deeper than the deepest sea!"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "What a Wonderful redemption!",
+        "Never can a mortal know",
+        "How my sin, tho red like crimson",
+        "Can be whiter than the snow"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Every need His hand supplying",
+        "Every good in Him I see",
+        "On His strength diving relying",
+        "He is all in all to me"
+      ]
+    },
+    {
+      "id": "s5",
+      "kind": "stanza",
+      "label": "5",
+      "lines": [
+        "By the crystal flowing river",
+        "With the ransomed I will sing",
+        "And for ever and for ever",
+        "Praise and glorify the King"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s5"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "T Harris"
+  }
+}

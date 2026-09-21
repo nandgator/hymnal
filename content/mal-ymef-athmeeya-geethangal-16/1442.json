@@ -1,0 +1,89 @@
+{
+  "number": 1442,
+  "title": "Jesus, keep me near the Cross",
+  "parts": [
+    {
+      "id": "r",
+      "kind": "refrain",
+      "lines": [
+        "In the Cross, in the Cross",
+        "Be my glory ever",
+        "Till my raptured soul shall find",
+        "Rest beyond the river"
+      ]
+    },
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "Jesus, keep me near the Cross",
+        "There a precious fountain",
+        "Free to all, a healing stream",
+        "Flows from Calvary's mountain"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Near the Cross, a trembling soul",
+        "Love and mercy found, me",
+        "There the bright and morning star",
+        "Shed its beams around me"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Near the Cross, O Lamb of God",
+        "Bring its scenes before me",
+        "Help me walk from day today",
+        "With its shadow o'er me"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "Near the Cross I'll watch and wait",
+        "Hoping, trusting ever",
+        "Till I reach the golden strand",
+        "Just beyond the river"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "r"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "r"
+    }
+  ],
+  "meta": {
+    "author": "F J Crosby"
+  }
+}

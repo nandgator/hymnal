@@ -1,0 +1,93 @@
+{
+  "number": 1422,
+  "title": "O God, our help in ages past",
+  "parts": [
+    {
+      "id": "s1",
+      "kind": "stanza",
+      "label": "1",
+      "lines": [
+        "O God, our help in ages past",
+        "Our hope for years to come",
+        "Our shelter from the stormy blast",
+        "And our eternal home"
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "stanza",
+      "label": "2",
+      "lines": [
+        "Under the shadow of Thy throne",
+        "Thy saints have dwelt secure",
+        "Sufficient is Thine arm alone",
+        "And our defense is sure"
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "stanza",
+      "label": "3",
+      "lines": [
+        "Before the hills in order stood",
+        "Or earth received her frame",
+        "From everlasting Thou art God",
+        "To endless years the same"
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "stanza",
+      "label": "4",
+      "lines": [
+        "A thousand Ages in Thy sight",
+        "Are like an evening gone",
+        "Short as the Watch that ends the night",
+        "Before the rising sun"
+      ]
+    },
+    {
+      "id": "s5",
+      "kind": "stanza",
+      "label": "5",
+      "lines": [
+        "Time, like an ever rolling stream",
+        "Bears all its sons away",
+        "They fly, forgotten, as a dream",
+        "Dies at the opening day"
+      ]
+    },
+    {
+      "id": "s6",
+      "kind": "stanza",
+      "label": "6",
+      "lines": [
+        "O God, our help in ages past",
+        "Our hope for years to come",
+        "Be Thou our guard while life shall last",
+        "And our eternal home"
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "partId": "s1"
+    },
+    {
+      "partId": "s2"
+    },
+    {
+      "partId": "s3"
+    },
+    {
+      "partId": "s4"
+    },
+    {
+      "partId": "s5"
+    },
+    {
+      "partId": "s6"
+    }
+  ],
+  "meta": {}
+}
