@@ -60,6 +60,7 @@ interface Hymnbook {
   script: string; // ISO 15924, e.g. "Mlym"
   publisher?: string;
   edition?: string;
+  isbn?: string; // natural id for a published edition
   hymnCount: number;
 }
 
@@ -97,6 +98,14 @@ interface Hymn {
 Everything in `HymnMeta` is optional. The corpus has almost none of it
 ([ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)), and fields are
 backfilled as they become available rather than invented.
+
+`HymnbookId` stays a human slug, not a synthetic id (e.g. UUID), while the
+content pipeline is the only publisher: a single writer can guarantee
+uniqueness at build time the same way `HymnNumber` uniqueness is checked
+(I7), so a coordination-free scheme buys nothing yet and would cost the
+slug's legibility in URLs, filenames and debug output. Revisit this once
+the CMS (Board #11) allows hymnbooks from more than one contributor — see
+§8.
 
 ### 2.2 Occurrence — derived, never stored
 
@@ -256,6 +265,7 @@ CREATE TABLE hymnbook (
   script         TEXT NOT NULL,   -- ISO 15924
   publisher      TEXT,
   edition        TEXT,
+  isbn           TEXT,
   schema_version INTEGER NOT NULL
 ) STRICT;
 
@@ -330,7 +340,7 @@ Per [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md). Legacy record:
   "starts": "chorus",
   "chorus": [],
   "bridge": [],
-  "verses": [[]]
+  "verses": [[]],
 }
 ```
 
@@ -372,3 +382,4 @@ would discard accumulated corrections, so it must not run as part of the build.
 | Whether `tag` and `bridge` kinds are ever populated | A second hymnbook                           |
 | Cross-book hymn identity for parallel translations  | Deferred until a second book exists         |
 | Word-level addressing below `lineIndex`             | Phase 2, if lyric alignment proves feasible |
+| Synthetic multi-publisher `HymnbookId` (e.g. UUID7) | CMS (Board #11), if publishing is opened up |

@@ -3,6 +3,13 @@
 Live control document. **Read first, update last.** Everything else in `docs/`
 is reference; this is state. If the two disagree, this file is wrong — fix it.
 
+## Workflow
+
+The loop, for anything bigger than a typo: an idea from either side → hashed
+out to shared understanding → the relevant ADR/SDD/PLAN updated first → built
+in parts, user reviewing each → next Board item, repeat until the hymnal is
+built.
+
 ## Session protocol
 
 1. Read this file.
@@ -21,19 +28,20 @@ is reference; this is state. If the two disagree, this file is wrong — fix it.
 
 ## Now
 
-**Phase 1, scaffold done.** App builds, lints and tests green; no domain code
-yet.
+**Phase 1, domain layer started.** Sequence Engine implemented and unit
+tested; no UI, persistence or content pipeline yet.
 
-**Next:** Board #2 — domain types + Sequence Engine.
+**Next:** Board #3 — FTS5 tokenisation spike for Malayalam (risk R5).
 
 ## State
 
-| Area    | Status                                                             |
-| ------- | ------------------------------------------------------------------ |
-| Docs    | arc42 + 13 ADRs + SDD-0001 complete                                |
-| Tooling | bun, biome, prettier, markdownlint — `bun run check` green         |
-| App     | Vite + SolidJS + TS scaffolded; vitest chosen as test runner       |
-| Corpus  | 1,631 hymns, unmigrated; `archive/` removed from tree — see README |
+| Area    | Status                                                              |
+| ------- | ------------------------------------------------------------------- |
+| Docs    | arc42 + 13 ADRs + SDD-0001 complete                                 |
+| Tooling | bun, biome, prettier, markdownlint — `bun run check` green          |
+| App     | Vite + SolidJS + TS scaffolded; vitest chosen as test runner        |
+| Domain  | Types + Sequence Engine (`src/domain/`) — pure, 15 unit tests green |
+| Corpus  | 1,631 hymns, unmigrated; `archive/` removed from tree — see README  |
 
 ## Board
 
@@ -41,14 +49,13 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                             | Blocked by |
 | --- | ---------------------------------------------------------------- | ---------- |
-| 2   | Domain types + Sequence Engine — pure, unit tested               | —          |
 | 3   | Spike: FTS5 tokenisation for Malayalam (risk R5)                 | —          |
-| 4   | Migration: archived corpus → new corpus source                   | 2          |
+| 4   | Migration: archived corpus → new corpus source                   | —          |
 | 5   | Content pipeline: corpus → SQLite package + invariant validation | 3, 4       |
 | 6   | Persistence: OPFS content store, IndexedDB user state            | 5          |
 | 7   | Library — hymnbook selector                                      | 6          |
 | 8   | Finder — number and lyric search                                 | 6          |
-| 9   | Presenter — renderer, focus, recurrence cue                      | 2, 6       |
+| 9   | Presenter — renderer, focus, recurrence cue                      | 6          |
 | 10  | PWA shell, offline, responsive phone → large display             | 7, 8, 9    |
 | 11  | CMS for managing hymnal content (add/edit hymns, hymnbooks)      | 5          |
 
@@ -88,6 +95,15 @@ ones only, here:
 
 ## Log
 
+- 2026-09-21 — Added `Hymnbook.isbn` (natural id). Kept `HymnbookId` as a
+  human slug rather than a synthetic id (uuid7 etc.) — deferred to Board
+  #11 (CMS), the point at which multi-publisher coordination would matter.
+  Documented the idea → discuss → document → build → review loop as
+  **Workflow**, above.
+- 2026-09-21 — Board #2 done: domain types + Sequence Engine in
+  `src/domain/`, pure and framework-free (ADR-0005). 15 unit tests cover
+  recurrence computation, ad-hoc jumps and the whole-part/line-index walk
+  across occurrence boundaries (open question in SDD-0001 §5.4).
 - 2026-09-21 — Board #1 done: Vite + SolidJS + TS scaffolded, vitest chosen,
   biome's solid domain wired in. `bun run check` green, dev server and build
   verified in a real browser.
