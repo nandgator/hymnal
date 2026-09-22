@@ -158,7 +158,9 @@ export function buildContent({ contentDir, outDir }: { contentDir: string; outDi
 if (import.meta.main) {
   const root = fileURLToPath(new URL("..", import.meta.url));
   const contentRoot = join(root, "content");
-  const outDir = join(root, "dist", "content");
+  // public/ is copied verbatim into the Vite build and served as-is in dev;
+  // dist/ is emptied on every `vite build` and doesn't exist in dev at all.
+  const outDir = join(root, "public", "content");
   const dirs = existsSync(contentRoot)
     ? readdirSync(contentRoot, { withFileTypes: true }).filter((d) => d.isDirectory())
     : [];
