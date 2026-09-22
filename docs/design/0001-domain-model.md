@@ -549,6 +549,9 @@ Built on the OO1 API's `selectObjects()`/`exec()`, not raw
 `prepare`/`step`/`finalize` — the official build's query surface is
 object-returning, unlike `wa-sqlite`'s integer-pointer handles.
 
+`searchLyrics`'s matching (per-word prefix, implicit AND, capped at 30
+results) was settled in Board #8 — see §13.
+
 ### 10.4 Known limitation
 
 `opfs-sahpool` does not support multiple simultaneous connections
@@ -645,3 +648,58 @@ defaulting to `BUNDLED_HYMNBOOK_ID` and `getContentStore()` — tests inject a
 fake `ContentStore` instead of touching the real Worker/OPFS, so all four
 states (pending, each error, ready, retry) are unit tested despite the
 underlying store not being (§10.5).
+
+`BUNDLED_HYMNBOOK_ID` itself lives in `src/config.ts`, not here — Finder
+(§13) needs it too, and a UI component module is the wrong place for a
+value other components import.
+
+## 13. Finder
+
+Board #8. arc42 §5.1: "retrieval by number and by lyric text; recents" —
+explicitly not ranking beyond relevance, not favourites. `src/finder/Finder.tsx`
+is one search box with no mode toggle: all-digit input is a hymn number
+(`ContentStore.getHymn`), anything else is lyric text
+(`ContentStore.searchLyrics`). The input shape decides the path, matching how
+people actually search a hymnal ("I know it's 42" vs. "how does it start").
+
+**Number lookup is direct, not a results list.** `getHymn` either succeeds —
+in which case the hymn is immediately selected, no extra click — or fails,
+reported as "No hymn numbered N." There is nothing to disambiguate: a number
+identifies at most one hymn.
+
+**Lyric search matching** (moved into `content-store.worker.ts`'s
+`searchLyrics`, replacing the whole-phrase placeholder from §10.3): each word
+becomes a quoted FTS5 prefix term (`"word"*`), joined with spaces for
+implicit AND. A query matches lines containing all the words, regardless of
+order, and matches as the user finishes typing a word. Each term is quoted
+(not merely escaped) so FTS5 query-syntax characters in free text can't break
+the query — the same defence the placeholder had, kept. **Capped at 30
+results** (`SEARCH_LIMIT`): found by browser-testing against the real corpus
+— a common word matches hundreds of hymns, and `rank` ordering doesn't help a
+caller that renders every row. The snippet is the first line containing any
+query word, since a multi-word query can match across different lines of the
+same hymn.
+
+**Selecting a hymn** (from a number lookup, a search result, or a recent)
+calls `userState.addRecent` and shows a `Selected: <title> (#<number>)`
+confirmation. **It does not render the hymn** — parts, sequence, lyrics stay
+Presenter's job (Board #9), kept out of Finder the same way Library was kept
+from rendering Finder before Finder existed. `hymns()` off
+`ContentStore.listHymns`, requested once per mount, backs the title shown for
+each recent — `RecentEntry` (§11) only carries `hymnNumber`.
+
+**Navigation.** `App.tsx` holds the `view` signal promised in §12: `"library"
+| "finder"`. `Library` gains an `onReady` callback prop — its ready state now
+also renders a "Find a hymn" button that calls it — and `App` uses it to flip
+`view` to `"finder"`. Still no router (§12); there is now something to
+navigate _to_, but still nothing to navigate _back to_ or deep-link _toward_.
+
+**Testing.** `Finder` takes `hymnbookId`, `store` and `userState` as optional
+props, same pattern as `Library` — tests inject fakes for both, covering
+number lookup (found and not-found), lyric search (results and no-match),
+recents (empty and populated, title-resolved), and selection recording, all
+without touching the real Worker/OPFS or IndexedDB. The FTS5 matching and
+result-cap logic itself is worker code, not unit tested for the same reason
+as the rest of `content-store.worker.ts` (§10.5) — verified by hand against
+the real corpus, including confirming the 30-result cap holds for a
+deliberately common word.

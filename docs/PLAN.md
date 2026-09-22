@@ -28,11 +28,11 @@ built.
 
 ## Now
 
-**Phase 1, first UI screen built.** Library (`src/library/`) provisions the
-bundled hymnbook and shows loading/error/ready states; no Finder or Presenter
-yet.
+**Phase 1, retrieval built.** Library → Finder: provisioning, then number and
+lyric search, recents. Selecting a hymn confirms and records it; nothing
+renders a hymn yet.
 
-**Next:** Board #8 — Finder, number and lyric search.
+**Next:** Board #9 — Presenter: renderer, focus, recurrence cue.
 
 ## State
 
@@ -45,7 +45,7 @@ yet.
 | Corpus  | 1,631 hymns migrated to `content/`; 12 flagged for hand review           |
 | Content | `bun run build:content` builds `public/content/*.sqlite`, FTS5 + hash    |
 | Persist | Content store (SQLite/OPFS, worker) + user state (idb) — SDD-0001 §10-11 |
-| UI      | Library provisions + shows the bundled hymnbook (`src/library/`) — §12   |
+| UI      | Library → Finder: provisioning, number/lyric search, recents — §12-13    |
 
 ## Board
 
@@ -53,7 +53,6 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                          | Blocked by |
 | --- | ------------------------------------------------------------- | ---------- |
-| 8   | Finder — number and lyric search                              | —          |
 | 9   | Presenter — renderer, focus, recurrence cue                   | —          |
 | 10  | PWA shell, offline, responsive phone → large display          | 7, 8, 9    |
 | 11  | CMS for managing hymnal content (add/edit hymns, hymnbooks)   | —          |
@@ -93,6 +92,13 @@ ones only, here:
 
 ## Log
 
+- 2026-09-22 — Board #8 done: `src/finder/Finder.tsx` — one search box,
+  auto-detects number vs. lyric text, recents (SDD-0001 §13).
+  `searchLyrics` reworked to per-word prefix + implicit AND, capped at 30
+  results (a common word matched hundreds against the real corpus).
+  Selecting confirms + records recents; doesn't render the hymn (Presenter's
+  job). `App.tsx` now holds the `view` signal (§12) and wires Library →
+  Finder. `BUNDLED_HYMNBOOK_ID` moved to `src/config.ts`, shared by both.
 - 2026-09-22 — Board #7 done: `src/library/Library.tsx` provisions the
   bundled hymnbook on mount and renders pending/error/ready states, with
   retry on failure (SDD-0001 §12). Narrowed from arc42's list/install/remove
@@ -137,5 +143,3 @@ ones only, here:
   924, 930, 1066, 1335 need hand correction of their multi-paragraph choruses.
 - 2026-09-21 — Board #3 done: default `unicode61` fragments Malayalam;
   `tokenchars` fix validated on the real corpus (SDD-0001 §6, R5 closed).
-- 2026-09-21 — Added `Hymnbook.isbn`; kept `HymnbookId` a slug, uuid7
-  deferred to Board #11. Documented the **Workflow** loop.
