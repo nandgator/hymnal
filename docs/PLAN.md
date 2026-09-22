@@ -31,7 +31,8 @@ built.
 **Phase 1, content pipeline built.** Corpus builds to a SQLite package; no UI
 or persistence yet.
 
-**Next:** Board #6 — persistence: OPFS content store, IndexedDB user state.
+**Next:** Board #6, part 2 — user state: IndexedDB via `idb` (last position,
+preferences, recents).
 
 ## State
 
@@ -92,8 +93,20 @@ ones only, here:
 
 ## Log
 
+- 2026-09-22 — Board #6 part 1 done: content store worker
+  (`src/persistence/content-store.worker.ts`) over `@sqlite.org/sqlite-wasm`'s
+  `opfs-sahpool`, exposed via Comlink. Verified in a real browser against the
+  bundled corpus: provisioning, `getHymnbook`/`listHymns`/`getHymn` and FTS5
+  search (via a join, since `hymn_fts` is contentless) all correct. Also fixed
+  Board #5's `build-content.ts` output directory — `dist/` is emptied by
+  `vite build` and doesn't exist in dev; now writes to `public/content/`.
+- 2026-09-22 — Board #6 design agreed (SDD-0001 §10): content store is a
+  dedicated Worker over `@sqlite.org/sqlite-wasm`'s `opfs-sahpool` VFS,
+  exposed via Comlink. Superseded ADR-0008's library choice — wa-sqlite's OPFS
+  support turned out to be unmaintained example code — with ADR-0015. User
+  state (idb) is part 2.
 - 2026-09-22 — Board #5 done: `scripts/build-content.ts` loads `content/`,
-  validates, builds `dist/content/*.sqlite` (FTS5 + `content_hash`), per
+  validates, builds `public/content/*.sqlite` (FTS5 + `content_hash`), per
   SDD-0001 §9. Runs clean against the real corpus.
 - 2026-09-21 — Transliteration requested (search in any script; full-switch or
   interlaced display; any-to-any). Deferred: ADR-0014, Board #12. Board #5
@@ -115,7 +128,3 @@ ones only, here:
   `src/domain/`, framework-free, 15 unit tests.
 - 2026-09-21 — Board #1 done: Vite + SolidJS + TS scaffold, vitest, biome
   solid domain; verified in a real browser.
-- 2026-09-21 — Removed `archive/` (in git history at `155baea`); added
-  Board #11, the CMS.
-- 2026-09-20 — Requirements settled; arc42, 13 ADRs and SDD-0001 written;
-  previous implementation archived.
