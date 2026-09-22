@@ -64,7 +64,9 @@ class ContentStoreWorker implements ContentStore {
     const filename = filenameFor(id);
 
     if (!pool.getFileNames().includes(filename)) {
-      const response = await fetch(`/content/${id}.sqlite`);
+      // BASE_URL, not a root-absolute path — a GitHub Pages *project* page
+      // serves from a subpath, not the domain root.
+      const response = await fetch(`${import.meta.env.BASE_URL}content/${id}.sqlite`);
       if (!response.ok) return { state: "missing-asset" };
       const bytes = new Uint8Array(await response.arrayBuffer());
       // A dev-server SPA fallback (or misconfigured host) can answer a
