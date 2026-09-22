@@ -28,10 +28,11 @@ built.
 
 ## Now
 
-**Phase 1, persistence built.** Content store (SQLite/OPFS) and user state
-(last position, recents via `idb`) both in place; no UI yet.
+**Phase 1, first UI screen built.** Library (`src/library/`) provisions the
+bundled hymnbook and shows loading/error/ready states; no Finder or Presenter
+yet.
 
-**Next:** Board #7 — Library, the hymnbook selector.
+**Next:** Board #8 — Finder, number and lyric search.
 
 ## State
 
@@ -44,6 +45,7 @@ built.
 | Corpus  | 1,631 hymns migrated to `content/`; 12 flagged for hand review           |
 | Content | `bun run build:content` builds `public/content/*.sqlite`, FTS5 + hash    |
 | Persist | Content store (SQLite/OPFS, worker) + user state (idb) — SDD-0001 §10-11 |
+| UI      | Library provisions + shows the bundled hymnbook (`src/library/`) — §12   |
 
 ## Board
 
@@ -51,7 +53,6 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                          | Blocked by |
 | --- | ------------------------------------------------------------- | ---------- |
-| 7   | Library — hymnbook selector                                   | —          |
 | 8   | Finder — number and lyric search                              | —          |
 | 9   | Presenter — renderer, focus, recurrence cue                   | —          |
 | 10  | PWA shell, offline, responsive phone → large display          | 7, 8, 9    |
@@ -92,6 +93,13 @@ ones only, here:
 
 ## Log
 
+- 2026-09-22 — Board #7 done: `src/library/Library.tsx` provisions the
+  bundled hymnbook on mount and renders pending/error/ready states, with
+  retry on failure (SDD-0001 §12). Narrowed from arc42's list/install/remove
+  to just this, since Phase 1 has one bundled book and nothing to choose
+  between. Navigation to Finder/Presenter deferred: signal-based view state
+  agreed, not a router, but nothing to route to yet. Verified in a real
+  browser against the bundled corpus.
 - 2026-09-22 — Board #6 done: user state (`src/persistence/user-state.ts`) —
   one `idb` object store, one document, `getLastPosition`/`setLastPosition`
   (reuses domain `Position`) and `getRecents`/`addRecent` (dedup, cap 20).
@@ -131,5 +139,3 @@ ones only, here:
   `tokenchars` fix validated on the real corpus (SDD-0001 §6, R5 closed).
 - 2026-09-21 — Added `Hymnbook.isbn`; kept `HymnbookId` a slug, uuid7
   deferred to Board #11. Documented the **Workflow** loop.
-- 2026-09-21 — Board #2 done: domain types + Sequence Engine in
-  `src/domain/`, framework-free, 15 unit tests.

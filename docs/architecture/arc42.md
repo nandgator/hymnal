@@ -298,8 +298,14 @@ Fetch package → verify → write to OPFS → register in Library → available
 offline. Failure at any step leaves the previous state intact; a partially
 written book is never registered.
 
-`OPEN:` First-run flow, storage-eviction recovery (§11), and Phase 2 audio
-follow.
+Implemented for the one bundled book: `ContentStore.ensureInstalled`
+(SDD-0001 §10.2) is this flow — fetch the bundled asset, verify the SQLite
+header and schema version, import to OPFS. Library (SDD-0001 §12) runs it on
+every launch and surfaces a failure as a retryable error rather than
+crashing.
+
+`OPEN:` A real install/remove flow and list UI, once a second hymnbook
+exists; storage-eviction recovery (§11); Phase 2 audio follow.
 
 ---
 

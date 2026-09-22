@@ -604,3 +604,44 @@ no browser-only gap here. `openUserState(dbName)` takes the database name as
 a parameter precisely so tests can open an isolated instance per test rather
 than sharing state through a module-level singleton; app code uses the
 `userState` singleton export.
+
+## 12. Library
+
+Board #7. arc42 §5.1 defines Library as "list, install, remove hymnbooks;
+know which are available offline" — but Phase 1 ships exactly one hymnbook,
+bundled at build time, with no download path (§10.2). With nothing to choose
+between, Library is narrowed to the one thing that's real today: the
+first-run provisioning gate.
+
+`src/library/Library.tsx` calls `ContentStore.ensureInstalled` for the one
+bundled `HymnbookId` on mount (a Solid `createResource`), and renders one of
+three states:
+
+- **pending** — `Loading…`.
+- **error** — a message specific to the failing `ContentStatus`
+  (`missing-asset`, `corrupt`, `schema-mismatch`), plus a **Retry** button
+  that re-runs provisioning. This is arc42 §8.6's "offer reinstall content
+  instead of crashing," concretely.
+- **ready** — the hymnbook's title, hymn count and edition. This is the
+  entire "know which are available offline" answer while there's only one
+  book to know about.
+
+**Not built:** a list/picker UI, install, remove, or any persisted notion of
+"installed hymnbooks" — user state's `installed` field (§11) stays
+unbuilt for the same reason. All of it returns as its own decision once a
+second hymnbook exists, rather than being guessed at now. Navigation to
+Finder/Presenter (Board #8/#9) is also not wired yet — there is nothing to
+navigate to.
+
+**Navigation, once there is something to navigate to,** will be Solid signal
+state (a `view` union swapping which component renders), not a router —
+Phase 1 is single-device with no deep-linking requirement
+([ADR-0012](../decisions/0012-drop-the-bookmark-helper.md) dropped
+bookmarking in favour of recents + last position), and a router is a
+dependency with nothing to spend it on yet.
+
+**Testing.** `Library` takes `hymnbookId` and `store` as optional props,
+defaulting to `BUNDLED_HYMNBOOK_ID` and `getContentStore()` — tests inject a
+fake `ContentStore` instead of touching the real Worker/OPFS, so all four
+states (pending, each error, ready, retry) are unit tested despite the
+underlying store not being (§10.5).
