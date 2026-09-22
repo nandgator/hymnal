@@ -8,22 +8,23 @@ new record, never edited.
 
 ## Index
 
-| #                                                               | Decision                                            | Status   |
-| --------------------------------------------------------------- | --------------------------------------------------- | -------- |
-| [0001](0001-record-architecture-decisions.md)                   | Record architecture decisions                       | Accepted |
-| [0002](0002-rebuild-from-a-clean-slate.md)                      | Rebuild from a clean slate, archiving the old build | Accepted |
-| [0003](0003-model-hymns-as-parts-and-an-occurrence-sequence.md) | Model hymns as parts plus an occurrence sequence    | Accepted |
-| [0004](0004-build-a-responsive-web-application.md)              | Build the client as a responsive web application    | Accepted |
-| [0005](0005-use-solidjs.md)                                     | Use SolidJS as the frontend framework               | Accepted |
-| [0006](0006-defer-the-native-wrapper-decision.md)               | Defer the native wrapper decision                   | Deferred |
-| [0007](0007-bundle-the-core-hymnbook.md)                        | Bundle the core hymnbook, download additional books | Accepted |
-| [0008](0008-sqlite-as-the-on-device-content-store.md)           | SQLite as the on-device content store               | Accepted |
-| [0009](0009-migrate-the-corpus-by-rule.md)                      | Migrate the corpus by rule, refine in place         | Accepted |
-| [0010](0010-model-liveness-as-pluggable-follow-sources.md)      | Model "what is live" as pluggable follow sources    | Accepted |
-| [0011](0011-defer-multi-device-sync-and-projector-output.md)    | Defer multi-device sync and projector output        | Deferred |
-| [0012](0012-drop-the-bookmark-helper.md)                        | Drop the bookmark helper                            | Accepted |
-| [0013](0013-toolchain-bun-biome-prettier-markdownlint.md)       | Toolchain: bun, biome, prettier with markdownlint   | Accepted |
-| [0014](0014-defer-transliteration.md)                           | Defer transliteration (search and display)          | Deferred |
+| #                                                               | Decision                                            | Status                                                               |
+| --------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
+| [0001](0001-record-architecture-decisions.md)                   | Record architecture decisions                       | Accepted                                                             |
+| [0002](0002-rebuild-from-a-clean-slate.md)                      | Rebuild from a clean slate, archiving the old build | Accepted                                                             |
+| [0003](0003-model-hymns-as-parts-and-an-occurrence-sequence.md) | Model hymns as parts plus an occurrence sequence    | Accepted                                                             |
+| [0004](0004-build-a-responsive-web-application.md)              | Build the client as a responsive web application    | Accepted                                                             |
+| [0005](0005-use-solidjs.md)                                     | Use SolidJS as the frontend framework               | Accepted                                                             |
+| [0006](0006-defer-the-native-wrapper-decision.md)               | Defer the native wrapper decision                   | Deferred                                                             |
+| [0007](0007-bundle-the-core-hymnbook.md)                        | Bundle the core hymnbook, download additional books | Accepted                                                             |
+| [0008](0008-sqlite-as-the-on-device-content-store.md)           | SQLite as the on-device content store               | Superseded by [0015](0015-use-official-sqlite-wasm-not-wa-sqlite.md) |
+| [0009](0009-migrate-the-corpus-by-rule.md)                      | Migrate the corpus by rule, refine in place         | Accepted                                                             |
+| [0010](0010-model-liveness-as-pluggable-follow-sources.md)      | Model "what is live" as pluggable follow sources    | Accepted                                                             |
+| [0011](0011-defer-multi-device-sync-and-projector-output.md)    | Defer multi-device sync and projector output        | Deferred                                                             |
+| [0012](0012-drop-the-bookmark-helper.md)                        | Drop the bookmark helper                            | Accepted                                                             |
+| [0013](0013-toolchain-bun-biome-prettier-markdownlint.md)       | Toolchain: bun, biome, prettier with markdownlint   | Accepted                                                             |
+| [0014](0014-defer-transliteration.md)                           | Defer transliteration (search and display)          | Deferred                                                             |
+| [0015](0015-use-official-sqlite-wasm-not-wa-sqlite.md)          | Use the official SQLite Wasm build, not wa-sqlite   | Accepted                                                             |
 
 ## Open questions
 

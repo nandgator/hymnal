@@ -450,8 +450,9 @@ any listing; `isbn` stays absent until the printed copy is checked.
 Turns `content/<hymnbook-id>/` into `dist/content/<hymnbook-id>.sqlite`
 (Board #5). Run as `bun run build:content`: a plain Bun script, independent of
 Vite, so the future CMS (Board #11) can reuse it. It uses `bun:sqlite`: the
-spike showed FTS5 tokenisation is identical to the browser's `wa-sqlite`, since
-both are the same C code.
+spike showed FTS5 tokenisation is identical to the browser's SQLite Wasm build
+([ADR-0015](../decisions/0015-use-official-sqlite-wasm-not-wa-sqlite.md)),
+since both are the same C code.
 
 1. **Load** `hymnbook.json` and every `NNNN.json`.
 2. **Validate everything** (below), collecting every violation.
@@ -481,3 +482,82 @@ repeated refrain is not weighted up.
 order), so any lyric correction changes it and the same source always yields the
 same hash. It is deliberately not a build timestamp: rebuilding unchanged
 content must not look like an update.
+
+---
+
+## 10. Persistence — content store
+
+Board #6 part 1. Runtime counterpart to §9: opens the package §9 builds and
+answers queries. Per [ADR-0015](../decisions/0015-use-official-sqlite-wasm-not-wa-sqlite.md),
+`@sqlite.org/sqlite-wasm`'s `opfs-sahpool` VFS, not `wa-sqlite`.
+
+### 10.1 Why a worker
+
+OPFS's synchronous file access (`FileSystemSyncAccessHandle`, what
+`opfs-sahpool` is built on) only exists inside a Worker — not a constraint
+this project chose, a constraint of the platform. So the content store is a
+dedicated Worker (`src/persistence/content-store.worker.ts`) that owns the
+`sqlite3` module, the SAH pool, and every open database. The main thread never
+touches SQLite directly.
+
+The worker exposes a narrow class over [Comlink](https://github.com/GoogleChromeLabs/comlink)
+(also used by `wa-sqlite`'s own demos, and still the right tool now that
+sqlite-wasm's own Worker1/Promiser API is deprecated — its README says to
+"load the module and interact with it as a library," which is exactly this
+shape). A thin main-thread client wraps the Comlink proxy so Library, Finder
+and Presenter (Board #7-9) see a plain async interface and never import
+Comlink or know a worker is involved.
+
+### 10.2 Provisioning
+
+On worker startup: `sqlite3.installOpfsSAHPoolVfs()`, then check
+`poolUtil.getFileNames()` for `<hymnbook-id>.sqlite3`. If present, open it
+(`new poolUtil.OpfsSAHPoolDb(name)`). If absent — first run, or OPFS was
+evicted (arc42 R4) — fetch the bundled package (a Vite build asset, the exact
+file §9 produces) and hand its bytes to `poolUtil.importDb(name, bytes)`,
+which writes it directly; no SQL involved. Phase 1 has one bundled book and no
+download path (scope guard), so this only ever provisions from the build
+asset, never a network fetch of a separate package.
+
+A corrupt or partial file is a provisioning failure, reported as a distinct
+state rather than thrown as a generic error, so the app can offer "reinstall
+content" (re-run this same step) instead of crashing — consistent with
+[arc42 §8.6](../architecture/arc42.md#86-handling-imperfect-content): never
+silently repair, never guess.
+
+### 10.3 Query surface
+
+Read-only — content is immutable at runtime (an invariant, §4). The worker
+exposes exactly what Library/Finder/Presenter need, nothing shaped like a
+general SQL client:
+
+```ts
+interface ContentStore {
+  getHymnbook(id: HymnbookId): Promise<Hymnbook>;
+  listHymns(id: HymnbookId): Promise<{ number: number; title: string }[]>;
+  getHymn(id: HymnbookId, number: number): Promise<HymnSource>;
+  searchLyrics(
+    id: HymnbookId,
+    query: string,
+  ): Promise<{ number: number; title: string; snippet: string }[]>;
+}
+```
+
+Built on the OO1 API's `selectObjects()`/`exec()`, not raw
+`prepare`/`step`/`finalize` — the official build's query surface is
+object-returning, unlike `wa-sqlite`'s integer-pointer handles.
+
+### 10.4 Known limitation
+
+`opfs-sahpool` does not support multiple simultaneous connections
+(ADR-0015). Two tabs open at once on the same origin: the second fails to
+acquire the store. Accepted for Phase 1 — the scope guard is single-_device_,
+which doesn't promise single-tab. `OPEN:` revisit if reported.
+
+### 10.5 Testing
+
+OPFS, Workers and Wasm don't exist in the Bun/vitest environment §9's tests
+run in — this can only be verified in a real browser, the same way Board #1's
+scaffold was. Anything with no browser-only dependency (name mapping, request
+shaping) is unit tested; the worker's OPFS/Wasm glue is not, and is checked by
+hand each time it changes.
