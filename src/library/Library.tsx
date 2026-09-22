@@ -1,15 +1,11 @@
-import { type Accessor, createResource, Match, Switch } from "solid-js";
+import { type Accessor, createResource, Match, Show, Switch } from "solid-js";
+import { BUNDLED_HYMNBOOK_ID } from "../config.ts";
 import type { Hymnbook, HymnbookId } from "../domain/types.ts";
 import {
   type ContentStatus,
   type ContentStore,
   getContentStore,
 } from "../persistence/content-store.ts";
-
-// Phase 1 ships exactly one hymnbook, bundled at build time — no download
-// path yet (SDD-0001 §10.2). Becomes a real manifest once a second hymnbook
-// exists (Board #11).
-export const BUNDLED_HYMNBOOK_ID: HymnbookId = "mal-ymef-athmeeya-geethangal-16";
 
 class ContentUnavailable extends Error {
   readonly status: Exclude<ContentStatus, { state: "ready" }>;
@@ -39,12 +35,14 @@ export interface LibraryProps {
   hymnbookId?: HymnbookId;
   /** Defaults to {@link getContentStore}; overridable for tests. */
   store?: ContentStore;
+  /** Called once content is ready. The app uses this to move on to Finder. */
+  onReady?: () => void;
 }
 
 /**
  * Board #7 — the first-run provisioning gate, and arc42's "know which are
  * available offline" home for as long as there's exactly one hymnbook to
- * know about. Finder/Presenter navigation is added once those boards exist.
+ * know about.
  */
 export function Library(props: LibraryProps) {
   const load = async (): Promise<Hymnbook> => {
@@ -74,6 +72,11 @@ export function Library(props: LibraryProps) {
               {book().hymnCount} hymns
               {book().edition ? ` · ${book().edition}` : ""}
             </p>
+            <Show when={props.onReady}>
+              <button type="button" onClick={() => props.onReady?.()}>
+                Find a hymn
+              </button>
+            </Show>
           </div>
         )}
       </Match>
