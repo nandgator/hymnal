@@ -28,38 +28,38 @@ built.
 
 ## Now
 
-**Phase 1, corpus migrated.** Domain layer and migrated corpus in place; no UI,
-persistence or content pipeline yet.
+**Phase 1, content pipeline built.** Corpus builds to a SQLite package; no UI
+or persistence yet.
 
-**Next:** Board #5 — content pipeline: corpus → SQLite package + invariant
-validation. Needs a design discussion first (SDD-0001 §4 and §6).
+**Next:** Board #6 — persistence: OPFS content store, IndexedDB user state.
 
 ## State
 
 | Area    | Status                                                              |
 | ------- | ------------------------------------------------------------------- |
-| Docs    | arc42 + 13 ADRs + SDD-0001 complete                                 |
+| Docs    | arc42 + 14 ADRs + SDD-0001 complete                                 |
 | Tooling | bun, biome, prettier, markdownlint — `bun run check` green          |
 | App     | Vite + SolidJS + TS scaffolded; vitest chosen as test runner        |
-| Domain  | Types + Sequence Engine (`src/domain/`) — pure, 15 unit tests green |
+| Domain  | Types, Sequence Engine, validation (`src/domain/`) — pure, tested   |
 | Corpus  | 1,631 hymns migrated to `content/`; 12 flagged for hand review      |
+| Content | `bun run build:content` builds `dist/content/*.sqlite`, FTS5 + hash |
 
 ## Board
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                             | Blocked by |
-| --- | ---------------------------------------------------------------- | ---------- |
-| 5   | Content pipeline: corpus → SQLite package + invariant validation | —          |
-| 6   | Persistence: OPFS content store, IndexedDB user state            | 5          |
-| 7   | Library — hymnbook selector                                      | 6          |
-| 8   | Finder — number and lyric search                                 | 6          |
-| 9   | Presenter — renderer, focus, recurrence cue                      | 6          |
-| 10  | PWA shell, offline, responsive phone → large display             | 7, 8, 9    |
-| 11  | CMS for managing hymnal content (add/edit hymns, hymnbooks)      | 5          |
+| #   | Task                                                          | Blocked by |
+| --- | ------------------------------------------------------------- | ---------- |
+| 6   | Persistence: OPFS content store, IndexedDB user state         | —          |
+| 7   | Library — hymnbook selector                                   | 6          |
+| 8   | Finder — number and lyric search                              | 6          |
+| 9   | Presenter — renderer, focus, recurrence cue                   | 6          |
+| 10  | PWA shell, offline, responsive phone → large display          | 7, 8, 9    |
+| 11  | CMS for managing hymnal content (add/edit hymns, hymnbooks)   | —          |
+| 12  | Transliteration: search and display across scripts (ADR-0014) | 10         |
 
-Item 11 sits past the Phase 1 scope guard below — sequence it after Phase 1
-unless scope is deliberately widened.
+Items 11 and 12 sit past the Phase 1 scope guard below — sequence them after
+Phase 1 unless scope is deliberately widened.
 
 ## Invariants
 
@@ -92,6 +92,17 @@ ones only, here:
 
 ## Log
 
+- 2026-09-22 — Board #5 done: `scripts/build-content.ts` loads `content/`,
+  validates, builds `dist/content/*.sqlite` (FTS5 + `content_hash`), per
+  SDD-0001 §9. Runs clean against the real corpus.
+- 2026-09-21 — Transliteration requested (search in any script; full-switch or
+  interlaced display; any-to-any). Deferred: ADR-0014, Board #12. Board #5
+  schema unchanged.
+- 2026-09-21 — Board #5 part 1: `src/domain/validate.ts` (I1-I7, shape,
+  file-name, hymn-count, unsupported-meta; collect-all), 21 tests; the real
+  corpus validates clean.
+- 2026-09-21 — Board #5 design agreed (SDD-0001 §9): Bun script, `bun:sqlite`,
+  collect-all validation, `content_hash` beside `schema_version`.
 - 2026-09-21 — Board #4 done: `content/mal-ymef-athmeeya-geethangal-16/`
   written (1,631 hymns + hymnbook.json), invariants I1-I7 checked clean.
   Rerun is refused by design. Hymns 156, 666, 753, 856, 864, 890, 895, 901,
