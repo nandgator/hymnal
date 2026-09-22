@@ -23,6 +23,7 @@ new record, never edited.
 | [0011](0011-defer-multi-device-sync-and-projector-output.md)    | Defer multi-device sync and projector output        | Deferred |
 | [0012](0012-drop-the-bookmark-helper.md)                        | Drop the bookmark helper                            | Accepted |
 | [0013](0013-toolchain-bun-biome-prettier-markdownlint.md)       | Toolchain: bun, biome, prettier with markdownlint   | Accepted |
+| [0014](0014-defer-transliteration.md)                           | Defer transliteration (search and display)          | Deferred |
 
 ## Open questions
 
@@ -32,7 +33,7 @@ deliberation.
 | Question                                   | Blocked on                                                         |
 | ------------------------------------------ | ------------------------------------------------------------------ |
 | Visual language for repeated parts         | Something real on screen to judge against                          |
-| Whether FTS5's tokeniser suits Malayalam   | An experiment against the real corpus                              |
 | Lyrics copyright and redistribution rights | Establishing provenance — blocks any store release                 |
 | AGPL-3.0 versus Apple App Store terms      | Resolve with [ADR-0006](0006-defer-the-native-wrapper-decision.md) |
 | Content authoring and correction UI        | Evidence that hand-editing has become the bottleneck               |
+| Transliteration scheme and library         | Phase 1 in use; see [ADR-0014](0014-defer-transliteration.md)      |
