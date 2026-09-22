@@ -10,6 +10,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest",
+    "build:content": "bun scripts/build-content.ts",
     "lint:md": "markdownlint-cli2 --fix",
     "lint:ts": "biome lint --write .",
     "lint": "bun run lint:md && bun run lint:ts",

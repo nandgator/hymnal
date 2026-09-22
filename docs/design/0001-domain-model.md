@@ -276,7 +276,8 @@ CREATE TABLE hymnbook (
   publisher      TEXT,
   edition        TEXT,
   isbn           TEXT,
-  schema_version INTEGER NOT NULL
+  schema_version INTEGER NOT NULL,
+  content_hash   TEXT NOT NULL    -- SHA-256 of the source files, see §9
 ) STRICT;
 
 CREATE TABLE hymn (
@@ -334,7 +335,8 @@ Notes:
 - `hymn_fts` is contentless and rebuilt by the pipeline, not maintained by
   triggers; content is immutable at runtime.
 - `schema_version` permits validating a downloaded package against the
-  application before installing it.
+  application before installing it; `content_hash` tells the application
+  whether the lyrics themselves have changed (§9).
 
 Resolved — risk R5 in
 [arc42 §11](../architecture/arc42.md#11-risks-and-technical-debt). Spiked
@@ -440,3 +442,42 @@ any listing; `isbn` stays absent until the printed copy is checked.
 | Cross-book hymn identity for parallel translations  | Deferred until a second book exists         |
 | Word-level addressing below `lineIndex`             | Phase 2, if lyric alignment proves feasible |
 | Synthetic multi-publisher `HymnbookId` (e.g. UUID7) | CMS (Board #11), if publishing is opened up |
+
+---
+
+## 9. Content pipeline
+
+Turns `content/<hymnbook-id>/` into `dist/content/<hymnbook-id>.sqlite`
+(Board #5). Run as `bun run build:content`: a plain Bun script, independent of
+Vite, so the future CMS (Board #11) can reuse it. It uses `bun:sqlite`: the
+spike showed FTS5 tokenisation is identical to the browser's `wa-sqlite`, since
+both are the same C code.
+
+1. **Load** `hymnbook.json` and every `NNNN.json`.
+2. **Validate everything** (below), collecting every violation.
+3. **Build** the package per §6, only if validation found nothing.
+4. **Hash** the source and record it in `hymnbook.content_hash`.
+
+**Validation collects all violations**, each with hymn number and rule, and
+exits non-zero if there are any: one pass shows everything to fix, and nothing
+is ever repaired ([arc42 §8.6](../architecture/arc42.md#86-handling-imperfect-content)).
+The rules are pure functions in `src/domain/validate.ts`, framework-free, so the
+CMS can apply the same checks. They cover I1-I7, plus:
+
+- The file name matches `number`, and the hymn count matches
+  `hymnbook.hymnCount`.
+- **Unsupported metadata fails.** §6 stores only `author`, `tune` and `meter`;
+  a hymn carrying `topics`, `scripture` or `copyright` is a violation rather
+  than a silent drop, until the schema is extended to hold them.
+- I8 holds by construction: the pipeline assigns `idx` 0..n-1 from the
+  sequence array, so gaps cannot occur.
+
+**Full-text index.** One `hymn_fts` row per hymn, `rowid` = hymn number, `body`
+= the lines of each part **once**, in part order and not in sung order, so a
+repeated refrain is not weighted up.
+
+**Versioning.** `schema_version` gates compatibility with the application.
+`content_hash` is a SHA-256 over the source files (name and bytes, in a fixed
+order), so any lyric correction changes it and the same source always yields the
+same hash. It is deliberately not a build timestamp: rebuilding unchanged
+content must not look like an update.
