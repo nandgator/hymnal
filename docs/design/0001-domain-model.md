@@ -447,7 +447,7 @@ any listing; `isbn` stays absent until the printed copy is checked.
 
 ## 9. Content pipeline
 
-Turns `content/<hymnbook-id>/` into `dist/content/<hymnbook-id>.sqlite`
+Turns `content/<hymnbook-id>/` into `public/content/<hymnbook-id>.sqlite`
 (Board #5). Run as `bun run build:content`: a plain Bun script, independent of
 Vite, so the future CMS (Board #11) can reuse it. It uses `bun:sqlite`: the
 spike showed FTS5 tokenisation is identical to the browser's SQLite Wasm build
@@ -517,7 +517,9 @@ evicted (arc42 R4) — fetch the bundled package (a Vite build asset, the exact
 file §9 produces) and hand its bytes to `poolUtil.importDb(name, bytes)`,
 which writes it directly; no SQL involved. Phase 1 has one bundled book and no
 download path (scope guard), so this only ever provisions from the build
-asset, never a network fetch of a separate package.
+asset, never a network fetch of a separate package. Fetched via Vite's
+`import.meta.env.BASE_URL`, not a root-absolute path — the app must still work
+when served from a subpath, e.g. a GitHub Pages project page.
 
 A corrupt or partial file is a provisioning failure, reported as a distinct
 state rather than thrown as a generic error, so the app can offer "reinstall
@@ -561,3 +563,44 @@ run in — this can only be verified in a real browser, the same way Board #1's
 scaffold was. Anything with no browser-only dependency (name mapping, request
 shaping) is unit tested; the worker's OPFS/Wasm glue is not, and is checked by
 hand each time it changes.
+
+## 11. Persistence — user state
+
+Board #6 part 2. The second store from [ADR-0008](../decisions/0008-sqlite-as-the-on-device-content-store.md):
+small, mutable, irreplaceable, via `idb` on the main thread — no OPFS, no
+Worker, plain `IndexedDB`. Per [ADR-0012](../decisions/0012-drop-the-bookmark-helper.md),
+user state is preferences, recents, last position and installed hymnbooks.
+This part builds the two Board #8/#9 already have a caller for — **last
+position** and **recents** — in `src/persistence/user-state.ts`. Preferences
+and installed-hymnbook tracking get their own shape when the board that needs
+them is hashed out, rather than guessed at now.
+
+**One object store, one document.** A few hundred bytes, never queried, no
+relations — an idb object store named `state` holding a single record at a
+fixed key is simpler than one store per field and has no cross-store
+consistency to maintain. Every accessor reads the whole document,
+patches the one field it owns, and writes it back.
+
+```ts
+interface UserState {
+  getLastPosition(): Promise<Position | undefined>;
+  setLastPosition(position: Position): Promise<void>;
+  getRecents(): Promise<RecentEntry[]>;
+  addRecent(hymnbookId: HymnbookId, hymnNumber: HymnNumber): Promise<void>;
+}
+```
+
+`lastPosition` reuses the domain's own `Position` (§3) verbatim — it already
+is "one address space, used everywhere," so persisting it is a straight
+round-trip, not a new shape. A `RecentEntry` is coarser (`hymnbookId` +
+`hymnNumber` + `viewedAt`): recents identify a hymn worth returning to, not a
+Presenter resume point. `addRecent` de-duplicates by `(hymnbookId,
+hymnNumber)`, moving a re-viewed hymn to the front, and caps the list at 20 —
+a fixed, low-stakes bound rather than a configurable one.
+
+**Testing.** Unlike the content store, plain `IndexedDB` has a faithful
+in-memory implementation (`fake-indexeddb`), so this is fully unit tested —
+no browser-only gap here. `openUserState(dbName)` takes the database name as
+a parameter precisely so tests can open an isolated instance per test rather
+than sharing state through a module-level singleton; app code uses the
+`userState` singleton export.

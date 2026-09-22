@@ -28,22 +28,22 @@ built.
 
 ## Now
 
-**Phase 1, content pipeline built.** Corpus builds to a SQLite package; no UI
-or persistence yet.
+**Phase 1, persistence built.** Content store (SQLite/OPFS) and user state
+(last position, recents via `idb`) both in place; no UI yet.
 
-**Next:** Board #6, part 2 — user state: IndexedDB via `idb` (last position,
-preferences, recents).
+**Next:** Board #7 — Library, the hymnbook selector.
 
 ## State
 
-| Area    | Status                                                              |
-| ------- | ------------------------------------------------------------------- |
-| Docs    | arc42 + 14 ADRs + SDD-0001 complete                                 |
-| Tooling | bun, biome, prettier, markdownlint — `bun run check` green          |
-| App     | Vite + SolidJS + TS scaffolded; vitest chosen as test runner        |
-| Domain  | Types, Sequence Engine, validation (`src/domain/`) — pure, tested   |
-| Corpus  | 1,631 hymns migrated to `content/`; 12 flagged for hand review      |
-| Content | `bun run build:content` builds `dist/content/*.sqlite`, FTS5 + hash |
+| Area    | Status                                                                   |
+| ------- | ------------------------------------------------------------------------ |
+| Docs    | arc42 + 14 ADRs + SDD-0001 complete                                      |
+| Tooling | bun, biome, prettier, markdownlint — `bun run check` green               |
+| App     | Vite + SolidJS + TS scaffolded; vitest chosen as test runner             |
+| Domain  | Types, Sequence Engine, validation (`src/domain/`) — pure, tested        |
+| Corpus  | 1,631 hymns migrated to `content/`; 12 flagged for hand review           |
+| Content | `bun run build:content` builds `public/content/*.sqlite`, FTS5 + hash    |
+| Persist | Content store (SQLite/OPFS, worker) + user state (idb) — SDD-0001 §10-11 |
 
 ## Board
 
@@ -51,10 +51,9 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                          | Blocked by |
 | --- | ------------------------------------------------------------- | ---------- |
-| 6   | Persistence: OPFS content store, IndexedDB user state         | —          |
-| 7   | Library — hymnbook selector                                   | 6          |
-| 8   | Finder — number and lyric search                              | 6          |
-| 9   | Presenter — renderer, focus, recurrence cue                   | 6          |
+| 7   | Library — hymnbook selector                                   | —          |
+| 8   | Finder — number and lyric search                              | —          |
+| 9   | Presenter — renderer, focus, recurrence cue                   | —          |
 | 10  | PWA shell, offline, responsive phone → large display          | 7, 8, 9    |
 | 11  | CMS for managing hymnal content (add/edit hymns, hymnbooks)   | —          |
 | 12  | Transliteration: search and display across scripts (ADR-0014) | 10         |
@@ -93,6 +92,14 @@ ones only, here:
 
 ## Log
 
+- 2026-09-22 — Board #6 done: user state (`src/persistence/user-state.ts`) —
+  one `idb` object store, one document, `getLastPosition`/`setLastPosition`
+  (reuses domain `Position`) and `getRecents`/`addRecent` (dedup, cap 20).
+  Unit tested via `fake-indexeddb` — unlike the content store, plain
+  IndexedDB has a faithful polyfill. Also fixed a real bug found while
+  reasoning about static hosting: the content store's fetch was
+  root-absolute, which breaks on a GitHub Pages project page; now uses
+  Vite's `BASE_URL`.
 - 2026-09-22 — Board #6 part 1 done: content store worker
   (`src/persistence/content-store.worker.ts`) over `@sqlite.org/sqlite-wasm`'s
   `opfs-sahpool`, exposed via Comlink. Verified in a real browser against the
@@ -126,5 +133,3 @@ ones only, here:
   deferred to Board #11. Documented the **Workflow** loop.
 - 2026-09-21 — Board #2 done: domain types + Sequence Engine in
   `src/domain/`, framework-free, 15 unit tests.
-- 2026-09-21 — Board #1 done: Vite + SolidJS + TS scaffold, vitest, biome
-  solid domain; verified in a real browser.
