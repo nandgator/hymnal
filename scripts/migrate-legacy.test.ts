@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { LegacyHymn } from "./legacy-convert.ts";
-import { hymnFileName, migrate } from "./migrate-legacy.ts";
+import { migrate } from "./migrate-legacy.ts";
 
 const hymnbook = {
   id: "test-book",
@@ -31,13 +31,6 @@ beforeEach(() => {
   outDir = join(root, "content", "test-book");
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
-
-describe("hymnFileName", () => {
-  it("pads to four digits", () => {
-    expect(hymnFileName(7)).toBe("0007.json");
-    expect(hymnFileName(1631)).toBe("1631.json");
-  });
-});
 
 describe("migrate", () => {
   it("writes the hymnbook and one file per hymn, and reports", () => {

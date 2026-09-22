@@ -1,4 +1,4 @@
-import type { Hymn, Part } from "../src/domain/types.ts";
+import type { HymnSource, Part } from "../src/domain/types.ts";
 
 export interface LegacyHymn {
   id: number;
@@ -9,12 +9,10 @@ export interface LegacyHymn {
   verses: string[][];
 }
 
-export type MigratedHymn = Omit<Hymn, "hymnbookId">;
-
 export type LegacyShape = "chorus-first" | "verse-first" | "verses-only" | "chorus-only";
 
 export interface Conversion {
-  hymn: MigratedHymn;
+  hymn: HymnSource;
   shape: LegacyShape;
   droppedBlankLines: number;
   trimmedLines: number;

@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:f
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Hymnbook } from "../src/domain/types.ts";
+import { hymnFileName } from "../src/domain/validate.ts";
 import {
   convertLegacyHymn,
   type LegacyHymn,
@@ -30,8 +31,6 @@ export interface MigrateOptions {
 }
 
 const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
-
-export const hymnFileName = (number: number) => `${String(number).padStart(4, "0")}.json`;
 
 /** Writes the corpus source. Refuses to touch an existing directory: it holds hand corrections. */
 export function migrate({ outDir, hymnbook, legacy }: MigrateOptions): MigrationReport {

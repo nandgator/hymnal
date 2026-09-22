@@ -54,6 +54,9 @@ export interface Hymn {
   meta: HymnMeta;
 }
 
+/** A hymn as stored in content/: the directory supplies `hymnbookId`. */
+export type HymnSource = Omit<Hymn, "hymnbookId">;
+
 /** Derived from the sequence, never stored — see SDD-0001 §2.2. */
 export interface Occurrence {
   /** Position in the effective sequence. */
