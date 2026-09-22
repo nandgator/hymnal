@@ -1,5 +1,7 @@
+import { Library } from "./library/Library.tsx";
+
 function App() {
-  return <p>Hymnal</p>;
+  return <Library />;
 }
 
 export default App;

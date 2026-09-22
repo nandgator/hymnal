@@ -14,4 +14,9 @@ export function getContentStore(): ContentStore {
   return store;
 }
 
-export type { ContentStatus, HymnSummary, SearchResult } from "./content-store.worker.ts";
+export type {
+  ContentStatus,
+  ContentStore,
+  HymnSummary,
+  SearchResult,
+} from "./content-store.worker.ts";
