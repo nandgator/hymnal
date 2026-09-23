@@ -21,6 +21,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+      # vitest runs under Node, not bun, and build-content.test.ts needs
+      # node:sqlite (unflagged in Node 22.13+). Unpinned, it got whatever
+      # Node the runner image shipped.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
       - run: bun install --frozen-lockfile
       - run: bun run check
       - run: bun run build:content

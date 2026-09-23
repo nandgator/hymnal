@@ -5,6 +5,9 @@
   "description": "multilingual christian hymnal",
   "license": "AGPL-3.0-only",
   "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
