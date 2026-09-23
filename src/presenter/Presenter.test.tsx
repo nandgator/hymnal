@@ -38,6 +38,8 @@ function fakeUserState(overrides: Partial<UserState> = {}): UserState {
     setLastPosition: async () => {},
     getRecents: async () => [],
     addRecent: async () => {},
+    getPreferences: async () => ({ theme: "system", fontScale: 1 }),
+    setPreferences: async () => {},
     ...overrides,
   };
 }
@@ -150,5 +152,23 @@ describe("Presenter", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
     expect(screen.getByRole("button", { name: "Next part" })).toBeDisabled();
+  });
+
+  it("navigates by keyboard, for remotes/clickers as well as arrow keys (arc42 §8.8)", async () => {
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    await screen.findByText("Test Hymn");
+
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+
+    fireEvent.keyDown(window, { key: "PageDown" });
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("2");
+
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    expect(screen.getByText("Line 2a")).toHaveAttribute("aria-current", "true");
+
+    fireEvent.keyDown(window, { key: "PageUp" });
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
   });
 });

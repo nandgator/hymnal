@@ -5,6 +5,8 @@ import {
   createSignal,
   For,
   Match,
+  onCleanup,
+  onMount,
   Show,
   Switch,
 } from "solid-js";
@@ -84,6 +86,24 @@ export function Presenter(props: PresenterProps) {
 
   const [showCues, setShowCues] = createSignal(true);
 
+  // Full keyboard navigation (arc42 §8.8) — arrow keys for fine control,
+  // Page Up/Down since that's what most presentation remotes/clickers send.
+  const onKeyDown = (event: KeyboardEvent) => {
+    const action: ((e: SequenceEngine) => void) | undefined = {
+      ArrowRight: (e: SequenceEngine) => e.next(),
+      PageDown: (e: SequenceEngine) => e.next(),
+      ArrowLeft: (e: SequenceEngine) => e.previous(),
+      PageUp: (e: SequenceEngine) => e.previous(),
+      ArrowDown: (e: SequenceEngine) => e.nextLine(),
+      ArrowUp: (e: SequenceEngine) => e.previousLine(),
+    }[event.key];
+    if (!action) return;
+    event.preventDefault();
+    mutate(action);
+  };
+  onMount(() => window.addEventListener("keydown", onKeyDown));
+  onCleanup(() => window.removeEventListener("keydown", onKeyDown));
+
   return (
     <Switch fallback={<p>Loading…</p>}>
       <Match when={hymn.error}>
@@ -117,7 +137,7 @@ export function Presenter(props: PresenterProps) {
                       </span>
                     </Show>
                   </h3>
-                  <ol>
+                  <ol class="hymn-text">
                     <For each={occ().part.lines}>
                       {(line, i) => (
                         <li aria-current={cursor()?.lineIndex === i() ? "true" : undefined}>
