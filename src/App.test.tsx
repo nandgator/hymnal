@@ -14,10 +14,14 @@ vi.mock("./persistence/content-store.ts", () => {
       script: "Malayalam",
       hymnCount: 1,
     }),
-    listHymns: async () => [],
-    getHymn: async () => {
-      throw new Error("not used");
-    },
+    listHymns: async () => [{ number: 1, title: "Mocked Hymn" }],
+    getHymn: async () => ({
+      number: 1,
+      title: "Mocked Hymn",
+      parts: [{ id: "s1", kind: "stanza", lines: ["A line"] }],
+      sequence: [{ partId: "s1" }],
+      meta: {},
+    }),
     searchLyrics: async () => [],
   };
   return { getContentStore: () => store };
@@ -43,5 +47,17 @@ describe("App", () => {
     render(() => <App />);
     fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
     expect(await screen.findByPlaceholderText("Hymn number or lyrics")).toBeInTheDocument();
+  });
+
+  it("opens the Presenter once a hymn is picked in Finder", async () => {
+    render(() => <App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
+
+    fireEvent.input(await screen.findByRole("textbox", { name: "Find a hymn" }), {
+      target: { value: "1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+
+    expect(await screen.findByText("Mocked Hymn")).toBeInTheDocument();
   });
 });
