@@ -55,6 +55,7 @@ export function Settings(props: SettingsProps) {
     <fieldset class="settings" aria-label="Display settings">
       <button
         type="button"
+        class="btn-text"
         onClick={() => adjustScale(-SCALE_STEP)}
         disabled={(preferences() ?? DEFAULT_PREFERENCES).fontScale <= MIN_SCALE}
         aria-label="Decrease text size"
@@ -63,13 +64,14 @@ export function Settings(props: SettingsProps) {
       </button>
       <button
         type="button"
+        class="btn-text"
         onClick={() => adjustScale(SCALE_STEP)}
         disabled={(preferences() ?? DEFAULT_PREFERENCES).fontScale >= MAX_SCALE}
         aria-label="Increase text size"
       >
         A+
       </button>
-      <button type="button" onClick={cycleTheme}>
+      <button type="button" class="btn-text" onClick={cycleTheme}>
         Theme: {(preferences() ?? DEFAULT_PREFERENCES).theme}
       </button>
     </fieldset>

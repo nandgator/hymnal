@@ -194,6 +194,14 @@ components:
     thumbColorOff: "{colors.outline}"
     thumbColorOn: "{colors.on-primary}"
     rounded: "{rounded.pill}"
+  list-row:
+    backgroundColor: transparent
+    textColor: "{colors.on-surface}"
+    supportingTextColor: "{colors.on-surface-variant}"
+    typography: "{typography.body-large}"
+    rounded: "{rounded.md}"
+    minHeight: 56px
+    padding: 8px 16px
   output-line:
     backgroundColor: "{colors.output-ground}"
     textColor: "{colors.output-ink}"
@@ -382,6 +390,21 @@ The lyrics card is the one surface in the Operator view that should feel
 unhurried — generous internal padding (`lg`), nothing crowding the
 current line. Everything else (dock, chips, top bar) is deliberately
 compact, since it's UI the operator glances at, not reads.
+
+## Interaction states
+
+MD3's standard state layers, not invented here. A state is an overlay of
+the element's own content color over its container: **hover 8%**, **focus
+and pressed 10%**. Disabled is 38% content on a 12% container for filled
+components, 38% content alone otherwise. Keyboard focus also gets a 3px
+`secondary` ring, offset 2px, visible only via `:focus-visible` — the
+Operator is keyboard- and remote-driven (arc42 §8.8), so focus must always
+be findable.
+
+`list-row` covers what the component list above otherwise lacks: a
+Finder search result or recent hymn is one full-width, tappable row, the
+title in `on-surface` and a snippet in `on-surface-variant`, never a
+button styled as a button.
 
 ## Elevation & Depth
 

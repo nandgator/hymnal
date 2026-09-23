@@ -55,33 +55,45 @@ export function Finder(props: FinderProps) {
   });
 
   return (
-    <div>
+    <div class="finder">
       <form
+        class="finder-form"
         onSubmit={(event) => {
           event.preventDefault();
           setSubmitted(query());
         }}
       >
-        <input
-          type="text"
-          value={query()}
-          onInput={(event) => setQuery(event.currentTarget.value)}
-          placeholder="Hymn number or lyrics"
-          aria-label="Find a hymn"
-        />
-        <button type="submit">Find</button>
+        <div class="text-field">
+          <input
+            type="text"
+            value={query()}
+            onInput={(event) => setQuery(event.currentTarget.value)}
+            placeholder="Hymn number or lyrics"
+            aria-label="Find a hymn"
+          />
+        </div>
+        <button type="submit" class="btn-filled">
+          Find
+        </button>
       </form>
 
-      <Show when={error()}>{(message) => <p>{message()}</p>}</Show>
+      <Show when={error()}>{(message) => <p class="body-large">{message()}</p>}</Show>
 
       <Show when={results()?.length}>
-        <ul>
+        <ul class="list">
           <For each={results()}>
             {(result) => (
               <li>
-                <button type="button" onClick={() => props.onSelect(result.number)}>
+                <button
+                  type="button"
+                  class="list-row"
+                  onClick={() => props.onSelect(result.number)}
+                >
                   {result.title}
-                  {result.snippet ? ` — ${result.snippet}` : ""}
+                  {/* The matched line is often the first line, which is the title. */}
+                  <Show when={result.snippet !== result.title && result.snippet}>
+                    {(snippet) => <span class="list-row-supporting"> — {snippet()}</span>}
+                  </Show>
                 </button>
               </li>
             )}
@@ -91,13 +103,20 @@ export function Finder(props: FinderProps) {
 
       <Show when={!submitted()}>
         <section>
-          <h2>Recent</h2>
-          <Show when={recents()?.length} fallback={<p>No recent hymns yet.</p>}>
-            <ul>
+          <h2 class="title-medium on-surface-variant">Recent</h2>
+          <Show
+            when={recents()?.length}
+            fallback={<p class="body-large on-surface-variant">No recent hymns yet.</p>}
+          >
+            <ul class="list">
               <For each={recents()}>
                 {(entry) => (
                   <li>
-                    <button type="button" onClick={() => props.onSelect(entry.hymnNumber)}>
+                    <button
+                      type="button"
+                      class="list-row"
+                      onClick={() => props.onSelect(entry.hymnNumber)}
+                    >
                       {titleFor(entry.hymnNumber)}
                     </button>
                   </li>

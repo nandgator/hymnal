@@ -30,7 +30,11 @@ function Operator() {
   return (
     <>
       <header class="app-bar">
-        <button type="button" onClick={() => window.open(OUTPUT_URL, OUTPUT_WINDOW_NAME, "popup")}>
+        <button
+          type="button"
+          class="btn-tonal"
+          onClick={() => window.open(OUTPUT_URL, OUTPUT_WINDOW_NAME, "popup")}
+        >
           Show Output
         </button>
         <Settings />

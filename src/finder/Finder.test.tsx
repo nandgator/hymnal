@@ -94,6 +94,26 @@ describe("Finder", () => {
     expect(onSelect).toHaveBeenCalledWith(42);
   });
 
+  it("shows a result's snippet only when it adds something beyond the title", async () => {
+    const searchLyrics = vi.fn(
+      async (): Promise<SearchResult[]> => [
+        { number: 1, title: "Same line", snippet: "Same line" },
+        { number: 2, title: "Title", snippet: "A different line" },
+      ],
+    );
+    render(() => (
+      <Finder store={fakeStore({ searchLyrics })} userState={fakeUserState()} onSelect={vi.fn()} />
+    ));
+    await screen.findByText("No recent hymns yet.");
+
+    submit("line");
+
+    expect(await screen.findByRole("button", { name: "Same line" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^Title\s*—\s*A different line$/ }),
+    ).toBeInTheDocument();
+  });
+
   it("reports no matches for a lyric search with no results", async () => {
     render(() => <Finder store={fakeStore()} userState={fakeUserState()} onSelect={vi.fn()} />);
     await screen.findByText("No recent hymns yet.");

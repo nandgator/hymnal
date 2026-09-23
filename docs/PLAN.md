@@ -33,8 +33,8 @@ hymnal is built.
 Spec: [`visual/DESIGN.md`](visual/DESIGN.md) and SDD-0001 §16.3.
 Parts, each reviewed before the next:
 
-1. ~~Foundation~~ — done, awaiting review
-2. Components: buttons, chips, text field, card, switch, FAB
+1. ~~Foundation~~ — done
+2. ~~Components~~ — done
 3. Operator layout: header, lyrics card, parts rail, dock + FAB
 4. Output: tokens and a 10% margin from each edge
 
@@ -97,6 +97,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-24 — #12 part 2: MD3 components; Library and Finder restyled
 - 2026-09-24 — #12 part 1: MD3 tokens; Google Sans bundled as "Hymnal Sans"
 - 2026-09-24 — CI pins Node via `.node-version`: `node:sqlite` needs 22.13+
 - 2026-09-24 — `DESIGN.md` → `docs/visual/`; its Output now matches §16.1
@@ -108,4 +109,3 @@ ones only, here:
 - 2026-09-23 — Board #10 done: responsive CSS, Settings, PWA, Pages — §15
 - 2026-09-23 — Board #9 done: Presenter, jump-to-part (R6), recents on open
 - 2026-09-22 — Board #8 done: Finder, number/lyric search, recents — §13
-- 2026-09-22 — Board #7 done: Library provisions the bundled book — §12

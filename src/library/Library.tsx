@@ -57,23 +57,23 @@ export function Library(props: LibraryProps) {
   return (
     <Switch fallback={<p>Loading…</p>}>
       <Match when={hymnbook.error}>
-        <div>
-          <p>{describeError(hymnbook.error)}</p>
-          <button type="button" onClick={() => refetch()}>
+        <div class="card-elevated library">
+          <p class="body-large">{describeError(hymnbook.error)}</p>
+          <button type="button" class="btn-filled" onClick={() => refetch()}>
             Retry
           </button>
         </div>
       </Match>
       <Match when={hymnbook()}>
         {(book: Accessor<Hymnbook>) => (
-          <div>
-            <h1>{book().title}</h1>
-            <p>
+          <div class="card-elevated library">
+            <h1 class="display-small">{book().title}</h1>
+            <p class="body-large on-surface-variant">
               {book().hymnCount} hymns
               {book().edition ? ` · ${book().edition}` : ""}
             </p>
             <Show when={props.onReady}>
-              <button type="button" onClick={() => props.onReady?.()}>
+              <button type="button" class="btn-filled" onClick={() => props.onReady?.()}>
                 Find a hymn
               </button>
             </Show>
