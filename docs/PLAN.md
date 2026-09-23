@@ -5,10 +5,11 @@ is reference; this is state. If the two disagree, this file is wrong — fix it.
 
 ## Workflow
 
-The loop, for anything bigger than a typo: an idea from either side → hashed
-out to shared understanding → the relevant ADR/SDD/PLAN updated first → built
-in parts, user reviewing each → next Board item, repeat until the hymnal is
-built.
+The loop, for anything bigger than a typo: an idea from either side → reasoned
+through relentlessly, together, until we share understanding — not until
+either side settles for less — → the relevant ADR/SDD/PLAN updated first →
+built in parts, user reviewing each → next Board item, repeat until the
+hymnal is built.
 
 ## Session protocol
 
