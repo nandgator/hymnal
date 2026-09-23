@@ -1,17 +1,18 @@
 # Documentation
 
-Four documents live here, at four different altitudes. Keeping them distinct is
+Five documents live here, at five different altitudes. Keeping them distinct is
 the whole point — when they blur, the architecture document becomes a changelog
 and the decision records become documentation.
 
-| Artifact  | Answers                              | Changes when               | Lives in                                         |
-| --------- | ------------------------------------ | -------------------------- | ------------------------------------------------ |
-| **Plan**  | _What is done, what is next?_        | Every session              | [`PLAN.md`](PLAN.md)                             |
-| **arc42** | _How is the system shaped, and why?_ | The shape changes          | [`architecture/arc42.md`](architecture/arc42.md) |
-| **ADR**   | _Why did we choose this over that?_  | Never — superseded instead | [`decisions/`](decisions/)                       |
-| **SDD**   | _How does this part actually work?_  | The part is redesigned     | [`design/`](design/)                             |
+| Artifact   | Answers                              | Changes when                | Lives in                                         |
+| ---------- | ------------------------------------ | --------------------------- | ------------------------------------------------ |
+| **Plan**   | _What is done, what is next?_        | Every session               | [`PLAN.md`](PLAN.md)                             |
+| **arc42**  | _How is the system shaped, and why?_ | The shape changes           | [`architecture/arc42.md`](architecture/arc42.md) |
+| **ADR**    | _Why did we choose this over that?_  | Never — superseded instead  | [`decisions/`](decisions/)                       |
+| **SDD**    | _How does this part actually work?_  | The part is redesigned      | [`design/`](design/)                             |
+| **Visual** | _How does it look and feel?_         | The visual language changes | [`visual/DESIGN.md`](visual/DESIGN.md)           |
 
-The plan is **state**; the other three are **reference**. Start at the plan and
+The plan is **state**; the other four are **reference**. Start at the plan and
 come here for detail — never the other way round.
 
 ## The rule
@@ -30,6 +31,13 @@ reasoning you will otherwise reconstruct incorrectly in a year.
 structures, interfaces, algorithms, invariants. Written when a part is complex
 enough that "read the code" is a bad answer. The domain model has one because
 everything else depends on it.
+
+**The visual design is not system design.** `design/` holds SDDs — how a
+subsystem works. `visual/DESIGN.md` holds how the app looks: color roles,
+type scale, shape, elevation and components, as tokens in its front matter
+(the `DESIGN.md` convention). Read it before writing CSS. An SDD may say
+_that_ a screen exists and what it shows; the visual spec says how it's
+drawn. Neither restates the other.
 
 ## Workflow
 

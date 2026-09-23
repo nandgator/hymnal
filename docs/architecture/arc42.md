@@ -259,6 +259,12 @@ splitting it out bought nothing extra. Renderer and Focus Controller are one
 Controller was meant to own is exactly the engine's own cursor, read through
 a Solid signal bumped on each mutation.
 
+The Presenter redesign (SDD-0001 §16) adds one more: **Output**, a second,
+chrome-less renderer of the same cursor, reached via `BroadcastChannel`
+rather than sharing `Presenter`'s Solid signals directly (different window,
+different JS realm). Not a decomposition of Renderer — a second consumer of
+the same state.
+
 `OPEN:` Level 2 for Content Pipeline and Finder, once the migration rules and
 the Malayalam search strategy are settled.
 
@@ -281,16 +287,18 @@ sequenceDiagram
     S-->>F: hymn aggregate
     F->>SE: load(hymn)
     SE->>SE: resolve occurrence 0
-    SE->>R: render(occurrence, recurrenceIndex)
+    SE->>R: render(occurrence, repeatOrdinal=1)
     R-->>U: first part, focused
     U->>SE: advance
     SE->>SE: cursor → occurrence 1
-    SE->>R: render(occurrence, recurrenceIndex=1)
-    Note over R: recurrence > 0 → repetition cue
+    SE->>R: render(occurrence, repeatOrdinal=1)
+    Note over R: repeatOrdinal > 1 only for an immediately adjacent repeat
 ```
 
-The `recurrenceIndex` crossing that boundary is the mechanism behind R4. The
-renderer is told not merely _which text_ but _which showing of it_.
+`repeatOrdinal` crossing above 1 is the mechanism behind R4 — but only for a
+part repeating _immediately_, not for the hymn's ordinary verse-chorus
+structure (revised in the Presenter redesign, SDD-0001 §16; §2.2/§5.2 have
+the corrected definition and the corpus evidence behind it).
 
 Implemented in Board #9 (SDD-0001 §14) with one change from this diagram:
 Finder never fetches or loads the hymn — it only hands the number to
@@ -325,6 +333,32 @@ crashing.
 
 `OPEN:` A real install/remove flow and list UI, once a second hymnbook
 exists; storage-eviction recovery (§11); Phase 2 audio follow.
+
+### 6.4 Operator publishes to Output
+
+```mermaid
+sequenceDiagram
+    participant P as Presenter (Operator)
+    participant C as BroadcastChannel
+    participant O as Output window
+
+    P->>O: window.open() — operator drags it to the second display, fullscreens
+    loop every navigation
+        P->>C: publish 2-line window (current, next)
+        C-->>O: same message
+        O-->>O: render current (large) + next (preview), no labels
+    end
+    P->>C: publish idle (Presenter unmounts)
+    C-->>O: idle
+    O-->>O: blank until the next hymn opens
+```
+
+Two windows, one browser, one device — not the deferred multi-device/
+projector scenario (ADR-0011). The channel is a module-level singleton
+(same shape as `userState`); the Output window's own lifecycle lives above
+`Presenter`, so it survives being navigated back to Finder and a different
+hymn opening, rather than closing and reopening between every hymn in a
+service. Full mechanism and rationale: SDD-0001 §16.1.
 
 ---
 
@@ -394,8 +428,14 @@ typography is data-driven. UI language is independent of content language.
 
 Implemented in Board #10 (SDD-0001 §15): Noto Serif Malayalam, bundled as a
 woff2 and scoped to lyric content only (a `.hymn-text` class), not UI chrome.
-A second hymnbook's script gets its own font the same way, per hymnbook data,
-when that board arrives.
+
+**Revised in the Presenter redesign** (SDD-0001 §16.3): Google Sans, one
+family for both UI chrome and hymn content — verified to carry full
+Malayalam glyph coverage and shipped under OFL. Full rationale and the
+complete visual token system (color, type scale, shape, elevation,
+components) live in [`docs/visual/DESIGN.md`](../visual/DESIGN.md), not
+here — read it before touching CSS. A second hymnbook's script gets its
+own font the same way, per hymnbook data, when that board arrives.
 
 ### 8.4 Search
 
@@ -428,11 +468,15 @@ Responsive from phone to large display. User-controlled text scale and contrast.
 Focus transitions must be smooth enough not to distract and fast enough not to
 lag singing.
 
-Resolved in Board #9 (SDD-0001 §14): a text label (`(repeat)` /
-`(final repeat)`), not color, so the cue stays legible in bright venue light
-and for colorblind viewers — quality goal 2 ranks above visual novelty. A
-toggle hides it entirely, since a presenter deliberately departing from the
-stored order finds a cue tracking that order actively misleading.
+Resolved in Board #9 (SDD-0001 §14): a text label, not color, so the cue
+stays legible in bright venue light and for colorblind viewers — quality
+goal 2 ranks above visual novelty. A toggle hides it entirely, since a
+presenter deliberately departing from the stored order finds a cue
+tracking that order actively misleading. **Revised in the Presenter
+redesign** (SDD-0001 §16): the label is now a plain running count
+(`repeatOrdinal`), and only ever appears for an immediately adjacent
+repeat — verse-chorus-verse-chorus is the hymn's normal printed form, not
+a repeat (§2.2, §5.2).
 
 Responsive layout implemented in Board #10 (SDD-0001 §15): a continuous
 `clamp()`-based type scale rather than fixed breakpoints, so phone and large
@@ -441,11 +485,15 @@ scale and contrast is `Settings` (`src/shell/Settings.tsx`), applied globally
 as `--font-scale` and `data-theme`, not per-view. One hard breakpoint caps
 line length on a large display, so it doesn't run wall to wall.
 
-Considered and declined: a distinct "presentation mode" hiding Presenter's
-controls for a large display facing a congregation. Phase 1 is single-device
-— whoever sees the screen operates it — and a chrome-less audience view is
-really the deferred projector-output feature (ADR-0011), not a
-responsive-layout concern.
+**Reversed in the Presenter redesign** (SDD-0001 §16): Board #10 declined a
+"presentation mode," reasoning it as the deferred multi-device/projector
+feature (ADR-0011). That was wrong — researching how existing
+worship-presentation software actually works (ProPresenter, EasyWorship,
+FreeShow, Proclaim) surfaced a universal pattern missed here: an Operator
+view and a chrome-less **Output** view, achieved as two windows from one
+browser on one device, not a second device. Phase 1 is still single-device;
+the Output window is a second window, not a second device. See §6.4 and
+SDD-0001 §16.1 for the mechanism.
 
 ### 8.8 Accessibility
 

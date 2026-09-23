@@ -124,22 +124,37 @@ interface Occurrence {
   /** Position in the effective sequence. */
   index: number;
   part: Part;
-  /** Prior showings of this part. 0 is the first showing. */
-  recurrenceIndex: number;
-  /** Total showings of this part across the effective sequence. */
-  totalRecurrences: number;
+  /**
+   * How many times in a row — including this one — the same part has now
+   * shown back-to-back. 1 means "not a repeat." Only an *immediately
+   * adjacent* recurrence counts; verse → chorus → verse → chorus is the
+   * song's normal printed form, not a repeat (revised in the Presenter
+   * redesign — see §16 — after the original "any prior occurrence
+   * anywhere" definition proved wrong against the real corpus: 0 of 1,631
+   * hymns ever repeat a part back-to-back in their stored sequence, while
+   * 1,186 have the ordinary non-adjacent pattern, which the original
+   * definition mistakenly flagged as a repeat on the majority of the
+   * hymnal).
+   */
+  repeatOrdinal: number;
   /** True when produced by live navigation rather than stored data. */
   isAdHoc: boolean;
 }
 ```
 
-`recurrenceIndex` is the value the renderer needs. `> 0` means this text has
-been shown before, and the visual treatment for repetition applies.
+`repeatOrdinal > 1` is the value the renderer needs: this text is being sung
+immediately again, and the visual treatment for repetition applies. In
+practice this only ever fires for a live, ad-hoc jump back to a part already
+showing — never during ordinary navigation through the stored sequence — so
+the cue is effectively an operator-facing signal for R6 overrides, not a
+structural feature of the hymn.
 
-`totalRecurrences` allows a cue like "final time", which reads differently from
-an intermediate repeat.
+No `totalRecurrences` field: for a live ad-hoc repeat, how many more times
+the presenter will jump back isn't knowable in advance, so a cue implying a
+known total (e.g. "final time") would be lying. `repeatOrdinal` is a plain,
+honest running count instead.
 
-These are **computed from the sequence**, never persisted. Storing them would
+This is **computed from the sequence**, never persisted. Storing it would
 create a second source of truth that could drift.
 
 ---
@@ -231,24 +246,28 @@ starts identically both times.
 
 ### 5.2 Recurrence computation
 
-For occurrence at index `i` with part `p`:
+For occurrence at index `i` with part `p`, walking backward only while the
+part stays the same — **adjacency, not "anywhere earlier"**:
 
 ```text
-recurrenceIndex(i)   = count of j < i  where effective[j].partId == p.id
-totalRecurrences(p)  = count of j      where effective[j].partId == p.id
+repeatOrdinal(i) = 1 + count of consecutive j = i-1, i-2, ...
+                       while effective[j].partId == p.id
 ```
 
-Computed over the **effective** sequence, so an ad-hoc repeat correctly
-increments the count — the presenter jumping back to the chorus produces a
-genuine fourth showing, and the cue reflects that.
+Computed over the **effective** sequence, so a live jump back to a part
+already showing correctly extends the streak — the presenter jumping back to
+the chorus a second time in a row produces `repeatOrdinal = 2`, a third
+`= 3`, and the cue reflects that. A single verse between two showings of the
+chorus resets the streak to 1 (not a repeat) — that's the whole point of the
+adjacency rule (§2.2).
 
 ### 5.3 Why append rather than rewind
 
 `jumpToPart` appends rather than moving the cursor backwards. This keeps
-history linear and monotonic, keeps `recurrenceIndex` truthful — rewinding
-would show "third time" when it is really the fourth — and keeps a Phase 2
-follow source and the local cursor in one consistent, forward-moving address
-space.
+history linear and monotonic, keeps `repeatOrdinal` truthful — rewinding
+would show "second time" for what's really the third consecutive
+showing — and keeps a Phase 2 follow source and the local cursor in one
+consistent, forward-moving address space.
 
 ### 5.4 Line navigation
 
@@ -766,6 +785,11 @@ persisted — nothing yet reads a saved preference, and Board #11's
 `installed`-style deferral (§11, §12) applies here too: don't build the
 general mechanism before a second consumer needs it.
 
+**Revised in §16**: this section's `recurrenceIndex`/`totalRecurrences`/
+"final repeat" model fired on ordinary verse-chorus structure, not just
+genuine repeats — see §2.2 and §5.2 for the corrected, evidenced
+definition (`repeatOrdinal`, adjacency-only).
+
 **Overriding the sequence (R6) is in scope now**, not deferred: a "Parts"
 list next to the renderer calls `SequenceEngine.jumpToPart` directly, one
 button per part. This is the same mechanism a presenter uses to jump ahead
@@ -896,3 +920,116 @@ no meaningful jsdom equivalent and was verified against an actual `vite
 build` + `vite preview`, in a real browser, with the network cut off after
 first load: the app shell, the SQLite engine, and a real hymn all load with
 zero network requests once installed once.
+
+## 16. Presenter redesign: Operator/Output split, corrected recurrence, visual design
+
+Prompted by the maintainer comparing Board #10's shipped UI against the
+archived implementation's screenshots: functionally complete, visually not
+consumer-ready. What followed was a long, evidence-driven design
+conversation (browser research into ProPresenter/EasyWorship/FreeShow/
+Proclaim, a corpus audit, several interactive mockups) rather than a
+straight reskin. Three real corrections came out of it.
+
+### 16.1 Operator and Output are two different screens, not one
+
+Researching how every worship-presentation tool actually works — cheap or
+expensive, proprietary or FreeShow's GPL-3.0 — surfaced one universal
+pattern missed in Board #10: an **Operator** view (private, full controls)
+and a chrome-less **Output** view (audience-facing), even on a single
+laptop. Declining a "presentation mode" in Board #10 was a mistake: it was
+reasoned as the deferred multi-device/projector feature (ADR-0011), but
+it's actually a same-origin, two-_window_ mechanism — squarely inside
+Phase 1's single-device scope.
+
+**Mechanism**: a second `window.open()`, positioned and fullscreened by the
+operator manually (drag to the second display, native fullscreen) — not
+the newer Window Management API (`getScreenDetails()`), which is
+Chrome/Edge-only and needs an extra permission prompt. State flows
+Operator → Output over a `BroadcastChannel`, a module-level singleton (the
+same shape as the `userState`/`getContentStore()` singletons elsewhere in
+`src/persistence/`), not App-level Solid state — the channel itself has no
+reason to be a component.
+
+**Lifecycle**: the Output connection lives above `Presenter` (opened once
+per service from `App`-level state, or earlier from Library/Finder), not
+owned by `Presenter`'s own mount/unmount. `Presenter` just **publishes**
+its current position whenever it's mounted; Output shows a neutral/blank
+state otherwise. A real service has many hymns — reopening and
+repositioning an Output window between every single one would be a
+genuine operational failure, not a minor inconvenience.
+
+**Content rule — Mode 1, continuous scroll** (supersedes an earlier 2-line
+sliding-window draft): Output renders the whole effective sequence as one
+scrolling column of lines (`flattenLines()`), the focus brightened and
+centred, everything else dimmed. The focus mirrors the Operator's exactly:
+under whole-part focus the **whole part** is brightened, and a line step
+narrows it to one line. An earlier draft brightened only the first line
+under whole-part focus, and that made the first Down press after entering
+a part invisible to the audience. A focus taller than the screen is aligned
+to its first line instead of centred. Scrolling is native
+`scrollTo({ behavior: "smooth" })` on a real overflow container, not
+a hand-rolled transform: smooth scroll runs at roughly constant velocity,
+so a one-line step and a whole-part jump both take a duration proportional
+to their distance for free. A new hymn snaps instantly rather than
+scrolling from the previous one. **No part label, no recurrence cue,
+ever** — those are Operator aids; a cue tracking the _stored_ order has no
+meaning to a congregation watching lyrics. Modes 2 (chorus in a persistent
+parallel pane) and 3 (paginated, `scroll-snap` over the same scroll) are
+Board #13, built after the MD3 visual language (§16.3) exists.
+
+**Late join**: an Output window opened mid-hymn would otherwise stay blank
+until the operator's next keypress. On mount it posts a `hello` on the
+channel; the channel module replays the last message this window published.
+The replay lives in `src/output/channel.ts`, not `Presenter` — the
+publisher-side cache is a transport concern, and it also covers the case
+where no Presenter is mounted (the cached message is then `idle`).
+
+**Forward compatibility, deliberately not built yet**: `window.open()` +
+`BroadcastChannel` is standard web API, per ADR-0004/0006's reversibility
+reasoning (the frontend is committed, the wrapper is late-binding). If a
+Tauri wrapper is ever adopted, its native multi-window API would replace
+just this mechanism — real browsers can't _guarantee_ a chrome-less window
+or reliable secondary-monitor placement (popup blockers, address-bar
+security changes on popups, patchy Window Management API support), which
+is the actual gap a native wrapper would close. No Tauri code exists yet;
+this is the seam where it would go, mirroring how ADR-0010 modeled
+liveness as a pluggable follow source for the same reason.
+
+### 16.2 Recurrence redefined: adjacent-only, not "anywhere in history"
+
+Covered fully in §2.2 and §5.2 — summarized here because it was the design
+conversation's actual entry point. The original definition
+(`recurrenceIndex`/`totalRecurrences`, "has this part appeared anywhere
+before") fired on ordinary verse-chorus-verse-chorus structure: checked
+against the real corpus, **0 of 1,631 hymns** ever have an adjacent repeat
+in their stored sequence, while **1,186** have the normal non-adjacent
+pattern the old definition mistakenly flagged as a repeat. The corrected
+definition (`repeatOrdinal`, adjacency-only) only ever fires from a live,
+ad-hoc jump back to a part already showing — which also fixed a real
+display bug caught in review ("12 of 12" from repeatedly jumping to an
+already-current part inflating a lifetime count that meant nothing).
+
+### 16.3 Visual design: Material Design 3, specified in `visual/DESIGN.md`
+
+The palette, typography, shape, elevation and component conventions live
+in [`docs/visual/DESIGN.md`](../visual/DESIGN.md), **not** duplicated
+here — it's a different kind of document (read before writing CSS, the design
+equivalent of `CLAUDE.md`/`AGENTS.md`) and this file would drift out of
+sync with it if the tokens existed in two places. In short: MD3's actual
+tokens hand-implemented in plain CSS (the `@material/web` package's ES
+module graph isn't practical to load without a bundler dependency this
+project doesn't otherwise need), seeded from an amber/brass hue rather
+than Google's default purple, with Google Sans — verified to carry full
+Malayalam glyph coverage (U+0D00–U+0D7F) and shipped under OFL — unifying
+both UI chrome and hymn content into one typeface, superseding Board #10's
+Noto Serif Malayalam.
+
+### 16.4 Testing
+
+The two-window mechanism (`BroadcastChannel`, `window.open`, manual
+fullscreen) has no meaningful jsdom equivalent, the same "browser-only
+gap" as the rest of the OPFS/Worker/PWA layer (§10.5, §15) — verify by
+hand in a real browser: Operator and Output in separate windows, state
+flowing between them, Output surviving a hymn change. The `repeatOrdinal`
+computation itself is pure domain logic and fully unit-testable like the
+rest of `sequence-engine.ts`.
