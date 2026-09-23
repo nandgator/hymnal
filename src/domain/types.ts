@@ -62,10 +62,13 @@ export interface Occurrence {
   /** Position in the effective sequence. */
   index: number;
   part: Part;
-  /** Prior showings of this part. 0 is the first showing. */
-  recurrenceIndex: number;
-  /** Total showings of this part across the effective sequence. */
-  totalRecurrences: number;
+  /**
+   * How many times in a row — including this one — the same part has shown
+   * back-to-back. 1 means "not a repeat." Only an immediately adjacent
+   * recurrence counts; verse → chorus → verse → chorus is the hymn's normal
+   * printed form, not a repeat.
+   */
+  repeatOrdinal: number;
   /** True when produced by live navigation rather than stored data. */
   isAdHoc: boolean;
 }

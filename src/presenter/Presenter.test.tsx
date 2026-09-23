@@ -5,6 +5,9 @@ import type { ContentStore } from "../persistence/content-store.ts";
 import type { UserState } from "../persistence/user-state.ts";
 import { Presenter } from "./Presenter.tsx";
 
+const publishOutput = vi.hoisted(() => vi.fn());
+vi.mock("../output/channel.ts", () => ({ publishOutput }));
+
 const HYMN: HymnSource = {
   number: 7,
   title: "Test Hymn",
@@ -89,31 +92,40 @@ describe("Presenter", () => {
     expect(onBack).toHaveBeenCalled();
   });
 
-  it("advances through parts and rolls recurrence into a repeat cue", async () => {
+  it("doesn't cue ordinary verse-chorus recurrence as a repeat (SDD-0001 §16.2)", async () => {
     render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
     await screen.findByText("Test Hymn");
 
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next part" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next part" }));
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
-    expect(screen.queryByText("(repeat)")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Repeat/)).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: "Next part" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next part" }));
-    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
-    expect(screen.getByText("(final repeat)")).toBeInTheDocument();
+  it("counts back-to-back jumps to the same part as a running repeat", async () => {
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    await screen.findByText("Test Hymn");
+    const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
+
+    // Stored order ends on the refrain, so jumping to it again is adjacent.
+    fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
+    expect(screen.getByText("(Repeat 2)")).toBeInTheDocument();
+
+    fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
+    expect(screen.getByText("(Repeat 3)")).toBeInTheDocument();
   });
 
   it("hides the repeat cue when the presenter turns it off", async () => {
     render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
     await screen.findByText("Test Hymn");
 
-    fireEvent.click(screen.getByRole("button", { name: "Next part" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next part" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next part" }));
-    expect(screen.getByText("(final repeat)")).toBeInTheDocument();
+    const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
+    fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
+    expect(screen.getByText("(Repeat 2)")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Show repeat cues" }));
-    expect(screen.queryByText("(final repeat)")).not.toBeInTheDocument();
+    expect(screen.queryByText("(Repeat 2)")).not.toBeInTheDocument();
   });
 
   it("moves through lines within a part, focusing one at a time", async () => {
@@ -139,7 +151,6 @@ describe("Presenter", () => {
     fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
 
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
-    expect(screen.getByText("(final repeat)")).toBeInTheDocument();
   });
 
   it("disables Previous part on the first occurrence and Next part on the last", async () => {
@@ -170,5 +181,38 @@ describe("Presenter", () => {
     fireEvent.keyDown(window, { key: "PageUp" });
     fireEvent.keyDown(window, { key: "ArrowLeft" });
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
+  });
+
+  it("publishes every navigation to the Output window, and idle on unmount (SDD-0001 §16.1)", async () => {
+    publishOutput.mockClear();
+    const { unmount } = render(() => (
+      <Presenter hymnNumber={7} hymnbookId="book" store={fakeStore()} userState={fakeUserState()} />
+    ));
+    await screen.findByText("Test Hymn");
+
+    const text = (t: string) => expect.objectContaining({ text: t });
+    expect(publishOutput).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: "content",
+        hymnbookId: "book",
+        number: 7,
+        focus: { start: 0, end: 2 },
+        lines: [
+          text("Line 1a"),
+          text("Line 1b"),
+          text("Refrain line"),
+          text("Line 2a"),
+          text("Refrain line"),
+        ],
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Next part" }));
+    expect(publishOutput).toHaveBeenLastCalledWith(
+      expect.objectContaining({ focus: { start: 2, end: 3 } }),
+    );
+
+    unmount();
+    expect(publishOutput).toHaveBeenLastCalledWith({ type: "idle" });
   });
 });

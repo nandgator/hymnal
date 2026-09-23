@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSequenceEngine } from "./sequence-engine.ts";
+import { createSequenceEngine, flattenLines } from "./sequence-engine.ts";
 import type { Hymn } from "./types.ts";
 
 /** Chorus + verses, the most common corpus shape — SDD-0001 §7. */
@@ -37,20 +37,35 @@ describe("createSequenceEngine", () => {
     expect(engine.current().part.id).toBe("r");
   });
 
-  it("computes recurrence over the stored sequence", () => {
+  it("does not treat the stored verse-chorus-verse-chorus pattern as a repeat", () => {
     const engine = createSequenceEngine(fixtureHymn());
+    // r, s1, r, s2, r — no two adjacent entries share a part, so every
+    // occurrence is "not a repeat" (repeatOrdinal 1), even though "r"
+    // appears 3 times across the hymn — SDD-0001 §2.2/§5.2.
+    for (let i = 0; i < engine.length; i++) {
+      expect(engine.occurrenceAt(i)).toMatchObject({ repeatOrdinal: 1 });
+    }
+  });
 
-    const first = engine.occurrenceAt(0);
-    expect(first).toMatchObject({ recurrenceIndex: 0, totalRecurrences: 3, isAdHoc: false });
+  it("counts a genuine back-to-back repeat, extending across repeated ad-hoc jumps", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(4); // the last "r"
 
-    const second = engine.occurrenceAt(2);
-    expect(second).toMatchObject({ recurrenceIndex: 1, totalRecurrences: 3, isAdHoc: false });
+    engine.jumpToPart("r"); // immediately repeats it
+    expect(engine.current()).toMatchObject({ repeatOrdinal: 2, isAdHoc: true });
 
-    const third = engine.occurrenceAt(4);
-    expect(third).toMatchObject({ recurrenceIndex: 2, totalRecurrences: 3, isAdHoc: false });
+    engine.jumpToPart("r"); // repeats again
+    expect(engine.current()).toMatchObject({ repeatOrdinal: 3, isAdHoc: true });
+  });
 
-    const stanza = engine.occurrenceAt(1);
-    expect(stanza).toMatchObject({ recurrenceIndex: 0, totalRecurrences: 1, isAdHoc: false });
+  it("a jump to a part different from the effective sequence's current tail is not a repeat", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    // jumpToPart always appends after the tail, not wherever the cursor is —
+    // the stored sequence already ends in "r" (index 4), so jumping to a
+    // *different* part is what's needed to see a non-repeat here.
+    engine.goTo(1); // cursor position is irrelevant to adjacency
+    engine.jumpToPart("s2");
+    expect(engine.current()).toMatchObject({ repeatOrdinal: 1, isAdHoc: true });
   });
 
   it("returns undefined for an out-of-range occurrence", () => {
@@ -140,10 +155,10 @@ describe("createSequenceEngine", () => {
     expect(engine.length).toBe(6);
     expect(engine.cursor).toMatchObject({ occurrenceIndex: 5, lineIndex: null });
 
-    // The refrain was already shown 3 times in the stored sequence, so this
-    // ad-hoc jump is a genuine fourth showing — SDD-0001 §5.2.
+    // The stored sequence's last entry (index 4) is already "r", so this
+    // ad-hoc jump lands immediately adjacent to it — a genuine repeat.
     const occurrence = engine.current();
-    expect(occurrence).toMatchObject({ recurrenceIndex: 3, totalRecurrences: 4, isAdHoc: true });
+    expect(occurrence).toMatchObject({ repeatOrdinal: 2, isAdHoc: true });
   });
 
   it("jumpToPart throws for an unknown part id", () => {
@@ -159,5 +174,59 @@ describe("createSequenceEngine", () => {
     const second = createSequenceEngine(hymn);
     expect(second.length).toBe(5);
     expect(second.cursor).toMatchObject({ occurrenceIndex: 0, lineIndex: null });
+  });
+});
+
+describe("flattenLines", () => {
+  it("flattens every occurrence's lines in order, whole-part focus spanning the whole part", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    const { lines, focus } = flattenLines(engine);
+
+    // r(2) + s1(1) + r(2) + s2(2) + r(2) = 9 lines.
+    expect(lines).toHaveLength(9);
+    expect(lines.map((l) => l.text)).toEqual([
+      "Refrain line 1",
+      "Refrain line 2",
+      "Stanza 1 line 1",
+      "Refrain line 1",
+      "Refrain line 2",
+      "Stanza 2 line 1",
+      "Stanza 2 line 2",
+      "Refrain line 1",
+      "Refrain line 2",
+    ]);
+    expect(lines.map((l) => l.isPartStart)).toEqual([
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false,
+    ]);
+    expect(focus).toEqual({ start: 0, end: 2 });
+  });
+
+  it("narrows focus to the single focused line of the focused occurrence", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(2, 1); // the second "r", its second line
+
+    // Lines before occurrence 2: r(2) + s1(1) = 3, then line 1 within it.
+    expect(flattenLines(engine).focus).toEqual({ start: 4, end: 5 });
+
+    engine.goTo(2); // same occurrence, whole part
+    expect(flattenLines(engine).focus).toEqual({ start: 3, end: 5 });
+  });
+
+  it("includes ad-hoc occurrences appended by jumpToPart", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.jumpToPart("s1");
+
+    const { lines, focus } = flattenLines(engine);
+    expect(lines).toHaveLength(10);
+    expect(lines.at(-1)).toMatchObject({ text: "Stanza 1 line 1", partId: "s1" });
+    expect(focus).toEqual({ start: 9, end: 10 });
   });
 });

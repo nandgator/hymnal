@@ -11,8 +11,13 @@ import {
   Switch,
 } from "solid-js";
 import { BUNDLED_HYMNBOOK_ID } from "../config.ts";
-import { createSequenceEngine, type SequenceEngine } from "../domain/sequence-engine.ts";
+import {
+  createSequenceEngine,
+  flattenLines,
+  type SequenceEngine,
+} from "../domain/sequence-engine.ts";
 import type { Hymn, HymnbookId, HymnNumber, Part } from "../domain/types.ts";
+import { publishOutput } from "../output/channel.ts";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
 
@@ -86,6 +91,23 @@ export function Presenter(props: PresenterProps) {
 
   const [showCues, setShowCues] = createSignal(true);
 
+  // Publish to the Output window on every navigation (SDD-0001 §16.1).
+  // Output owns no state of its own; unmounting blanks it rather than
+  // leaving the last hymn frozen on the audience's screen.
+  createEffect(() => {
+    version();
+    const e = engine();
+    if (!e) return;
+    publishOutput({
+      type: "content",
+      hymnbookId: e.hymn.hymnbookId,
+      number: e.hymn.number,
+      title: e.hymn.title,
+      ...flattenLines(e),
+    });
+  });
+  onCleanup(() => publishOutput({ type: "idle" }));
+
   // Full keyboard navigation (arc42 §8.8) — arrow keys for fine control,
   // Page Up/Down since that's what most presentation remotes/clickers send.
   const onKeyDown = (event: KeyboardEvent) => {
@@ -128,13 +150,9 @@ export function Presenter(props: PresenterProps) {
                 <section aria-label="Current part">
                   <h3>
                     {partLabel(occ().part)}
-                    <Show when={showCues() && occ().recurrenceIndex > 0}>
+                    <Show when={showCues() && occ().repeatOrdinal > 1}>
                       {" "}
-                      <span>
-                        {occ().recurrenceIndex + 1 === occ().totalRecurrences
-                          ? "(final repeat)"
-                          : "(repeat)"}
-                      </span>
+                      <span>(Repeat {occ().repeatOrdinal})</span>
                     </Show>
                   </h3>
                   <ol class="hymn-text">

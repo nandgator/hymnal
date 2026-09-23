@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@solidjs/testing-library";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App.tsx";
 import type { ContentStore } from "./persistence/content-store.ts";
 import type { UserState } from "./persistence/user-state.ts";
@@ -62,4 +62,30 @@ describe("App", () => {
 
     expect(await screen.findByText("Mocked Hymn")).toBeInTheDocument();
   });
+
+  it("opens the Output as a named window, so a second click reuses it", async () => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    render(() => <App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Show Output" }));
+
+    expect(open).toHaveBeenCalledWith(
+      expect.stringMatching(/\?output=1$/),
+      "hymnal-output",
+      "popup",
+    );
+  });
+
+  it("renders only the chrome-less Output when loaded with ?output=1", () => {
+    window.history.replaceState(null, "", "/?output=1");
+    render(() => <App />);
+
+    expect(screen.queryByRole("button", { name: "Show Output" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Display settings" })).not.toBeInTheDocument();
+  });
+});
+
+afterEach(() => {
+  window.history.replaceState(null, "", "/");
+  vi.restoreAllMocks();
 });

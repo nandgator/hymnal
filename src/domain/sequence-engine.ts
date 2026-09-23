@@ -71,20 +71,17 @@ class HymnSequenceEngine implements SequenceEngine {
     const entry = sequence[index];
     if (!entry) return undefined;
 
-    let recurrenceIndex = 0;
-    let totalRecurrences = 0;
-    for (let j = 0; j < sequence.length; j++) {
-      if (sequence[j].partId === entry.partId) {
-        if (j < index) recurrenceIndex++;
-        totalRecurrences++;
-      }
+    // Adjacency, not "anywhere earlier" — see SDD-0001 §2.2/§5.2. Walk
+    // backward only while the part stays the same.
+    let repeatOrdinal = 1;
+    for (let j = index - 1; j >= 0 && sequence[j].partId === entry.partId; j--) {
+      repeatOrdinal++;
     }
 
     return {
       index,
       part: this.partById(entry.partId),
-      recurrenceIndex,
-      totalRecurrences,
+      repeatOrdinal,
       isAdHoc: index >= this.hymn.sequence.length,
     };
   }
@@ -150,4 +147,51 @@ class HymnSequenceEngine implements SequenceEngine {
 
 export function createSequenceEngine(hymn: Hymn): SequenceEngine {
   return new HymnSequenceEngine(hymn);
+}
+
+/**
+ * One line in the Output's continuous scroll (Board #11, SDD-0001 §16.1).
+ * Pure — operates only on `SequenceEngine`'s public interface, so it can run
+ * unchanged wherever a hymn's flowing line sequence needs rendering.
+ */
+export interface FlatLine {
+  text: string;
+  partId: PartId;
+  /** True for a part's first line — lets a renderer show a grouping cue
+   * without re-deriving part boundaries itself. */
+  isPartStart: boolean;
+}
+
+/** Half-open range `[start, end)` into a {@link flattenLines} result. */
+export interface LineRange {
+  start: number;
+  end: number;
+}
+
+/** The whole effective sequence flattened to individual lines, with the
+ * focused range: the whole occurrence under whole-part focus
+ * (`lineIndex: null`), a single line otherwise — SDD-0001 §16.1. */
+export function flattenLines(engine: SequenceEngine): {
+  lines: FlatLine[];
+  focus: LineRange;
+} {
+  const lines: FlatLine[] = [];
+  const focus: LineRange = { start: 0, end: 0 };
+  const { occurrenceIndex, lineIndex } = engine.cursor;
+
+  for (let i = 0; i < engine.length; i++) {
+    const occurrence = engine.occurrenceAt(i);
+    if (!occurrence) continue;
+
+    if (i === occurrenceIndex) {
+      focus.start = lines.length + (lineIndex ?? 0);
+      focus.end =
+        lineIndex === null ? lines.length + occurrence.part.lines.length : focus.start + 1;
+    }
+    for (const [li, text] of occurrence.part.lines.entries()) {
+      lines.push({ text, partId: occurrence.part.id, isPartStart: li === 0 });
+    }
+  }
+
+  return { lines, focus };
 }

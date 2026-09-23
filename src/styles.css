@@ -120,17 +120,23 @@ button:disabled {
   }
 }
 
-.settings {
+.app-bar {
   display: flex;
   gap: var(--space-1);
   justify-content: flex-end;
   padding: var(--space-1) var(--space-2);
-  margin: 0;
-  border: none;
   border-bottom: 1px solid var(--color-border);
 }
 
-.settings button {
+.settings {
+  display: flex;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  border: none;
+}
+
+.app-bar button {
   border: 1px solid var(--color-border);
   background: transparent;
   color: inherit;
@@ -144,4 +150,44 @@ button:disabled {
   font-family: "Noto Serif Malayalam", "Noto Serif", Georgia, serif;
   font-size: 1.25em;
   line-height: 1.7;
+}
+
+/* Board #11 — the audience-facing Output window, Mode 1 continuous scroll
+   (SDD-0001 §16.1). Always dark, whatever the operator's theme: it's a
+   projected surface, not a reading one. Sized off the viewport, not the
+   operator's text-scale preference, since it fills a separate display.
+   Plain CSS for now; MD3 styling is Board #12. */
+.output-idle,
+.output-scroll {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  color: #fff;
+}
+
+.output-scroll {
+  list-style: none;
+  padding: 0 5vw;
+  overflow-y: auto;
+  scrollbar-width: none;
+  cursor: none;
+  font-family: "Noto Serif Malayalam", "Noto Serif", Georgia, serif;
+  font-size: clamp(1.5rem, 4.5vw, 7rem);
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Half a viewport either side, so the first and last lines can still be
+   scrolled to the centre. */
+.output-spacer {
+  height: 50vh;
+}
+
+.output-line {
+  opacity: 0.3;
+  transition: opacity 200ms ease;
+}
+
+.output-line-current {
+  opacity: 1;
 }
