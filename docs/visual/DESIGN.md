@@ -52,49 +52,49 @@ colors-light:
 
 typography:
   display-small:
-    fontFamily: "Google Sans, Roboto, system-ui, sans-serif"
+    fontFamily: "Hymnal Sans, Roboto, system-ui, sans-serif"
     fontSize: 36px
     fontWeight: 400
     lineHeight: 44px
     letterSpacing: 0
   title-large:
-    fontFamily: "Google Sans, Roboto, system-ui, sans-serif"
+    fontFamily: "Hymnal Sans, Roboto, system-ui, sans-serif"
     fontSize: 22px
     fontWeight: 500
     lineHeight: 28px
     letterSpacing: 0
   title-medium:
-    fontFamily: "Google Sans, Roboto, system-ui, sans-serif"
+    fontFamily: "Hymnal Sans, Roboto, system-ui, sans-serif"
     fontSize: 16px
     fontWeight: 500
     lineHeight: 24px
     letterSpacing: 0.15px
   label-large:
-    fontFamily: "Google Sans, Roboto, system-ui, sans-serif"
+    fontFamily: "Hymnal Sans, Roboto, system-ui, sans-serif"
     fontSize: 14px
     fontWeight: 500
     lineHeight: 20px
     letterSpacing: 0.1px
   label-small:
-    fontFamily: "Google Sans, Roboto, system-ui, sans-serif"
+    fontFamily: "Hymnal Sans, Roboto, system-ui, sans-serif"
     fontSize: 11px
     fontWeight: 500
     lineHeight: 16px
     letterSpacing: 0.5px
     textTransform: uppercase
   body-large:
-    fontFamily: "Google Sans, Roboto, system-ui, sans-serif"
+    fontFamily: "Hymnal Sans, Roboto, system-ui, sans-serif"
     fontSize: 16px
     fontWeight: 400
     lineHeight: 24px
   hymn-display:
-    fontFamily: "Google Sans, Noto Sans Malayalam, Noto Serif Malayalam, Georgia, serif"
+    fontFamily: "Hymnal Sans, Noto Sans Malayalam, system-ui, sans-serif"
     fontSize: "clamp(1rem, 0.85rem + 0.6vw, 1.75rem)"
     fontWeight: 400
     lineHeight: 1.7
     note: multiplied by --font-scale (user setting), never a fixed px — see Layout
   output-line:
-    fontFamily: "Google Sans, Noto Sans Malayalam, Noto Serif Malayalam, Georgia, serif"
+    fontFamily: "Hymnal Sans, Noto Sans Malayalam, system-ui, sans-serif"
     fontSize: "clamp(2.2rem, 6.5vw, 5rem)"
     fontWeight: 500
     lineHeight: 1.35
@@ -303,6 +303,14 @@ devotional, legible-at-distance tool.
   Noto Serif Malayalam stay in the stack as fallbacks. A second
   hymnbook's script picks its own font the same way, per hymnbook data,
   when that board arrives (arc42 §8.3).
+- **Bundled as "Hymnal Sans"** — Google Sans, subset and renamed. Google's
+  `TRADEMARKS.md` forbids the "Google Sans" name on a modified version,
+  and subsetting is a modification. The subset keeps Latin-1, general
+  punctuation and the full Malayalam block with all shaping rules
+  (conjuncts), weights 400–700 as one variable axis: 82 KB as woff2,
+  against 1.58 MB for the whole font. Copyright, designer and licence
+  records inside the font are unchanged; `src/fonts/README.md` has the
+  rebuild command. Noto Serif Malayalam is no longer bundled.
 
 ### Hierarchy
 
@@ -358,7 +366,9 @@ unit.
 - **Operator**: a centered column (`max-width: ~40rem`) — hymn header,
   an elevated lyrics card, a filter-chip parts rail alongside it
   (stacks below the card on narrow viewports), a sticky bottom dock for
-  navigation plus the FAB.
+  navigation plus the FAB. The FAB is **Show Output**: presenting is the
+  operator's whole job, and it's the one action that must be easy to hit
+  mid-service.
 - **Output**: full-bleed, one centred column scrolling vertically, the
   focus held at the vertical centre, the safe-area margin around it and
   nothing else on screen.

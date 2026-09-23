@@ -1,8 +1,12 @@
-/* Bundled, never fetched from a CDN — arc42 §8.3. */
+/* Board #12 — Material Design 3 tokens, hand-implemented. The spec is
+   docs/visual/DESIGN.md; read it before changing anything below. */
+
+/* Google Sans, subset and renamed — see src/fonts/README.md. Bundled, never
+   fetched from a CDN (arc42 §8.3). */
 @font-face {
-  font-family: "Noto Serif Malayalam";
-  src: url("./fonts/NotoSerifMalayalam.woff2") format("woff2");
-  font-weight: 100 900;
+  font-family: "Hymnal Sans";
+  src: url("./fonts/HymnalSans.woff2") format("woff2");
+  font-weight: 400 700;
   font-style: normal;
   font-display: swap;
 }
@@ -13,43 +17,106 @@
   /* Board #10 — user-controlled text scale (arc42 §8.7), set by Settings. */
   --font-scale: 1;
 
-  --color-bg: #fdfdfb;
-  --color-fg: #1a1a1a;
-  --color-muted: #5c5c56;
-  --color-border: #d8d8d3;
-  --color-accent: #a3231c;
+  /* Color roles, light scheme (DESIGN.md `colors-light`). */
+  --md-sys-color-primary: #8b5a00;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #ffddb1;
+  --md-sys-color-on-primary-container: #2a1800;
+  --md-sys-color-secondary: #6f5b40;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #fadebc;
+  --md-sys-color-on-secondary-container: #271904;
+  --md-sys-color-surface: #fff8f3;
+  --md-sys-color-on-surface: #201a12;
+  --md-sys-color-surface-variant: #efe0ce;
+  --md-sys-color-on-surface-variant: #4f4539;
+  --md-sys-color-outline: #817567;
+  --md-sys-color-outline-variant: #d3c4b4;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fbf1e6;
+  --md-sys-color-surface-container: #f5ecdf;
+  --md-sys-color-surface-container-high: #f0e6d9;
+  --md-sys-color-inverse-surface: #362f26;
+  --md-sys-color-inverse-on-surface: #fbeee1;
 
-  --space-1: 0.5rem;
-  --space-2: 1rem;
-  --space-3: 1.5rem;
+  /* Output view: fixed, outside the tonal system, never themed. */
+  --output-ground: #0c0b10;
+  --output-ink: #f6f1e6;
+  --output-ink-muted: #a89e86;
+
+  /* Typography. One family for UI and hymn content alike. */
+  --font-family: "Hymnal Sans", Roboto, system-ui, sans-serif;
+  --font-family-hymn: "Hymnal Sans", "Noto Sans Malayalam", system-ui, sans-serif;
+
+  /* Shape (DESIGN.md `rounded`). */
+  --shape-xs: 4px;
+  --shape-sm: 8px;
+  --shape-md: 12px;
+  --shape-lg: 16px;
+  --shape-full: 999px;
+
+  /* Elevation: tonal step plus a soft shadow, two levels only. */
+  --elevation-1: 0 1px 2px rgb(0 0 0 / 30%), 0 1px 3px 1px rgb(0 0 0 / 15%);
+  --elevation-3: 0 1px 3px rgb(0 0 0 / 30%), 0 4px 8px 3px rgb(0 0 0 / 15%);
+
+  /* Spacing, 4px base (DESIGN.md `spacing`). */
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
 }
 
-/* System dark, no explicit override. */
+/* Dark is the primary identity. System dark, no explicit override. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-bg: #1a1a18;
-    --color-fg: #f2f2ee;
-    --color-muted: #b5b5ac;
-    --color-border: #3a3a36;
-    --color-accent: #e08178;
+    --md-sys-color-primary: #ffb951;
+    --md-sys-color-on-primary: #452b00;
+    --md-sys-color-primary-container: #653f00;
+    --md-sys-color-on-primary-container: #ffddb1;
+    --md-sys-color-secondary: #ddc2a1;
+    --md-sys-color-on-secondary: #3d2e17;
+    --md-sys-color-secondary-container: #56442b;
+    --md-sys-color-on-secondary-container: #fadebc;
+    --md-sys-color-surface: #17130d;
+    --md-sys-color-on-surface: #eae1d9;
+    --md-sys-color-surface-variant: #4f4539;
+    --md-sys-color-on-surface-variant: #d3c4b4;
+    --md-sys-color-outline: #9c8f80;
+    --md-sys-color-outline-variant: #4f4539;
+    --md-sys-color-surface-container-lowest: #120f0a;
+    --md-sys-color-surface-container-low: #201a12;
+    --md-sys-color-surface-container: #241e15;
+    --md-sys-color-surface-container-high: #2f2819;
+    --md-sys-color-inverse-surface: #eae1d9;
+    --md-sys-color-inverse-on-surface: #362f26;
   }
 }
 
-/* Explicit override, either direction, wins regardless of system setting. */
+/* Explicit override wins regardless of system setting. Light needs no
+   block: bare :root already is light. */
 :root[data-theme="dark"] {
-  --color-bg: #1a1a18;
-  --color-fg: #f2f2ee;
-  --color-muted: #b5b5ac;
-  --color-border: #3a3a36;
-  --color-accent: #e08178;
-}
-
-:root[data-theme="light"] {
-  --color-bg: #fdfdfb;
-  --color-fg: #1a1a1a;
-  --color-muted: #5c5c56;
-  --color-border: #d8d8d3;
-  --color-accent: #a3231c;
+  --md-sys-color-primary: #ffb951;
+  --md-sys-color-on-primary: #452b00;
+  --md-sys-color-primary-container: #653f00;
+  --md-sys-color-on-primary-container: #ffddb1;
+  --md-sys-color-secondary: #ddc2a1;
+  --md-sys-color-on-secondary: #3d2e17;
+  --md-sys-color-secondary-container: #56442b;
+  --md-sys-color-on-secondary-container: #fadebc;
+  --md-sys-color-surface: #17130d;
+  --md-sys-color-on-surface: #eae1d9;
+  --md-sys-color-surface-variant: #4f4539;
+  --md-sys-color-on-surface-variant: #d3c4b4;
+  --md-sys-color-outline: #9c8f80;
+  --md-sys-color-outline-variant: #4f4539;
+  --md-sys-color-surface-container-lowest: #120f0a;
+  --md-sys-color-surface-container-low: #201a12;
+  --md-sys-color-surface-container: #241e15;
+  --md-sys-color-surface-container-high: #2f2819;
+  --md-sys-color-inverse-surface: #eae1d9;
+  --md-sys-color-inverse-on-surface: #362f26;
 }
 
 *,
@@ -76,9 +143,9 @@ html {
 
 body {
   min-height: 100vh;
-  background: var(--color-bg);
-  color: var(--color-fg);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--font-family);
   line-height: 1.5;
 }
 
@@ -108,7 +175,7 @@ button:disabled {
   width: 100%;
   max-width: 60rem;
   margin-inline: auto;
-  padding: var(--space-2);
+  padding: var(--space-md);
 }
 
 /* A large display (arc42 R8) shouldn't stretch lines wall to wall — cap the
@@ -116,28 +183,28 @@ button:disabled {
 @media (min-width: 60rem) {
   #root > main {
     max-width: 46rem;
-    padding: var(--space-3);
+    padding: var(--space-lg);
   }
 }
 
 .app-bar {
   display: flex;
-  gap: var(--space-1);
+  gap: var(--space-xs);
   justify-content: flex-end;
-  padding: var(--space-1) var(--space-2);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-xs) var(--space-md);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
 
 .settings {
   display: flex;
-  gap: var(--space-1);
+  gap: var(--space-xs);
   padding: 0;
   margin: 0;
   border: none;
 }
 
 .app-bar button {
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--md-sys-color-outline-variant);
   background: transparent;
   color: inherit;
   border-radius: 0.25rem;
@@ -147,7 +214,7 @@ button:disabled {
 /* Lyric text, not UI chrome — typography is data-driven per hymnbook script
    (arc42 §8.3); Malayalam is the only script Phase 1 ships. */
 .hymn-text {
-  font-family: "Noto Serif Malayalam", "Noto Serif", Georgia, serif;
+  font-family: var(--font-family-hymn);
   font-size: 1.25em;
   line-height: 1.7;
 }
@@ -171,7 +238,7 @@ button:disabled {
   overflow-y: auto;
   scrollbar-width: none;
   cursor: none;
-  font-family: "Noto Serif Malayalam", "Noto Serif", Georgia, serif;
+  font-family: var(--font-family-hymn);
   font-size: clamp(1.5rem, 4.5vw, 7rem);
   line-height: 1.5;
   text-align: center;
