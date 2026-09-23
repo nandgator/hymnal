@@ -47,60 +47,72 @@ const submit = (value: string) => {
 
 describe("Finder", () => {
   it("shows an empty recents message when there are none", async () => {
-    render(() => <Finder store={fakeStore()} userState={fakeUserState()} />);
+    render(() => <Finder store={fakeStore()} userState={fakeUserState()} onSelect={vi.fn()} />);
     expect(await screen.findByText("No recent hymns yet.")).toBeInTheDocument();
   });
 
   it("shows recents by title, resolved from listHymns", async () => {
     const recents: RecentEntry[] = [{ hymnbookId: "book", hymnNumber: 42, viewedAt: 1 }];
     render(() => (
-      <Finder store={fakeStore()} userState={fakeUserState({ getRecents: async () => recents })} />
+      <Finder
+        store={fakeStore()}
+        userState={fakeUserState({ getRecents: async () => recents })}
+        onSelect={vi.fn()}
+      />
     ));
     expect(await screen.findByRole("button", { name: "Forty-Second Hymn" })).toBeInTheDocument();
   });
 
-  it("selects a hymn by exact number and records it as recent", async () => {
-    const addRecent = vi.fn(async () => {});
-    render(() => <Finder store={fakeStore()} userState={fakeUserState({ addRecent })} />);
+  it("hands an exact hymn number straight to onSelect", async () => {
+    const onSelect = vi.fn();
+    render(() => <Finder store={fakeStore()} userState={fakeUserState()} onSelect={onSelect} />);
     await screen.findByText("No recent hymns yet.");
 
     submit("42");
 
-    expect(await screen.findByText("Selected: Forty-Second Hymn (#42)")).toBeInTheDocument();
-    expect(addRecent).toHaveBeenCalledWith("mal-ymef-athmeeya-geethangal-16", 42);
+    expect(onSelect).toHaveBeenCalledWith(42);
   });
 
-  it("reports an unknown hymn number", async () => {
-    render(() => <Finder store={fakeStore()} userState={fakeUserState()} />);
-    await screen.findByText("No recent hymns yet.");
-
-    submit("9999");
-
-    expect(await screen.findByText("No hymn numbered 9999.")).toBeInTheDocument();
-  });
-
-  it("searches lyrics for non-numeric input and selects a result", async () => {
+  it("searches lyrics for non-numeric input and hands the picked result to onSelect", async () => {
+    const onSelect = vi.fn();
     const searchLyrics = vi.fn(
       async (): Promise<SearchResult[]> => [
         { number: 42, title: "Forty-Second Hymn", snippet: "a line of it" },
       ],
     );
-    render(() => <Finder store={fakeStore({ searchLyrics })} userState={fakeUserState()} />);
+    render(() => (
+      <Finder store={fakeStore({ searchLyrics })} userState={fakeUserState()} onSelect={onSelect} />
+    ));
     await screen.findByText("No recent hymns yet.");
 
     submit("grace");
 
     expect(searchLyrics).toHaveBeenCalledWith("mal-ymef-athmeeya-geethangal-16", "grace");
     fireEvent.click(await screen.findByRole("button", { name: /Forty-Second Hymn/ }));
-    expect(await screen.findByText("Selected: Forty-Second Hymn (#42)")).toBeInTheDocument();
+    expect(onSelect).toHaveBeenCalledWith(42);
   });
 
   it("reports no matches for a lyric search with no results", async () => {
-    render(() => <Finder store={fakeStore()} userState={fakeUserState()} />);
+    render(() => <Finder store={fakeStore()} userState={fakeUserState()} onSelect={vi.fn()} />);
     await screen.findByText("No recent hymns yet.");
 
     submit("nothing like this");
 
     expect(await screen.findByText('No matches for "nothing like this".')).toBeInTheDocument();
+  });
+
+  it("picking a recent hands its number straight to onSelect", async () => {
+    const onSelect = vi.fn();
+    const recents: RecentEntry[] = [{ hymnbookId: "book", hymnNumber: 42, viewedAt: 1 }];
+    render(() => (
+      <Finder
+        store={fakeStore()}
+        userState={fakeUserState({ getRecents: async () => recents })}
+        onSelect={onSelect}
+      />
+    ));
+
+    fireEvent.click(await screen.findByRole("button", { name: "Forty-Second Hymn" }));
+    expect(onSelect).toHaveBeenCalledWith(42);
   });
 });

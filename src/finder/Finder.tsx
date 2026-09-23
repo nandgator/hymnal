@@ -15,17 +15,14 @@ export interface FinderProps {
   store?: ContentStore;
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
   userState?: UserState;
-}
-
-interface Selection {
-  number: HymnNumber;
-  title: string;
+  /** Called with the chosen hymn number — number lookup, a search result, or a recent. */
+  onSelect: (number: HymnNumber) => void;
 }
 
 /**
  * Board #8 — retrieval by number and by lyric text, plus recents (arc42
- * §5.1). Selecting a hymn records it in user state and confirms the choice;
- * it does not render the hymn itself, which is Presenter's job (Board #9).
+ * §5.1). Picking a hymn hands its number to `onSelect` and nothing else:
+ * opening it, and recording it as recent, is Presenter's job (Board #9).
  */
 export function Finder(props: FinderProps) {
   const id = () => props.hymnbookId ?? BUNDLED_HYMNBOOK_ID;
@@ -36,32 +33,19 @@ export function Finder(props: FinderProps) {
   const titleFor = (number: HymnNumber) =>
     hymns()?.find((hymn) => hymn.number === number)?.title ?? `#${number}`;
 
-  const [recents, { refetch: refetchRecents }] = createResource(() => state().getRecents());
+  const [recents] = createResource(() => state().getRecents());
 
   const [query, setQuery] = createSignal("");
   const [submitted, setSubmitted] = createSignal("");
-  const [selection, setSelection] = createSignal<Selection>();
   const [error, setError] = createSignal<string>();
 
-  const select = async (number: HymnNumber, title: string) => {
-    await state().addRecent(id(), number);
-    setSelection({ number, title });
-    refetchRecents();
-  };
-
   const [results] = createResource(submitted, async (submittedQuery): Promise<SearchResult[]> => {
-    setSelection(undefined);
     setError(undefined);
     const trimmed = submittedQuery.trim();
     if (!trimmed) return [];
 
     if (/^\d+$/.test(trimmed)) {
-      try {
-        const hymn = await store().getHymn(id(), Number(trimmed));
-        await select(hymn.number, hymn.title);
-      } catch {
-        setError(`No hymn numbered ${trimmed}.`);
-      }
+      props.onSelect(Number(trimmed));
       return [];
     }
 
@@ -88,14 +72,6 @@ export function Finder(props: FinderProps) {
         <button type="submit">Find</button>
       </form>
 
-      <Show when={selection()}>
-        {(selected) => (
-          <p>
-            Selected: {selected().title} (#{selected().number})
-          </p>
-        )}
-      </Show>
-
       <Show when={error()}>{(message) => <p>{message()}</p>}</Show>
 
       <Show when={results()?.length}>
@@ -103,7 +79,7 @@ export function Finder(props: FinderProps) {
           <For each={results()}>
             {(result) => (
               <li>
-                <button type="button" onClick={() => select(result.number, result.title)}>
+                <button type="button" onClick={() => props.onSelect(result.number)}>
                   {result.title}
                   {result.snippet ? ` — ${result.snippet}` : ""}
                 </button>
@@ -121,10 +97,7 @@ export function Finder(props: FinderProps) {
               <For each={recents()}>
                 {(entry) => (
                   <li>
-                    <button
-                      type="button"
-                      onClick={() => select(entry.hymnNumber, titleFor(entry.hymnNumber))}
-                    >
+                    <button type="button" onClick={() => props.onSelect(entry.hymnNumber)}>
                       {titleFor(entry.hymnNumber)}
                     </button>
                   </li>
