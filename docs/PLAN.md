@@ -28,13 +28,16 @@ built.
 
 ## Now
 
-**Phase 1 retrieval-to-presentation path is built end to end.** Library →
-Finder → Presenter: provisioning, number/lyric search and recents, then a
-hymn actually opens — walks its sequence, holds focus, shows a repeat cue,
-and lets the presenter jump to any part. Opening a hymn (not searching for
-one) is what records it as recent.
+**Phase 1 is feature-complete and deployed.** Library → Finder → Presenter
+runs installable and fully offline after one online visit, responsive from
+phone to large display, with user-controlled text scale/contrast and full
+keyboard navigation. `.github/workflows/deploy.yml` ships it to GitHub Pages
+on every push to `main` — **one manual step still needed: enable "GitHub
+Actions" as the Pages source in repo Settings → Pages, since nothing has
+deployed there yet.**
 
-**Next:** Board #10 — PWA shell, offline, responsive phone → large display.
+**Next:** Board #11 or #12 — both sit past the Phase 1 scope guard; pick
+deliberately, not by default.
 
 ## State
 
@@ -48,6 +51,7 @@ one) is what records it as recent.
 | Content | `bun run build:content` builds `public/content/*.sqlite`, FTS5 + hash    |
 | Persist | Content store (SQLite/OPFS, worker) + user state (idb) — SDD-0001 §10-11 |
 | UI      | Library → Finder → Presenter: provisioning, search, present — §12-14     |
+| Deploy  | GitHub Actions → GitHub Pages, PWA shell, offline — SDD-0001 §15         |
 
 ## Board
 
@@ -55,9 +59,8 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                          | Blocked by |
 | --- | ------------------------------------------------------------- | ---------- |
-| 10  | PWA shell, offline, responsive phone → large display          | —          |
 | 11  | CMS for managing hymnal content (add/edit hymns, hymnbooks)   | —          |
-| 12  | Transliteration: search and display across scripts (ADR-0014) | 10         |
+| 12  | Transliteration: search and display across scripts (ADR-0014) | —          |
 
 Items 11 and 12 sit past the Phase 1 scope guard below — sequence them after
 Phase 1 unless scope is deliberately widened.
@@ -92,6 +95,22 @@ ones only, here:
 
 ## Log
 
+- 2026-09-23 — Board #10 done (Phase 1 feature-complete): a new GitHub Actions
+  workflow builds and deploys to GitHub Pages on push to `main`, gated on
+  `bun run check` — no CI existed before this (SDD-0001 §15). `vite-plugin-pwa`
+  precaches the app shell, deliberately not `public/content/*.sqlite` (that
+  stays OPFS's job); missed the SQLite Wasm binary on the first pass, caught
+  only by testing genuinely offline against the built `dist/`. Plain CSS with
+  custom properties, no framework: continuous `clamp()`-based responsive
+  scaling (phone → large display, R8) instead of breakpoints, plus
+  `Settings` for user-controlled text scale/theme (§8.7), backed by a new
+  `UserState.preferences` (§11) — the "write with a reader" case Board #9
+  deliberately held off on for `setLastPosition`. Noto Serif Malayalam
+  bundled as a woff2, reused from the archived implementation. Full keyboard
+  navigation in Presenter (arrows + Page Up/Down, for remotes). Declined a
+  chrome-less "presentation mode" — that's the deferred projector-output
+  feature (ADR-0011), not this board. One manual step remains: enable
+  "GitHub Actions" as the Pages source in repo settings.
 - 2026-09-23 — Board #9 done: `src/presenter/Presenter.tsx` opens a hymn,
   wraps it in `SequenceEngine`, and renders the current occurrence
   (SDD-0001 §14). Moved `addRecent` here from Finder — opening a hymn, not
@@ -149,7 +168,3 @@ ones only, here:
   corpus validates clean.
 - 2026-09-21 — Board #5 design agreed (SDD-0001 §9): Bun script, `bun:sqlite`,
   collect-all validation, `content_hash` beside `schema_version`.
-- 2026-09-21 — Board #4 done: `content/mal-ymef-athmeeya-geethangal-16/`
-  written (1,631 hymns + hymnbook.json), invariants I1-I7 checked clean.
-  Rerun is refused by design. Hymns 156, 666, 753, 856, 864, 890, 895, 901,
-  924, 930, 1066, 1335 need hand correction of their multi-paragraph choruses.

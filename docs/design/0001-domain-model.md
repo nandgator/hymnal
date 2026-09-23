@@ -573,10 +573,10 @@ Board #6 part 2. The second store from [ADR-0008](../decisions/0008-sqlite-as-th
 small, mutable, irreplaceable, via `idb` on the main thread — no OPFS, no
 Worker, plain `IndexedDB`. Per [ADR-0012](../decisions/0012-drop-the-bookmark-helper.md),
 user state is preferences, recents, last position and installed hymnbooks.
-This part builds the two Board #8/#9 already have a caller for — **last
-position** and **recents** — in `src/persistence/user-state.ts`. Preferences
-and installed-hymnbook tracking get their own shape when the board that needs
-them is hashed out, rather than guessed at now.
+This part builds the two Board #8/#9 already had a caller for — **last
+position** and **recents** — plus **preferences**, added in Board #10 once
+the display-settings board actually needed them (SDD-0001 §15).
+Installed-hymnbook tracking still gets its own shape when a board needs it.
 
 **One object store, one document.** A few hundred bytes, never queried, no
 relations — an idb object store named `state` holding a single record at a
@@ -585,11 +585,18 @@ consistency to maintain. Every accessor reads the whole document,
 patches the one field it owns, and writes it back.
 
 ```ts
+interface Preferences {
+  theme: "system" | "light" | "dark";
+  fontScale: number;
+}
+
 interface UserState {
   getLastPosition(): Promise<Position | undefined>;
   setLastPosition(position: Position): Promise<void>;
   getRecents(): Promise<RecentEntry[]>;
   addRecent(hymnbookId: HymnbookId, hymnNumber: HymnNumber): Promise<void>;
+  getPreferences(): Promise<Preferences>;
+  setPreferences(preferences: Preferences): Promise<void>;
 }
 ```
 
@@ -600,6 +607,15 @@ round-trip, not a new shape. A `RecentEntry` is coarser (`hymnbookId` +
 Presenter resume point. `addRecent` de-duplicates by `(hymnbookId,
 hymnNumber)`, moving a re-viewed hymn to the front, and caps the list at 20 —
 a fixed, low-stakes bound rather than a configurable one.
+
+`Preferences` is unconditionally readable — `getPreferences` always resolves,
+defaulting to `DEFAULT_PREFERENCES` (`{ theme: "system", fontScale: 1 }`)
+rather than `undefined`, because every render needs a value to apply and
+there's no meaningful "unset" state to show. Unlike `lastPosition` when it was
+first built (§11 originally, before Board #10), this write has an immediate
+reader the moment it's added — `Settings` applies it on load — so persisting
+it doesn't repeat the "write with no reader yet" mistake Board #9 avoided for
+`setLastPosition` (§14). `setLastPosition` itself stays unwired regardless.
 
 **Testing.** Unlike the content store, plain `IndexedDB` has a faithful
 in-memory implementation (`fake-indexeddb`), so this is fully unit tested —
@@ -775,3 +791,108 @@ by hand in a real browser against hymn 1 (a real 7-stanza hymn with an
 8-times-repeated refrain): search does not touch recents, opening does,
 recents survive a reload, and the cue and "final repeat" wording match the
 engine's actual recurrence count end to end.
+
+## 15. PWA shell, deployment, and responsive presentation
+
+Board #10. arc42 R7 (offline), R8 (phone → large display) and §8.7
+(user-controlled scale and contrast) — the last Phase 1 board, closing what
+every prior board deliberately left unstyled and undeployed.
+
+**Deployment.** There was no CI at all — the archived implementation's
+GitHub Pages workflow wasn't carried over. `.github/workflows/deploy.yml`
+adds one: `bun run check` (gate on it — the first CI this project has ever
+had is not the place to skip that), `bun run build:content`, `bun run
+build`, then the standard `actions/{configure-pages,upload-pages-artifact,
+deploy-pages}` sequence. `vite.config.ts` sets `base: "/hymnal/"` for the
+production build — GitHub Pages serves a project page from that subpath, not
+the domain root, which is exactly what the `BASE_URL` fix in §10.2 already
+anticipated for the content fetch. One thing this caught: `vite preview`
+reports `command: "serve"`, same as dev, even though it serves the
+already-built `dist/` output whose URLs are baked in at that base — the
+config keys off `isPreview`, not `command`, or preview requests 404 on every
+asset.
+
+**Service worker and manifest via `vite-plugin-pwa`** (Workbox-based),
+matching this project's habit of leaning on a maintained library over
+hand-rolled infrastructure (`idb`, `comlink`, `@sqlite.org/sqlite-wasm`).
+Its precache is the **app shell only** — JS, CSS, HTML, fonts, and
+`sqlite3*.wasm` — never `public/content/*.sqlite`, excluded by
+`globIgnores`. That split isn't cosmetic: the content package is `ContentStore`'s
+job, fetched once and persisted to OPFS itself (§10.2), and at 5.5MB it would
+bloat the shell's own install-time cache for no benefit. The wasm binary
+_is_ shell, not content — sqlite3's own runtime, without which nothing else
+works — and was missing from the precache glob on the first pass; caught
+only by testing genuinely offline against the production build (`vite
+preview`, `page.context().setOffline(true)`), the same "no faithful
+polyfill, must verify by hand" limitation as the rest of the OPFS/Worker
+layer (§10.5).
+
+**CSS is plain, with custom properties** — no framework. Quality goal 5
+ranks visual novelty and feature breadth below legibility and offline
+reliability, and Phase 1 has three screens; a utility framework or component
+library would be a dependency bought for iteration speed this project isn't
+spending. `src/styles.css` defines the palette as custom properties, redefined
+under `prefers-color-scheme: dark` and again under an explicit
+`[data-theme]` override so a manual choice wins either direction — the same
+three-state pattern (`system` defers to the OS; `light`/`dark` override it)
+used anywhere a user preference should coexist with a system default.
+
+**Responsive scaling is continuous, not breakpoint-driven**, for R8: the root
+font size is `clamp(1rem, 0.85rem + 0.6vw, 1.75rem)`, so a phone and a large
+display sit on the same curve rather than jumping between fixed layouts.
+`Preferences.fontScale` multiplies that clamp directly, so the user's chosen
+size and the viewport-driven size compose rather than fight — confirmed by
+hand: a large viewport with a bumped scale produces a proportionally wider
+reading column too, since the column's own max-width is set in `rem`. One hard
+breakpoint exists at `60rem`, not to change the type scale but to cap line
+length — a large display run wall-to-wall would violate legibility (quality
+goal 2) by making lines too long to track, the opposite problem from a phone.
+
+**`Settings` (`src/shell/Settings.tsx`) is the "user-controlled text scale and
+contrast" (§8.7) UI** — a font-scale stepper and a theme cycle, rendered once
+in `App.tsx` above the view `Switch`, not per-view, since legibility matters
+in Library and Finder too, not only Presenter. It reads and writes
+`UserState.preferences` (§11) and applies the result as `--font-scale` and
+`data-theme` on `document.documentElement` — global CSS state, not
+component-local, because every view's styling depends on it.
+
+**Typography is data-driven, now for real.** Noto Serif Malayalam
+(OFL-licensed, reused from the archived implementation, converted from its
+variable-weight TTF to a single ~65KB woff2) is bundled as a
+`@font-face` in `styles.css` and applied via a `.hymn-text` class scoped to
+lyric content in `Presenter`, not the whole app — UI chrome (buttons, labels)
+stays on a system font stack. Fonts are bundled, never fetched from a CDN
+(arc42 §8.3), so this ships in the app-shell precache with everything else.
+Malayalam is the only script Phase 1 has; a second hymnbook's script picks
+its own font when that board arrives, per hymnbook data rather than hardcoded
+here.
+
+**Full keyboard navigation (§8.8)** was added to `Presenter`: arrow keys for
+fine control (`ArrowDown`/`ArrowUp` step a line, `ArrowLeft`/`ArrowRight` step
+a part), plus `PageUp`/`PageDown` since that's what most presentation
+remotes and clickers actually send. A `window` keydown listener is
+added/removed with the component's lifecycle (`onMount`/`onCleanup`); Space
+was deliberately left unbound to avoid double-firing the "Show repeat cues"
+checkbox when it has focus.
+
+**Icons and favicon** (`public/icons/`, `public/favicon.svg`) are likewise
+reused from the archived implementation, rasterized fresh from its SVG source
+rather than hand-drawn new — a placeholder worth keeping until real branding
+exists, not a design decision.
+
+**Not built:** a distinct "presentation mode" that hides Presenter's own
+controls for a large display facing a congregation — considered and
+declined. Phase 1 is single-device (scope guard); whoever sees the screen is
+the one operating it, and a chrome-less audience-facing view is really the
+deferred projector-output feature (ADR-0011), not a responsive-layout
+concern. True `maskable` icon variants (safe-zone padding, not just a square
+PNG) are also deferred until real app icons exist to need it.
+
+**Testing.** `Settings` and the `UserState.preferences` accessors are unit
+tested the normal way (fakes, `fake-indexeddb`). Everything else here —
+service worker registration, precache correctness, offline behavior, the
+production `base` path, and responsive sizing at real viewport widths — has
+no meaningful jsdom equivalent and was verified against an actual `vite
+build` + `vite preview`, in a real browser, with the network cut off after
+first load: the app shell, the SQLite engine, and a real hymn all load with
+zero network requests once installed once.

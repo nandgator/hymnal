@@ -357,6 +357,15 @@ Single artifact, static hosting, no runtime infrastructure. A service worker
 makes the app itself available offline; the bundled hymnbook means a first run
 with no network is still useful.
 
+Implemented in Board #10 (SDD-0001 §15): `.github/workflows/deploy.yml`
+builds and deploys to GitHub Pages on every push to `main`, gated on `bun run
+check`. The service worker (`vite-plugin-pwa`) precaches the app shell —
+including the SQLite Wasm runtime, which the app can't function without —
+but never the content package, which stays `ContentStore`'s job via OPFS.
+Verified against the actual production build with the network cut off: the
+shell, the SQLite engine, and a real hymn all load offline after one prior
+online visit.
+
 `OPEN:` Wrapper deployment, once [ADR-0006](../decisions/0006-defer-the-native-wrapper-decision.md)
 is resolved.
 
@@ -382,6 +391,11 @@ Malayalam requires correct complex-script shaping; conjuncts must not break
 under size changes. Fonts are bundled, never fetched — a network-dependent font
 would violate quality goal 3. Each hymnbook declares its language and script so
 typography is data-driven. UI language is independent of content language.
+
+Implemented in Board #10 (SDD-0001 §15): Noto Serif Malayalam, bundled as a
+woff2 and scoped to lyric content only (a `.hymn-text` class), not UI chrome.
+A second hymnbook's script gets its own font the same way, per hymnbook data,
+when that board arrives.
 
 ### 8.4 Search
 
@@ -420,14 +434,28 @@ and for colorblind viewers — quality goal 2 ranks above visual novelty. A
 toggle hides it entirely, since a presenter deliberately departing from the
 stored order finds a cue tracking that order actively misleading.
 
-Responsive layout itself (phone → large display) remains Board #10's; this
-board's markup is plain and unstyled.
+Responsive layout implemented in Board #10 (SDD-0001 §15): a continuous
+`clamp()`-based type scale rather than fixed breakpoints, so phone and large
+display sit on one curve instead of jumping between layouts. User-controlled
+scale and contrast is `Settings` (`src/shell/Settings.tsx`), applied globally
+as `--font-scale` and `data-theme`, not per-view. One hard breakpoint caps
+line length on a large display, so it doesn't run wall to wall.
+
+Considered and declined: a distinct "presentation mode" hiding Presenter's
+controls for a large display facing a congregation. Phase 1 is single-device
+— whoever sees the screen operates it — and a chrome-less audience view is
+really the deferred projector-output feature (ADR-0011), not a
+responsive-layout concern.
 
 ### 8.8 Accessibility
 
 Lyrics are semantic text, never images. Focus changes announced to assistive
 technology. Full keyboard navigation — which also serves presenters using a
 remote or clicker.
+
+Implemented in Board #10: arrow keys step a line or a part in `Presenter`;
+`PageUp`/`PageDown` do the same, since that's what most presentation remotes
+and clickers actually send.
 
 ---
 
