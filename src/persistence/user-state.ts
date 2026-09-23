@@ -7,6 +7,15 @@ export interface RecentEntry {
   viewedAt: number;
 }
 
+/** "system" defers to the OS/browser's own light/dark preference. */
+export interface Preferences {
+  theme: "system" | "light" | "dark";
+  /** Multiplier over the responsive base size — arc42 §8.7's user-controlled text scale. */
+  fontScale: number;
+}
+
+export const DEFAULT_PREFERENCES: Preferences = { theme: "system", fontScale: 1 };
+
 /**
  * Small, mutable, irreplaceable — see ADR-0008 and SDD-0001 §11. One document
  * per install; nothing here is queried, only read and replaced whole.
@@ -16,6 +25,8 @@ export interface UserState {
   setLastPosition(position: Position): Promise<void>;
   getRecents(): Promise<RecentEntry[]>;
   addRecent(hymnbookId: HymnbookId, hymnNumber: HymnNumber): Promise<void>;
+  getPreferences(): Promise<Preferences>;
+  setPreferences(preferences: Preferences): Promise<void>;
 }
 
 const STORE = "state";
@@ -25,6 +36,7 @@ const MAX_RECENTS = 20;
 interface StateDoc {
   lastPosition?: Position;
   recents: RecentEntry[];
+  preferences?: Preferences;
 }
 
 interface UserStateSchema extends DBSchema {
@@ -75,6 +87,15 @@ export function openUserState(dbName: string): UserState {
         MAX_RECENTS,
       );
       await writeDoc({ ...doc, recents });
+    },
+
+    async getPreferences() {
+      return (await readDoc()).preferences ?? DEFAULT_PREFERENCES;
+    },
+
+    async setPreferences(preferences) {
+      const doc = await readDoc();
+      await writeDoc({ ...doc, preferences });
     },
   };
 }
