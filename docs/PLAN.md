@@ -28,11 +28,13 @@ built.
 
 ## Now
 
-**Phase 1, retrieval built.** Library → Finder: provisioning, then number and
-lyric search, recents. Selecting a hymn confirms and records it; nothing
-renders a hymn yet.
+**Phase 1 retrieval-to-presentation path is built end to end.** Library →
+Finder → Presenter: provisioning, number/lyric search and recents, then a
+hymn actually opens — walks its sequence, holds focus, shows a repeat cue,
+and lets the presenter jump to any part. Opening a hymn (not searching for
+one) is what records it as recent.
 
-**Next:** Board #9 — Presenter: renderer, focus, recurrence cue.
+**Next:** Board #10 — PWA shell, offline, responsive phone → large display.
 
 ## State
 
@@ -45,7 +47,7 @@ renders a hymn yet.
 | Corpus  | 1,631 hymns migrated to `content/`; 12 flagged for hand review           |
 | Content | `bun run build:content` builds `public/content/*.sqlite`, FTS5 + hash    |
 | Persist | Content store (SQLite/OPFS, worker) + user state (idb) — SDD-0001 §10-11 |
-| UI      | Library → Finder: provisioning, number/lyric search, recents — §12-13    |
+| UI      | Library → Finder → Presenter: provisioning, search, present — §12-14     |
 
 ## Board
 
@@ -53,8 +55,7 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                          | Blocked by |
 | --- | ------------------------------------------------------------- | ---------- |
-| 9   | Presenter — renderer, focus, recurrence cue                   | —          |
-| 10  | PWA shell, offline, responsive phone → large display          | 7, 8, 9    |
+| 10  | PWA shell, offline, responsive phone → large display          | —          |
 | 11  | CMS for managing hymnal content (add/edit hymns, hymnbooks)   | —          |
 | 12  | Transliteration: search and display across scripts (ADR-0014) | 10         |
 
@@ -85,13 +86,24 @@ doesn't. Re-read the deferral ADR before acting.
 Full list in [`docs/decisions/README.md`](decisions/README.md). Blocking
 ones only, here:
 
-| Question                           | Blocks      |
-| ---------------------------------- | ----------- |
-| Visual language for repeated parts | Board #9    |
-| Lyrics copyright / redistribution  | Any release |
+| Question                          | Blocks      |
+| --------------------------------- | ----------- |
+| Lyrics copyright / redistribution | Any release |
 
 ## Log
 
+- 2026-09-23 — Board #9 done: `src/presenter/Presenter.tsx` opens a hymn,
+  wraps it in `SequenceEngine`, and renders the current occurrence
+  (SDD-0001 §14). Moved `addRecent` here from Finder — opening a hymn, not
+  merely picking it, is what makes it "recently viewed" (a bug the
+  maintainer caught before this board started). Default focus on arrival is
+  whole-part (closes SDD-0001 §5.4's open question). Recurrence cue (R4) is
+  a text label, not color, with a toggle to hide it — raised by the
+  maintainer for a song leader who skips or reorders parts live.
+  Jump-to-any-part (R6) ships now via the engine's existing `jumpToPart`.
+  Verified against hymn 1 (real 7-stanza hymn, refrain repeated 8×): repeat
+  cue, "final repeat" wording, and recents-on-open-not-search all correct
+  end to end.
 - 2026-09-22 — Board #8 done: `src/finder/Finder.tsx` — one search box,
   auto-detects number vs. lyric text, recents (SDD-0001 §13).
   `searchLyrics` reworked to per-word prefix + implicit AND, capped at 30
@@ -141,5 +153,3 @@ ones only, here:
   written (1,631 hymns + hymnbook.json), invariants I1-I7 checked clean.
   Rerun is refused by design. Hymns 156, 666, 753, 856, 864, 890, 895, 901,
   924, 930, 1066, 1335 need hand correction of their multi-paragraph choruses.
-- 2026-09-21 — Board #3 done: default `unicode61` fragments Malayalam;
-  `tokenchars` fix validated on the real corpus (SDD-0001 §6, R5 closed).

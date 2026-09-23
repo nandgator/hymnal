@@ -252,6 +252,13 @@ The Sequence Engine is deliberately pure — no rendering, no storage, no
 framework. It is the one piece with genuinely intricate logic, and it should be
 testable without a DOM.
 
+Built in Board #9 (SDD-0001 §14): Occurrence Resolver turned out not to earn
+a separate component — `SequenceEngine.occurrenceAt` already answers it, and
+splitting it out bought nothing extra. Renderer and Focus Controller are one
+`Presenter` component; the "active occurrence and active line" the Focus
+Controller was meant to own is exactly the engine's own cursor, read through
+a Solid signal bumped on each mutation.
+
 `OPEN:` Level 2 for Content Pipeline and Finder, once the migration rules and
 the Malayalam search strategy are settled.
 
@@ -285,12 +292,24 @@ sequenceDiagram
 The `recurrenceIndex` crossing that boundary is the mechanism behind R4. The
 renderer is told not merely _which text_ but _which showing of it_.
 
+Implemented in Board #9 (SDD-0001 §14) with one change from this diagram:
+Finder never fetches or loads the hymn — it only hands the number to
+Presenter, which does the fetch, the `SequenceEngine.load`, and — once that
+succeeds — the recents write. Picking a hymn and opening it turned out to be
+different moments (a search result can be clicked by mistake), so only the
+latter should count as "viewed."
+
 ### 6.2 Presenter overrides the sequence (R6)
 
 The congregation repeats a chorus unexpectedly; the presenter jumps directly to
 that part. The Sequence Engine appends an **ad-hoc occurrence** rather than
 rewinding the cursor — so history stays linear, the recurrence count stays
 truthful, and the stored sequence is never mutated by a live deviation.
+
+Implemented in Board #9: a plain list of the hymn's parts next to the
+renderer, one button per part, calling `jumpToPart` directly — no separate
+"override mode," since freely jumping is the whole point (R6's "without
+hesitation").
 
 ### 6.3 Install a hymnbook
 
@@ -395,10 +414,14 @@ Responsive from phone to large display. User-controlled text scale and contrast.
 Focus transitions must be smooth enough not to distract and fast enough not to
 lag singing.
 
-`OPEN:` The recurrence cue's visual language (R4) — deferred by design. Because
-occurrence is addressable, inline-with-cue, pinned-refrain, and jump-back are
-all view strategies over the same data. This is a design question, answerable
-later with something real on screen.
+Resolved in Board #9 (SDD-0001 §14): a text label (`(repeat)` /
+`(final repeat)`), not color, so the cue stays legible in bright venue light
+and for colorblind viewers — quality goal 2 ranks above visual novelty. A
+toggle hides it entirely, since a presenter deliberately departing from the
+stored order finds a cue tracking that order actively misleading.
+
+Responsive layout itself (phone → large display) remains Board #10's; this
+board's markup is plain and unstyled.
 
 ### 8.8 Accessibility
 

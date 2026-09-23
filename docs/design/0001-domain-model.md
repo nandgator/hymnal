@@ -680,26 +680,98 @@ caller that renders every row. The snippet is the first line containing any
 query word, since a multi-word query can match across different lines of the
 same hymn.
 
-**Selecting a hymn** (from a number lookup, a search result, or a recent)
-calls `userState.addRecent` and shows a `Selected: <title> (#<number>)`
-confirmation. **It does not render the hymn** — parts, sequence, lyrics stay
-Presenter's job (Board #9), kept out of Finder the same way Library was kept
-from rendering Finder before Finder existed. `hymns()` off
-`ContentStore.listHymns`, requested once per mount, backs the title shown for
-each recent — `RecentEntry` (§11) only carries `hymnNumber`.
+**Picking a hymn** (from a number lookup, a search result, or a recent) hands
+its number straight to an `onSelect(number)` callback and nothing else.
+**Finder never opens or renders the hymn**, and — revised in Board #9 — it no
+longer records it as recent either: `userState.addRecent` moved to Presenter,
+because a hymn picked in Finder isn't necessarily opened, and a search result
+clicked by mistake shouldn't count as "recently viewed." Recording happens
+where a hymn is actually opened; see §14. `hymns()` off `ContentStore.listHymns`,
+requested once per mount, still backs the title shown for each recent —
+`RecentEntry` (§11) only carries `hymnNumber`.
 
 **Navigation.** `App.tsx` holds the `view` signal promised in §12: `"library"
-| "finder"`. `Library` gains an `onReady` callback prop — its ready state now
-also renders a "Find a hymn" button that calls it — and `App` uses it to flip
-`view` to `"finder"`. Still no router (§12); there is now something to
-navigate _to_, but still nothing to navigate _back to_ or deep-link _toward_.
+| "finder" | "presenter"`. `Library` gains an `onReady` callback prop — its
+ready state now also renders a "Find a hymn" button that calls it — and `App`
+uses it to flip `view` to `"finder"`. `Finder`'s `onSelect` flips `view` to
+`"presenter"` and carries the chosen number in a second `App`-level signal.
+Still no router (§12) — `Presenter`'s own "Back to search" flips `view` back
+to `"finder"` directly, not through history.
 
 **Testing.** `Finder` takes `hymnbookId`, `store` and `userState` as optional
 props, same pattern as `Library` — tests inject fakes for both, covering
-number lookup (found and not-found), lyric search (results and no-match),
-recents (empty and populated, title-resolved), and selection recording, all
-without touching the real Worker/OPFS or IndexedDB. The FTS5 matching and
-result-cap logic itself is worker code, not unit tested for the same reason
-as the rest of `content-store.worker.ts` (§10.5) — verified by hand against
-the real corpus, including confirming the 30-result cap holds for a
+number lookup, lyric search (results and no-match), recents (empty and
+populated, title-resolved), and that picking a hymn — by number, by search
+result, or from recents — calls `onSelect` with its number. The FTS5 matching
+and result-cap logic itself is worker code, not unit tested for the same
+reason as the rest of `content-store.worker.ts` (§10.5) — verified by hand
+against the real corpus, including confirming the 30-result cap holds for a
 deliberately common word.
+
+## 14. Presenter
+
+Board #9. arc42 §5.2 decomposes Presenter into Sequence Engine (§5, already
+built and pure), Occurrence Resolver (folded into the engine's
+`occurrenceAt` — a separate component bought nothing extra), Renderer and
+Focus Controller. `src/presenter/Presenter.tsx` covers the latter two: it
+loads the picked hymn, wraps it in a `SequenceEngine`, and renders the
+current occurrence.
+
+**Opening records the recent, not picking.** Board #8 originally had Finder
+call `userState.addRecent` on selection; trying it end to end showed that was
+wrong — merely searching (or misclicking a result) isn't "viewing" a hymn.
+`Presenter`'s `createResource` fetcher calls `store.getHymn`, and only once
+that succeeds does it call `addRecent`. A hymn number that doesn't resolve
+shows `No hymn numbered N.` and a way back to Finder, the same shape as
+Library's error state (§12) — mirrored here since `Presenter`, not `Finder`,
+is now the only place that actually knows whether a hymn opens.
+
+**Reactivity over a plain engine.** `SequenceEngine` is deliberately not a
+Solid primitive (§5: pure, no framework). `Presenter` wraps it with a
+`version` signal bumped after every mutating call (`next`, `previous`,
+`nextLine`, `previousLine`, `jumpToPart`); memos for the current occurrence
+and cursor read `version()` first, so touching it invalidates them. This
+keeps the engine importable and testable with zero DOM, at the cost of one
+signal bump per navigation.
+
+**Default focus on arrival is whole-part**, confirming §5.4's open question
+now that there's something on screen to try it against: `lineIndex` stays
+`null` until the presenter explicitly steps into a line with `nextLine`.
+
+**Recurrence cue (R4) is a text label**, not a color or a background
+change — legibility in the room (arc42 quality goal #2) rules out relying on
+color at distance or in bright venue light. A repeated part's heading gets
+`(repeat)`, or `(final repeat)` on its last showing (`recurrenceIndex + 1 ===
+totalRecurrences`). A "Show repeat cues" checkbox hides the label entirely:
+raised directly by the maintainer — a song leader deliberately skipping or
+reordering parts finds a cue tracking the _stored_ order actively misleading
+once they've departed from it. The toggle is a plain Solid signal, not
+persisted — nothing yet reads a saved preference, and Board #11's
+`installed`-style deferral (§11, §12) applies here too: don't build the
+general mechanism before a second consumer needs it.
+
+**Overriding the sequence (R6) is in scope now**, not deferred: a "Parts"
+list next to the renderer calls `SequenceEngine.jumpToPart` directly, one
+button per part. This is the same mechanism a presenter uses to jump ahead
+past a chorus the leader skips, or back to one sung again unexpectedly — the
+engine already appends an ad-hoc occurrence and recomputes recurrence
+correctly for it (§5.2, §5.3), verified against the real corpus: jumping to a
+stanza a second time correctly shows `(final repeat)` even though that part
+never repeats in the stored sequence.
+
+**Not built:** `setLastPosition` stays unwired — recording it on every
+navigation would be write-only state with no reader, since nothing offers a
+"resume" entry point yet (§11 already flagged this the same way for
+`addRecent`, before Board #9 gave it one). Responsive layout and any real
+typography are Board #10's "phone → large display" (arc42 §1.1 R8); this
+board's markup is plain, semantic, and unstyled.
+
+**Testing.** `Presenter` takes `hymnbookId`, `store` and `userState` as
+optional props, same pattern as `Library`/`Finder` — unit tests cover
+loading, the error state, opening on the first occurrence with the whole
+part focused, `addRecent` firing once on open, part and line navigation,
+the repeat cue appearing/hiding, and jump-to-part's recurrence math. Verified
+by hand in a real browser against hymn 1 (a real 7-stanza hymn with an
+8-times-repeated refrain): search does not touch recents, opening does,
+recents survive a reload, and the cue and "final repeat" wording match the
+engine's actual recurrence count end to end.
