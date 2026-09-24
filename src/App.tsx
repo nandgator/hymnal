@@ -192,6 +192,10 @@ function Operator() {
                   hymnNumber={number()}
                   hymnbookId={hymnbookId()}
                   onLoaded={setHymn}
+                  navigator={preferences.preferences().navigator}
+                  onNavigatorChange={(navigator) =>
+                    preferences.update({ ...preferences.preferences(), navigator })
+                  }
                   onBack={() => setHymnPickerOpen(true)}
                 />
               )}

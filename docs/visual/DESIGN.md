@@ -100,7 +100,7 @@ typography:
     lineHeight: 1.35
     color: "{colors.output-ink}"
     colorDimmed: "{colors.output-ink-muted}"
-    note: one style for every line, lit or dimmed — focus changes color only, never size or weight, which would reflow the column mid-scroll. Values provisional until Board #12
+    note: one style for every line, lit or dimmed — focus changes color only, never size or weight, which would reflow the column mid-scroll. Values provisional until Board #12 part 4, which sizes by the screen itself (vmin, no rem cap) — the Output is the screen that lands on a 4K/8K TV at 100% scaling, where a rem cap would stop the lyrics growing at a fraction of the size they should be. The Operator keeps rem plus the user's text scale: CSS px already map through the device pixel ratio, so OS scaling handles pixel density
 
 rounded:
   none: 0px
@@ -398,8 +398,20 @@ unit.
   and remembered; **Parts** by default. Both control the Live: Parts by
   the hymn's structure (the keypad, skip or repeat, §5.1), Lyrics by the
   words (the whole sung order, ProPresenter's click-a-slide-to-go-live).
-  The navigator not chosen stays one tap away: a collapsible sidebar
-  from 840px, a bottom sheet on a phone.
+  The navigator not chosen stays one tap away: from 840px it also shows
+  in a collapsible sidebar; on a phone the Parts | Lyrics switch itself
+  is that tap (a sheet as well would be a second control for the same
+  thing).
+  - **Lyrics, compact repeats.** A part already seen earlier in the path
+    (a refrain's second and later showings) shows compact: its label and
+    first line, then "…". It's still a full tap target. The current block
+    always shows in full, so the operator never loses the words being
+    sung; the list stays short enough to scan.
+  - **Feedback without hover.** Touch has no hover, so the state that
+    matters is **pressed**: a block or line darkens while a finger (or
+    mouse button) is down, on every device, and the tap's result — the
+    block becoming current — is the confirmation. Hover shading is extra,
+    for pointer devices only, and faint on both blocks and lines.
   - **Lyrics, touch-first.** The whole block is the tap target (no
     hunting for a small "1" or "Refrain"); tapping a line sends that
     line live. **Scrolling only browses** and never changes what's live,
@@ -407,6 +419,13 @@ unit.
     away from the current block, a "Back to current" chip appears (chat
     apps' "jump to latest"). The current block stays highlighted and,
     while you haven't scrolled away, centred.
+  - **Height matters too** (MD3/Android window height classes: compact
+    < 480dp). WCAG's Reflow sets a width floor (320 CSS px) but no single
+    height floor, so the practice is to degrade gracefully: at compact
+    height (landscape phones, split screen, short windows) Live becomes
+    the strip even on a wide screen, and the navigator gets the room.
+    Below even that, the main column scrolls inside itself as the last
+    resort; the page never does.
   - **Phone**: Live collapses to a thin strip showing the current line,
     expanding on tap; the navigator fills the room below it; the dock as
     everywhere.

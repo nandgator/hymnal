@@ -5,7 +5,6 @@ import {
   createSignal,
   For,
   Index,
-  type JSX,
   Match,
   onCleanup,
   onMount,
@@ -22,8 +21,7 @@ import type { Hymn, HymnbookId, HymnNumber, Occurrence, Part } from "../domain/t
 import { type OutputMessage, publishOutput } from "../output/channel.ts";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
-import { createMediaQuery, EXPANDED_QUERY } from "../shell/media.ts";
-import { Sheet } from "../shell/Sheet.tsx";
+import { createMediaQuery, EXPANDED_QUERY, TALL_QUERY } from "../shell/media.ts";
 
 // Most parts carry no label — it's printed only for numbered stanzas
 // (SDD-0001 §2.1). Refrains, bridges and tags fall back to their kind.
@@ -35,13 +33,9 @@ function partLabel(part: Part): string {
 const DOCK_COLLAPSE_MAX = 3;
 const MIN_CHIP_COLUMNS = 3;
 const FAB_GAP_PX = 16;
-/** A supporting pane: data, not layout code (SDD-0001 §16.4). */
-interface Pane {
-  id: string;
-  title: string;
-  icon: string;
-  render: () => JSX.Element;
-}
+const DOCK_PADDING_PX = 12;
+/** Which navigator leads the workspace (SDD-0001 §16.4). */
+export type Navigator = "parts" | "lyrics";
 
 export interface PresenterProps {
   hymnNumber: HymnNumber;
@@ -55,6 +49,9 @@ export interface PresenterProps {
   onBack?: () => void;
   /** Called with each hymn once loaded — the shell's switcher row shows it. */
   onLoaded?: (hymn: Hymn) => void;
+  /** Which navigator leads; the shell keeps it in preferences. */
+  navigator?: Navigator;
+  onNavigatorChange?: (navigator: Navigator) => void;
 }
 
 /**
@@ -169,32 +166,55 @@ export function Presenter(props: PresenterProps) {
   onMount(() => window.addEventListener("keydown", onKeyDown));
   onCleanup(() => window.removeEventListener("keydown", onKeyDown));
 
-  // Keep the current block centred in the Sequence pane, like the Output:
-  // the focused line under line focus, the whole block otherwise — or its
-  // top, when the block is taller than the pane. The pane scrolls, never
-  // the page (DESIGN.md § Stability).
-  let sequenceRef: HTMLElement | undefined;
+  const expanded = createMediaQuery(EXPANDED_QUERY);
+  // Compact height (landscape phones, split screen, short windows) gets the
+  // Live strip even when wide, so the navigator keeps the room.
+  const tall = createMediaQuery(TALL_QUERY);
+
+  // One navigator leads, Parts or Lyrics (SDD-0001 §16.4); the shell keeps
+  // the choice in preferences. The other stays one tap away: the switch,
+  // and from 840px a collapsible sidebar too.
+  const [navigator, setNavigatorSignal] = createSignal<Navigator>(props.navigator ?? "parts");
+  createEffect(() => {
+    if (props.navigator) setNavigatorSignal(props.navigator);
+  });
+  const setNavigator = (next: Navigator) => {
+    setNavigatorSignal(next);
+    props.onNavigatorChange?.(next);
+  };
+  const other = (): Navigator => (navigator() === "parts" ? "lyrics" : "parts");
+  const [sidebarOpen, setSidebarOpen] = createSignal(true);
+  const [liveExpanded, setLiveExpanded] = createSignal(false);
+
+  // Keep the current block centred in every Lyrics list on screen, like the
+  // Output: the focused line under line focus, the whole block otherwise —
+  // or its top, when the block is taller than the list. Each list scrolls
+  // inside itself, never the page (DESIGN.md § Stability). Scrolling by
+  // hand only browses; the next step re-centres.
   createEffect(() => {
     version();
+    navigator();
+    sidebarOpen();
     const lineIndex = cursor()?.lineIndex;
-    document
-      .querySelector<HTMLElement>('.chip-filter[aria-pressed="true"]')
-      ?.scrollIntoView?.({ block: "nearest" });
-    const block = sequenceRef?.querySelector<HTMLElement>('[aria-current="step"]');
-    if (!block || !sequenceRef) return;
-    const line =
-      lineIndex == null ? null : block.querySelector<HTMLElement>('.seq-line[aria-current="true"]');
-    const fits = block.offsetHeight <= sequenceRef.clientHeight;
-    (line ?? block).scrollIntoView?.({
-      block: line || fits ? "center" : "start",
-      behavior: "smooth",
-    });
+    for (const chip of document.querySelectorAll<HTMLElement>(
+      '.chip-filter[aria-pressed="true"]',
+    )) {
+      chip.scrollIntoView?.({ block: "nearest" });
+    }
+    for (const list of document.querySelectorAll<HTMLElement>(".sequence")) {
+      const block = list.querySelector<HTMLElement>('[aria-current="step"]');
+      if (!block) continue;
+      const line =
+        lineIndex == null
+          ? null
+          : block.querySelector<HTMLElement>('.seq-line[aria-current="true"]');
+      const fits = block.offsetHeight <= list.clientHeight;
+      (line ?? block).scrollIntoView?.({
+        block: line || fits ? "center" : "start",
+        behavior: "smooth",
+      });
+    }
   });
-
-  const expanded = createMediaQuery(EXPANDED_QUERY);
-  const [openSheet, setOpenSheet] = createSignal<string>();
-  const showSheet = (id: string) => setOpenSheet(id);
-  const closeSheet = () => setOpenSheet(undefined);
 
   // Dock labels collapse to icon-only in reverse priority (lines, then the
   // FAB, then parts) only when the labelled row genuinely doesn't fit.
@@ -228,8 +248,20 @@ export function Presenter(props: PresenterProps) {
       const clearance = fab ? fab.offsetWidth + 2 * FAB_GAP_PX : 0;
       dock.style.setProperty("--fab-clearance", `${clearance}px`);
       const last = dock.lastElementChild?.getBoundingClientRect();
-      if (!last || last.right <= limit()) return;
+      if (!last || last.right <= limit()) break;
     }
+    // The dock is as tall as its buttons or the FAB, whichever is taller, and
+    // the Operator reserves exactly that — not a rem guess, which would grow
+    // with the text scale while icon-only targets don't. Published on the
+    // shell: the root's style attribute is watched for text scale, and
+    // writing there would re-trigger this.
+    const shell = dock.closest<HTMLElement>(".shell") ?? dock.parentElement;
+    if (!shell) return;
+    shell.style.removeProperty("--dock-height");
+    const fabHeight = fab?.offsetHeight ?? 0;
+    const height = Math.max(dock.offsetHeight, fabHeight + 2 * DOCK_PADDING_PX);
+    shell.style.setProperty("--dock-height", `${height}px`);
+    shell.style.setProperty("--fab-bottom", `${Math.round((height - fabHeight) / 2)}px`);
   };
   onMount(() => {
     window.addEventListener("resize", fitDock);
@@ -275,38 +307,53 @@ export function Presenter(props: PresenterProps) {
     </button>
   );
 
-  const livePane = () => (
+  const livePreview = () => (
     <Show when={outputMessage()}>
-      {(message) => (
-        <div class="live-preview" role="img" aria-label="Live output preview">
-          <For
-            each={message().lines.slice(
-              Math.max(0, message().focus.start - 1),
-              message().focus.end + 1,
-            )}
-          >
-            {(line, i) => {
-              const index = () => Math.max(0, message().focus.start - 1) + i();
-              return (
+      {(message) => {
+        const start = () => Math.max(0, message().focus.start - 1);
+        return (
+          <div class="live-preview" role="img" aria-label="Live output preview">
+            <For each={message().lines.slice(start(), message().focus.end + 1)}>
+              {(line, i) => (
                 <p
                   class="live-line"
                   classList={{
                     "live-line-current":
-                      index() >= message().focus.start && index() < message().focus.end,
+                      start() + i() >= message().focus.start && start() + i() < message().focus.end,
                   }}
                 >
                   {line.text}
                 </p>
-              );
-            }}
-          </For>
-        </div>
-      )}
+              )}
+            </For>
+          </div>
+        );
+      }}
     </Show>
   );
 
-  const partsPane = (loaded: Hymn) => (
-    <>
+  // Phone: Live collapses to a strip showing the current line; a tap
+  // expands it (DESIGN.md § Structure).
+  const liveStrip = () => (
+    <div class="live-strip">
+      <button
+        type="button"
+        class="live-strip-toggle"
+        aria-expanded={liveExpanded()}
+        onClick={() => setLiveExpanded((open) => !open)}
+      >
+        <span class="live-strip-label">Live</span>
+        <span class="live-strip-text">
+          {outputMessage()?.lines[outputMessage()?.focus.start ?? 0]?.text}
+        </span>
+        <span class="icon icon-expand" aria-hidden="true" />
+      </button>
+      <Show when={liveExpanded()}>{livePreview()}</Show>
+    </div>
+  );
+
+  const partsNavigator = (loaded: Hymn) => (
+    <div class="parts-navigator">
       <section aria-label="Jump to part">
         <ul
           class="chip-set"
@@ -344,65 +391,117 @@ export function Presenter(props: PresenterProps) {
         />
         Show repeat cues
       </label>
-    </>
+    </div>
   );
 
-  // Supporting panes, in display order (SDD-0001 §16.4). A new pane is one
-  // more entry here.
-  const panes = (loaded: Hymn): Pane[] => [
-    { id: "live", title: "Live", icon: "icon-present", render: livePane },
-    { id: "parts", title: "Parts", icon: "icon-grid", render: () => partsPane(loaded) },
-  ];
+  // Lyrics, touch-first (DESIGN.md § Structure): a tap anywhere in a block
+  // goes there, a tap on a line sends that line live. Scrolling never calls
+  // the engine. "Back to current" appears once the current block is
+  // scrolled out of view.
+  const lyricsNavigator = () => {
+    let list: HTMLElement | undefined;
+    const [awayFromCurrent, setAwayFromCurrent] = createSignal(false);
+    let observer: IntersectionObserver | undefined;
+    createEffect(() => {
+      version();
+      observer?.disconnect();
+      const block = list?.querySelector('[aria-current="step"]');
+      if (!list || !block || typeof IntersectionObserver !== "function") return;
+      observer = new IntersectionObserver(([entry]) => setAwayFromCurrent(!entry.isIntersecting), {
+        root: list,
+      });
+      observer.observe(block);
+    });
+    onCleanup(() => observer?.disconnect());
 
-  const sequencePane = () => (
-    <section class="sequence" aria-label="Sequence" ref={sequenceRef}>
-      <ol class="seq-list">
-        <Index each={occurrences()}>
-          {(occ, i) => {
-            const isCurrent = () => cursor()?.occurrenceIndex === i;
-            return (
-              <li
-                class="seq-block"
-                classList={{ "seq-line-focus": isCurrent() && cursor()?.lineIndex != null }}
-                aria-current={isCurrent() ? "step" : undefined}
-              >
-                <h3 class="seq-heading">
-                  <button
-                    type="button"
-                    class="seq-head title-medium"
+    return (
+      <div class="lyrics-navigator">
+        <section class="sequence" aria-label="Lyrics" ref={list}>
+          <ol class="seq-list">
+            <Index each={occurrences()}>
+              {(occ, i) => {
+                const isCurrent = () => cursor()?.occurrenceIndex === i;
+                // A part already seen earlier in the path shows compact —
+                // label and first line — unless it's the one being sung
+                // (DESIGN.md § Structure).
+                const isRepeat = () =>
+                  occurrences()
+                    .slice(0, i)
+                    .some((earlier) => earlier.part.id === occ().part.id);
+                const compact = () => isRepeat() && !isCurrent();
+                return (
+                  // biome-ignore lint/a11y/useKeyWithClickEvents: the block is a large touch target; keyboard users have its heading button and line buttons
+                  <li
+                    class="seq-block"
+                    classList={{
+                      "seq-line-focus": isCurrent() && cursor()?.lineIndex != null,
+                      "seq-compact": compact(),
+                    }}
+                    aria-current={isCurrent() ? "step" : undefined}
                     onClick={() => mutate((e) => e.goTo(i))}
                   >
-                    {partLabel(occ().part)}
-                  </button>
-                  <Show when={showCues() && occ().repeatOrdinal > 1}>
-                    <span class="chip-assist">(Repeat {occ().repeatOrdinal})</span>
-                  </Show>
-                </h3>
-                <ol class="hymn-text seq-lines">
-                  <Index each={occ().part.lines}>
-                    {(line, lineIndex) => (
-                      <li>
-                        <button
-                          type="button"
-                          class="seq-line"
-                          aria-current={
-                            isCurrent() && cursor()?.lineIndex === lineIndex ? "true" : undefined
-                          }
-                          onClick={() => mutate((e) => e.goTo(i, lineIndex))}
-                        >
-                          {line()}
-                        </button>
-                      </li>
-                    )}
-                  </Index>
-                </ol>
-              </li>
-            );
-          }}
-        </Index>
-      </ol>
-    </section>
-  );
+                    <h3 class="seq-heading">
+                      <button type="button" class="seq-head title-medium">
+                        {partLabel(occ().part)}
+                      </button>
+                      <Show when={showCues() && occ().repeatOrdinal > 1}>
+                        <span class="chip-assist">(Repeat {occ().repeatOrdinal})</span>
+                      </Show>
+                    </h3>
+                    <ol class="hymn-text seq-lines">
+                      <Index each={compact() ? occ().part.lines.slice(0, 1) : occ().part.lines}>
+                        {(line, lineIndex) => (
+                          <li>
+                            <button
+                              type="button"
+                              class="seq-line"
+                              aria-current={
+                                isCurrent() && cursor()?.lineIndex === lineIndex
+                                  ? "true"
+                                  : undefined
+                              }
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                mutate((e) => e.goTo(i, lineIndex));
+                              }}
+                            >
+                              {line()}
+                            </button>
+                          </li>
+                        )}
+                      </Index>
+                      <Show when={compact() && occ().part.lines.length > 1}>
+                        <li class="seq-more" aria-hidden="true">
+                          …
+                        </li>
+                      </Show>
+                    </ol>
+                  </li>
+                );
+              }}
+            </Index>
+          </ol>
+        </section>
+        <Show when={awayFromCurrent()}>
+          <button
+            type="button"
+            class="btn-tonal back-to-current"
+            onClick={() =>
+              list
+                ?.querySelector<HTMLElement>('[aria-current="step"]')
+                ?.scrollIntoView?.({ block: "center", behavior: "smooth" })
+            }
+          >
+            Back to current
+          </button>
+        </Show>
+      </div>
+    );
+  };
+
+  const NAVIGATOR_TITLES: Record<Navigator, string> = { parts: "Parts", lyrics: "Lyrics" };
+  const navigatorPane = (kind: Navigator, loaded: Hymn) =>
+    kind === "parts" ? partsNavigator(loaded) : lyricsNavigator();
 
   return (
     <Switch fallback={<p class="body-large on-surface-variant">Loading…</p>}>
@@ -422,57 +521,70 @@ export function Presenter(props: PresenterProps) {
             <h2 class="visually-hidden">
               {loaded().title} <span>#{loaded().number}</span>
             </h2>
-            {/* Narrow: supporting panes open from here as bottom sheets. Not
-                the dock — it can't fit them beside the FAB on a phone
-                (DESIGN.md § Structure). */}
-            <Show when={!expanded()}>
-              <div class="header-actions">
-                <For each={panes(loaded())}>
-                  {(pane) => (
-                    <button
-                      type="button"
-                      class="btn-text icon-button"
-                      aria-haspopup="dialog"
-                      onClick={() => showSheet(pane.id)}
-                    >
-                      <span class={`icon ${pane.icon}`} aria-hidden="true" />
-                      <span class="visually-hidden">{pane.title}</span>
-                    </button>
-                  )}
-                </For>
-              </div>
-            </Show>
 
-            <div class="operator-body">
-              {sequencePane()}
-              {/* Wide: supporting panes in a fixed column. Narrow: each is a
-                  dock button opening it as a bottom sheet — nothing dropped
-                  on mobile (DESIGN.md § Structure). */}
-              <Show when={expanded()}>
-                <aside class="support-column" aria-label="Supporting panes">
-                  <For each={panes(loaded())}>
-                    {(pane) => (
-                      <section class="support-pane" aria-label={pane.title}>
-                        <h3 class="title-medium on-surface-variant">{pane.title}</h3>
-                        {pane.render()}
-                      </section>
-                    )}
-                  </For>
+            <div class="operator-body" classList={{ "with-sidebar": expanded() && sidebarOpen() }}>
+              <div class="main-column">
+                {/* Wide and tall: the full preview. Phone: the strip on its own
+                    row. Wide but short: the strip moves into the navigator's
+                    header row below, where there's width to spare. */}
+                <Show
+                  when={expanded() && tall()}
+                  fallback={<Show when={!expanded()}>{liveStrip()}</Show>}
+                >
+                  <section class="live-pane" aria-label="Live">
+                    {livePreview()}
+                  </section>
+                </Show>
+
+                <section class="navigator" aria-label="Navigator">
+                  <div class="navigator-header">
+                    <Show when={expanded() && !tall()}>
+                      <div class="navigator-header-live">{liveStrip()}</div>
+                    </Show>
+                    {/* MD3 segmented button on native radios: arrow keys move
+                        between the options for free. */}
+                    <fieldset class="segmented">
+                      <legend class="visually-hidden">Navigate by</legend>
+                      <For each={["parts", "lyrics"] as Navigator[]}>
+                        {(kind) => (
+                          <label class="segment">
+                            <input
+                              type="radio"
+                              name="navigator"
+                              class="segment-input"
+                              checked={navigator() === kind}
+                              onChange={() => setNavigator(kind)}
+                            />
+                            <span class="segment-check icon icon-check" aria-hidden="true" />
+                            {NAVIGATOR_TITLES[kind]}
+                          </label>
+                        )}
+                      </For>
+                    </fieldset>
+                    {/* Wide: the other navigator also shows in the sidebar. On a
+                        phone the switch alone is the one tap to it. */}
+                    <Show when={expanded()}>
+                      <button
+                        type="button"
+                        class="btn-text"
+                        aria-expanded={sidebarOpen()}
+                        onClick={() => setSidebarOpen((open) => !open)}
+                      >
+                        {sidebarOpen() ? "Hide" : "Show"} {NAVIGATOR_TITLES[other()]}
+                      </button>
+                    </Show>
+                  </div>
+                  <div class="navigator-body">{navigatorPane(navigator(), loaded())}</div>
+                </section>
+              </div>
+
+              <Show when={expanded() && sidebarOpen()}>
+                <aside class="sidebar" aria-label={NAVIGATOR_TITLES[other()]}>
+                  <h3 class="title-medium on-surface-variant">{NAVIGATOR_TITLES[other()]}</h3>
+                  <div class="navigator-body">{navigatorPane(other(), loaded())}</div>
                 </aside>
               </Show>
             </div>
-
-            <Show when={!expanded()}>
-              <Sheet
-                open={openSheet() !== undefined}
-                onClose={closeSheet}
-                title={panes(loaded()).find((p) => p.id === openSheet())?.title ?? ""}
-              >
-                <For each={panes(loaded()).filter((p) => p.id === openSheet())}>
-                  {(pane) => pane.render()}
-                </For>
-              </Sheet>
-            </Show>
 
             <nav
               class="dock"

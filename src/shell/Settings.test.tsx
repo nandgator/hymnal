@@ -25,7 +25,7 @@ describe("Settings", () => {
     render(() => (
       <Settings
         userState={fakeUserState({
-          getPreferences: async () => ({ theme: "dark", fontScale: 1.25 }),
+          getPreferences: async () => ({ theme: "dark", fontScale: 1.25, navigator: "parts" }),
         })}
       />
     ));
@@ -50,7 +50,11 @@ describe("Settings", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^Theme:/ }));
     expect(await screen.findByText("Theme: light")).toBeInTheDocument();
-    expect(setPreferences).toHaveBeenCalledWith({ theme: "light", fontScale: 1 });
+    expect(setPreferences).toHaveBeenCalledWith({
+      theme: "light",
+      fontScale: 1,
+      navigator: "parts",
+    });
 
     fireEvent.click(screen.getByRole("button", { name: /^Theme:/ }));
     expect(await screen.findByText("Theme: dark")).toBeInTheDocument();
@@ -65,18 +69,26 @@ describe("Settings", () => {
     await screen.findByText("Theme: system");
 
     fireEvent.click(screen.getByRole("button", { name: "Increase text size" }));
-    expect(setPreferences).toHaveBeenLastCalledWith({ theme: "system", fontScale: 1.125 });
+    expect(setPreferences).toHaveBeenLastCalledWith({
+      theme: "system",
+      fontScale: 1.125,
+      navigator: "parts",
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Decrease text size" }));
     fireEvent.click(screen.getByRole("button", { name: "Decrease text size" }));
-    expect(setPreferences).toHaveBeenLastCalledWith({ theme: "system", fontScale: 0.875 });
+    expect(setPreferences).toHaveBeenLastCalledWith({
+      theme: "system",
+      fontScale: 0.875,
+      navigator: "parts",
+    });
   });
 
   it("disables the decrease button at the minimum scale", async () => {
     render(() => (
       <Settings
         userState={fakeUserState({
-          getPreferences: async () => ({ theme: "system", fontScale: 0.75 }),
+          getPreferences: async () => ({ theme: "system", fontScale: 0.75, navigator: "parts" }),
         })}
       />
     ));
@@ -87,7 +99,7 @@ describe("Settings", () => {
     render(() => (
       <Settings
         userState={fakeUserState({
-          getPreferences: async () => ({ theme: "system", fontScale: 2 }),
+          getPreferences: async () => ({ theme: "system", fontScale: 2, navigator: "parts" }),
         })}
       />
     ));

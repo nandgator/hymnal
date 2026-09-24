@@ -206,10 +206,10 @@ button:disabled {
   border-inline-end: 1px solid var(--md-sys-color-outline-variant);
 }
 
+/* The dock starts at the rail's edge, so it never covers the rail: its
+   foot sits at the bottom, level with the dock. */
 .rail-foot {
   margin-top: auto;
-  /* Clear of the fixed dock, which starts at the rail's edge. */
-  padding-bottom: 5rem;
 }
 
 .rail-item {
@@ -727,6 +727,10 @@ input[type="checkbox"].switch:checked::before {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z'/%3E%3C/svg%3E");
 }
 
+.icon-check {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+}
+
 .icon-grid {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 8h4V4H4zm6 12h4v-4h-4zm-6 0h4v-4H4zm0-6h4v-4H4zm6 0h4v-4h-4zm6-10v4h4V4zm-6 4h4V4h-4zm6 6h4v-4h-4zm0 6h4v-4h-4z'/%3E%3C/svg%3E");
 }
@@ -798,22 +802,220 @@ input[type="checkbox"].switch:checked::before {
   margin-inline-start: -0.75rem;
 }
 
-/* Panes (DESIGN.md § Structure, SDD-0001 §16.4). Narrow: the Sequence
-   alone, full width, supporting panes behind dock buttons as bottom sheets.
-   Expanded (MD3, ≥840px): a fixed-width supporting column beside it. Each
-   side scrolls inside itself; the page never does. */
+/* Workspace (DESIGN.md § Structure, SDD-0001 §16.4): a main column —
+   Live on top, the leading navigator below — and, from 840px, a sidebar
+   with the other navigator, collapsible. On a phone Live is a strip and
+   the other navigator a bottom sheet. Each part scrolls inside itself;
+   the page never does. */
+/* The row is the room left, not the content's height — otherwise the
+   content, not the viewport, sets the height and the page scrolls. */
 .operator-body {
   display: grid;
   flex: 1;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-lg);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--space-xl);
   min-height: 0;
 }
 
-@media (min-width: 840px) {
-  .operator-body {
-    grid-template-columns: minmax(0, 1fr) 20rem;
-  }
+/* Capped as a share of the width too: rem grows with the text scale, so a
+   bare 22rem sidebar would crowd out the main column at A+. */
+.operator-body.with-sidebar {
+  grid-template-columns: minmax(0, 1fr) min(22rem, 38%);
+}
+
+/* When height is short (a small window, or A+ on a laptop), Live gives way
+   first — the navigator is where the operator works. If even that isn't
+   enough, the column scrolls inside itself, never the page. */
+.main-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.live-pane {
+  display: flex;
+  flex: 0 1000 36dvh;
+  justify-content: center;
+  min-height: 5rem;
+}
+
+.live-pane .live-preview {
+  height: 100%;
+  max-width: 100%;
+}
+
+.navigator,
+.sidebar {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-height: 0;
+}
+
+.sidebar {
+  padding-inline-start: var(--space-xl);
+  border-inline-start: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.navigator-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.navigator-header-live {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.navigator-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.parts-navigator {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Lyrics scrolls inside itself; "Back to current" floats over its foot. */
+.lyrics-navigator {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.back-to-current {
+  position: absolute;
+  bottom: var(--space-md);
+  left: 50%;
+  box-shadow: var(--elevation-3);
+  transform: translateX(-50%);
+}
+
+/* MD3 segmented button on native radios. Every segment reserves the
+   checkmark's slot, so selection never changes a width (DESIGN.md §
+   Stability). */
+.segmented {
+  display: inline-flex;
+  max-width: 100%;
+  /* A fieldset won't shrink below its content unless told to. */
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--button-shape);
+  overflow: hidden;
+}
+
+/* Segments share the width and may shrink, so the switch never pushes the
+   page sideways at a large text scale on a phone. */
+.segment {
+  position: relative;
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  gap: var(--space-xs);
+  min-height: 2.5rem;
+  padding: 0 1rem 0 0.75rem;
+  color: var(--md-sys-color-on-surface);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.segment + .segment {
+  border-inline-start: 1px solid var(--md-sys-color-outline);
+}
+
+.segment:hover {
+  background-color: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.segment:has(:checked) {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.segment-check {
+  visibility: hidden;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.segment:has(:checked) .segment-check {
+  visibility: visible;
+}
+
+.segment-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segment:has(:focus-visible) {
+  outline: 3px solid var(--md-sys-color-secondary);
+  outline-offset: -3px;
+}
+
+/* Phone: Live as a one-line strip, expanding on tap. */
+.live-strip {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.live-strip-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 3rem;
+  padding: 0 var(--space-md);
+  border: none;
+  border-radius: var(--shape-md);
+  background-color: var(--output-ground);
+  color: var(--output-ink);
+  font-family: var(--font-family-hymn);
+  text-align: start;
+}
+
+.live-strip-label {
+  flex: none;
+  color: var(--output-ink-muted);
+  font-family: var(--font-family);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.live-strip-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-strip-toggle[aria-expanded="true"] .icon {
+  transform: rotate(180deg);
 }
 
 /* Sequence: the whole sung order, one block per occurrence, as
@@ -859,6 +1061,8 @@ input[type="checkbox"].switch:checked::before {
 .seq-head,
 .seq-line {
   display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   padding: 0.125rem var(--space-xxs);
   margin-inline-start: calc(-1 * var(--space-xxs));
   border: none;
@@ -868,9 +1072,34 @@ input[type="checkbox"].switch:checked::before {
   text-align: start;
 }
 
-.seq-head:hover,
-.seq-line:hover {
-  background-color: color-mix(in srgb, currentColor 8%, transparent);
+/* The whole block is the tap target; lines refine it. Pressed is the state
+   that works everywhere, touch included; hover is extra, for real pointers
+   only, and faint on blocks and lines alike so it never reads as a
+   selection (DESIGN.md § Structure). */
+.seq-block {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.seq-line {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .seq-block:not([aria-current="step"]):hover,
+  .seq-line:hover {
+    background-color: color-mix(in srgb, currentColor 5%, transparent);
+  }
+}
+
+.seq-block:active,
+.seq-line:active {
+  background-color: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.seq-more {
+  color: color-mix(in srgb, currentColor 60%, transparent);
+  line-height: 1;
 }
 
 .seq-lines {
@@ -884,19 +1113,6 @@ input[type="checkbox"].switch:checked::before {
   color: color-mix(in srgb, currentColor 55%, transparent);
 }
 
-.support-column {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.support-pane h3 {
-  margin-bottom: var(--space-xs);
-}
-
-.support-pane,
 .sheet-content {
   display: flex;
   flex-direction: column;
@@ -970,18 +1186,6 @@ input[type="checkbox"].switch:checked::before {
   gap: var(--space-md);
 }
 
-.operator-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  align-self: stretch;
-}
-
-.header-actions {
-  display: flex;
-  gap: var(--space-xxs);
-}
-
 /* Icon-only: a fixed MD3 touch target, not scaled with the text. */
 .icon-button {
   width: 48px;
@@ -1033,8 +1237,10 @@ input[type="checkbox"].switch:checked::before {
    the card's height, so the buttons never move under the operator's hand.
    The Operator reserves its height, and the bar leaves its end clear for
    the FAB, which sits vertically centred in it. */
+/* Reserve exactly the dock's measured height (set by Presenter), not a rem
+   guess: rem grows with the text scale, the dock's icon targets don't. */
 .operator {
-  padding-bottom: 6rem;
+  padding-bottom: calc(var(--dock-height, 5rem) + var(--space-md));
 }
 
 .dock {
@@ -1047,10 +1253,11 @@ input[type="checkbox"].switch:checked::before {
   flex-wrap: nowrap;
   align-items: center;
   gap: var(--space-xs);
-  height: 5rem;
-  /* Left edge lines up with the full-width workspace above it; the right
-     end stays clear for the FAB. */
-  padding: 0 var(--fab-clearance, 13rem) 0 var(--space-lg);
+  /* Height: its buttons plus padding, or the FAB's, whichever is taller —
+     measured by Presenter into --dock-height. Left edge lines up with the
+     full-width workspace; the right end stays clear for the FAB. */
+  min-height: var(--dock-height, 72px);
+  padding: var(--space-sm) var(--fab-clearance, 13rem) var(--space-sm) var(--space-lg);
   background-color: var(--md-sys-color-surface-container);
 }
 
@@ -1074,7 +1281,8 @@ input[type="checkbox"].switch:checked::before {
 .fab-fixed {
   position: fixed;
   right: var(--space-md);
-  bottom: 0.75rem;
+  /* Centred in the dock (both measured by Presenter). */
+  bottom: var(--fab-bottom, 0.75rem);
   z-index: 2;
 }
 

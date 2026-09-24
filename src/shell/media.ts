@@ -3,6 +3,9 @@ import { createSignal, onCleanup } from "solid-js";
 /** MD3's expanded window size class starts at 840dp (DESIGN.md § Structure). */
 export const EXPANDED_QUERY = "(min-width: 840px)";
 
+/** Above MD3's compact window height class (< 480dp). */
+export const TALL_QUERY = "(min-height: 480px)";
+
 /**
  * Tracks a media query as a signal. Without matchMedia (jsdom), assumes it
  * matches, so tests see the wide layout unless they stub matchMedia.

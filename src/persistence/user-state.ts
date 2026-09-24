@@ -12,9 +12,15 @@ export interface Preferences {
   theme: "system" | "light" | "dark";
   /** Multiplier over the responsive base size — arc42 §8.7's user-controlled text scale. */
   fontScale: number;
+  /** Which navigator leads the Operator workspace — SDD-0001 §16.4. */
+  navigator: "parts" | "lyrics";
 }
 
-export const DEFAULT_PREFERENCES: Preferences = { theme: "system", fontScale: 1 };
+export const DEFAULT_PREFERENCES: Preferences = {
+  theme: "system",
+  fontScale: 1,
+  navigator: "parts",
+};
 
 /**
  * Small, mutable, irreplaceable — see ADR-0008 and SDD-0001 §11. One document
@@ -90,7 +96,9 @@ export function openUserState(dbName: string): UserState {
     },
 
     async getPreferences() {
-      return (await readDoc()).preferences ?? DEFAULT_PREFERENCES;
+      // Merged over the defaults, so a document saved before a preference
+      // existed still loads complete — no migration needed.
+      return { ...DEFAULT_PREFERENCES, ...(await readDoc()).preferences };
     },
 
     async setPreferences(preferences) {

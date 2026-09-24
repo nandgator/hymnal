@@ -37,11 +37,11 @@ Parts, each reviewed before the next:
 2. ~~Components~~ — done
 3. Operator, layered app shell (DESIGN.md § Structure, SDD §16.4–16.5):
    - ~~3a. Shell: rail/menu, switcher row with hot-swap~~ — done
-   - 3b. Workspace: Live anchor, Parts | Lyrics navigator, touch-first Lyrics
+   - ~~3b. Workspace: Live + Parts | Lyrics, touch-first~~ — done
    - 3c. Keyboard shortcuts, `?` sheet, command menu (Ctrl/⌘+K)
    - 3d. Pane show/hide, persisted
    - 3e. Output → Operator scroll sync (SDD §16.1)
-4. Output: tokens and a 10% margin from each edge
+4. Output: tokens, 10% margin, type in `vmin` (no rem cap, for 4K/8K TVs)
 
 ## State
 
@@ -107,6 +107,8 @@ ones only, here:
 
 ## Log
 
+- 2026-09-24 — Relicensed AGPL-3.0-only → Apache-2.0; resolves arc42 R3 — ADR-0016
+- 2026-09-24 — #12 part 3b: Live + navigator workspace; MD3 height classes
 - 2026-09-24 — #12 part 3a: layered shell, hot-swap switcher; calmer M3 register
 - 2026-09-24 — Jumps skip ahead or repeat in place; Next never dead-ends — §5.1
 - 2026-09-24 — #12 part 3: Operator layout; controls never move with content
@@ -116,5 +118,3 @@ ones only, here:
 - 2026-09-24 — `DESIGN.md` → `docs/visual/`; its Output now matches §16.1
 - 2026-09-23 — Board #11 done: Output window, scroll Mode 1 — SDD-0001 §16.1
 - 2026-09-23 — Output focus mirrors Operator's: whole part lit, block centred
-- 2026-09-23 — Output late join: `hello` replays last message — §16.1
-- 2026-09-23 — `repeatOrdinal` (adjacent-only) replaces recurrence — §16.2

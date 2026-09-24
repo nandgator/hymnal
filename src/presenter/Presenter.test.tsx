@@ -41,15 +41,15 @@ function fakeUserState(overrides: Partial<UserState> = {}): UserState {
     setLastPosition: async () => {},
     getRecents: async () => [],
     addRecent: async () => {},
-    getPreferences: async () => ({ theme: "system", fontScale: 1 }),
+    getPreferences: async () => ({ theme: "system", fontScale: 1, navigator: "parts" }),
     setPreferences: async () => {},
     ...overrides,
   };
 }
 
-// The Sequence pane marks the current occurrence's block aria-current="step".
+// The Lyrics navigator marks the current occurrence's block aria-current="step".
 const currentPart = () => {
-  const block = within(screen.getByRole("region", { name: "Sequence" }))
+  const block = within(screen.getByRole("region", { name: "Lyrics" }))
     .getAllByRole("listitem")
     .find((item) => item.getAttribute("aria-current") === "step");
   if (!block) throw new Error("no current block");
@@ -245,7 +245,7 @@ describe("Presenter", () => {
   it("shows the whole sung order and goes to a block, or a line, when tapped (SDD-0001 §16.4)", async () => {
     render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
     await screen.findByText("Test Hymn");
-    const sequence = within(screen.getByRole("region", { name: "Sequence" }));
+    const sequence = within(screen.getByRole("region", { name: "Lyrics" }));
 
     // s1, r, s2, r — every occurrence, the refrain twice.
     expect(sequence.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
@@ -273,23 +273,104 @@ describe("Presenter", () => {
     expect(live.getByText("Refrain line")).not.toHaveClass("live-line-current");
   });
 
-  it("puts supporting panes behind dock buttons on a narrow screen, nothing dropped", async () => {
-    const matchMedia = vi.fn((query: string) => ({
-      matches: false,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }));
-    vi.stubGlobal("matchMedia", matchMedia);
+  it("leads with Parts, and swaps the navigator on request (SDD-0001 §16.4)", async () => {
+    const onNavigatorChange = vi.fn();
+    render(() => (
+      <Presenter
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        onNavigatorChange={onNavigatorChange}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+
+    expect(screen.getByRole("radio", { name: "Parts" })).toBeChecked();
+    // Wide: the other navigator sits in the sidebar.
+    expect(screen.getByRole("complementary", { name: "Lyrics" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("radio", { name: "Lyrics" }));
+    expect(onNavigatorChange).toHaveBeenCalledWith("lyrics");
+    expect(screen.getByRole("complementary", { name: "Parts" })).toBeInTheDocument();
+  });
+
+  it("on a phone: a Live strip, Parts below, Lyrics one tap away via the switch", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
     try {
       render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
       await screen.findByText("Test Hymn");
 
-      expect(screen.queryByRole("region", { name: "Jump to part" })).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "Parts" }));
-      const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
-      fireEvent.click(jumpList.getByRole("button", { name: "2" }));
+      const strip = screen.getByRole("button", { name: /^Live/ });
+      expect(strip).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByRole("img", { name: "Live output preview" })).not.toBeInTheDocument();
+      fireEvent.click(strip);
+      expect(screen.getByRole("img", { name: "Live output preview" })).toBeInTheDocument();
+
+      expect(screen.getByRole("region", { name: "Jump to part" })).toBeInTheDocument();
+      expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("radio", { name: "Lyrics" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Line 2a" }));
       expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("2");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("shows a part already seen as compact in Lyrics, full again while it's current", async () => {
+    const hymn: HymnSource = {
+      ...HYMN,
+      parts: [
+        { id: "s1", kind: "stanza", label: "1", lines: ["Line 1a"] },
+        { id: "r", kind: "refrain", lines: ["Refrain one", "Refrain two"] },
+        { id: "s2", kind: "stanza", label: "2", lines: ["Line 2a"] },
+      ],
+    };
+    render(() => (
+      <Presenter
+        hymnNumber={7}
+        store={fakeStore({ getHymn: async () => hymn })}
+        userState={fakeUserState()}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    const lyrics = within(screen.getByRole("region", { name: "Lyrics" }));
+
+    // s1, r, s2, r: the second refrain is a repeat — first line only.
+    expect(lyrics.getAllByRole("button", { name: "Refrain two" })).toHaveLength(1);
+    expect(lyrics.getAllByRole("button", { name: "Refrain one" })).toHaveLength(2);
+
+    for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: "Next part" }));
+    expect(lyrics.getAllByRole("button", { name: "Refrain two" })).toHaveLength(2);
+  });
+
+  it("uses the Live strip at compact height, even on a wide screen (MD3 height class)", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: !query.includes("min-height"), // wide, but short
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    try {
+      render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+      await screen.findByText("Test Hymn");
+
+      expect(screen.getByRole("button", { name: /^Live/ })).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
+      // Still wide: the sidebar stays.
+      expect(screen.getByRole("complementary", { name: "Lyrics" })).toBeInTheDocument();
     } finally {
       vi.unstubAllGlobals();
     }

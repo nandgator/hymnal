@@ -33,10 +33,10 @@ vi.mock("./persistence/user-state.ts", () => {
     setLastPosition: async () => {},
     getRecents: async () => [],
     addRecent: async () => {},
-    getPreferences: async () => ({ theme: "system", fontScale: 1 }),
+    getPreferences: async () => ({ theme: "system", fontScale: 1, navigator: "parts" }),
     setPreferences: async () => {},
   };
-  return { userState, DEFAULT_PREFERENCES: { theme: "system", fontScale: 1 } };
+  return { userState, DEFAULT_PREFERENCES: { theme: "system", fontScale: 1, navigator: "parts" } };
 });
 
 describe("App", () => {

@@ -35,7 +35,7 @@ function fakeUserState(overrides: Partial<UserState> = {}): UserState {
     setLastPosition: async () => {},
     getRecents: async () => [],
     addRecent: async () => {},
-    getPreferences: async () => ({ theme: "system", fontScale: 1 }),
+    getPreferences: async () => ({ theme: "system", fontScale: 1, navigator: "parts" }),
     setPreferences: async () => {},
     ...overrides,
   };
