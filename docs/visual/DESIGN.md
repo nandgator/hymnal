@@ -125,14 +125,14 @@ components:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.on-primary}"
     typography: "{typography.label-large}"
-    rounded: "{rounded.pill}"
+    rounded: "{rounded.md}"
     height: 40px
     padding: 0 24px
   button-tonal:
     backgroundColor: "{colors.secondary-container}"
     textColor: "{colors.on-secondary-container}"
     typography: "{typography.label-large}"
-    rounded: "{rounded.pill}"
+    rounded: "{rounded.md}"
     height: 40px
     padding: 0 24px
   button-outlined:
@@ -140,7 +140,7 @@ components:
     textColor: "{colors.primary}"
     borderColor: "{colors.outline}"
     typography: "{typography.label-large}"
-    rounded: "{rounded.pill}"
+    rounded: "{rounded.md}"
     height: 40px
     padding: 0 24px
   button-text:
@@ -167,12 +167,12 @@ components:
     backgroundColor: transparent
     textColor: "{colors.on-surface-variant}"
     borderColor: "{colors.outline}"
-    rounded: "{rounded.pill}"
+    rounded: "{rounded.sm}"
     height: 32px
   chip-filter-selected:
     backgroundColor: "{colors.secondary-container}"
     textColor: "{colors.on-secondary-container}"
-    rounded: "{rounded.pill}"
+    rounded: "{rounded.sm}"
     height: 32px
     leadingIcon: checkmark
   chip-assist:
@@ -180,12 +180,12 @@ components:
     textColor: "{colors.on-surface-variant}"
     borderColor: "{colors.outline}"
     typography: "{typography.label-small}"
-    rounded: "{rounded.pill}"
+    rounded: "{rounded.sm}"
     height: 26px
   card-elevated:
     backgroundColor: "{colors.surface-container-low}"
     textColor: "{colors.on-surface}"
-    rounded: "{rounded.lg}"
+    rounded: "{rounded.md}"
     padding: 26px 24px
     elevation: level-1
   switch:
@@ -371,37 +371,53 @@ unit.
 
 ### Structure
 
-- **Operator: panes, modelled on real operator software.** ProPresenter
-  shows the whole song as every slide in arrangement order, grouped and
-  labelled, click to go live, with a live-output preview in a side panel;
-  OpenLP's live controller is a vertical verse list, click to go. None
-  splits a song into "one current card plus a separate part picker", and
-  that split is what made long verses and many-part hymns fight the
-  layout. The Operator is therefore:
-  - **Sequence** (primary pane, always shown): the effective path as a
-    column of blocks, one per occurrence, each headed by its label
-    (`title-medium`) and, when shown, its repeat cue (assist chip). The
-    current block is highlighted (`secondary-container` fill, `primary`
-    edge) and kept centred with native smooth scroll, like the Output.
-    Under line focus the focused line stays `on-surface` and the rest of
-    the block drops to `on-surface-variant`. Tapping a block goes to that
-    occurrence; tapping a line gives it line focus. Long verses and
-    many-part hymns are just a longer list: scrolling here is the normal
-    mode, not an overflow.
-  - **Supporting panes**, each shown or hidden by the operator: **Live**
-    (a small mirror of what the Output shows now) and **Parts** (the part
-    keypad for R6 jumps, with the repeat-cue switch). A future pane, such
-    as Finder and recents or a service list, registers the same way,
-    without reworking the layout.
-  - **Adaptive, MD3 window size classes.** Expanded (≥840px): a
-    fixed-width supporting column (about 20rem) beside the sequence, its
-    visible panes stacked, each scrolling inside itself. Compact and
-    medium (<840px): the sequence full width; every visible supporting
-    pane becomes a dock button opening it as a bottom sheet. Nothing is
-    dropped on mobile, only moved behind a tap.
-  - **Show/hide** lives in a Panels menu in the top bar, one toggle per
-    supporting pane, persisted in the user's preferences. Defaults: Live
-    and Parts both shown.
+- **App shell: layers, after Supabase Studio.** Supabase handles a lot of
+  function with a lot of breathing room by giving each concern its own
+  layer and choosing width by content, not by page. Here:
+  1. **Sections** (the app's top level): a navigation rail on the left
+     from 840px, a menu on a phone. Now: Present and Library. Reserved,
+     not built: Feedback and corrections, About (acknowledgements,
+     copyright, credits), Updates (over-the-air, as Supabase announces
+     them). Settings (text size, theme) moves to the rail's foot.
+  2. **Switcher row**, Supabase's org/project breadcrumb:
+     **Hymnbook ▾ / #908 Title ▾**. Each crumb is a picker. The hymnbook
+     picker lists installed books; the hymn picker is quick-find (number
+     or lyrics). Choosing either **hot-swaps in place**: the Operator
+     stays, the Output follows (snapping to the new hymn, never
+     scrolling from the old one), and nothing is reopened or
+     repositioned mid-service.
+  3. **Workspace**, full width (Supabase's `full`, for dense tools):
+     the Operator below. Library and Finder use the default width, and
+     Settings and About the small one.
+  4. **Dock and FAB**, pinned to the bottom (below).
+     A command menu (Ctrl/⌘+K) reaches everything from anywhere: go to a
+     hymn, switch hymnbook, open the Output, toggle panes.
+- **Operator workspace.** **Live** is the anchor: what the congregation
+  sees now (a mirror of the Output message, SDD-0001 §16.4). Beside it,
+  one **navigator**, switched with a segmented button **Parts | Lyrics**
+  and remembered; **Parts** by default. Both control the Live: Parts by
+  the hymn's structure (the keypad, skip or repeat, §5.1), Lyrics by the
+  words (the whole sung order, ProPresenter's click-a-slide-to-go-live).
+  The navigator not chosen stays one tap away: a collapsible sidebar
+  from 840px, a bottom sheet on a phone.
+  - **Lyrics, touch-first.** The whole block is the tap target (no
+    hunting for a small "1" or "Refrain"); tapping a line sends that
+    line live. **Scrolling only browses** and never changes what's live,
+    so a stray swipe can't move the Output; only a tap does. Scrolled
+    away from the current block, a "Back to current" chip appears (chat
+    apps' "jump to latest"). The current block stays highlighted and,
+    while you haven't scrolled away, centred.
+  - **Phone**: Live collapses to a thin strip showing the current line,
+    expanding on tap; the navigator fills the room below it; the dock as
+    everywhere.
+  - **Where a control lives follows how often it's used mid-service**
+    (to settle in 3d): frequent ones (the repeat-cue switch, the
+    navigator swap) stay on screen; occasional ones (text size, theme,
+    pane visibility) go into an organized Settings; the user may move a
+    control between the two. Nothing mid-service should need a trip
+    into Settings.
+  - **Show/hide**: supporting panes remain a registry (SDD-0001 §16.4),
+    so future panes slot in without another layout rework.
 - **FAB and dock**: a fixed bottom dock for navigation plus the FAB. The
   FAB is **Show Output**: presenting is the operator's whole job, and it's
   the one action that must be easy to hit mid-service. It belongs to the
@@ -461,6 +477,32 @@ or thumb mid-service. Three rules follow:
   scales with the viewport and with the user's text size, so a button's
   width isn't a fixed number a breakpoint could be tuned to.
 
+### Register: composed, not cozy
+
+Default M3 is a consumer register: pill buttons, large radii, soft
+bubbles. Supabase is the opposite, dense and technical, for developers.
+A hymnal operator sits between them: calm, composed and legible, the tone
+of a well-set printed hymnal rather than a chat app or a console. So:
+
+- **Shapes step down one notch.** Buttons use M3 Expressive's square
+  shape (12px), not the default pill. Chips use 8px, which is M3's own
+  chip shape (the earlier pills were a mistake). Cards and blocks use
+  12px. The FAB keeps 16px and the switch stays round: those shapes carry
+  meaning.
+- **Room, not padding.** Breathing room comes from space between groups
+  (Supabase's rhythm), not from inflating each control. Controls stay
+  compact; gutters and section gaps stay generous.
+- **Icons lead, padding follows M3.** A button with a leading icon uses
+  16px before the icon and 24px after the label (M3's own rule), so the
+  icon doesn't look inset. The rail's selection indicator takes the
+  square register too (8px), not M3's default pill.
+- **Flat before raised.** Hairline `outline-variant` borders separate
+  layers (switcher row, rail, dock); shadow is reserved for things that
+  float (FAB, sheets).
+
+All of it lives in shape and spacing tokens, so the register can be
+tuned without touching components.
+
 ### Whitespace philosophy
 
 The sequence is the one surface in the Operator view that should feel
@@ -515,6 +557,11 @@ software used in a devotional, live-event context, read at a distance.
 - **Physical hymnal and prayer-book print design** — the most literal
   reference, since it's the artifact this app replaces. Source of the
   amber/brass seed, not an arbitrary accent choice.
+- **Supabase Studio** — the model for the app shell: layered chrome, a
+  breadcrumb switcher for the two things you work inside (org/project
+  there, hymnbook/hymn here), width chosen by content, a Cmd+K command
+  menu, and generous room around dense controls. Borrowed as structure,
+  not as its green-on-black look.
 - **E-reader reading settings (Kindle)** — the shape of a good
   text-scale/contrast/theme control: a few clear steps, applied
   instantly, no configuration maze.

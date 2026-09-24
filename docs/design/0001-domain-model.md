@@ -1059,28 +1059,72 @@ Malayalam glyph coverage (U+0D00–U+0D7F) and shipped under OFL — unifying
 both UI chrome and hymn content into one typeface, superseding Board #10's
 Noto Serif Malayalam.
 
-### 16.5 Operator panes
+### 16.4 Operator workspace and app shell
 
-The Operator's layout (`docs/visual/DESIGN.md` § Structure) is a primary
-**Sequence** pane plus supporting panes the operator shows or hides. It
-follows how ProPresenter and OpenLP present a song: the whole sung order,
-click to go, with a live-output preview beside it.
+Layout and look are in `docs/visual/DESIGN.md` § Structure; this section
+covers the mechanics. Revised twice in review: a first pane layout showed
+the whole sequence, Live and Parts side by side with no hierarchy, and read
+as cluttered and redundant. The settled shape is layered, after Supabase
+Studio: sections, a switcher row, the workspace, the dock.
 
-- A supporting pane is **data, not layout code**: a registry entry (`id`,
-  title, icon, component). Live and Parts are the first two; a future pane
-  (Finder and recents, a service list) is one more entry.
-- Visibility is a user preference, `preferences.panes: Record<PaneId,
-boolean>` in `UserState` (§11), defaulting to every registered pane
-  shown. An id the registry no longer has is ignored, and a newly
-  registered one defaults to shown, so the stored preference never needs
-  migrating.
-- The Sequence pane renders `engine.occurrenceAt(i)` for every `i`; a tap
-  calls `goTo(i)` or `goTo(i, line)`, never `jumpToPart` — moving within
-  the path is not a deviation from it. Parts keeps `jumpToPart` (§5.1).
-- Live renders from the same `publishOutput` message the Output window
-  receives, so the preview can't disagree with the audience screen.
+- **Live is the anchor**, rendering the same `publishOutput` message the
+  Output window receives, so the preview can't disagree with the audience
+  screen.
+- **One navigator, two kinds**, swapped by a segmented button and kept as
+  `preferences.navigator: "parts" | "lyrics"` in `UserState` (§11),
+  default `"parts"`. Parts calls `jumpToPart` (§5.1). Lyrics renders
+  `engine.occurrenceAt(i)` for every `i`, and a tap calls `goTo(i)` or
+  `goTo(i, line)`, never `jumpToPart`: moving within the path isn't a
+  deviation from it. Scrolling Lyrics never calls the engine; only a tap
+  does.
+- **Supporting panes stay data, not layout code**: a registry entry (`id`,
+  title, icon, component), so a future pane (Finder and recents, a service
+  list) is one more entry. Visibility is `preferences.panes: Record<PaneId,
+boolean>`, defaulting to shown; an unknown id is ignored and a new one
+  defaults to shown, so the stored preference never needs migrating.
+- **Hot-swap.** The hymnbook and hymn are the Operator's inputs, not its
+  identity. Choosing another from the switcher row or the command menu
+  replaces the engine in place: a new `SequenceEngine` for the new hymn, the
+  cursor at its start, recents updated, the Output snapping to it (§16.1: a
+  new hymn never scrolls from the old one). The Output window, the Operator
+  screen and the operator's pane choices all survive the swap. Switching
+  hymnbook alone keeps the current hymn showing until a hymn is chosen from
+  the new book, so the audience never sees an empty screen mid-swap.
+  Deferred (PLAN Board #19): a hymnbook selector inside the hymn picker, so
+  book and hymn swap in one step. Hidden while one book is installed; lyric
+  search could later span all books, number search can't (numbers are per
+  book).
 
-### 16.4 Testing
+### 16.5 Keyboard shortcuts
+
+Figma-style: single keys, no modifier where one isn't needed, discoverable
+from a `?` sheet and from tooltips. Every shortcut is off while focus is in a
+text field, so typing a search never moves the Output. Remote clickers send
+arrows, Page Up/Down, and `.` or `B` for a black screen, so those work too.
+
+| Keys                    | Action                                       |
+| ----------------------- | -------------------------------------------- |
+| → Page Down Space       | Next part                                    |
+| ← Page Up Shift+Space   | Previous part                                |
+| ↓ ↑                     | Next / previous line                         |
+| Home End                | First / last part                            |
+| 1–9, two digits quickly | Jump to stanza _n_ (skip or repeat, §5.1)    |
+| R                       | Jump to the refrain                          |
+| B or .                  | Blank the Output / restore (proposed, below) |
+| O                       | Open or focus the Output window              |
+| N                       | Swap navigator (Parts ↔ Lyrics)              |
+| L                       | Show or hide Live                            |
+| / or Ctrl/⌘+K           | Command menu: go to a hymn, switch hymnbook  |
+| + −                     | Text size                                    |
+| ?                       | Shortcut sheet                               |
+| Esc                     | Close a sheet or menu                        |
+
+**Proposed, not yet decided: blank.** Every worship tool has a one-key
+black screen (a sermon starts, a slide is wrong). The Output would gain a
+third message, `blank`, distinct from `idle`: `idle` means nothing is
+presented; `blank` hides what is, and restores it on the second press.
+
+### 16.6 Testing
 
 The two-window mechanism (`BroadcastChannel`, `window.open`, manual
 fullscreen) has no meaningful jsdom equivalent, the same "browser-only

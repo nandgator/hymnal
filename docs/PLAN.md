@@ -35,10 +35,12 @@ Parts, each reviewed before the next:
 
 1. ~~Foundation~~ — done
 2. ~~Components~~ — done
-3. Operator layout, reworked into panes (DESIGN.md § Structure, SDD §16.5):
-   - 3a. Sequence pane, Live and Parts panes, adaptive shell (column/sheets)
-   - 3b. Panels show/hide menu, persisted in preferences
-   - 3c. Output → Operator scroll sync (SDD §16.1, agreed)
+3. Operator, layered app shell (DESIGN.md § Structure, SDD §16.4–16.5):
+   - ~~3a. Shell: rail/menu, switcher row with hot-swap~~ — done
+   - 3b. Workspace: Live anchor, Parts | Lyrics navigator, touch-first Lyrics
+   - 3c. Keyboard shortcuts, `?` sheet, command menu (Ctrl/⌘+K)
+   - 3d. Pane show/hide, persisted
+   - 3e. Output → Operator scroll sync (SDD §16.1)
 4. Output: tokens and a 10% margin from each edge
 
 ## State
@@ -65,10 +67,13 @@ Ordered. Top unblocked item is next.
 | 13  | Output layout Modes 2 (parallel chorus) + 3 (paginated scroll-snap) | 12         |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)         | —          |
 | 15  | Transliteration: search and display across scripts (ADR-0014)       | —          |
+| 16  | Feedback and corrections from users — where collected: TBD          | —          |
+| 17  | About: acknowledgements, copyright, credits                         | —          |
+| 18  | Over-the-air update notices (as Supabase announces changes)         | —          |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)     | 2nd book   |
 
-Items 14 and 15 sit past the Phase 1 scope guard below — sequence them
-after Phase 1 unless scope is deliberately widened. 12-13 are Phase 1 —
-finishing what Board #10 started, not new scope.
+12–13 are Phase 1. 14–15 sit past the scope guard below. 16–19 are notes,
+not scheduled: the shell reserves room for them (DESIGN.md § Structure).
 
 ## Invariants
 
@@ -98,18 +103,18 @@ ones only, here:
 | Question                          | Blocks      |
 | --------------------------------- | ----------- |
 | Lyrics copyright / redistribution | Any release |
+| One-key blank Output (B or .)     | 3c keymap   |
 
 ## Log
 
+- 2026-09-24 — #12 part 3a: layered shell, hot-swap switcher; calmer M3 register
 - 2026-09-24 — Jumps skip ahead or repeat in place; Next never dead-ends — §5.1
 - 2026-09-24 — #12 part 3: Operator layout; controls never move with content
 - 2026-09-24 — Output cursor hides after 2s idle, shows on mouse move
 - 2026-09-24 — #12 part 2: MD3 components; Library and Finder restyled
 - 2026-09-24 — #12 part 1: MD3 tokens; Google Sans bundled as "Hymnal Sans"
-- 2026-09-24 — CI pins Node via `.node-version`: `node:sqlite` needs 22.13+
 - 2026-09-24 — `DESIGN.md` → `docs/visual/`; its Output now matches §16.1
 - 2026-09-23 — Board #11 done: Output window, scroll Mode 1 — SDD-0001 §16.1
 - 2026-09-23 — Output focus mirrors Operator's: whole part lit, block centred
 - 2026-09-23 — Output late join: `hello` replays last message — §16.1
 - 2026-09-23 — `repeatOrdinal` (adjacent-only) replaces recurrence — §16.2
-- 2026-09-23 — Design review: Operator/Output split, MD3 in `visual/` — §16
