@@ -21,12 +21,15 @@ export interface SequenceEngine {
   goTo(occurrenceIndex: number, lineIndex?: number | null): void;
 
   /**
-   * Move to `partId`, rewriting only the path ahead of the cursor
-   * (SDD-0001 §5.1): skip ahead to its next planned occurrence, or — when it
-   * is the current part or lies only behind — insert an ad-hoc occurrence
-   * right after the cursor.
+   * Move to `partId` within the path, never changing it (SDD-0001 §5.1):
+   * restart it if it's the current part, else go forward to its next
+   * occurrence or, when it lies only behind, back to its most recent one.
    */
   jumpToPart(partId: PartId): void;
+
+  /** Sing the current part again: insert it right after the cursor and move
+   * there. The only way to repeat — never a side effect of a jump. */
+  repeatCurrent(): void;
 }
 
 /**
@@ -151,19 +154,25 @@ class HymnSequenceEngine implements SequenceEngine {
   jumpToPart(partId: PartId): void {
     this.partById(partId);
     const here = this.cursorIndex;
-    const ahead =
-      this.path[here].partId === partId
-        ? -1
-        : this.path.findIndex((entry, i) => i > here && entry.partId === partId);
-
-    if (ahead !== -1) {
-      // Skip ahead: the entries jumped over leave the path, so Previous
-      // returns to where the operator was, not to a skipped part.
-      this.path.splice(here + 1, ahead - here - 1);
-    } else {
-      // Repeat, or go back: sing it now, then resume the plan.
-      this.path.splice(here + 1, 0, { partId, isAdHoc: true });
+    if (this.path[here].partId === partId) {
+      // Restart, never repeat: a stray tap on the current part's chip must
+      // not queue it again (SDD-0001 §5.1).
+      this.cursorLineIndex = null;
+      return;
     }
+    // A chip is a shortcut into the song, not a change to it: Next and
+    // Previous keep walking the song's order from wherever it lands.
+    const ahead = this.path.findIndex((entry, i) => i > here && entry.partId === partId);
+    const behind = this.path.findLastIndex((entry, i) => i < here && entry.partId === partId);
+    const target = ahead !== -1 ? ahead : behind;
+    if (target === -1) throw new Error(`part not in the sequence: ${partId}`);
+    this.cursorIndex = target;
+    this.cursorLineIndex = null;
+  }
+
+  repeatCurrent(): void {
+    const here = this.cursorIndex;
+    this.path.splice(here + 1, 0, { partId: this.path[here].partId, isAdHoc: true });
     this.cursorIndex = here + 1;
     this.cursorLineIndex = null;
   }

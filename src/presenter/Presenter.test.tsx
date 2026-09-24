@@ -107,37 +107,7 @@ describe("Presenter", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
-    expect(screen.queryByText(/Repeat/)).not.toBeInTheDocument();
-  });
-
-  it("counts back-to-back jumps to the same part as a running repeat", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
-    await screen.findByText("Test Hymn");
-    const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
-
-    // The first tap skips ahead to the refrain (not a repeat); each further
-    // tap repeats it in place (SDD-0001 §5.1).
-    fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
-    expect(screen.queryByText(/Repeat/)).not.toBeInTheDocument();
-
-    fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
-    expect(screen.getByText("(Repeat 2)")).toBeInTheDocument();
-
-    fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
-    expect(screen.getByText("(Repeat 3)")).toBeInTheDocument();
-  });
-
-  it("hides the repeat cue when the presenter turns it off", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
-    await screen.findByText("Test Hymn");
-
-    const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
-    fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
-    fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
-    expect(screen.getByText("(Repeat 2)")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("switch", { name: "Show repeat cues" }));
-    expect(screen.queryByText("(Repeat 2)")).not.toBeInTheDocument();
+    expect(screen.queryByText(/\(Repeat/)).not.toBeInTheDocument();
   });
 
   it("moves through lines within a part, focusing one at a time", async () => {
@@ -233,13 +203,14 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
     const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
 
-    // s1, r, s2, r — at s1, skip ahead to s2.
+    // s1, r, s2, r — at s1, jump forward to s2.
     fireEvent.click(jumpList.getByRole("button", { name: "2" }));
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("2");
     expect(screen.getByRole("button", { name: "Next part" })).toBeEnabled();
 
+    // Previous follows the song — the refrain before 2 — not the tap.
     fireEvent.click(screen.getByRole("button", { name: "Previous part" }));
-    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
   });
 
   it("shows the whole sung order and goes to a block, or a line, when tapped (SDD-0001 §16.4)", async () => {
@@ -268,9 +239,12 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
 
     const live = within(screen.getByRole("img", { name: "Live output preview" }));
-    expect(live.getByText("Line 1a")).toHaveClass("live-line-current");
-    expect(live.getByText("Line 1b")).toHaveClass("live-line-current");
-    expect(live.getByText("Refrain line")).not.toHaveClass("live-line-current");
+    // The same view as the Output, scaled: every line, the focus lit.
+    expect(live.getByText("Line 1a")).toHaveClass("output-line-current");
+    expect(live.getByText("Line 1b")).toHaveClass("output-line-current");
+    for (const refrain of live.getAllByText("Refrain line")) {
+      expect(refrain).not.toHaveClass("output-line-current");
+    }
   });
 
   it("leads with Parts, and swaps the navigator on request (SDD-0001 §16.4)", async () => {
@@ -374,5 +348,69 @@ describe("Presenter", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it("ignores its shortcuts while typing in a field, so a picker's arrows never move the Output", async () => {
+    render(() => (
+      <>
+        <input aria-label="Some field" />
+        <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+      </>
+    ));
+    await screen.findByText("Test Hymn");
+
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Some field" }), { key: "ArrowRight" });
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
+
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+  });
+
+  it("orders the keypad special parts first, then stanzas by number", async () => {
+    const hymn: HymnSource = {
+      ...HYMN,
+      parts: [
+        { id: "s2", kind: "stanza", label: "2", lines: ["Line 2a"] },
+        { id: "s1", kind: "stanza", label: "1", lines: ["Line 1a"] },
+        { id: "r", kind: "refrain", lines: ["Refrain line"] },
+      ],
+      sequence: [{ partId: "s1" }, { partId: "r" }, { partId: "s2" }],
+    };
+    render(() => (
+      <Presenter
+        hymnNumber={7}
+        store={fakeStore({ getHymn: async () => hymn })}
+        userState={fakeUserState()}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    const keypad = within(screen.getByRole("region", { name: "Jump to part" }));
+    expect(keypad.getAllByRole("button").map((b) => b.textContent)).toEqual(["Refrain", "1", "2"]);
+  });
+
+  it("keeps its shortcuts when the Parts | Lyrics switch has focus", async () => {
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    await screen.findByText("Test Hymn");
+
+    const lyrics = screen.getByRole("radio", { name: "Lyrics" });
+    lyrics.focus();
+    fireEvent.keyDown(lyrics, { key: "ArrowRight" });
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+  });
+
+  it("restarts the current part when its chip is tapped again, adding no repeat", async () => {
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    await screen.findByText("Test Hymn");
+    const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Next line" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next line" }));
+    expect(screen.getByRole("button", { name: "Line 1b" })).toHaveAttribute("aria-current", "true");
+
+    fireEvent.click(jumpList.getByRole("button", { name: "1" }));
+    fireEvent.click(jumpList.getByRole("button", { name: "1" }));
+    expect(screen.queryByText(/\(Repeat/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Line 1b" })).not.toHaveAttribute("aria-current");
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
   });
 });

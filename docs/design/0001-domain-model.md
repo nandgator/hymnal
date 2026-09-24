@@ -144,10 +144,11 @@ interface Occurrence {
 
 `repeatOrdinal > 1` is the value the renderer needs: this text is being sung
 immediately again, and the visual treatment for repetition applies. In
-practice this only ever fires for a live, ad-hoc jump back to a part already
-showing — never during ordinary navigation through the stored sequence — so
-the cue is effectively an operator-facing signal for R6 overrides, not a
-structural feature of the hymn.
+practice this only ever fires for an explicit, live repeat
+(`repeatCurrent`, §5.1) — never during ordinary navigation through the
+stored sequence, nor from a chip jump — so the cue is effectively an
+operator-facing signal for R6 overrides, not a structural feature of the
+hymn.
 
 No `totalRecurrences` field: for a live ad-hoc repeat, how many more times
 the presenter will jump back isn't knowable in advance, so a cue implying a
@@ -229,39 +230,48 @@ interface SequenceEngine {
 
   goTo(occurrenceIndex: number, lineIndex?: number | null): void;
 
-  /** Append an ad-hoc occurrence of `partId` and move to it. */
+  /** Move to an occurrence of `partId` in the path; never changes it. */
   jumpToPart(partId: PartId): void;
 }
 ```
 
 ### 5.1 Effective sequence
 
-```text
-effective = history (up to and including the cursor) ++ plan (ahead of it)
-```
+The effective sequence (the **path**) starts as a copy of the stored
+sequence. Only an explicit repeat changes it (below). The stored sequence is
+**never mutated**, so the corpus is not modified by presentation, and a hymn
+presented twice starts identically both times.
 
-The effective sequence is **the path actually taken**. It starts as a copy of
-the stored sequence. Everything up to the cursor is history and never changes.
-A live deviation (`jumpToPart`) rewrites only the plan ahead of the cursor. The
-stored sequence is **never mutated**, so the corpus is not modified by
-presentation, and a hymn presented twice starts identically both times.
+`jumpToPart(p)` moves the cursor within the path and never changes it — a
+part chip means "go to that part of the song", and Next and Previous then
+walk the song's order from there (revised in review, after the earlier
+rule, which rewrote the path ahead of the cursor, sent Previous back to
+where the operator had been rather than to the part before `p` in the
+song):
 
-`jumpToPart(p)` has two cases, by intent (revised in Board #12 after the
-original "append after the tail" rule left Next part disabled and Previous part
-landing on the final refrain after any jump):
+- **Restart**: `p` is the current part. The cursor returns to its start
+  (whole-part focus). Revised after review: when this repeated instead, a
+  few stray taps on an already-selected chip silently queued the same verse
+  again and again.
+- **Forward**: `p` appears later in the path. The cursor moves to its
+  next occurrence. Nothing is skipped out of the path: Previous goes to the
+  part before `p` in the song.
+- **Back**: `p` appears only earlier. The cursor moves to its most recent
+  occurrence, and the song carries on from there.
 
-- **Skip ahead**: `p` is not the current part and appears later in the plan.
-  The cursor moves to that occurrence, and the entries skipped over leave the
-  path. Next carries on from `p`; Previous returns to where the operator was.
-- **Repeat or go back**: `p` is the current part, or appears only behind. An
-  ad-hoc occurrence of `p` is inserted right after the cursor, and the plan
-  resumes after it.
+A repeat is its own, explicit action, `repeatCurrent()` (exposed in the UI
+with part 4, Presentation, together with on-screen cues): an ad-hoc
+occurrence of the current part is inserted right after the cursor and
+the cursor moves to it (`repeatOrdinal` then reads 2, 3, …). `undoRepeat()`
+takes back the repeat the cursor is on: it only applies to an ad-hoc
+occurrence immediately repeating the one before it, removes that entry and
+returns the cursor to the previous showing.
 
 ```text
 stored: 1 R 2 R 3 R
-at 1, jump 3:        1 [3] R            (R 2 R skipped)
-at R after 2, jump R: 1 R 2 R [R] 3 R    (Repeat 2)
-at 3, jump 1:        … 3 [1] R
+at 1, jump 3:          1 R 2 R [3] R      (Previous → the R after 2)
+at R after 2, repeat:  1 R 2 R [R] 3 R    (Repeat 2)
+at 3, jump 1:          [1] R 2 R 3 R      (Next → R, then 2 …)
 ```
 
 ### 5.2 Recurrence computation
@@ -281,16 +291,25 @@ the chorus a second time in a row produces `repeatOrdinal = 2`, a third
 chorus resets the streak to 1 (not a repeat) — that's the whole point of the
 adjacency rule (§2.2).
 
-### 5.3 Why rewrite the plan rather than rewind
+### 5.3 Why move rather than rewrite
 
-`jumpToPart` never moves the cursor backwards into history. It rewrites only
-what lies ahead. That keeps history linear and monotonic, keeps
-`repeatOrdinal` truthful — rewinding would show "second time" for what's
-really the third consecutive showing — and keeps a Phase 2 follow source and
-the local cursor in one consistent, forward-moving address space: an
-occurrence index already reached never changes meaning. (The original rule
-appended after the tail instead of after the cursor, which kept those
-properties but put every jump past the end of the plan.)
+A jump moves the cursor and leaves the path alone, so the path always reads
+as the song, plus any repeats the operator asked for. The arrows, the Lyrics
+list and the Output all walk that one order, and a chip is simply a
+shortcut into it.
+
+The earlier rule rewrote the plan instead — skipping ahead removed the
+entries in between, and going back inserted an ad-hoc occurrence — to keep
+history linear. That made the path "the route actually taken", which suits
+a recording but not a live screen: after a skip, Previous landed on the
+part the operator had just left, not on the one the song puts there, and
+the Lyrics list no longer matched the hymn on the page.
+
+What it gave up: history is no longer monotonic, since a jump back revisits
+an index already shown. Nothing depended on that. `repeatOrdinal` counts
+adjacency in the path, which a jump doesn't change, and a Phase 2 follow
+source still shares one address space, since indices shift only on an
+explicit repeat or undo, and those are events it receives too.
 
 ### 5.4 Line navigation
 
@@ -738,6 +757,25 @@ caller that renders every row. The snippet is the first line containing any
 query word, since a multi-word query can match across different lines of the
 same hymn.
 
+**Search as you type** (revised in Board #12, at the maintainer's request:
+"what if I want to see the options while I type"). The box is an ARIA
+combobox over a live results list; the fast path is unchanged — type `11`,
+Enter, and hymn 11 opens.
+
+- **Numbers** suggest instantly from `listHymns` (already loaded for
+  recents): the exact number first, then numbers that start with what's
+  typed, ascending, eight at most — each with its title, so the right hymn
+  is visible before choosing. A number with no hymn still opens on Enter,
+  and Presenter reports it, as before.
+- **Lyrics** search as the typing pauses (about 200ms), or at once on Enter;
+  the previous results stay up while the next load, so the list doesn't
+  flicker.
+- **Keys:** ↑/↓ move the highlighted option, Enter (or Find) takes it — the
+  top one unless moved — and Escape clears the query. Recents show while
+  the box is empty.
+- While focus is in the box, the Presenter's shortcuts are off (§16.5):
+  arrow keys that move the highlight must never also move the Output.
+
 **Picking a hymn** (from a number lookup, a search result, or a recent) hands
 its number straight to an `onSelect(number)` callback and nothing else.
 **Finder never opens or renders the hymn**, and — revised in Board #9 — it no
@@ -1000,6 +1038,12 @@ meaning to a congregation watching lyrics. Modes 2 (chorus in a persistent
 parallel pane) and 3 (paginated, `scroll-snap` over the same scroll) are
 Board #13, built after the MD3 visual language (§16.3) exists.
 
+**Drift back**: someone may scroll the Output window by hand (a mouse over
+the second screen). Until scroll sync (below) gives that a meaning, the
+Output returns to the focus by itself about 1.5s after a manual scroll
+stops, so the audience is never left on empty screen. Any Operator step
+also re-centres it at once.
+
 **Late join**: an Output window opened mid-hymn would otherwise stay blank
 until the operator's next keypress. On mount it posts a `hello` on the
 channel; the channel module replays the last message this window published.
@@ -1108,7 +1152,7 @@ arrows, Page Up/Down, and `.` or `B` for a black screen, so those work too.
 | ← Page Up Shift+Space   | Previous part                                |
 | ↓ ↑                     | Next / previous line                         |
 | Home End                | First / last part                            |
-| 1–9, two digits quickly | Jump to stanza _n_ (skip or repeat, §5.1)    |
+| 1–9, two digits quickly | Jump to stanza _n_ (§5.1)                    |
 | R                       | Jump to the refrain                          |
 | B or .                  | Blank the Output / restore (proposed, below) |
 | O                       | Open or focus the Output window              |

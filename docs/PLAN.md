@@ -41,7 +41,9 @@ Parts, each reviewed before the next:
    - 3c. Keyboard shortcuts, `?` sheet, command menu (Ctrl/⌘+K)
    - 3d. Pane show/hide, persisted
    - 3e. Output → Operator scroll sync (SDD §16.1)
-4. Output: tokens, 10% margin, type in `vmin` (no rem cap, for 4K/8K TVs)
+4. Presentation: preset themes (Dark, Light, High contrast, Warm…); cues
+   each toggleable, all off (hymn #/title, hymnbook, part, repeat ×N);
+   Repeat returns, staying on the page with a ×N count; Undo repeat
 
 ## State
 
@@ -82,7 +84,7 @@ Breaking these breaks the design. Check before deviating.
 - Domain layer imports no UI framework — [ADR-0005](decisions/0005-use-solidjs.md)
 - Content validated at build time, never repaired at runtime — [arc42 §8.6](architecture/arc42.md)
 - Migration output is committed source, never regenerated wholesale — [ADR-0009](decisions/0009-migrate-the-corpus-by-rule.md)
-- Stored sequence never mutated; a jump rewrites only what lies ahead —
+- Stored sequence never mutated; a jump moves, only a repeat inserts —
   [SDD-0001 §5.1](design/0001-domain-model.md)
 - A new hymnbook is data, not code — [arc42 §2.3](architecture/arc42.md)
 - Audio, sync, projector, native wrapper deferred — ADR-0006, 0010, 0011
@@ -107,6 +109,8 @@ ones only, here:
 
 ## Log
 
+- 2026-09-24 — Output fits per hymn, eyeline 42%; Live = scaled Output; repeat explicit
+- 2026-09-24 — Finder searches as you type (combobox); shortcuts off while typing
 - 2026-09-24 — Relicensed AGPL-3.0-only → Apache-2.0; resolves arc42 R3 — ADR-0016
 - 2026-09-24 — #12 part 3b: Live + navigator workspace; MD3 height classes
 - 2026-09-24 — #12 part 3a: layered shell, hot-swap switcher; calmer M3 register
@@ -114,7 +118,3 @@ ones only, here:
 - 2026-09-24 — #12 part 3: Operator layout; controls never move with content
 - 2026-09-24 — Output cursor hides after 2s idle, shows on mouse move
 - 2026-09-24 — #12 part 2: MD3 components; Library and Finder restyled
-- 2026-09-24 — #12 part 1: MD3 tokens; Google Sans bundled as "Hymnal Sans"
-- 2026-09-24 — `DESIGN.md` → `docs/visual/`; its Output now matches §16.1
-- 2026-09-23 — Board #11 done: Output window, scroll Mode 1 — SDD-0001 §16.1
-- 2026-09-23 — Output focus mirrors Operator's: whole part lit, block centred

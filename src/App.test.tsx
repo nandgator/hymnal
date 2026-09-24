@@ -68,7 +68,7 @@ describe("App", () => {
     render(() => <App />);
     fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
 
-    fireEvent.input(await screen.findByRole("textbox", { name: "Find a hymn" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a hymn" }), {
       target: { value: "1" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Find" }));
@@ -79,14 +79,14 @@ describe("App", () => {
   it("hot-swaps to another hymn from the switcher row, staying in the Presenter (SDD-0001 §16.4)", async () => {
     render(() => <App />);
     fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
-    fireEvent.input(await screen.findByRole("textbox", { name: "Find a hymn" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a hymn" }), {
       target: { value: "1" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Find" }));
 
     fireEvent.click(await screen.findByRole("button", { name: /#1\s*Mocked Hymn/ }));
     const picker = within(await screen.findByRole("dialog", { name: "Go to a hymn" }));
-    fireEvent.input(picker.getByRole("textbox", { name: "Find a hymn" }), {
+    fireEvent.input(picker.getByRole("combobox", { name: "Find a hymn" }), {
       target: { value: "2" },
     });
     fireEvent.click(picker.getByRole("button", { name: "Find" }));
@@ -103,13 +103,13 @@ describe("App", () => {
     const books = within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
     fireEvent.click(books.getByRole("button", { name: /Mocked Hymnbook/ }));
 
-    expect(await screen.findAllByRole("textbox", { name: "Find a hymn" })).toHaveLength(1);
+    expect(await screen.findAllByRole("combobox", { name: "Find a hymn" })).toHaveLength(1);
   });
 
   it("'Find a hymn' with a hymn already up opens the picker over it", async () => {
     render(() => <App />);
     fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
-    fireEvent.input(await screen.findByRole("textbox", { name: "Find a hymn" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a hymn" }), {
       target: { value: "1" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Find" }));
@@ -120,7 +120,7 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
 
     expect(await screen.findByRole("dialog", { name: "Go to a hymn" })).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Find a hymn" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Find a hymn" })).toBeInTheDocument();
   });
 
   it("opens the Output as a named window, so a second click reuses it", async () => {

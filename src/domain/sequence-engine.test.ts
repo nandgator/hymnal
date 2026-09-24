@@ -51,18 +51,18 @@ describe("createSequenceEngine", () => {
     const engine = createSequenceEngine(fixtureHymn());
     engine.goTo(4); // the last "r"
 
-    engine.jumpToPart("r"); // immediately repeats it
+    engine.repeatCurrent(); // immediately repeats it
     expect(engine.current()).toMatchObject({ repeatOrdinal: 2, isAdHoc: true });
 
-    engine.jumpToPart("r"); // repeats again
+    engine.repeatCurrent(); // repeats again
     expect(engine.current()).toMatchObject({ repeatOrdinal: 3, isAdHoc: true });
   });
 
-  it("going back to an earlier part inserts it after the cursor; not a repeat", () => {
+  it("going back to an earlier part is a move, not a repeat", () => {
     const engine = createSequenceEngine(fixtureHymn());
     engine.goTo(3); // s2
     engine.jumpToPart("s1"); // only behind — go back
-    expect(engine.current()).toMatchObject({ repeatOrdinal: 1, isAdHoc: true });
+    expect(engine.current()).toMatchObject({ repeatOrdinal: 1, isAdHoc: false });
     expect(engine.current().part.id).toBe("s1");
   });
 
@@ -143,31 +143,49 @@ describe("createSequenceEngine", () => {
     expect(() => engine.goTo(99)).toThrow();
   });
 
-  // SDD-0001 §5.1 — a jump rewrites only the path ahead of the cursor.
+  // SDD-0001 §5.1 — a jump moves within the song's order; only a repeat
+  // changes the path.
   const partsOf = (engine: ReturnType<typeof createSequenceEngine>) =>
     Array.from({ length: engine.length }, (_, i) => engine.occurrenceAt(i)?.part.id);
 
-  it("skips ahead: the jumped-over entries leave the path, Next and Previous stay sensible", () => {
+  it("goes forward: the path is untouched, Previous is the part before it in the song", () => {
     const hymn = fixtureHymn();
     const engine = createSequenceEngine(hymn);
     // r, s1, r, s2, r — at r (0), jump to s2.
     engine.jumpToPart("s2");
 
-    expect(partsOf(engine)).toEqual(["r", "s2", "r"]);
-    expect(engine.current()).toMatchObject({ index: 1, isAdHoc: false });
+    expect(partsOf(engine)).toEqual(["r", "s1", "r", "s2", "r"]);
+    expect(engine.current()).toMatchObject({ index: 3, isAdHoc: false });
     expect(hymn.sequence).toHaveLength(5); // stored sequence never mutated
 
     engine.next();
-    expect(engine.current().part.id).toBe("r"); // Next carries on from s2
+    expect(engine.current()).toMatchObject({ index: 4 }); // Next carries on from s2
     engine.previous();
     engine.previous();
-    expect(engine.current()).toMatchObject({ index: 0 }); // back where we were
+    expect(engine.current()).toMatchObject({ index: 2 }); // the r before s2, not where we were
   });
 
-  it("repeats in place: jumping to the current part inserts it and resumes the plan", () => {
+  it("goes forward to the next occurrence of a recurring part", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(1); // s1
+    engine.jumpToPart("r");
+    expect(engine.cursor.occurrenceIndex).toBe(2);
+  });
+
+  it("restarts, never repeats, when jumping to the part already showing", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(2, 1); // the r after s1, on its second line
+    engine.jumpToPart("r");
+    engine.jumpToPart("r"); // a stray second tap
+
+    expect(partsOf(engine)).toEqual(["r", "s1", "r", "s2", "r"]);
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 2, lineIndex: null });
+  });
+
+  it("repeats in place only when asked: repeatCurrent inserts it and resumes the plan", () => {
     const engine = createSequenceEngine(fixtureHymn());
     engine.goTo(2); // the r after s1
-    engine.jumpToPart("r");
+    engine.repeatCurrent();
 
     expect(partsOf(engine)).toEqual(["r", "s1", "r", "r", "s2", "r"]);
     expect(engine.current()).toMatchObject({ index: 3, repeatOrdinal: 2, isAdHoc: true });
@@ -175,15 +193,19 @@ describe("createSequenceEngine", () => {
     expect(engine.current().part.id).toBe("s2"); // resumes, nothing skipped
   });
 
-  it("goes back: a part only behind is inserted after the cursor, then the plan resumes", () => {
-    const engine = createSequenceEngine(fixtureHymn());
+  it("goes back: to the most recent occurrence of a part only behind, then the song resumes", () => {
+    const hymn = fixtureHymn();
+    hymn.sequence.pop(); // r, s1, r, s2 — no closing refrain
+    const engine = createSequenceEngine(hymn);
     engine.goTo(3); // s2
-    engine.jumpToPart("s1");
+    engine.jumpToPart("r");
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 2, lineIndex: null });
 
-    expect(partsOf(engine)).toEqual(["r", "s1", "r", "s2", "s1", "r"]);
+    engine.jumpToPart("s1");
+    expect(partsOf(engine)).toEqual(["r", "s1", "r", "s2"]);
+    expect(engine.cursor.occurrenceIndex).toBe(1);
     engine.next();
-    expect(engine.current()).toMatchObject({ index: 5 });
-    expect(engine.current().part.id).toBe("r");
+    expect(engine.current()).toMatchObject({ index: 2 }); // the song carries on
   });
 
   it("never disables Next after a jump into the middle of a hymn", () => {
@@ -251,9 +273,9 @@ describe("flattenLines", () => {
     expect(flattenLines(engine).focus).toEqual({ start: 3, end: 5 });
   });
 
-  it("follows the path after a jump: inserted repeats included, skipped entries gone", () => {
+  it("follows the path: inserted repeats included, a jump only moving the focus", () => {
     const engine = createSequenceEngine(fixtureHymn());
-    engine.jumpToPart("r"); // repeat the opening refrain in place
+    engine.repeatCurrent(); // repeat the opening refrain in place
 
     const { lines, focus } = flattenLines(engine);
     // r(2) + r(2) + s1(1) + r(2) + s2(2) + r(2) = 11 lines.
@@ -261,9 +283,10 @@ describe("flattenLines", () => {
     expect(lines.slice(2, 4).map((l) => l.text)).toEqual(["Refrain line 1", "Refrain line 2"]);
     expect(focus).toEqual({ start: 2, end: 4 });
 
-    engine.jumpToPart("s2"); // skip ahead past s1, r
+    engine.jumpToPart("s2"); // forward past s1, r — both stay
     const after = flattenLines(engine);
-    expect(after.lines.map((l) => l.partId)).toEqual(["r", "r", "r", "r", "s2", "s2", "r", "r"]);
-    expect(after.focus).toEqual({ start: 4, end: 6 });
+    expect(after.lines).toHaveLength(11);
+    // r(2) + r(2) + s1(1) + r(2) = 7 lines before s2.
+    expect(after.focus).toEqual({ start: 7, end: 9 });
   });
 });

@@ -179,9 +179,13 @@ button:disabled {
    chosen by content. Hairlines separate the layers; nothing is raised.
    ------------------------------------------------------------------------ */
 
+/* The page itself never scrolls: the shell fills the viewport and its main
+   column is the scroll pane (full width, so the scrollbar sits at the
+   window's edge). The switcher row and a Finder's search bar stick inside
+   it, so results scroll beneath them (DESIGN.md § Stability). */
 .shell {
   display: flex;
-  min-height: 100vh;
+  height: 100dvh;
 }
 
 .shell-main {
@@ -189,6 +193,8 @@ button:disabled {
   flex: 1;
   flex-direction: column;
   min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* MD3 navigation rail: 80px, icon in an indicator pill, label beneath. */
@@ -265,8 +271,12 @@ button:disabled {
 
 /* Switcher row: Supabase's bordered breadcrumb row. Each crumb is a picker. */
 .switcher-row {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   flex: none;
+  background-color: var(--md-sys-color-surface);
   align-items: center;
   gap: var(--space-xs);
   min-height: 3.5rem;
@@ -667,6 +677,24 @@ input[type="checkbox"].switch:checked::before {
   text-align: start;
 }
 
+/* Finder's live options: number, then title and matched line. The
+   highlighted option (keyboard or pointer) carries a state layer. */
+.finder-option {
+  gap: var(--space-md);
+  cursor: pointer;
+}
+
+.finder-option[aria-selected="true"] {
+  background-color: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.finder-number {
+  flex: none;
+  min-width: 3.5rem;
+  color: var(--md-sys-color-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+
 .list-row-supporting {
   color: var(--md-sys-color-on-surface-variant);
 }
@@ -729,6 +757,10 @@ input[type="checkbox"].switch:checked::before {
 
 .icon-check {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+}
+
+.icon-repeat {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z'/%3E%3C/svg%3E");
 }
 
 .icon-grid {
@@ -842,7 +874,7 @@ input[type="checkbox"].switch:checked::before {
   min-height: 5rem;
 }
 
-.live-pane .live-preview {
+.live-pane .output-view-mini {
   height: 100%;
   max-width: 100%;
 }
@@ -1022,8 +1054,71 @@ input[type="checkbox"].switch:checked::before {
    ProPresenter's grouped slides and OpenLP's verse list. */
 .sequence {
   min-height: 0;
+  padding-inline: var(--space-xs);
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* Scrollbars keep their own lane (DESIGN.md § Register): a stable gutter so
+   they never overlap content, thin, and hidden until needed — fading in
+   while the pane scrolls (data-scrolling, set by scrollReveal.ts), is
+   hovered or holds focus, and fading out once still. A scrollbar's color
+   can't transition by itself; a registered custom property can, and the
+   scrollbar reads from it. The gutter stays, so nothing shifts. */
+@property --scrollbar-thumb {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
+}
+
+.shell-main,
+.sequence,
+.navigator-body,
+.main-column,
+.sheet-content {
+  --scrollbar-thumb: transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  transition: --scrollbar-thumb 400ms ease-out;
+}
+
+:is(.sequence, .navigator-body, .main-column, .sheet-content):is(
+  :hover,
+  :focus-within,
+  [data-scrolling]
+) {
+  --scrollbar-thumb: var(--md-sys-color-outline-variant);
+  transition-duration: 150ms;
+  transition-timing-function: ease-in;
+}
+
+/* The page itself (Library, Finder): the same fade, but on scrolling only —
+   the pointer is always over the page, so hover would never hide it. */
+html {
+  --scrollbar-thumb: transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+  scrollbar-width: thin;
+  transition: --scrollbar-thumb 400ms ease-out;
+}
+
+/* Only pages that scroll reserve the lane. The Operator never scrolls as a
+   page, and a reserved gutter there would push the fixed FAB and dock in. */
+.shell:not(:has(.operator)) .shell-main {
+  scrollbar-gutter: stable;
+}
+
+html[data-scrolling],
+.shell-main[data-scrolling] {
+  --scrollbar-thumb: var(--md-sys-color-outline-variant);
+  transition-duration: 150ms;
+  transition-timing-function: ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(html, .shell-main, .sequence, .navigator-body, .main-column, .sheet-content) {
+    transition: none;
+  }
 }
 
 .seq-list {
@@ -1119,36 +1214,16 @@ input[type="checkbox"].switch:checked::before {
   gap: var(--space-md);
 }
 
-/* Live: a small mirror of the Output, in the Output's own fixed colors. */
-.live-preview {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--space-xxs);
-  aspect-ratio: 16 / 9;
-  padding: var(--space-md);
-  overflow: hidden;
-  border-radius: var(--shape-md);
-  background-color: var(--output-ground);
-  font-family: var(--font-family-hymn);
-  line-height: 1.35;
-  text-align: center;
-}
-
-.live-line {
-  color: var(--output-ink-muted);
-}
-
-.live-line-current {
-  color: var(--output-ink);
-}
-
 /* Sheets on a native <dialog> (focus trap, Escape and backdrop for free).
    Bottom: an MD3 modal bottom sheet. Center: a dialog, for pickers on a
    wide screen. */
+/* The sheet holds still; only its content scrolls — otherwise the dialog
+   itself scrolls, with a browser-default scrollbar no rule here reaches. */
 .sheet {
+  flex-direction: column;
   max-height: 75dvh;
   padding: 0;
+  overflow: hidden;
   border: none;
   background-color: var(--md-sys-color-surface-container-low);
   color: var(--md-sys-color-on-surface);
@@ -1171,7 +1246,13 @@ input[type="checkbox"].switch:checked::before {
   background: rgb(0 0 0 / 32%);
 }
 
+.sheet[open] {
+  display: flex;
+}
+
 .sheet-content {
+  flex: 1;
+  min-height: 0;
   padding: var(--space-md) var(--space-lg) var(--space-xl);
   overflow-y: auto;
 }
@@ -1226,6 +1307,10 @@ input[type="checkbox"].switch:checked::before {
   grid-column: 1 / -1;
 }
 
+.repeat-button {
+  align-self: flex-start;
+}
+
 .switch-row {
   display: flex;
   align-items: center;
@@ -1240,7 +1325,8 @@ input[type="checkbox"].switch:checked::before {
 /* Reserve exactly the dock's measured height (set by Presenter), not a rem
    guess: rem grows with the text scale, the dock's icon targets don't. */
 .operator {
-  padding-bottom: calc(var(--dock-height, 5rem) + var(--space-md));
+  /* Clear of the dock and of the FAB floating above it. */
+  padding-bottom: calc(max(var(--dock-height, 5rem), var(--fab-top, 0px)) + var(--space-sm));
 }
 
 .dock {
@@ -1342,10 +1428,27 @@ input[type="checkbox"].switch:checked::before {
   gap: var(--space-lg);
 }
 
+/* Sticks under the switcher row (its height measured into
+   --switcher-height by the shell); inside a picker sheet, to the sheet's
+   top. The field and Find share one height. */
 .finder-form {
+  position: sticky;
+  top: var(--switcher-height, 0px);
+  z-index: 1;
   display: flex;
   gap: var(--space-xs);
-  align-items: center;
+  align-items: stretch;
+  padding-block: var(--space-sm);
+  background-color: var(--md-sys-color-surface);
+}
+
+.sheet .finder-form {
+  top: calc(-1 * var(--space-md));
+  background-color: var(--md-sys-color-surface-container-low);
+}
+
+.finder-form .btn-filled {
+  min-height: 3.5rem;
 }
 
 /* Lyric text, not UI chrome — typography is data-driven per hymnbook script
@@ -1356,39 +1459,59 @@ input[type="checkbox"].switch:checked::before {
   line-height: 1.7;
 }
 
-/* Board #11 — the audience-facing Output window, Mode 1 continuous scroll
-   (SDD-0001 §16.1). Always dark, whatever the operator's theme: it's a
-   projected surface, not a reading one. Sized off the viewport, not the
-   operator's text-scale preference, since it fills a separate display.
-   Plain CSS for now; MD3 styling is Board #12. */
-.output-idle,
-.output-scroll {
+/* Board #11 — the Output, Mode 1 continuous scroll (SDD-0001 §16.1), as
+   OutputView: the audience screen ("full") and, scaled to its box, the
+   Operator's Live pane ("mini"). Always dark, whatever the operator's theme:
+   it's a projected surface. Sizes are container units, so the mini view is
+   an exact scale model; --fit (set by OutputView) shrinks the type per hymn
+   so its longest part fits the safe margin (DESIGN.md § Structure). */
+.output-idle {
   position: fixed;
   inset: 0;
   cursor: none;
   background: #000;
-  color: #fff;
 }
 
-.output-scroll {
-  list-style: none;
-  padding: 0 5vw;
+.output-view {
+  position: relative;
+  container-type: size;
   overflow-y: auto;
   scrollbar-width: none;
+  background: #000;
+  color: #fff;
   font-family: var(--font-family-hymn);
-  font-size: clamp(1.5rem, 4.5vw, 7rem);
-  line-height: 1.5;
   text-align: center;
+}
+
+.output-view-full {
+  position: fixed;
+  inset: 0;
+  cursor: none;
+}
+
+.output-view-mini {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--shape-md);
+  pointer-events: none;
+}
+
+.output-list {
+  margin: 0;
+  padding: 0 5cqw;
+  font-size: calc(7.5cqmin * var(--fit, 1));
+  line-height: 1.5;
+  list-style: none;
 }
 
 .output-cursor {
   cursor: default;
 }
 
-/* Half a viewport either side, so the first and last lines can still be
-   scrolled to the centre. */
+/* A full screen either side, so any line — first or last — can reach the
+   eyeline. */
 .output-spacer {
-  height: 50vh;
+  height: 100cqh;
 }
 
 .output-line {

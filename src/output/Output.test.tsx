@@ -95,7 +95,8 @@ describe("Output", () => {
     try {
       render(() => <Output />);
       show(0);
-      const scroll = screen.getByRole("list");
+      // The class sits on the scroll container around the list.
+      const scroll = screen.getByRole("list").parentElement;
       expect(scroll).not.toHaveClass("output-cursor");
 
       window.dispatchEvent(new MouseEvent("mousemove"));
@@ -105,6 +106,27 @@ describe("Output", () => {
       expect(scroll).toHaveClass("output-cursor");
       vi.advanceTimersByTime(1);
       expect(scroll).not.toHaveClass("output-cursor");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("drifts back to the focus a moment after a hand-scroll stops", () => {
+    vi.useFakeTimers();
+    try {
+      render(() => <Output />);
+      show(1);
+      scrollTo.mockClear();
+      const view = screen.getByRole("list").parentElement as HTMLElement;
+
+      view.dispatchEvent(new WheelEvent("wheel"));
+      vi.advanceTimersByTime(1000);
+      view.dispatchEvent(new WheelEvent("wheel")); // still scrolling
+      vi.advanceTimersByTime(1499);
+      expect(scrollTo).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(1);
+      expect(scrollTo).toHaveBeenLastCalledWith(expect.objectContaining({ behavior: "smooth" }));
     } finally {
       vi.useRealTimers();
     }

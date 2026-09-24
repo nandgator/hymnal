@@ -309,12 +309,12 @@ latter should count as "viewed."
 
 ### 6.2 Presenter overrides the sequence (R6)
 
-The congregation repeats a chorus unexpectedly; the presenter jumps directly to
-that part. The Sequence Engine rewrites only the path ahead of the cursor —
-skipping ahead to that part, or inserting an **ad-hoc occurrence** of it right
-after the cursor to repeat or go back (SDD-0001 §5.1) — never rewinding it, so
-history stays linear, the recurrence count stays truthful, and the stored
-sequence is never mutated by a live deviation.
+The song leader skips a verse, goes back to one, or repeats a chorus
+unexpectedly; the presenter follows at once. A jump to a part moves the cursor
+within the song's order and leaves the path unchanged, so Next and Previous
+keep following the song. A repeat is explicit and inserts an **ad-hoc
+occurrence** right after the cursor (SDD-0001 §5.1), so the recurrence count
+stays truthful. The stored sequence is never mutated by a live deviation.
 
 Implemented in Board #9: a plain list of the hymn's parts next to the
 renderer, one button per part, calling `jumpToPart` directly — no separate

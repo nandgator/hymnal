@@ -1,4 +1,12 @@
-import { createResource, createSignal, For, Show } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  For,
+  onCleanup,
+  Show,
+} from "solid-js";
 import { BUNDLED_HYMNBOOK_ID } from "../config.ts";
 import type { HymnbookId, HymnNumber } from "../domain/types.ts";
 import {
@@ -7,6 +15,11 @@ import {
   type SearchResult,
 } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
+
+/** How long typing must pause before a lyric search runs. */
+const LYRIC_DEBOUNCE_MS = 200;
+/** Number suggestions shown at most. */
+const NUMBER_SUGGESTIONS = 8;
 
 export interface FinderProps {
   /** Defaults to {@link BUNDLED_HYMNBOOK_ID}; overridable for tests. */
@@ -21,15 +34,28 @@ export interface FinderProps {
   onBack?: () => void;
 }
 
+/** One row in the live results list. */
+interface Option {
+  number: HymnNumber;
+  title: string;
+  /** The matched lyric line, when it adds something beyond the title. */
+  snippet?: string;
+}
+
+let nextId = 0;
+
 /**
  * Board #8 — retrieval by number and by lyric text, plus recents (arc42
- * §5.1). Picking a hymn hands its number to `onSelect` and nothing else:
- * opening it, and recording it as recent, is Presenter's job (Board #9).
+ * §5.1). Board #12 made it search as you type (SDD-0001 §13): an ARIA
+ * combobox over a live results list, with the fast path intact — type a
+ * number, Enter, done. Picking a hymn hands its number to `onSelect` and
+ * nothing else: opening it, and recording it as recent, is Presenter's job.
  */
 export function Finder(props: FinderProps) {
   const id = () => props.hymnbookId ?? BUNDLED_HYMNBOOK_ID;
   const store = () => props.store ?? getContentStore();
   const state = () => props.userState ?? defaultUserState;
+  const listId = `finder-options-${++nextId}`;
 
   const [hymns] = createResource(() => store().listHymns(id()));
   const titleFor = (number: HymnNumber) =>
@@ -38,23 +64,84 @@ export function Finder(props: FinderProps) {
   const [recents] = createResource(() => state().getRecents());
 
   const [query, setQuery] = createSignal("");
-  const [submitted, setSubmitted] = createSignal("");
-  const [error, setError] = createSignal<string>();
+  const trimmed = () => query().trim();
+  const isNumber = () => /^\d+$/.test(trimmed());
 
-  const [results] = createResource(submitted, async (submittedQuery): Promise<SearchResult[]> => {
-    setError(undefined);
-    const trimmed = submittedQuery.trim();
-    if (!trimmed) return [];
-
-    if (/^\d+$/.test(trimmed)) {
-      props.onSelect(Number(trimmed));
-      return [];
+  // Lyric search runs once typing pauses — or at once, on Enter.
+  const [lyricQuery, setLyricQuery] = createSignal("");
+  let debounce: ReturnType<typeof setTimeout> | undefined;
+  createEffect(() => {
+    const text = trimmed();
+    clearTimeout(debounce);
+    if (!text || isNumber()) {
+      setLyricQuery("");
+      return;
     }
-
-    const found = await store().searchLyrics(id(), trimmed);
-    if (found.length === 0) setError(`No matches for "${trimmed}".`);
-    return found;
+    debounce = setTimeout(() => setLyricQuery(text), LYRIC_DEBOUNCE_MS);
   });
+  onCleanup(() => clearTimeout(debounce));
+
+  const [lyricResults] = createResource(
+    lyricQuery,
+    (text): Promise<SearchResult[]> =>
+      text ? store().searchLyrics(id(), text) : Promise.resolve([]),
+  );
+
+  const options = createMemo((): Option[] => {
+    if (isNumber()) {
+      const typed = trimmed();
+      const all = hymns() ?? [];
+      const exact = all.filter((hymn) => String(hymn.number) === typed);
+      const prefixed = all.filter(
+        (hymn) => String(hymn.number).startsWith(typed) && String(hymn.number) !== typed,
+      );
+      return [...exact, ...prefixed].slice(0, NUMBER_SUGGESTIONS);
+    }
+    if (!lyricQuery()) return [];
+    // `latest` keeps the previous results up while the next load.
+    return (lyricResults.latest ?? []).map((result) => ({
+      number: result.number,
+      title: result.title,
+      // The matched line is often the first line, which is the title.
+      snippet: result.snippet !== result.title ? result.snippet : undefined,
+    }));
+  });
+
+  const [active, setActive] = createSignal(0);
+  createEffect(() => {
+    options();
+    setActive(0);
+  });
+
+  const noMatch = () =>
+    !isNumber() && !!lyricQuery() && lyricResults.state === "ready" && lyricResults().length === 0;
+
+  const choose = () => {
+    const option = options()[active()];
+    if (option) return props.onSelect(option.number);
+    // A number with no suggestion still opens — Presenter reports it if no
+    // such hymn exists.
+    if (isNumber()) return props.onSelect(Number(trimmed()));
+    if (trimmed() && !isNumber()) setLyricQuery(trimmed());
+  };
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    const count = options().length;
+    if (event.key === "ArrowDown" && count) {
+      event.preventDefault();
+      setActive((i) => (i + 1) % count);
+    } else if (event.key === "ArrowUp" && count) {
+      event.preventDefault();
+      setActive((i) => (i - 1 + count) % count);
+    } else if (event.key === "Escape" && query()) {
+      // Clear first; a second Escape reaches the sheet and closes it.
+      event.preventDefault();
+      event.stopPropagation();
+      setQuery("");
+    }
+  };
+
+  const optionId = (index: number) => `${listId}-${index}`;
 
   return (
     <div class="finder">
@@ -68,14 +155,20 @@ export function Finder(props: FinderProps) {
         class="finder-form"
         onSubmit={(event) => {
           event.preventDefault();
-          setSubmitted(query());
+          choose();
         }}
       >
         <div class="text-field">
           <input
             type="text"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={options().length > 0}
+            aria-controls={listId}
+            aria-activedescendant={options().length ? optionId(active()) : undefined}
             value={query()}
             onInput={(event) => setQuery(event.currentTarget.value)}
+            onKeyDown={onKeyDown}
             placeholder="Hymn number or lyrics"
             aria-label="Find a hymn"
           />
@@ -85,31 +178,45 @@ export function Finder(props: FinderProps) {
         </button>
       </form>
 
-      <Show when={error()}>{(message) => <p class="body-large">{message()}</p>}</Show>
-
-      <Show when={results()?.length}>
-        <ul class="list">
-          <For each={results()}>
-            {(result) => (
-              <li>
-                <button
-                  type="button"
-                  class="list-row"
-                  onClick={() => props.onSelect(result.number)}
-                >
-                  {result.title}
-                  {/* The matched line is often the first line, which is the title. */}
-                  <Show when={result.snippet !== result.title && result.snippet}>
-                    {(snippet) => <span class="list-row-supporting"> — {snippet()}</span>}
-                  </Show>
-                </button>
-              </li>
-            )}
-          </For>
-        </ul>
+      <Show when={noMatch()}>
+        <p class="body-large">No matches for "{lyricQuery()}".</p>
       </Show>
 
-      <Show when={!submitted()}>
+      {/* Keyboard reaches the options through the input's
+          aria-activedescendant (the ARIA combobox pattern), not focus. */}
+      <div id={listId} class="list" role="listbox" aria-label="Matching hymns">
+        <For each={options()}>
+          {(option, index) => (
+            <div
+              id={optionId(index())}
+              role="option"
+              tabIndex={-1}
+              class="list-row finder-option"
+              aria-selected={active() === index()}
+              // mousemove, not mouseenter: a list appearing under a resting
+              // pointer fires mouseenter without the pointer moving, and must
+              // not steal the highlight from the top match — typing "121" then
+              // Enter must open 121, not the row that landed under the mouse.
+              onMouseMove={() => setActive(index())}
+              // mousedown, not click: keeps focus in the box while choosing.
+              onMouseDown={(event) => {
+                event.preventDefault();
+                props.onSelect(option.number);
+              }}
+            >
+              <span class="finder-number">#{option.number}</span>
+              <span class="finder-title">
+                {option.title}
+                <Show when={option.snippet}>
+                  {(snippet) => <span class="list-row-supporting"> — {snippet()}</span>}
+                </Show>
+              </span>
+            </div>
+          )}
+        </For>
+      </div>
+
+      <Show when={!trimmed()}>
         <section>
           <h2 class="title-medium on-surface-variant">Recent</h2>
           <Show

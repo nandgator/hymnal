@@ -41,7 +41,7 @@ function fakeUserState(overrides: Partial<UserState> = {}): UserState {
   };
 }
 
-const find = () => screen.getByRole("textbox", { name: "Find a hymn" });
+const find = () => screen.getByRole("combobox", { name: "Find a hymn" });
 const submit = (value: string) => {
   fireEvent.input(find(), { target: { value } });
   fireEvent.click(screen.getByRole("button", { name: "Find" }));
@@ -90,7 +90,7 @@ describe("Finder", () => {
     submit("grace");
 
     expect(searchLyrics).toHaveBeenCalledWith("mal-ymef-athmeeya-geethangal-16", "grace");
-    fireEvent.click(await screen.findByRole("button", { name: /Forty-Second Hymn/ }));
+    fireEvent.mouseDown(await screen.findByRole("option", { name: /Forty-Second Hymn/ }));
     expect(onSelect).toHaveBeenCalledWith(42);
   });
 
@@ -108,9 +108,9 @@ describe("Finder", () => {
 
     submit("line");
 
-    expect(await screen.findByRole("button", { name: "Same line" })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /^#1\s*Same line$/ })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /^Title\s*—\s*A different line$/ }),
+      screen.getByRole("option", { name: /^#2\s*Title\s*—\s*A different line$/ }),
     ).toBeInTheDocument();
   });
 
@@ -146,5 +146,88 @@ describe("Finder", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Back to hymnbooks" }));
     expect(onBack).toHaveBeenCalled();
+  });
+
+  it("suggests hymns by number as you type, before any Enter (SDD-0001 §13)", async () => {
+    const onSelect = vi.fn();
+    render(() => (
+      <Finder
+        store={fakeStore({
+          listHymns: async () => [
+            { number: 4, title: "Four" },
+            { number: 42, title: "Forty-Two" },
+            { number: 43, title: "Forty-Three" },
+            { number: 5, title: "Five" },
+          ],
+        })}
+        userState={fakeUserState()}
+        onSelect={onSelect}
+      />
+    ));
+    await screen.findByText("No recent hymns yet.");
+
+    fireEvent.input(find(), { target: { value: "4" } });
+    const options = await screen.findAllByRole("option");
+    // Exact number first, then those starting with it; never "5".
+    expect(options.map((o) => o.textContent)).toEqual(["#4Four", "#42Forty-Two", "#43Forty-Three"]);
+    expect(options[0]).toHaveAttribute("aria-selected", "true");
+
+    // ↓ then Enter takes the highlighted one.
+    fireEvent.keyDown(find(), { key: "ArrowDown" });
+    expect(options[1]).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    expect(onSelect).toHaveBeenCalledWith(42);
+  });
+
+  it("searches lyrics as typing pauses, without Enter", async () => {
+    const searchLyrics = vi.fn(
+      async (): Promise<SearchResult[]> => [
+        { number: 42, title: "Forty-Second Hymn", snippet: "x" },
+      ],
+    );
+    render(() => (
+      <Finder store={fakeStore({ searchLyrics })} userState={fakeUserState()} onSelect={vi.fn()} />
+    ));
+    await screen.findByText("No recent hymns yet.");
+
+    fireEvent.input(find(), { target: { value: "grace" } });
+    expect(await screen.findByRole("option", { name: /Forty-Second Hymn/ })).toBeInTheDocument();
+    expect(searchLyrics).toHaveBeenCalledWith("mal-ymef-athmeeya-geethangal-16", "grace");
+  });
+
+  it("clears the query on Escape", async () => {
+    render(() => <Finder store={fakeStore()} userState={fakeUserState()} onSelect={vi.fn()} />);
+    await screen.findByText("No recent hymns yet.");
+    fireEvent.input(find(), { target: { value: "42" } });
+    fireEvent.keyDown(find(), { key: "Escape" });
+    expect(find()).toHaveValue("");
+  });
+
+  it("keeps the top match highlighted when options appear under a resting pointer", async () => {
+    const onSelect = vi.fn();
+    render(() => (
+      <Finder
+        store={fakeStore({
+          listHymns: async () => [
+            { number: 121, title: "One-Two-One" },
+            { number: 1210, title: "Twelve-Ten" },
+          ],
+        })}
+        userState={fakeUserState()}
+        onSelect={onSelect}
+      />
+    ));
+    await screen.findByText("No recent hymns yet.");
+
+    fireEvent.input(find(), { target: { value: "121" } });
+    const [, second] = await screen.findAllByRole("option");
+    // The row lands under a still pointer: enter fires, move doesn't.
+    fireEvent.mouseEnter(second);
+    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    expect(onSelect).toHaveBeenCalledWith(121);
+
+    // Moving the pointer does move the highlight.
+    fireEvent.mouseMove(second);
+    expect(second).toHaveAttribute("aria-selected", "true");
   });
 });

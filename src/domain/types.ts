@@ -69,7 +69,7 @@ export interface Occurrence {
    * printed form, not a repeat.
    */
   repeatOrdinal: number;
-  /** True when produced by live navigation rather than stored data. */
+  /** True when inserted by an explicit live repeat rather than stored data. */
   isAdHoc: boolean;
 }
 

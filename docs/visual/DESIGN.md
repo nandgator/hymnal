@@ -355,9 +355,9 @@ devotional, legible-at-distance tool.
   recurrence of the same part (evidenced against the corpus — 0 of 1,631
   hymns ever repeat a part back-to-back in their printed sequence; 1,186
   have the normal non-adjacent verse-chorus-verse-chorus pattern, which
-  is not a repeat). In practice a cue only ever appears from a live,
-  ad-hoc jump back to a part already showing — and the total isn't
-  knowable in advance for a live jump, so don't imply it is.
+  is not a repeat). In practice a cue only ever appears from an explicit
+  live repeat — and the total isn't knowable in advance, so don't imply
+  it is.
 
 ## Layout
 
@@ -455,6 +455,16 @@ unit.
   the larger control. As width runs out, labels collapse to icon-only in
   reverse priority: lines first, then the FAB, then parts. Labels stay
   the accessible names throughout.
+- **Output: nothing ever bleeds off the screen.** The type is sized
+  **per hymn** so its longest part fits inside a 10% safe margin, then
+  held for the whole hymn, so the text never changes size between parts.
+  It's re-fitted on resize and font load, down to a floor; only a
+  pathological part (20+ lines) goes past the floor, and then whole-part
+  focus starts at the top margin, and line steps still work. The focus
+  sits a little above centre (about 42% down, a teleprompter's eyeline),
+  clamped inside the margin. Sizes are container units (`cqmin`), so the
+  Operator's **Live pane is the same component scaled to its box**: a true
+  miniature, identical line by line, not a separate rendering.
 - **Output**: full-bleed, one centred column scrolling vertically, the
   focus held at the vertical centre, the safe-area margin around it and
   nothing else on screen.
@@ -468,10 +478,26 @@ Parts differ in line count and the selection moves every few seconds, so
 anything positioned by content would drift under the operator's pointer
 or thumb mid-service. Three rules follow:
 
+- **The FAB floats.** The dock is as tall as its own buttons; the FAB
+  rides about 20px above its top edge, a floating action button rather
+  than a docked one.
 - **The dock is a fixed bottom app bar** (MD3), full width, pinned to the
   viewport bottom whatever the content's height, with the FAB at its end.
   The page reserves the bar's height at the bottom so nothing hides
   under it.
+- **Tapping the current part's chip restarts it**, never repeats it: a
+  stray tap can't queue a verse the congregation would see twice.
+  Deliberate repeats wait for part 4 (Presentation), where they arrive with
+  what makes them legible. A repeat stays on the same page with its count
+  going up (×2, ×3 …), Lyrics shows one block marked ×N instead of a
+  stack, and the Output can show that ×N as a cue. Without the cue, a
+  Repeat button looked like it did nothing, so it and the repeat-cue
+  switch aren't in the Parts pane until then.
+- **Special parts first, then the keypad.** Refrains, bridges and tags
+  (unnumbered) come first as full-row chips; numbered stanzas follow as a
+  keypad in number order, whatever order the hymn stores its parts in —
+  a hymn that stores verse 1 before its refrain must not split the
+  keypad around it.
 - **Part chips sit in a grid of equal cells**, in the hymn's part order:
   numbered stanzas one cell each, so 1, 2, 3… always land in the same
   places; refrains, bridges and tags (unnumbered, longer labels) span a
@@ -515,6 +541,18 @@ of a well-set printed hymnal rather than a chat app or a console. So:
   16px before the icon and 24px after the label (M3's own rule), so the
   icon doesn't look inset. The rail's selection indicator takes the
   square register too (8px), not M3's default pill.
+- **Pickers keep their bearings.** The switcher row and the search bar
+  stay put; results and Recent scroll beneath them. The search field and
+  its Find button share one height.
+- **Scrollbars keep their own lane.** Every scrolling pane reserves a
+  stable gutter, so a scrollbar never overlaps content, and pads its
+  content inside on both sides. Scrollbars are thin and in the outline
+  color, and **hidden until needed**: they fade in (about 150ms) while
+  the pane is scrolling, hovered or holds focus, and fade out (about
+  400ms) once it's still again, the way phones, macOS and Windows 11
+  already behave, so nobody meets it for the first time here. The gutter
+  stays reserved, so nothing shifts. Reduced-motion users get the change
+  without the fade.
 - **Flat before raised.** Hairline `outline-variant` borders separate
   layers (switcher row, rail, dock); shadow is reserved for things that
   float (FAB, sheets).

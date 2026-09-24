@@ -1,4 +1,4 @@
-import { createSignal, For, Match, Show, Switch } from "solid-js";
+import { createSignal, For, Match, onCleanup, Show, Switch } from "solid-js";
 import { BUNDLED_HYMNBOOK_ID } from "./config.ts";
 import type { Hymn, Hymnbook, HymnbookId, HymnNumber } from "./domain/types.ts";
 import { Finder } from "./finder/Finder.tsx";
@@ -8,6 +8,7 @@ import { Presenter } from "./presenter/Presenter.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { createPreferences, Settings } from "./shell/Settings.tsx";
 import { Sheet } from "./shell/Sheet.tsx";
+import { installScrollReveal } from "./shell/scrollReveal.ts";
 
 /** The app's top-level sections (DESIGN.md § Structure, layer 1). Feedback,
  * About and Updates are reserved here, not built (PLAN Board #16–18). */
@@ -43,6 +44,8 @@ function Operator() {
   const expanded = createMediaQuery(EXPANDED_QUERY);
   // Applied at startup, whether or not a Settings sheet is open.
   const preferences = createPreferences();
+  // Scrollbars fade in while a pane scrolls (DESIGN.md § Register).
+  installScrollReveal();
   const [section, setSection] = createSignal<Section>("library");
   const [hymnbook, setHymnbook] = createSignal<Hymnbook>();
   const [hymnbookId, setHymnbookId] = createSignal<HymnbookId>(BUNDLED_HYMNBOOK_ID);
@@ -127,7 +130,21 @@ function Operator() {
       </Show>
 
       <div class="shell-main">
-        <header class="switcher-row">
+        <header
+          class="switcher-row"
+          ref={(el) => {
+            // A Finder's search bar sticks just under this row, whatever
+            // height the text scale gives it.
+            if (typeof ResizeObserver !== "function") return;
+            const observer = new ResizeObserver(() =>
+              el
+                .closest<HTMLElement>(".shell")
+                ?.style.setProperty("--switcher-height", `${el.offsetHeight}px`),
+            );
+            observer.observe(el);
+            onCleanup(() => observer.disconnect());
+          }}
+        >
           <Show when={!expanded()}>
             <button
               type="button"

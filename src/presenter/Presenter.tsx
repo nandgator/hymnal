@@ -19,6 +19,7 @@ import {
 } from "../domain/sequence-engine.ts";
 import type { Hymn, HymnbookId, HymnNumber, Occurrence, Part } from "../domain/types.ts";
 import { type OutputMessage, publishOutput } from "../output/channel.ts";
+import { OutputView } from "../output/OutputView.tsx";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
 import { createMediaQuery, EXPANDED_QUERY, TALL_QUERY } from "../shell/media.ts";
@@ -34,6 +35,7 @@ const DOCK_COLLAPSE_MAX = 3;
 const MIN_CHIP_COLUMNS = 3;
 const FAB_GAP_PX = 16;
 const DOCK_PADDING_PX = 12;
+const FAB_RISE_PX = 20;
 /** Which navigator leads the workspace (SDD-0001 §16.4). */
 export type Navigator = "parts" | "lyrics";
 
@@ -113,7 +115,9 @@ export function Presenter(props: PresenterProps) {
     return e !== undefined && at !== undefined && at < e.length - 1;
   });
 
-  const [showCues, setShowCues] = createSignal(true);
+  // Repeat cues always show in Lyrics; the toggle returns with part 4
+  // (Presentation), alongside Repeat and on-screen cues.
+  const showCues = () => true;
 
   // What the Output shows — published to the Output window on every
   // navigation (SDD-0001 §16.1), and the Live pane renders the very same
@@ -151,6 +155,19 @@ export function Presenter(props: PresenterProps) {
   // Full keyboard navigation (arc42 §8.8) — arrow keys for fine control,
   // Page Up/Down since that's what most presentation remotes/clickers send.
   const onKeyDown = (event: KeyboardEvent) => {
+    // Off while typing or while a sheet/dialog is open (SDD-0001 §16.5): the
+    // hymn picker's arrow keys move its highlight, never the Output.
+    // Text entry only: a focused radio (the Parts | Lyrics switch) or checkbox
+    // must not swallow the remote's keys.
+    const target = event.target;
+    const typing =
+      target instanceof HTMLElement &&
+      (target.isContentEditable ||
+        target.closest("textarea, select") !== null ||
+        (target instanceof HTMLInputElement &&
+          !["radio", "checkbox", "button", "submit", "range"].includes(target.type)));
+    if (typing) return;
+    if (document.querySelector("dialog[open]")) return;
     const action: ((e: SequenceEngine) => void) | undefined = {
       ArrowRight: (e: SequenceEngine) => e.next(),
       PageDown: (e: SequenceEngine) => e.next(),
@@ -259,9 +276,13 @@ export function Presenter(props: PresenterProps) {
     if (!shell) return;
     shell.style.removeProperty("--dock-height");
     const fabHeight = fab?.offsetHeight ?? 0;
-    const height = Math.max(dock.offsetHeight, fabHeight + 2 * DOCK_PADDING_PX);
+    // The dock is as tall as its own buttons; the FAB floats a steady
+    // FAB_RISE_PX above its top edge (DESIGN.md § Stability).
+    const height = dock.offsetHeight;
+    const fabBottom = Math.max(DOCK_PADDING_PX, height - fabHeight + FAB_RISE_PX);
     shell.style.setProperty("--dock-height", `${height}px`);
-    shell.style.setProperty("--fab-bottom", `${Math.round((height - fabHeight) / 2)}px`);
+    shell.style.setProperty("--fab-bottom", `${fabBottom}px`);
+    shell.style.setProperty("--fab-top", `${fabBottom + fabHeight}px`);
   };
   onMount(() => {
     window.addEventListener("resize", fitDock);
@@ -307,28 +328,12 @@ export function Presenter(props: PresenterProps) {
     </button>
   );
 
+  // Live is the Output itself, scaled to its box — the same component, so
+  // the preview can't disagree with the audience screen (DESIGN.md §
+  // Structure).
   const livePreview = () => (
     <Show when={outputMessage()}>
-      {(message) => {
-        const start = () => Math.max(0, message().focus.start - 1);
-        return (
-          <div class="live-preview" role="img" aria-label="Live output preview">
-            <For each={message().lines.slice(start(), message().focus.end + 1)}>
-              {(line, i) => (
-                <p
-                  class="live-line"
-                  classList={{
-                    "live-line-current":
-                      start() + i() >= message().focus.start && start() + i() < message().focus.end,
-                  }}
-                >
-                  {line.text}
-                </p>
-              )}
-            </For>
-          </div>
-        );
-      }}
+      {(message) => <OutputView message={message()} variant="mini" />}
     </Show>
   );
 
@@ -352,6 +357,15 @@ export function Presenter(props: PresenterProps) {
     </div>
   );
 
+  // Special parts (refrain, bridge, tag) first, then numbered stanzas as a
+  // keypad in number order — whatever order the hymn stores them in, so a
+  // hymn storing verse 1 before its refrain doesn't split the keypad
+  // (DESIGN.md § Stability).
+  const keypadOrder = (parts: Part[]) => [
+    ...parts.filter((part) => !part.label),
+    ...parts.filter((part) => part.label).sort((a, b) => Number(a.label) - Number(b.label) || 0),
+  ];
+
   const partsNavigator = (loaded: Hymn) => (
     <div class="parts-navigator">
       <section aria-label="Jump to part">
@@ -363,7 +377,7 @@ export function Presenter(props: PresenterProps) {
             ),
           }}
         >
-          <For each={loaded.parts}>
+          <For each={keypadOrder(loaded.parts)}>
             {(part) => (
               <li>
                 <button
@@ -380,17 +394,6 @@ export function Presenter(props: PresenterProps) {
           </For>
         </ul>
       </section>
-      <label class="switch-row body-large">
-        <input
-          type="checkbox"
-          role="switch"
-          aria-checked={showCues()}
-          class="switch"
-          checked={showCues()}
-          onChange={(event) => setShowCues(event.currentTarget.checked)}
-        />
-        Show repeat cues
-      </label>
     </div>
   );
 
