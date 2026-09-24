@@ -20,7 +20,12 @@ export interface SequenceEngine {
 
   goTo(occurrenceIndex: number, lineIndex?: number | null): void;
 
-  /** Append an ad-hoc occurrence of `partId` and move to it. */
+  /**
+   * Move to `partId`, rewriting only the path ahead of the cursor
+   * (SDD-0001 §5.1): skip ahead to its next planned occurrence, or — when it
+   * is the current part or lies only behind — insert an ad-hoc occurrence
+   * right after the cursor.
+   */
   jumpToPart(partId: PartId): void;
 }
 
@@ -33,22 +38,28 @@ export interface SequenceEngine {
  * land on null, the arrival default from SDD-0001 §5.4 — itself flagged
  * there as an open question pending real on-screen validation.
  */
+interface PathEntry extends SequenceEntry {
+  isAdHoc: boolean;
+}
+
 class HymnSequenceEngine implements SequenceEngine {
   readonly hymn: Hymn;
-  private adHocEntries: SequenceEntry[] = [];
+  /**
+   * The effective sequence: the path actually taken. Starts as a copy of the
+   * stored sequence (which is never mutated); entries up to the cursor are
+   * history and never change, jumps rewrite only what lies ahead.
+   */
+  private path: PathEntry[];
   private cursorIndex = 0;
   private cursorLineIndex: number | null = null;
 
   constructor(hymn: Hymn) {
     this.hymn = hymn;
-  }
-
-  private get effectiveSequence(): SequenceEntry[] {
-    return [...this.hymn.sequence, ...this.adHocEntries];
+    this.path = hymn.sequence.map((entry) => ({ partId: entry.partId, isAdHoc: false }));
   }
 
   get length(): number {
-    return this.hymn.sequence.length + this.adHocEntries.length;
+    return this.path.length;
   }
 
   get cursor(): Position {
@@ -67,7 +78,7 @@ class HymnSequenceEngine implements SequenceEngine {
   }
 
   occurrenceAt(index: number): Occurrence | undefined {
-    const sequence = this.effectiveSequence;
+    const sequence = this.path;
     const entry = sequence[index];
     if (!entry) return undefined;
 
@@ -82,7 +93,7 @@ class HymnSequenceEngine implements SequenceEngine {
       index,
       part: this.partById(entry.partId),
       repeatOrdinal,
-      isAdHoc: index >= this.hymn.sequence.length,
+      isAdHoc: entry.isAdHoc,
     };
   }
 
@@ -139,8 +150,21 @@ class HymnSequenceEngine implements SequenceEngine {
 
   jumpToPart(partId: PartId): void {
     this.partById(partId);
-    this.adHocEntries.push({ partId });
-    this.cursorIndex = this.length - 1;
+    const here = this.cursorIndex;
+    const ahead =
+      this.path[here].partId === partId
+        ? -1
+        : this.path.findIndex((entry, i) => i > here && entry.partId === partId);
+
+    if (ahead !== -1) {
+      // Skip ahead: the entries jumped over leave the path, so Previous
+      // returns to where the operator was, not to a skipped part.
+      this.path.splice(here + 1, ahead - here - 1);
+    } else {
+      // Repeat, or go back: sing it now, then resume the plan.
+      this.path.splice(here + 1, 0, { partId, isAdHoc: true });
+    }
+    this.cursorIndex = here + 1;
     this.cursorLineIndex = null;
   }
 }

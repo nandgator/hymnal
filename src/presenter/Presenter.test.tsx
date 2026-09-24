@@ -108,7 +108,11 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
     const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
 
-    // Stored order ends on the refrain, so jumping to it again is adjacent.
+    // The first tap skips ahead to the refrain (not a repeat); each further
+    // tap repeats it in place (SDD-0001 §5.1).
+    fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
+    expect(screen.queryByText(/Repeat/)).not.toBeInTheDocument();
+
     fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
     expect(screen.getByText("(Repeat 2)")).toBeInTheDocument();
 
@@ -122,9 +126,10 @@ describe("Presenter", () => {
 
     const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
     fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
+    fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
     expect(screen.getByText("(Repeat 2)")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "Show repeat cues" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Show repeat cues" }));
     expect(screen.queryByText("(Repeat 2)")).not.toBeInTheDocument();
   });
 
@@ -214,5 +219,19 @@ describe("Presenter", () => {
 
     unmount();
     expect(publishOutput).toHaveBeenLastCalledWith({ type: "idle" });
+  });
+
+  it("keeps Next and Previous meaningful after jumping to a part", async () => {
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    await screen.findByText("Test Hymn");
+    const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
+
+    // s1, r, s2, r — at s1, skip ahead to s2.
+    fireEvent.click(jumpList.getByRole("button", { name: "2" }));
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("2");
+    expect(screen.getByRole("button", { name: "Next part" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous part" }));
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
   });
 });

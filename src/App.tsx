@@ -30,13 +30,6 @@ function Operator() {
   return (
     <>
       <header class="app-bar">
-        <button
-          type="button"
-          class="btn-tonal"
-          onClick={() => window.open(OUTPUT_URL, OUTPUT_WINDOW_NAME, "popup")}
-        >
-          Show Output
-        </button>
         <Settings />
       </header>
       <main>
@@ -46,6 +39,7 @@ function Operator() {
           </Match>
           <Match when={view() === "finder"}>
             <Finder
+              onBack={() => setView("library")}
               onSelect={(number) => {
                 setHymnNumber(number);
                 setView("presenter");
@@ -57,6 +51,16 @@ function Operator() {
           </Match>
         </Switch>
       </main>
+      {/* The FAB belongs to the whole Operator, not one screen: the Output is
+          opened once per service, often before the first hymn (§16.1). */}
+      <button
+        type="button"
+        class="fab-extended fab-fixed"
+        onClick={() => window.open(OUTPUT_URL, OUTPUT_WINDOW_NAME, "popup")}
+      >
+        <span class="icon icon-present" aria-hidden="true" />
+        <span class="fab-label">Show Output</span>
+      </button>
     </>
   );
 }

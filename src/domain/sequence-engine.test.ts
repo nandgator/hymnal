@@ -58,14 +58,12 @@ describe("createSequenceEngine", () => {
     expect(engine.current()).toMatchObject({ repeatOrdinal: 3, isAdHoc: true });
   });
 
-  it("a jump to a part different from the effective sequence's current tail is not a repeat", () => {
+  it("going back to an earlier part inserts it after the cursor; not a repeat", () => {
     const engine = createSequenceEngine(fixtureHymn());
-    // jumpToPart always appends after the tail, not wherever the cursor is —
-    // the stored sequence already ends in "r" (index 4), so jumping to a
-    // *different* part is what's needed to see a non-repeat here.
-    engine.goTo(1); // cursor position is irrelevant to adjacency
-    engine.jumpToPart("s2");
+    engine.goTo(3); // s2
+    engine.jumpToPart("s1"); // only behind — go back
     expect(engine.current()).toMatchObject({ repeatOrdinal: 1, isAdHoc: true });
+    expect(engine.current().part.id).toBe("s1");
   });
 
   it("returns undefined for an out-of-range occurrence", () => {
@@ -145,20 +143,53 @@ describe("createSequenceEngine", () => {
     expect(() => engine.goTo(99)).toThrow();
   });
 
-  it("jumpToPart appends an ad-hoc occurrence without mutating the stored sequence", () => {
+  // SDD-0001 §5.1 — a jump rewrites only the path ahead of the cursor.
+  const partsOf = (engine: ReturnType<typeof createSequenceEngine>) =>
+    Array.from({ length: engine.length }, (_, i) => engine.occurrenceAt(i)?.part.id);
+
+  it("skips ahead: the jumped-over entries leave the path, Next and Previous stay sensible", () => {
     const hymn = fixtureHymn();
     const engine = createSequenceEngine(hymn);
+    // r, s1, r, s2, r — at r (0), jump to s2.
+    engine.jumpToPart("s2");
 
+    expect(partsOf(engine)).toEqual(["r", "s2", "r"]);
+    expect(engine.current()).toMatchObject({ index: 1, isAdHoc: false });
+    expect(hymn.sequence).toHaveLength(5); // stored sequence never mutated
+
+    engine.next();
+    expect(engine.current().part.id).toBe("r"); // Next carries on from s2
+    engine.previous();
+    engine.previous();
+    expect(engine.current()).toMatchObject({ index: 0 }); // back where we were
+  });
+
+  it("repeats in place: jumping to the current part inserts it and resumes the plan", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(2); // the r after s1
     engine.jumpToPart("r");
 
-    expect(hymn.sequence).toHaveLength(5);
-    expect(engine.length).toBe(6);
-    expect(engine.cursor).toMatchObject({ occurrenceIndex: 5, lineIndex: null });
+    expect(partsOf(engine)).toEqual(["r", "s1", "r", "r", "s2", "r"]);
+    expect(engine.current()).toMatchObject({ index: 3, repeatOrdinal: 2, isAdHoc: true });
+    engine.next();
+    expect(engine.current().part.id).toBe("s2"); // resumes, nothing skipped
+  });
 
-    // The stored sequence's last entry (index 4) is already "r", so this
-    // ad-hoc jump lands immediately adjacent to it — a genuine repeat.
-    const occurrence = engine.current();
-    expect(occurrence).toMatchObject({ repeatOrdinal: 2, isAdHoc: true });
+  it("goes back: a part only behind is inserted after the cursor, then the plan resumes", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(3); // s2
+    engine.jumpToPart("s1");
+
+    expect(partsOf(engine)).toEqual(["r", "s1", "r", "s2", "s1", "r"]);
+    engine.next();
+    expect(engine.current()).toMatchObject({ index: 5 });
+    expect(engine.current().part.id).toBe("r");
+  });
+
+  it("never disables Next after a jump into the middle of a hymn", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.jumpToPart("s1");
+    expect(engine.cursor.occurrenceIndex).toBeLessThan(engine.length - 1);
   });
 
   it("jumpToPart throws for an unknown part id", () => {
@@ -220,13 +251,19 @@ describe("flattenLines", () => {
     expect(flattenLines(engine).focus).toEqual({ start: 3, end: 5 });
   });
 
-  it("includes ad-hoc occurrences appended by jumpToPart", () => {
+  it("follows the path after a jump: inserted repeats included, skipped entries gone", () => {
     const engine = createSequenceEngine(fixtureHymn());
-    engine.jumpToPart("s1");
+    engine.jumpToPart("r"); // repeat the opening refrain in place
 
     const { lines, focus } = flattenLines(engine);
-    expect(lines).toHaveLength(10);
-    expect(lines.at(-1)).toMatchObject({ text: "Stanza 1 line 1", partId: "s1" });
-    expect(focus).toEqual({ start: 9, end: 10 });
+    // r(2) + r(2) + s1(1) + r(2) + s2(2) + r(2) = 11 lines.
+    expect(lines).toHaveLength(11);
+    expect(lines.slice(2, 4).map((l) => l.text)).toEqual(["Refrain line 1", "Refrain line 2"]);
+    expect(focus).toEqual({ start: 2, end: 4 });
+
+    engine.jumpToPart("s2"); // skip ahead past s1, r
+    const after = flattenLines(engine);
+    expect(after.lines.map((l) => l.partId)).toEqual(["r", "r", "r", "r", "s2", "s2", "r", "r"]);
+    expect(after.focus).toEqual({ start: 4, end: 6 });
   });
 });

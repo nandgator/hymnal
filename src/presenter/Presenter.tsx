@@ -28,6 +28,10 @@ function partLabel(part: Part): string {
   return part.kind[0].toUpperCase() + part.kind.slice(1);
 }
 
+const DOCK_COLLAPSE_MAX = 3;
+const MIN_CHIP_COLUMNS = 3;
+const FAB_GAP_PX = 16;
+
 export interface PresenterProps {
   hymnNumber: HymnNumber;
   /** Defaults to {@link BUNDLED_HYMNBOOK_ID}; overridable for tests. */
@@ -126,96 +130,248 @@ export function Presenter(props: PresenterProps) {
   onMount(() => window.addEventListener("keydown", onKeyDown));
   onCleanup(() => window.removeEventListener("keydown", onKeyDown));
 
+  // Keep the focus in view after each step. A part longer than the card's
+  // cap scrolls inside the card (DESIGN.md § Stability): line focus
+  // scrolls the focused line into view there, whole-part focus returns the
+  // part to its top. The page itself isn't meant to scroll mid-service.
+  let cardRef: HTMLElement | undefined;
+  createEffect(() => {
+    version();
+    const lineIndex = cursor()?.lineIndex;
+    // A compressed rail scrolls; keep the current part's chip in it.
+    document
+      .querySelector<HTMLElement>('.chip-filter[aria-pressed="true"]')
+      ?.scrollIntoView?.({ block: "nearest" });
+    const part = cardRef?.querySelector<HTMLElement>(".lyrics:not(.lyrics-hidden)");
+    if (!part) return;
+    if (lineIndex == null) {
+      part.scrollTop = 0;
+      return;
+    }
+    part
+      .querySelector<HTMLElement>('li[aria-current="true"]')
+      ?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+  });
+
+  // Dock labels collapse to icon-only in reverse priority (lines, then the
+  // FAB, then parts) only when the labelled row genuinely doesn't fit.
+  // Measured, not breakpoints: type scales with the viewport and the user's
+  // text size, so no breakpoint could track a button's width (DESIGN.md §
+  // Stability). The level lives on the root element because the FAB is
+  // App's, not Presenter's.
+  let dockRef: HTMLElement | undefined;
+  const fitDock = () => {
+    const dock = dockRef;
+    if (!dock) return;
+    const root = document.documentElement;
+    const fab = document.querySelector<HTMLElement>(".fab-fixed");
+    // Geometry, not scrollWidth: an overflowing flex row's scrollWidth leaves
+    // out its trailing padding, so it can't see the FAB's clearance.
+    const limit = () =>
+      fab ? fab.getBoundingClientRect().left - FAB_GAP_PX : dock.getBoundingClientRect().right;
+    // Each pair (parts, lines) shares one width, the wider of the two at
+    // this collapse level (DESIGN.md § Structure).
+    const equalizePair = (selector: string, property: string) => {
+      dock.style.removeProperty(property);
+      const widths = [...dock.querySelectorAll<HTMLElement>(selector)].map(
+        (button) => button.getBoundingClientRect().width,
+      );
+      dock.style.setProperty(property, `${Math.ceil(Math.max(0, ...widths))}px`);
+    };
+    for (let level = 0; level <= DOCK_COLLAPSE_MAX; level++) {
+      root.dataset.dockCollapse = String(level);
+      equalizePair(".dock-part", "--dock-part-width");
+      equalizePair(".dock-line", "--dock-line-width");
+      const clearance = fab ? fab.offsetWidth + 2 * FAB_GAP_PX : 0;
+      dock.style.setProperty("--fab-clearance", `${clearance}px`);
+      const last = dock.lastElementChild?.getBoundingClientRect();
+      if (!last || last.right <= limit()) return;
+    }
+  };
+  onMount(() => {
+    window.addEventListener("resize", fitDock);
+    // Settings changes --font-scale through the root's style attribute.
+    const scaleObserver = new MutationObserver(fitDock);
+    scaleObserver.observe(document.documentElement, { attributeFilter: ["style"] });
+    void document.fonts?.ready.then(fitDock);
+    onCleanup(() => {
+      window.removeEventListener("resize", fitDock);
+      scaleObserver.disconnect();
+      delete document.documentElement.dataset.dockCollapse;
+    });
+  });
+
+  const backButton = () => (
+    <Show when={props.onBack}>
+      <button type="button" class="btn-text" onClick={() => props.onBack?.()}>
+        <span class="icon icon-arrow-back" aria-hidden="true" />
+        Back to search
+      </button>
+    </Show>
+  );
+
+  // Icon matches the key that does the same thing (arc42 §8.8): chevrons
+  // for parts (left/right), arrows for lines (up/down). Parts outrank lines
+  // (DESIGN.md § Structure): emphasis follows, and line labels are the
+  // first to collapse to icon-only. Labels stay the accessible name.
+  const dockButton = (
+    label: string,
+    icon: string,
+    variant: "btn-filled" | "btn-tonal" | "btn-outlined",
+    action: (e: SequenceEngine) => void,
+    disabled?: () => boolean,
+  ) => (
+    <button
+      type="button"
+      class={`${variant} dock-button ${variant === "btn-outlined" ? "dock-line" : "dock-part"}`}
+      onClick={() => mutate(action)}
+      disabled={disabled?.()}
+    >
+      <span class={`icon ${icon}`} aria-hidden="true" />
+      <span class="dock-label">{label}</span>
+    </button>
+  );
+
   return (
-    <Switch fallback={<p>Loading…</p>}>
+    <Switch fallback={<p class="body-large on-surface-variant">Loading…</p>}>
       <Match when={hymn.error}>
-        <div>
-          <p>No hymn numbered {props.hymnNumber}.</p>
-          <Show when={props.onBack}>
-            <button type="button" onClick={() => props.onBack?.()}>
-              Back to search
-            </button>
-          </Show>
+        <div class="card-elevated library">
+          <p class="body-large">No hymn numbered {props.hymnNumber}.</p>
+          {backButton()}
         </div>
       </Match>
       <Match when={hymn()}>
         {(loaded) => (
-          <article>
-            <h2>
-              {loaded().title} <small>#{loaded().number}</small>
-            </h2>
+          <article class="operator">
+            <header class="operator-header">
+              {backButton()}
+              <h2 class="title-large">
+                {loaded().title} <small class="on-surface-variant">#{loaded().number}</small>
+              </h2>
+            </header>
 
-            <Show when={occurrence()}>
-              {(occ) => (
-                <section aria-label="Current part">
-                  <h3>
-                    {partLabel(occ().part)}
-                    <Show when={showCues() && occ().repeatOrdinal > 1}>
-                      {" "}
-                      <span>(Repeat {occ().repeatOrdinal})</span>
-                    </Show>
-                  </h3>
-                  <ol class="hymn-text">
-                    <For each={occ().part.lines}>
-                      {(line, i) => (
-                        <li aria-current={cursor()?.lineIndex === i() ? "true" : undefined}>
-                          {line}
+            <div class="operator-body">
+              <Show when={occurrence()}>
+                {(occ) => (
+                  <section
+                    ref={cardRef}
+                    class="card-elevated lyrics-card"
+                    aria-label="Current part"
+                  >
+                    <h3 class="title-medium lyrics-card-heading">
+                      {partLabel(occ().part)}
+                      <Show when={showCues() && occ().repeatOrdinal > 1}>
+                        {" "}
+                        <span class="chip-assist">(Repeat {occ().repeatOrdinal})</span>
+                      </Show>
+                    </h3>
+                    {/* Every part shares one grid cell and only the current one
+                        is visible, so the card is always as tall as the hymn's
+                        longest part and nothing below it moves (DESIGN.md §
+                        Stability). */}
+                    <div class="lyrics-stack">
+                      <For each={loaded().parts}>
+                        {(part) => {
+                          const isCurrent = () => part.id === occ().part.id;
+                          return (
+                            <ol
+                              class="hymn-text lyrics"
+                              classList={{
+                                "lyrics-hidden": !isCurrent(),
+                                "lyrics-line-focus": isCurrent() && cursor()?.lineIndex != null,
+                              }}
+                              aria-hidden={isCurrent() ? undefined : "true"}
+                            >
+                              <For each={part.lines}>
+                                {(line, i) => (
+                                  <li
+                                    aria-current={
+                                      isCurrent() && cursor()?.lineIndex === i()
+                                        ? "true"
+                                        : undefined
+                                    }
+                                  >
+                                    {line}
+                                  </li>
+                                )}
+                              </For>
+                            </ol>
+                          );
+                        }}
+                      </For>
+                    </div>
+                  </section>
+                )}
+              </Show>
+              <aside class="parts-rail">
+                <section aria-label="Jump to part">
+                  <h3 class="title-medium on-surface-variant">Parts</h3>
+                  <ul
+                    class="chip-set"
+                    style={{
+                      "--stanza-count": String(
+                        Math.max(MIN_CHIP_COLUMNS, loaded().parts.filter((p) => p.label).length),
+                      ),
+                    }}
+                  >
+                    <For each={loaded().parts}>
+                      {(part) => (
+                        <li>
+                          <button
+                            type="button"
+                            class="chip-filter"
+                            classList={{ "chip-wide": !part.label }}
+                            aria-pressed={occurrence()?.part.id === part.id}
+                            onClick={() => mutate((e) => e.jumpToPart(part.id))}
+                          >
+                            {partLabel(part)}
+                          </button>
                         </li>
                       )}
                     </For>
-                  </ol>
+                  </ul>
                 </section>
+                <label class="switch-row body-large">
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    aria-checked={showCues()}
+                    class="switch"
+                    checked={showCues()}
+                    onChange={(event) => setShowCues(event.currentTarget.checked)}
+                  />
+                  Show repeat cues
+                </label>
+              </aside>
+            </div>
+
+            <nav
+              class="dock"
+              aria-label="Navigate"
+              ref={(el) => {
+                dockRef = el;
+                queueMicrotask(fitDock);
+              }}
+            >
+              {dockButton(
+                "Previous part",
+                "icon-chevron-left",
+                "btn-tonal",
+                (e) => e.previous(),
+                () => !canPrevious(),
               )}
-            </Show>
-
-            <nav aria-label="Navigate">
-              <button
-                type="button"
-                onClick={() => mutate((e) => e.previous())}
-                disabled={!canPrevious()}
-              >
-                Previous part
-              </button>
-              <button type="button" onClick={() => mutate((e) => e.previousLine())}>
-                Previous line
-              </button>
-              <button type="button" onClick={() => mutate((e) => e.nextLine())}>
-                Next line
-              </button>
-              <button type="button" onClick={() => mutate((e) => e.next())} disabled={!canNext()}>
-                Next part
-              </button>
+              {dockButton("Previous line", "icon-arrow-up", "btn-outlined", (e) =>
+                e.previousLine(),
+              )}
+              {dockButton("Next line", "icon-arrow-down", "btn-outlined", (e) => e.nextLine())}
+              {dockButton(
+                "Next part",
+                "icon-chevron-right",
+                "btn-filled",
+                (e) => e.next(),
+                () => !canNext(),
+              )}
             </nav>
-
-            <label>
-              <input
-                type="checkbox"
-                checked={showCues()}
-                onChange={(event) => setShowCues(event.currentTarget.checked)}
-              />
-              Show repeat cues
-            </label>
-
-            <section aria-label="Jump to part">
-              <h3>Parts</h3>
-              <ul>
-                <For each={loaded().parts}>
-                  {(part) => (
-                    <li>
-                      <button type="button" onClick={() => mutate((e) => e.jumpToPart(part.id))}>
-                        {partLabel(part)}
-                      </button>
-                    </li>
-                  )}
-                </For>
-              </ul>
-            </section>
-
-            <Show when={props.onBack}>
-              <button type="button" onClick={() => props.onBack?.()}>
-                Back to search
-              </button>
-            </Show>
           </article>
         )}
       </Match>

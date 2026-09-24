@@ -89,4 +89,24 @@ describe("Output", () => {
     unmount();
     expect(channel.unsubscribe).toHaveBeenCalled();
   });
+
+  it("shows the cursor while the mouse moves, and hides it once still", () => {
+    vi.useFakeTimers();
+    try {
+      render(() => <Output />);
+      show(0);
+      const scroll = screen.getByRole("list");
+      expect(scroll).not.toHaveClass("output-cursor");
+
+      window.dispatchEvent(new MouseEvent("mousemove"));
+      expect(scroll).toHaveClass("output-cursor");
+
+      vi.advanceTimersByTime(1999);
+      expect(scroll).toHaveClass("output-cursor");
+      vi.advanceTimersByTime(1);
+      expect(scroll).not.toHaveClass("output-cursor");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

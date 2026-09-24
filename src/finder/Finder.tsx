@@ -17,6 +17,8 @@ export interface FinderProps {
   userState?: UserState;
   /** Called with the chosen hymn number — number lookup, a search result, or a recent. */
   onSelect: (number: HymnNumber) => void;
+  /** Called when the user wants to go back to hymnbook selection. */
+  onBack?: () => void;
 }
 
 /**
@@ -56,6 +58,12 @@ export function Finder(props: FinderProps) {
 
   return (
     <div class="finder">
+      <Show when={props.onBack}>
+        <button type="button" class="btn-text back-button" onClick={() => props.onBack?.()}>
+          <span class="icon icon-arrow-back" aria-hidden="true" />
+          Back to hymnbooks
+        </button>
+      </Show>
       <form
         class="finder-form"
         onSubmit={(event) => {

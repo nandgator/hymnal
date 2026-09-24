@@ -137,4 +137,14 @@ describe("Finder", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Forty-Second Hymn" }));
     expect(onSelect).toHaveBeenCalledWith(42);
   });
+
+  it("offers a way back to hymnbook selection", async () => {
+    const onBack = vi.fn();
+    render(() => (
+      <Finder store={fakeStore()} userState={fakeUserState()} onSelect={vi.fn()} onBack={onBack} />
+    ));
+
+    fireEvent.click(await screen.findByRole("button", { name: "Back to hymnbooks" }));
+    expect(onBack).toHaveBeenCalled();
+  });
 });

@@ -1,6 +1,8 @@
 import { createEffect, createMemo, createSignal, Index, onCleanup, onMount, Show } from "solid-js";
 import { type OutputMessage, subscribeOutput } from "./channel.ts";
 
+const CURSOR_IDLE_MS = 2000;
+
 /**
  * Board #11 — the chrome-less, audience-facing screen (SDD-0001 §16.1).
  * Mode 1: a continuous scroll through the whole hymn, the focus — a whole
@@ -26,6 +28,22 @@ export function Output() {
   const content = createMemo(() => {
     const current = message();
     return current.type === "content" ? current : undefined;
+  });
+
+  // Visible while the mouse moves, so the operator can position and
+  // fullscreen the window; hidden once still, so it never sits parked
+  // over the projected lyrics.
+  const [cursorVisible, setCursorVisible] = createSignal(false);
+  let cursorTimer: ReturnType<typeof setTimeout> | undefined;
+  const onMouseMove = () => {
+    setCursorVisible(true);
+    clearTimeout(cursorTimer);
+    cursorTimer = setTimeout(() => setCursorVisible(false), CURSOR_IDLE_MS);
+  };
+  onMount(() => window.addEventListener("mousemove", onMouseMove));
+  onCleanup(() => {
+    window.removeEventListener("mousemove", onMouseMove);
+    clearTimeout(cursorTimer);
   });
 
   const lineRefs: (HTMLLIElement | undefined)[] = [];
@@ -58,9 +76,12 @@ export function Output() {
   });
 
   return (
-    <Show when={content()} fallback={<div class="output-idle" />}>
+    <Show
+      when={content()}
+      fallback={<div class="output-idle" classList={{ "output-cursor": cursorVisible() }} />}
+    >
       {(current) => (
-        <ul class="output-scroll">
+        <ul class="output-scroll" classList={{ "output-cursor": cursorVisible() }}>
           <li class="output-spacer" aria-hidden="true" />
           <Index each={current().lines}>
             {(line, i) => (

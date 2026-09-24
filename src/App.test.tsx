@@ -51,6 +51,13 @@ describe("App", () => {
     expect(await screen.findByPlaceholderText("Hymn number or lyrics")).toBeInTheDocument();
   });
 
+  it("goes back from Finder to the Library", async () => {
+    render(() => <App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Back to hymnbooks" }));
+    expect(await screen.findByText("Mocked Hymnbook")).toBeInTheDocument();
+  });
+
   it("opens the Presenter once a hymn is picked in Finder", async () => {
     render(() => <App />);
     fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
