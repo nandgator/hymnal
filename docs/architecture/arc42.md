@@ -5,7 +5,7 @@ decided and marked `OPEN:` where not, so the gaps are visible rather than
 implied.
 
 - **Status:** Phase 1 design, pre-implementation
-- **Last updated:** 2026-09-20
+- **Last updated:** 2026-09-24
 
 ---
 
@@ -93,12 +93,12 @@ people who are not thinking about software.
 
 ### 2.2 Organisational
 
-| Constraint                   | Consequence                                                                                                                  |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Single maintainer            | Complexity is the binding cost. Every moving part must earn its place; two ways to do something is one too many              |
-| No infrastructure budget     | Rules out hosted services, relays and managed databases                                                                      |
-| **AGPL-3.0-only**            | Any wrapper, dependency or distribution channel must be compatible. See §11 — this is a live risk for app store distribution |
-| Lyrics are third-party works | Redistribution rights are not established. See §11                                                                           |
+| Constraint                   | Consequence                                                                                                                         |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Single maintainer            | Complexity is the binding cost. Every moving part must earn its place; two ways to do something is one too many                     |
+| No infrastructure budget     | Rules out hosted services, relays and managed databases                                                                             |
+| **Apache-2.0**               | Permissive; dependencies and wrappers need only permissive-license checks — [ADR-0016](../decisions/0016-license-under-apache-2.md) |
+| Lyrics are third-party works | Redistribution rights are not established. See §11                                                                                  |
 
 ### 2.3 Conventions
 
@@ -528,6 +528,7 @@ and clickers actually send.
 | [0013](../decisions/0013-toolchain-bun-biome-prettier-markdownlint.md)       | Toolchain: bun, biome, prettier with markdownlint          | Accepted                                                                          |
 | [0014](../decisions/0014-defer-transliteration.md)                           | Defer transliteration (search and display)                 | Deferred                                                                          |
 | [0015](../decisions/0015-use-official-sqlite-wasm-not-wa-sqlite.md)          | Use the official SQLite Wasm build, not wa-sqlite          | Accepted                                                                          |
+| [0016](../decisions/0016-license-under-apache-2.md)                          | License the project under Apache-2.0                       | Accepted                                                                          |
 
 Full index, with open questions, in
 [`docs/decisions/`](../decisions/README.md).
@@ -570,7 +571,7 @@ hymns with FTS5 in WASM is unproven on old hardware.
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | R1  | **Corpus fidelity.** Rule-derived sequences will be wrong for some hymns; no title, tune or metadata exists; `bridge` is empty in all 1,631 records           | Directly threatens quality goal 1             | Accept knowingly ([ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)); make corrections cheap; never re-migrate                                                         |
 | R2  | **Lyrics copyright.** Redistribution rights are not established. The archived UI asserted "all songs are owned by their respective authors"                   | Legal exposure; blocks app store distribution | Establish provenance **before** any store submission. Unresolved                                                                                                                 |
-| R3  | **AGPL vs app stores.** AGPL-3.0 conflicts with Apple's App Store terms                                                                                       | Could invalidate the iOS target entirely      | Resolve alongside [ADR-0006](../decisions/0006-defer-the-native-wrapper-decision.md) — not after                                                                                 |
+| R3  | **AGPL vs app stores.** ~~AGPL-3.0 conflicts with Apple's App Store terms~~                                                                                   | Could invalidate the iOS target entirely      | **Resolved**: relicensed to Apache-2.0, which is App Store–compatible — [ADR-0016](../decisions/0016-license-under-apache-2.md)                                                  |
 | R4  | **Storage eviction.** Browsers may evict OPFS under pressure                                                                                                  | Content vanishes, possibly mid-service        | Request persistent storage; detect and re-install; never store user state in OPFS                                                                                                |
 | R5  | **Malayalam full-text search.** ~~FTS5's default tokeniser may handle Malayalam poorly~~ — confirmed: it fragments words to bare consonants                   | Text search unusable — half of R2             | **Resolved** (Board #3): `unicode61` with Malayalam marks in `tokenchars` validated against the real corpus — see [SDD-0001 §6](../design/0001-domain-model.md#6-storage-schema) |
 | R6  | **Phase 2 is unproven.** Aligning against live congregational singing is research-grade, and unlike Metrolist there are no pre-made LRC files to fall back on | Phase 2 may not be deliverable as imagined    | Phase 1 depends on it only through one interface. Treat announcement detection and lyric alignment as separate capabilities with very different risk                             |

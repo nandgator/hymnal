@@ -25,15 +25,15 @@ new record, never edited.
 | [0013](0013-toolchain-bun-biome-prettier-markdownlint.md)       | Toolchain: bun, biome, prettier with markdownlint   | Accepted                                                             |
 | [0014](0014-defer-transliteration.md)                           | Defer transliteration (search and display)          | Deferred                                                             |
 | [0015](0015-use-official-sqlite-wasm-not-wa-sqlite.md)          | Use the official SQLite Wasm build, not wa-sqlite   | Accepted                                                             |
+| [0016](0016-license-under-apache-2.md)                          | License the project under Apache-2.0                | Accepted                                                             |
 
 ## Open questions
 
 Not yet decided, and deliberately so. Each needs evidence rather than
 deliberation.
 
-| Question                                   | Blocked on                                                         |
-| ------------------------------------------ | ------------------------------------------------------------------ |
-| Lyrics copyright and redistribution rights | Establishing provenance — blocks any store release                 |
-| AGPL-3.0 versus Apple App Store terms      | Resolve with [ADR-0006](0006-defer-the-native-wrapper-decision.md) |
-| Content authoring and correction UI        | Evidence that hand-editing has become the bottleneck               |
-| Transliteration scheme and library         | Phase 1 in use; see [ADR-0014](0014-defer-transliteration.md)      |
+| Question                                   | Blocked on                                                    |
+| ------------------------------------------ | ------------------------------------------------------------- |
+| Lyrics copyright and redistribution rights | Establishing provenance — blocks any store release            |
+| Content authoring and correction UI        | Evidence that hand-editing has become the bottleneck          |
+| Transliteration scheme and library         | Phase 1 in use; see [ADR-0014](0014-defer-transliteration.md) |

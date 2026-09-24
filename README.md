@@ -72,8 +72,11 @@ git checkout 155baea -- archive/data/lyrics/mal
 
 ## Licence
 
-[AGPL-3.0-only](LICENSE).
+The code is licensed under [Apache-2.0](LICENSE)
+([ADR-0016](docs/decisions/0016-license-under-apache-2.md)). Versions
+published before that decision remain under AGPL-3.0-only.
 
-All songs are owned by their respective authors. Note that redistribution
+The license covers the code, not the hymn texts. All songs are owned by
+their respective authors. Note that redistribution
 rights for the lyrics are **not yet established** — this is tracked as a risk
 and blocks any app store release.
