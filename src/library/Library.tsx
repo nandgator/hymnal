@@ -1,4 +1,4 @@
-import { type Accessor, createResource, Match, Show, Switch } from "solid-js";
+import { type Accessor, createEffect, createResource, Match, Show, Switch } from "solid-js";
 import { BUNDLED_HYMNBOOK_ID } from "../config.ts";
 import type { Hymnbook, HymnbookId } from "../domain/types.ts";
 import {
@@ -37,6 +37,9 @@ export interface LibraryProps {
   store?: ContentStore;
   /** Called once content is ready. The app uses this to move on to Finder. */
   onReady?: () => void;
+  /** Called with the hymnbook once provisioned — the shell's switcher row
+   * shows it, and Present becomes available. */
+  onLoaded?: (hymnbook: Hymnbook) => void;
 }
 
 /**
@@ -53,6 +56,9 @@ export function Library(props: LibraryProps) {
     return store.getHymnbook(id);
   };
   const [hymnbook, { refetch }] = createResource(load);
+  createEffect(() => {
+    if (hymnbook.state === "ready") props.onLoaded?.(hymnbook());
+  });
 
   return (
     <Switch fallback={<p>Loading…</p>}>

@@ -47,7 +47,14 @@ function fakeUserState(overrides: Partial<UserState> = {}): UserState {
   };
 }
 
-const currentPart = () => within(screen.getByRole("region", { name: "Current part" }));
+// The Sequence pane marks the current occurrence's block aria-current="step".
+const currentPart = () => {
+  const block = within(screen.getByRole("region", { name: "Sequence" }))
+    .getAllByRole("listitem")
+    .find((item) => item.getAttribute("aria-current") === "step");
+  if (!block) throw new Error("no current block");
+  return within(block);
+};
 
 describe("Presenter", () => {
   it("shows a loading state before the store responds", () => {
@@ -68,7 +75,7 @@ describe("Presenter", () => {
 
     expect(await screen.findByText("Test Hymn")).toBeInTheDocument();
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
-    expect(screen.getByText("Line 1a")).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "Line 1a" })).not.toHaveAttribute("aria-current");
     expect(addRecent).toHaveBeenCalledWith("book", 7);
   });
 
@@ -138,14 +145,14 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
 
     fireEvent.click(screen.getByRole("button", { name: "Next line" }));
-    expect(screen.getByText("Line 1a")).toHaveAttribute("aria-current", "true");
-    expect(screen.getByText("Line 1b")).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "Line 1a" })).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("button", { name: "Line 1b" })).not.toHaveAttribute("aria-current");
 
     fireEvent.click(screen.getByRole("button", { name: "Next line" }));
-    expect(screen.getByText("Line 1b")).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("button", { name: "Line 1b" })).toHaveAttribute("aria-current", "true");
 
     fireEvent.click(screen.getByRole("button", { name: "Previous line" }));
-    expect(screen.getByText("Line 1a")).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("button", { name: "Line 1a" })).toHaveAttribute("aria-current", "true");
   });
 
   it("jumps straight to any part, overriding the stored order (R6)", async () => {
@@ -181,7 +188,7 @@ describe("Presenter", () => {
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("2");
 
     fireEvent.keyDown(window, { key: "ArrowDown" });
-    expect(screen.getByText("Line 2a")).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("button", { name: "Line 2a" })).toHaveAttribute("aria-current", "true");
 
     fireEvent.keyDown(window, { key: "PageUp" });
     fireEvent.keyDown(window, { key: "ArrowLeft" });
@@ -233,5 +240,58 @@ describe("Presenter", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Previous part" }));
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
+  });
+
+  it("shows the whole sung order and goes to a block, or a line, when tapped (SDD-0001 §16.4)", async () => {
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    await screen.findByText("Test Hymn");
+    const sequence = within(screen.getByRole("region", { name: "Sequence" }));
+
+    // s1, r, s2, r — every occurrence, the refrain twice.
+    expect(sequence.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
+      "1",
+      "Refrain",
+      "2",
+      "Refrain",
+    ]);
+
+    fireEvent.click(sequence.getByRole("button", { name: "2" }));
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("2");
+
+    fireEvent.click(screen.getByRole("button", { name: "Line 1b" }));
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
+    expect(screen.getByRole("button", { name: "Line 1b" })).toHaveAttribute("aria-current", "true");
+  });
+
+  it("mirrors the Output in the Live pane", async () => {
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    await screen.findByText("Test Hymn");
+
+    const live = within(screen.getByRole("img", { name: "Live output preview" }));
+    expect(live.getByText("Line 1a")).toHaveClass("live-line-current");
+    expect(live.getByText("Line 1b")).toHaveClass("live-line-current");
+    expect(live.getByText("Refrain line")).not.toHaveClass("live-line-current");
+  });
+
+  it("puts supporting panes behind dock buttons on a narrow screen, nothing dropped", async () => {
+    const matchMedia = vi.fn((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    vi.stubGlobal("matchMedia", matchMedia);
+    try {
+      render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+      await screen.findByText("Test Hymn");
+
+      expect(screen.queryByRole("region", { name: "Jump to part" })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Parts" }));
+      const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
+      fireEvent.click(jumpList.getByRole("button", { name: "2" }));
+      expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("2");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

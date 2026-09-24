@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { fireEvent, render, screen, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App.tsx";
 import type { ContentStore } from "./persistence/content-store.ts";
@@ -15,9 +15,9 @@ vi.mock("./persistence/content-store.ts", () => {
       hymnCount: 1,
     }),
     listHymns: async () => [{ number: 1, title: "Mocked Hymn" }],
-    getHymn: async () => ({
-      number: 1,
-      title: "Mocked Hymn",
+    getHymn: async (_hymnbookId, number) => ({
+      number,
+      title: number === 1 ? "Mocked Hymn" : `Mocked Hymn ${number}`,
       parts: [{ id: "s1", kind: "stanza", lines: ["A line"] }],
       sequence: [{ partId: "s1" }],
       meta: {},
@@ -42,7 +42,7 @@ vi.mock("./persistence/user-state.ts", () => {
 describe("App", () => {
   it("renders the Library, wired to the default content store", async () => {
     render(() => <App />);
-    expect(await screen.findByText("Mocked Hymnbook")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Mocked Hymnbook" })).toBeInTheDocument();
   });
 
   it("moves to Finder once the user chooses to find a hymn", async () => {
@@ -51,11 +51,17 @@ describe("App", () => {
     expect(await screen.findByPlaceholderText("Hymn number or lyrics")).toBeInTheDocument();
   });
 
-  it("goes back from Finder to the Library", async () => {
+  it("switches sections from the rail: Present, then back to the Library", async () => {
     render(() => <App />);
     fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Back to hymnbooks" }));
-    expect(await screen.findByText("Mocked Hymnbook")).toBeInTheDocument();
+    const sections = within(screen.getByRole("navigation", { name: "Sections" }));
+    expect(sections.getByRole("button", { name: "Present" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+
+    fireEvent.click(sections.getByRole("button", { name: "Library" }));
+    expect(await screen.findByRole("heading", { name: "Mocked Hymnbook" })).toBeInTheDocument();
   });
 
   it("opens the Presenter once a hymn is picked in Finder", async () => {
@@ -67,7 +73,54 @@ describe("App", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Find" }));
 
-    expect(await screen.findByText("Mocked Hymn")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /#1\s*Mocked Hymn/ })).toBeInTheDocument();
+  });
+
+  it("hot-swaps to another hymn from the switcher row, staying in the Presenter (SDD-0001 §16.4)", async () => {
+    render(() => <App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
+    fireEvent.input(await screen.findByRole("textbox", { name: "Find a hymn" }), {
+      target: { value: "1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+
+    fireEvent.click(await screen.findByRole("button", { name: /#1\s*Mocked Hymn/ }));
+    const picker = within(await screen.findByRole("dialog", { name: "Go to a hymn" }));
+    fireEvent.input(picker.getByRole("textbox", { name: "Find a hymn" }), {
+      target: { value: "2" },
+    });
+    fireEvent.click(picker.getByRole("button", { name: "Find" }));
+
+    expect(await screen.findByRole("button", { name: /#2\s*Mocked Hymn 2/ })).toBeInTheDocument();
+    // Still presenting: the dock never left the screen.
+    expect(screen.getByRole("navigation", { name: "Navigate" })).toBeInTheDocument();
+  });
+
+  it("choosing a hymnbook with no hymn up shows one Finder, not a picker over it", async () => {
+    render(() => <App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Mocked Hymnbook/ }));
+    const books = within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
+    fireEvent.click(books.getByRole("button", { name: /Mocked Hymnbook/ }));
+
+    expect(await screen.findAllByRole("textbox", { name: "Find a hymn" })).toHaveLength(1);
+  });
+
+  it("'Find a hymn' with a hymn already up opens the picker over it", async () => {
+    render(() => <App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
+    fireEvent.input(await screen.findByRole("textbox", { name: "Find a hymn" }), {
+      target: { value: "1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    await screen.findByRole("button", { name: /#1\s*Mocked Hymn/ });
+
+    const sections = within(screen.getByRole("navigation", { name: "Sections" }));
+    fireEvent.click(sections.getByRole("button", { name: "Library" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
+
+    expect(await screen.findByRole("dialog", { name: "Go to a hymn" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Find a hymn" })).toBeInTheDocument();
   });
 
   it("opens the Output as a named window, so a second click reuses it", async () => {

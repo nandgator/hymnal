@@ -4,6 +4,8 @@ import {
   createResource,
   createSignal,
   For,
+  Index,
+  type JSX,
   Match,
   onCleanup,
   onMount,
@@ -16,10 +18,12 @@ import {
   flattenLines,
   type SequenceEngine,
 } from "../domain/sequence-engine.ts";
-import type { Hymn, HymnbookId, HymnNumber, Part } from "../domain/types.ts";
-import { publishOutput } from "../output/channel.ts";
+import type { Hymn, HymnbookId, HymnNumber, Occurrence, Part } from "../domain/types.ts";
+import { type OutputMessage, publishOutput } from "../output/channel.ts";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
+import { createMediaQuery, EXPANDED_QUERY } from "../shell/media.ts";
+import { Sheet } from "../shell/Sheet.tsx";
 
 // Most parts carry no label — it's printed only for numbered stanzas
 // (SDD-0001 §2.1). Refrains, bridges and tags fall back to their kind.
@@ -31,6 +35,13 @@ function partLabel(part: Part): string {
 const DOCK_COLLAPSE_MAX = 3;
 const MIN_CHIP_COLUMNS = 3;
 const FAB_GAP_PX = 16;
+/** A supporting pane: data, not layout code (SDD-0001 §16.4). */
+interface Pane {
+  id: string;
+  title: string;
+  icon: string;
+  render: () => JSX.Element;
+}
 
 export interface PresenterProps {
   hymnNumber: HymnNumber;
@@ -40,8 +51,10 @@ export interface PresenterProps {
   store?: ContentStore;
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
   userState?: UserState;
-  /** Called when the presenter wants to search for a different hymn. */
+  /** Called when a hymn fails to load and the operator wants to pick another. */
   onBack?: () => void;
+  /** Called with each hymn once loaded — the shell's switcher row shows it. */
+  onLoaded?: (hymn: Hymn) => void;
 }
 
 /**
@@ -51,20 +64,30 @@ export interface PresenterProps {
  * Finder (SDD-0001 §14).
  */
 export function Presenter(props: PresenterProps) {
-  const load = async (): Promise<Hymn> => {
-    const hymnbookId = props.hymnbookId ?? BUNDLED_HYMNBOOK_ID;
+  // Keyed on the hymn, so choosing another in the switcher row hot-swaps
+  // in place (SDD-0001 §16.4): a new engine, the cursor at its start,
+  // recents updated, the Output snapping to it — while this screen, the
+  // Output window and the pane choices all stay.
+  const load = async (key: { hymnbookId: HymnbookId; number: HymnNumber }): Promise<Hymn> => {
     const store = props.store ?? getContentStore();
-    const source = await store.getHymn(hymnbookId, props.hymnNumber);
-    await (props.userState ?? defaultUserState).addRecent(hymnbookId, props.hymnNumber);
-    return { hymnbookId, ...source };
+    const source = await store.getHymn(key.hymnbookId, key.number);
+    await (props.userState ?? defaultUserState).addRecent(key.hymnbookId, key.number);
+    return { hymnbookId: key.hymnbookId, ...source };
   };
-  const [hymn] = createResource(load);
+  const [hymn] = createResource(
+    () => ({ hymnbookId: props.hymnbookId ?? BUNDLED_HYMNBOOK_ID, number: props.hymnNumber }),
+    load,
+  );
 
   const [engine, setEngine] = createSignal<SequenceEngine>();
   createEffect(() => {
     // hymn.state, not hymn() — reading the resource itself rethrows once
     // it's errored, and that state is handled by the Switch/Match below.
-    if (hymn.state === "ready") setEngine(createSequenceEngine(hymn()));
+    if (hymn.state === "ready") {
+      const loaded = hymn();
+      setEngine(createSequenceEngine(loaded));
+      props.onLoaded?.(loaded);
+    }
   });
 
   // Bumped after every engine mutation, so memos reading it re-derive —
@@ -95,22 +118,38 @@ export function Presenter(props: PresenterProps) {
 
   const [showCues, setShowCues] = createSignal(true);
 
-  // Publish to the Output window on every navigation (SDD-0001 §16.1).
-  // Output owns no state of its own; unmounting blanks it rather than
-  // leaving the last hymn frozen on the audience's screen.
-  createEffect(() => {
+  // What the Output shows — published to the Output window on every
+  // navigation (SDD-0001 §16.1), and the Live pane renders the very same
+  // message, so the preview can't disagree with the audience screen
+  // (§16.4). Unmounting blanks the Output rather than leaving the last
+  // hymn frozen on the audience's screen.
+  const outputMessage = createMemo((): Extract<OutputMessage, { type: "content" }> | undefined => {
     version();
     const e = engine();
-    if (!e) return;
-    publishOutput({
+    if (!e) return undefined;
+    return {
       type: "content",
       hymnbookId: e.hymn.hymnbookId,
       number: e.hymn.number,
       title: e.hymn.title,
       ...flattenLines(e),
-    });
+    };
+  });
+  createEffect(() => {
+    const message = outputMessage();
+    if (message) publishOutput(message);
   });
   onCleanup(() => publishOutput({ type: "idle" }));
+
+  // The whole effective path, for the Sequence pane.
+  const occurrences = createMemo((): Occurrence[] => {
+    version();
+    const e = engine();
+    if (!e) return [];
+    return Array.from({ length: e.length }, (_, i) => e.occurrenceAt(i)).filter(
+      (occ): occ is Occurrence => occ !== undefined,
+    );
+  });
 
   // Full keyboard navigation (arc42 §8.8) — arrow keys for fine control,
   // Page Up/Down since that's what most presentation remotes/clickers send.
@@ -130,28 +169,32 @@ export function Presenter(props: PresenterProps) {
   onMount(() => window.addEventListener("keydown", onKeyDown));
   onCleanup(() => window.removeEventListener("keydown", onKeyDown));
 
-  // Keep the focus in view after each step. A part longer than the card's
-  // cap scrolls inside the card (DESIGN.md § Stability): line focus
-  // scrolls the focused line into view there, whole-part focus returns the
-  // part to its top. The page itself isn't meant to scroll mid-service.
-  let cardRef: HTMLElement | undefined;
+  // Keep the current block centred in the Sequence pane, like the Output:
+  // the focused line under line focus, the whole block otherwise — or its
+  // top, when the block is taller than the pane. The pane scrolls, never
+  // the page (DESIGN.md § Stability).
+  let sequenceRef: HTMLElement | undefined;
   createEffect(() => {
     version();
     const lineIndex = cursor()?.lineIndex;
-    // A compressed rail scrolls; keep the current part's chip in it.
     document
       .querySelector<HTMLElement>('.chip-filter[aria-pressed="true"]')
       ?.scrollIntoView?.({ block: "nearest" });
-    const part = cardRef?.querySelector<HTMLElement>(".lyrics:not(.lyrics-hidden)");
-    if (!part) return;
-    if (lineIndex == null) {
-      part.scrollTop = 0;
-      return;
-    }
-    part
-      .querySelector<HTMLElement>('li[aria-current="true"]')
-      ?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    const block = sequenceRef?.querySelector<HTMLElement>('[aria-current="step"]');
+    if (!block || !sequenceRef) return;
+    const line =
+      lineIndex == null ? null : block.querySelector<HTMLElement>('.seq-line[aria-current="true"]');
+    const fits = block.offsetHeight <= sequenceRef.clientHeight;
+    (line ?? block).scrollIntoView?.({
+      block: line || fits ? "center" : "start",
+      behavior: "smooth",
+    });
   });
+
+  const expanded = createMediaQuery(EXPANDED_QUERY);
+  const [openSheet, setOpenSheet] = createSignal<string>();
+  const showSheet = (id: string) => setOpenSheet(id);
+  const closeSheet = () => setOpenSheet(undefined);
 
   // Dock labels collapse to icon-only in reverse priority (lines, then the
   // FAB, then parts) only when the labelled row genuinely doesn't fit.
@@ -232,6 +275,135 @@ export function Presenter(props: PresenterProps) {
     </button>
   );
 
+  const livePane = () => (
+    <Show when={outputMessage()}>
+      {(message) => (
+        <div class="live-preview" role="img" aria-label="Live output preview">
+          <For
+            each={message().lines.slice(
+              Math.max(0, message().focus.start - 1),
+              message().focus.end + 1,
+            )}
+          >
+            {(line, i) => {
+              const index = () => Math.max(0, message().focus.start - 1) + i();
+              return (
+                <p
+                  class="live-line"
+                  classList={{
+                    "live-line-current":
+                      index() >= message().focus.start && index() < message().focus.end,
+                  }}
+                >
+                  {line.text}
+                </p>
+              );
+            }}
+          </For>
+        </div>
+      )}
+    </Show>
+  );
+
+  const partsPane = (loaded: Hymn) => (
+    <>
+      <section aria-label="Jump to part">
+        <ul
+          class="chip-set"
+          style={{
+            "--stanza-count": String(
+              Math.max(MIN_CHIP_COLUMNS, loaded.parts.filter((p) => p.label).length),
+            ),
+          }}
+        >
+          <For each={loaded.parts}>
+            {(part) => (
+              <li>
+                <button
+                  type="button"
+                  class="chip-filter"
+                  classList={{ "chip-wide": !part.label }}
+                  aria-pressed={occurrence()?.part.id === part.id}
+                  onClick={() => mutate((e) => e.jumpToPart(part.id))}
+                >
+                  {partLabel(part)}
+                </button>
+              </li>
+            )}
+          </For>
+        </ul>
+      </section>
+      <label class="switch-row body-large">
+        <input
+          type="checkbox"
+          role="switch"
+          aria-checked={showCues()}
+          class="switch"
+          checked={showCues()}
+          onChange={(event) => setShowCues(event.currentTarget.checked)}
+        />
+        Show repeat cues
+      </label>
+    </>
+  );
+
+  // Supporting panes, in display order (SDD-0001 §16.4). A new pane is one
+  // more entry here.
+  const panes = (loaded: Hymn): Pane[] => [
+    { id: "live", title: "Live", icon: "icon-present", render: livePane },
+    { id: "parts", title: "Parts", icon: "icon-grid", render: () => partsPane(loaded) },
+  ];
+
+  const sequencePane = () => (
+    <section class="sequence" aria-label="Sequence" ref={sequenceRef}>
+      <ol class="seq-list">
+        <Index each={occurrences()}>
+          {(occ, i) => {
+            const isCurrent = () => cursor()?.occurrenceIndex === i;
+            return (
+              <li
+                class="seq-block"
+                classList={{ "seq-line-focus": isCurrent() && cursor()?.lineIndex != null }}
+                aria-current={isCurrent() ? "step" : undefined}
+              >
+                <h3 class="seq-heading">
+                  <button
+                    type="button"
+                    class="seq-head title-medium"
+                    onClick={() => mutate((e) => e.goTo(i))}
+                  >
+                    {partLabel(occ().part)}
+                  </button>
+                  <Show when={showCues() && occ().repeatOrdinal > 1}>
+                    <span class="chip-assist">(Repeat {occ().repeatOrdinal})</span>
+                  </Show>
+                </h3>
+                <ol class="hymn-text seq-lines">
+                  <Index each={occ().part.lines}>
+                    {(line, lineIndex) => (
+                      <li>
+                        <button
+                          type="button"
+                          class="seq-line"
+                          aria-current={
+                            isCurrent() && cursor()?.lineIndex === lineIndex ? "true" : undefined
+                          }
+                          onClick={() => mutate((e) => e.goTo(i, lineIndex))}
+                        >
+                          {line()}
+                        </button>
+                      </li>
+                    )}
+                  </Index>
+                </ol>
+              </li>
+            );
+          }}
+        </Index>
+      </ol>
+    </section>
+  );
+
   return (
     <Switch fallback={<p class="body-large on-surface-variant">Loading…</p>}>
       <Match when={hymn.error}>
@@ -240,110 +412,67 @@ export function Presenter(props: PresenterProps) {
           {backButton()}
         </div>
       </Match>
-      <Match when={hymn()}>
+      {/* hymn.latest, not hymn(): during a hot-swap the previous hymn stays up
+          until the next has loaded, so the screen never flashes to Loading. */}
+      <Match when={hymn.latest}>
         {(loaded) => (
           <article class="operator">
-            <header class="operator-header">
-              {backButton()}
-              <h2 class="title-large">
-                {loaded().title} <small class="on-surface-variant">#{loaded().number}</small>
-              </h2>
-            </header>
+            {/* The title shows in the shell's switcher row; this heading
+                keeps the page's structure for screen readers. */}
+            <h2 class="visually-hidden">
+              {loaded().title} <span>#{loaded().number}</span>
+            </h2>
+            {/* Narrow: supporting panes open from here as bottom sheets. Not
+                the dock — it can't fit them beside the FAB on a phone
+                (DESIGN.md § Structure). */}
+            <Show when={!expanded()}>
+              <div class="header-actions">
+                <For each={panes(loaded())}>
+                  {(pane) => (
+                    <button
+                      type="button"
+                      class="btn-text icon-button"
+                      aria-haspopup="dialog"
+                      onClick={() => showSheet(pane.id)}
+                    >
+                      <span class={`icon ${pane.icon}`} aria-hidden="true" />
+                      <span class="visually-hidden">{pane.title}</span>
+                    </button>
+                  )}
+                </For>
+              </div>
+            </Show>
 
             <div class="operator-body">
-              <Show when={occurrence()}>
-                {(occ) => (
-                  <section
-                    ref={cardRef}
-                    class="card-elevated lyrics-card"
-                    aria-label="Current part"
-                  >
-                    <h3 class="title-medium lyrics-card-heading">
-                      {partLabel(occ().part)}
-                      <Show when={showCues() && occ().repeatOrdinal > 1}>
-                        {" "}
-                        <span class="chip-assist">(Repeat {occ().repeatOrdinal})</span>
-                      </Show>
-                    </h3>
-                    {/* Every part shares one grid cell and only the current one
-                        is visible, so the card is always as tall as the hymn's
-                        longest part and nothing below it moves (DESIGN.md §
-                        Stability). */}
-                    <div class="lyrics-stack">
-                      <For each={loaded().parts}>
-                        {(part) => {
-                          const isCurrent = () => part.id === occ().part.id;
-                          return (
-                            <ol
-                              class="hymn-text lyrics"
-                              classList={{
-                                "lyrics-hidden": !isCurrent(),
-                                "lyrics-line-focus": isCurrent() && cursor()?.lineIndex != null,
-                              }}
-                              aria-hidden={isCurrent() ? undefined : "true"}
-                            >
-                              <For each={part.lines}>
-                                {(line, i) => (
-                                  <li
-                                    aria-current={
-                                      isCurrent() && cursor()?.lineIndex === i()
-                                        ? "true"
-                                        : undefined
-                                    }
-                                  >
-                                    {line}
-                                  </li>
-                                )}
-                              </For>
-                            </ol>
-                          );
-                        }}
-                      </For>
-                    </div>
-                  </section>
-                )}
+              {sequencePane()}
+              {/* Wide: supporting panes in a fixed column. Narrow: each is a
+                  dock button opening it as a bottom sheet — nothing dropped
+                  on mobile (DESIGN.md § Structure). */}
+              <Show when={expanded()}>
+                <aside class="support-column" aria-label="Supporting panes">
+                  <For each={panes(loaded())}>
+                    {(pane) => (
+                      <section class="support-pane" aria-label={pane.title}>
+                        <h3 class="title-medium on-surface-variant">{pane.title}</h3>
+                        {pane.render()}
+                      </section>
+                    )}
+                  </For>
+                </aside>
               </Show>
-              <aside class="parts-rail">
-                <section aria-label="Jump to part">
-                  <h3 class="title-medium on-surface-variant">Parts</h3>
-                  <ul
-                    class="chip-set"
-                    style={{
-                      "--stanza-count": String(
-                        Math.max(MIN_CHIP_COLUMNS, loaded().parts.filter((p) => p.label).length),
-                      ),
-                    }}
-                  >
-                    <For each={loaded().parts}>
-                      {(part) => (
-                        <li>
-                          <button
-                            type="button"
-                            class="chip-filter"
-                            classList={{ "chip-wide": !part.label }}
-                            aria-pressed={occurrence()?.part.id === part.id}
-                            onClick={() => mutate((e) => e.jumpToPart(part.id))}
-                          >
-                            {partLabel(part)}
-                          </button>
-                        </li>
-                      )}
-                    </For>
-                  </ul>
-                </section>
-                <label class="switch-row body-large">
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    aria-checked={showCues()}
-                    class="switch"
-                    checked={showCues()}
-                    onChange={(event) => setShowCues(event.currentTarget.checked)}
-                  />
-                  Show repeat cues
-                </label>
-              </aside>
             </div>
+
+            <Show when={!expanded()}>
+              <Sheet
+                open={openSheet() !== undefined}
+                onClose={closeSheet}
+                title={panes(loaded()).find((p) => p.id === openSheet())?.title ?? ""}
+              >
+                <For each={panes(loaded()).filter((p) => p.id === openSheet())}>
+                  {(pane) => pane.render()}
+                </For>
+              </Sheet>
+            </Show>
 
             <nav
               class="dock"

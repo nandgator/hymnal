@@ -11,9 +11,43 @@ const MAX_SCALE = 2;
 const SCALE_STEP = 0.125;
 const THEME_CYCLE: Preferences["theme"][] = ["system", "light", "dark"];
 
+export interface PreferencesController {
+  preferences: () => Preferences;
+  update: (next: Preferences) => void;
+}
+
+/**
+ * Loads the user's preferences and applies them globally as `--font-scale`
+ * and `data-theme` on the root element. The shell creates one at startup, so
+ * preferences apply even while no Settings UI is mounted (it lives in sheets
+ * now, DESIGN.md § Structure).
+ */
+export function createPreferences(state: UserState = defaultUserState): PreferencesController {
+  const [loaded, { mutate }] = createResource(() => state.getPreferences());
+  const preferences = () => loaded() ?? DEFAULT_PREFERENCES;
+
+  createEffect(() => {
+    const prefs = preferences();
+    const root = document.documentElement;
+    if (prefs.theme === "system") root.removeAttribute("data-theme");
+    else root.setAttribute("data-theme", prefs.theme);
+    root.style.setProperty("--font-scale", String(prefs.fontScale));
+  });
+
+  return {
+    preferences,
+    update: (next) => {
+      mutate(next);
+      void state.setPreferences(next);
+    },
+  };
+}
+
 export interface SettingsProps {
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
   userState?: UserState;
+  /** The shell's shared controller; without one, Settings makes its own. */
+  controller?: PreferencesController;
 }
 
 /**
@@ -23,30 +57,17 @@ export interface SettingsProps {
  * Library and Finder too, not only Presenter.
  */
 export function Settings(props: SettingsProps) {
-  const state = () => props.userState ?? defaultUserState;
-  const [preferences, { mutate }] = createResource(() => state().getPreferences());
-
-  createEffect(() => {
-    const prefs = preferences() ?? DEFAULT_PREFERENCES;
-    const root = document.documentElement;
-    if (prefs.theme === "system") root.removeAttribute("data-theme");
-    else root.setAttribute("data-theme", prefs.theme);
-    root.style.setProperty("--font-scale", String(prefs.fontScale));
-  });
-
-  const update = (next: Preferences) => {
-    mutate(next);
-    void state().setPreferences(next);
-  };
+  const { preferences, update } =
+    props.controller ?? createPreferences(props.userState ?? defaultUserState);
 
   const cycleTheme = () => {
-    const current = preferences() ?? DEFAULT_PREFERENCES;
+    const current = preferences();
     const next = THEME_CYCLE[(THEME_CYCLE.indexOf(current.theme) + 1) % THEME_CYCLE.length];
     update({ ...current, theme: next });
   };
 
   const adjustScale = (delta: number) => {
-    const current = preferences() ?? DEFAULT_PREFERENCES;
+    const current = preferences();
     const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, current.fontScale + delta));
     update({ ...current, fontScale: Math.round(clamped * 1000) / 1000 });
   };
@@ -57,7 +78,7 @@ export function Settings(props: SettingsProps) {
         type="button"
         class="btn-text"
         onClick={() => adjustScale(-SCALE_STEP)}
-        disabled={(preferences() ?? DEFAULT_PREFERENCES).fontScale <= MIN_SCALE}
+        disabled={preferences().fontScale <= MIN_SCALE}
         aria-label="Decrease text size"
       >
         A−
@@ -66,13 +87,13 @@ export function Settings(props: SettingsProps) {
         type="button"
         class="btn-text"
         onClick={() => adjustScale(SCALE_STEP)}
-        disabled={(preferences() ?? DEFAULT_PREFERENCES).fontScale >= MAX_SCALE}
+        disabled={preferences().fontScale >= MAX_SCALE}
         aria-label="Increase text size"
       >
         A+
       </button>
       <button type="button" class="btn-text" onClick={cycleTheme}>
-        Theme: {(preferences() ?? DEFAULT_PREFERENCES).theme}
+        Theme: {preferences().theme}
       </button>
     </fieldset>
   );

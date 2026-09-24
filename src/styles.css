@@ -54,6 +54,9 @@
   --shape-md: 12px;
   --shape-lg: 16px;
   --shape-full: 999px;
+  /* Register (DESIGN.md): M3 Expressive's square button shape, not the
+     default pill — composed, not cozy. One token to tune it. */
+  --button-shape: var(--shape-md);
 
   /* Elevation: tonal step plus a soft shadow, two levels only. */
   --elevation-1: 0 1px 2px rgb(0 0 0 / 30%), 0 1px 3px 1px rgb(0 0 0 / 15%);
@@ -170,36 +173,167 @@ button:disabled {
   outline-offset: 2px;
 }
 
-#root {
+/* ---------------------------------------------------------------------------
+   Shell — layered, after Supabase Studio (DESIGN.md § Structure): a section
+   rail (≥840px) or menu, the switcher row, then the workspace, its width
+   chosen by content. Hairlines separate the layers; nothing is raised.
+   ------------------------------------------------------------------------ */
+
+.shell {
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
 }
 
-#root > main {
-  flex: 1;
-  width: 100%;
-  max-width: 60rem;
-  margin-inline: auto;
-  padding: var(--space-md);
-}
-
-/* A large display (arc42 R8) shouldn't stretch lines wall to wall — cap the
-   reading width and give the room more breathing space, not more per line. */
-@media (min-width: 60rem) {
-  #root > main {
-    max-width: 46rem;
-    padding: var(--space-lg);
-  }
-}
-
-.app-bar {
+.shell-main {
   display: flex;
-  gap: var(--space-xs);
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* MD3 navigation rail: 80px, icon in an indicator pill, label beneath. */
+.nav-rail {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex: none;
+  flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
+  gap: var(--space-sm);
+  width: 80px;
+  height: 100vh;
+  padding: var(--space-md) 0;
+  border-inline-end: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.rail-foot {
+  margin-top: auto;
+  /* Clear of the fixed dock, which starts at the rail's edge. */
+  padding-bottom: 5rem;
+}
+
+.rail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xxs);
+  width: 72px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.rail-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 32px;
+  border-radius: var(--shape-sm);
+  transition: background-color 150ms ease;
+}
+
+.rail-item .icon {
+  width: 24px;
+  height: 24px;
+}
+
+.rail-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.rail-item:hover .rail-indicator {
+  background-color: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.rail-item[aria-current="page"] {
+  color: var(--md-sys-color-on-surface);
+}
+
+.rail-item[aria-current="page"] .rail-indicator {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.rail-item:disabled,
+.menu-item:disabled {
+  opacity: 0.38;
+}
+
+/* Switcher row: Supabase's bordered breadcrumb row. Each crumb is a picker. */
+.switcher-row {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 3.5rem;
   padding: var(--space-xs) var(--space-md);
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  min-width: 0;
+}
+
+.crumb,
+.crumb-static {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  min-width: 0;
+  padding: var(--space-xxs) var(--space-xs);
+  border: none;
+  border-radius: var(--shape-sm);
+  background: none;
+  color: var(--md-sys-color-on-surface);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.crumb:hover {
+  background-color: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+/* The hymn matters more mid-service than the hymnbook, so on a narrow row
+   the hymnbook crumb gives way first. */
+.crumbs > .crumb:first-child {
+  flex-shrink: 4;
+}
+
+.crumb-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crumb-number,
+.crumb-separator {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.crumb .icon {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Width by content, not by page (Supabase): lists and forms read at a
+   comfortable measure; the Operator workspace takes the full width. */
+.workspace {
+  flex: 1;
+  width: 100%;
+  max-width: 46rem;
+  margin-inline: auto;
+  padding: var(--space-lg) var(--space-md);
+}
+
+.workspace-full {
+  max-width: none;
+  padding: var(--space-md) var(--space-lg);
 }
 
 .settings {
@@ -310,7 +444,7 @@ button:disabled {
 .btn-text {
   min-height: 2.5rem;
   padding: 0 1.5rem;
-  border-radius: var(--shape-full);
+  border-radius: var(--button-shape);
   font-size: 0.875rem;
   font-weight: 500;
   letter-spacing: 0.007em;
@@ -330,6 +464,11 @@ button:disabled {
   background-color: transparent;
   color: var(--md-sys-color-primary);
   box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
+}
+
+/* M3: a leading icon takes 16px before it, the label keeps 24px after. */
+:is(.btn-filled, .btn-tonal, .btn-outlined):has(> .icon:first-child) {
+  padding-inline-start: 1rem;
 }
 
 .btn-text {
@@ -371,7 +510,7 @@ button:disabled {
   position: relative;
   min-height: 2rem;
   padding: 0 1.625rem;
-  border-radius: var(--shape-full);
+  border-radius: var(--shape-sm);
   background-color: transparent;
   color: var(--md-sys-color-on-surface-variant);
   box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
@@ -400,7 +539,7 @@ button:disabled {
 .chip-assist {
   min-height: 1.625rem;
   padding: 0 0.625rem;
-  border-radius: var(--shape-full);
+  border-radius: var(--shape-sm);
   background-color: transparent;
   color: var(--md-sys-color-on-surface-variant);
   box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
@@ -412,7 +551,7 @@ button:disabled {
 
 .card-elevated {
   padding: 1.625rem 1.5rem;
-  border-radius: var(--shape-lg);
+  border-radius: var(--shape-md);
   background-color: var(--md-sys-color-surface-container-low);
   box-shadow: var(--elevation-1);
 }
@@ -568,6 +707,30 @@ input[type="checkbox"].switch:checked::before {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z'/%3E%3C/svg%3E");
 }
 
+.icon-queue-music {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 6H3v2h12zm0 4H3v2h12zM3 16h8v-2H3zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6z'/%3E%3C/svg%3E");
+}
+
+.icon-library {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 6H2v14c0 1.1.9 2 2 2h14v-2H4zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m-1 9H9V9h10zm-4 4H9v-2h6zm4-8H9V5h10z'/%3E%3C/svg%3E");
+}
+
+.icon-settings {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6'/%3E%3C/svg%3E");
+}
+
+.icon-menu {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z'/%3E%3C/svg%3E");
+}
+
+.icon-expand {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z'/%3E%3C/svg%3E");
+}
+
+.icon-grid {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 8h4V4H4zm6 12h4v-4h-4zm-6 0h4v-4H4zm0-6h4v-4H4zm6 0h4v-4h-4zm6-10v4h4V4zm-6 4h4V4h-4zm6 6h4v-4h-4zm0 6h4v-4h-4z'/%3E%3C/svg%3E");
+}
+
 .icon-present {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M21 3H3c-1.11 0-2 .89-2 2v14c0 1.11.89 2 2 2h18c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2m0 16.02H3V4.98h18zM10 12H8l4-4 4 4h-2v4h-4z'/%3E%3C/svg%3E");
 }
@@ -588,14 +751,17 @@ input[type="checkbox"].switch:checked::before {
    ------------------------------------------------------------------------ */
 
 /* The Operator fits the viewport and never scrolls as a page (DESIGN.md §
-   Stability): a definite height runs from #root down to the lyrics, so the
-   card can take exactly the room header, rail and dock leave. Library and
-   Finder are untouched and scroll normally. */
-#root:has(.operator) {
+   Stability): a definite height runs from the shell down to each pane, so
+   the panes scroll inside themselves. Library and Finder scroll normally. */
+.shell:has(.operator) {
   height: 100dvh;
 }
 
-#root:has(.operator) > main {
+.shell:has(.operator) .shell-main {
+  min-height: 0;
+}
+
+.shell:has(.operator) .workspace {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -632,112 +798,201 @@ input[type="checkbox"].switch:checked::before {
   margin-inline-start: -0.75rem;
 }
 
-/* Narrow: a column where the lyrics come first. The rail's far larger
-   shrink factor makes it give way first, down to its minimum, scrolling
-   inside; only then does the card shrink (DESIGN.md § Stability). */
+/* Panes (DESIGN.md § Structure, SDD-0001 §16.4). Narrow: the Sequence
+   alone, full width, supporting panes behind dock buttons as bottom sheets.
+   Expanded (MD3, ≥840px): a fixed-width supporting column beside it. Each
+   side scrolls inside itself; the page never does. */
 .operator-body {
-  display: flex;
+  display: grid;
   flex: 1;
-  flex-direction: column;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-lg);
   min-height: 0;
 }
 
-.operator-body > .lyrics-card {
-  flex: 0 1 auto;
+@media (min-width: 840px) {
+  .operator-body {
+    grid-template-columns: minmax(0, 1fr) 20rem;
+  }
 }
 
-.operator-body > .parts-rail {
-  flex: 0 1000 auto;
-  min-height: 7rem;
+/* Sequence: the whole sung order, one block per occurrence, as
+   ProPresenter's grouped slides and OpenLP's verse list. */
+.sequence {
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
-.lyrics-card {
+.seq-list {
   display: flex;
   flex-direction: column;
-  grid-area: card;
-  min-height: 0;
-  max-height: 100%;
+  gap: var(--space-xs);
+  padding: 0;
+  list-style: none;
 }
 
-.parts-rail {
-  grid-area: rail;
+.seq-block {
+  padding: var(--space-md) var(--space-lg);
+  border-inline-start: 4px solid transparent;
+  border-radius: var(--shape-md);
+  color: var(--md-sys-color-on-surface-variant);
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
 }
 
-/* Wide enough for the rail to sit alongside the card: a grid, each side
-   capped to the room and scrolling inside itself. The explicit minmax(0, …)
-   column matters: an implicit one sizes to its content's maximum, and a
-   many-part hymn's chip grid (#908, 20 parts) would refuse to wrap. */
-@media (min-width: 48rem) {
-  .operator-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 11rem;
-    grid-template-rows: minmax(0, 1fr);
-    grid-template-areas: "card rail";
-    align-items: start;
-  }
-
-  .operator-body > .parts-rail {
-    min-height: 0;
-    max-height: 100%;
-  }
+.seq-block[aria-current="step"] {
+  border-inline-start-color: var(--md-sys-color-primary);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
 }
 
-.lyrics-card-heading {
+.seq-heading {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-xs);
-  margin-bottom: var(--space-sm);
-  color: var(--md-sys-color-on-surface-variant);
+  margin-bottom: var(--space-xxs);
 }
 
-/* Every part shares one grid cell, so the row is as tall as the tallest
-   part, or the room left if that's less: the card's height is fixed for
-   the whole hymn. Every part is clipped to that row, hidden ones included,
-   so a long hidden part can't leave a short visible one with empty space
-   to scroll into. The visible part scrolls inside the card when it's
-   taller than the room. */
-.lyrics-stack {
-  display: grid;
-  flex: 0 1 auto;
-  grid-template-rows: minmax(0, auto);
-  min-height: 0;
+.seq-head,
+.seq-line {
+  display: block;
+  padding: 0.125rem var(--space-xxs);
+  margin-inline-start: calc(-1 * var(--space-xxs));
+  border: none;
+  border-radius: var(--shape-xs);
+  background: none;
+  color: inherit;
+  text-align: start;
 }
 
-.lyrics {
-  grid-area: 1 / 1;
-  min-height: 0;
-  overflow-y: auto;
+.seq-head:hover,
+.seq-line:hover {
+  background-color: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.seq-lines {
   padding: 0;
   list-style: none;
-  overscroll-behavior: contain;
 }
 
-.lyrics-hidden {
-  visibility: hidden;
-  overflow: hidden;
+/* Line focus mirrors the Output: the focused line keeps full strength,
+   the rest of its block recedes. */
+.seq-line-focus .seq-line:not([aria-current="true"]) {
+  color: color-mix(in srgb, currentColor 55%, transparent);
 }
 
-.lyrics li {
-  transition: color 150ms ease;
-}
-
-/* Line focus mirrors the Output: the focused line stays on-surface, the
-   rest recede. Whole-part focus leaves every line at full strength. */
-.lyrics-line-focus li:not([aria-current="true"]) {
-  color: var(--md-sys-color-on-surface-variant);
-}
-
-.parts-rail {
+.support-column {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+  min-height: 0;
+  overflow-y: auto;
 }
 
-.parts-rail h3 {
+.support-pane h3 {
   margin-bottom: var(--space-xs);
+}
+
+.support-pane,
+.sheet-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Live: a small mirror of the Output, in the Output's own fixed colors. */
+.live-preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-xxs);
+  aspect-ratio: 16 / 9;
+  padding: var(--space-md);
+  overflow: hidden;
+  border-radius: var(--shape-md);
+  background-color: var(--output-ground);
+  font-family: var(--font-family-hymn);
+  line-height: 1.35;
+  text-align: center;
+}
+
+.live-line {
+  color: var(--output-ink-muted);
+}
+
+.live-line-current {
+  color: var(--output-ink);
+}
+
+/* Sheets on a native <dialog> (focus trap, Escape and backdrop for free).
+   Bottom: an MD3 modal bottom sheet. Center: a dialog, for pickers on a
+   wide screen. */
+.sheet {
+  max-height: 75dvh;
+  padding: 0;
+  border: none;
+  background-color: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
+  box-shadow: var(--elevation-3);
+}
+
+.sheet-bottom {
+  width: 100%;
+  max-width: 40rem;
+  margin: auto auto 0;
+  border-radius: 28px 28px 0 0;
+}
+
+.sheet-center {
+  width: min(36rem, calc(100% - 2 * var(--space-md)));
+  border-radius: var(--shape-lg);
+}
+
+.sheet::backdrop {
+  background: rgb(0 0 0 / 32%);
+}
+
+.sheet-content {
+  padding: var(--space-md) var(--space-lg) var(--space-xl);
+  overflow-y: auto;
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.menu-item {
+  gap: var(--space-md);
+}
+
+.operator-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  align-self: stretch;
+}
+
+.header-actions {
+  display: flex;
+  gap: var(--space-xxs);
+}
+
+/* Icon-only: a fixed MD3 touch target, not scaled with the text. */
+.icon-button {
+  width: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+}
+
+.icon-button .icon {
+  width: 24px;
+  height: 24px;
 }
 
 /* A keypad of equal cells (DESIGN.md § Stability): numbered stanzas one
@@ -793,10 +1048,9 @@ input[type="checkbox"].switch:checked::before {
   align-items: center;
   gap: var(--space-xs);
   height: 5rem;
-  /* Left edge follows the content column (46rem wide, centred, from 60rem
-     up); the right end stays clear for the FAB. */
-  padding: 0 var(--fab-clearance, 13rem) 0
-    max(var(--space-md), calc((100vw - 46rem) / 2 + var(--space-lg)));
+  /* Left edge lines up with the full-width workspace above it; the right
+     end stays clear for the FAB. */
+  padding: 0 var(--fab-clearance, 13rem) 0 var(--space-lg);
   background-color: var(--md-sys-color-surface-container);
 }
 
@@ -811,6 +1065,10 @@ input[type="checkbox"].switch:checked::before {
 
 .dock-line {
   min-width: var(--dock-line-width, auto);
+}
+
+.shell:has(.nav-rail) .dock {
+  left: 80px;
 }
 
 .fab-fixed {
