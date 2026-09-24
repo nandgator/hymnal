@@ -237,12 +237,32 @@ interface SequenceEngine {
 ### 5.1 Effective sequence
 
 ```text
-effective = storedSequence ++ adHocEntries
+effective = history (up to and including the cursor) ++ plan (ahead of it)
 ```
 
-The stored sequence is **never mutated**. Live deviation appends to a separate
-list, so the corpus is not modified by presentation, and a hymn presented twice
-starts identically both times.
+The effective sequence is **the path actually taken**. It starts as a copy of
+the stored sequence. Everything up to the cursor is history and never changes.
+A live deviation (`jumpToPart`) rewrites only the plan ahead of the cursor. The
+stored sequence is **never mutated**, so the corpus is not modified by
+presentation, and a hymn presented twice starts identically both times.
+
+`jumpToPart(p)` has two cases, by intent (revised in Board #12 after the
+original "append after the tail" rule left Next part disabled and Previous part
+landing on the final refrain after any jump):
+
+- **Skip ahead**: `p` is not the current part and appears later in the plan.
+  The cursor moves to that occurrence, and the entries skipped over leave the
+  path. Next carries on from `p`; Previous returns to where the operator was.
+- **Repeat or go back**: `p` is the current part, or appears only behind. An
+  ad-hoc occurrence of `p` is inserted right after the cursor, and the plan
+  resumes after it.
+
+```text
+stored: 1 R 2 R 3 R
+at 1, jump 3:        1 [3] R            (R 2 R skipped)
+at R after 2, jump R: 1 R 2 R [R] 3 R    (Repeat 2)
+at 3, jump 1:        … 3 [1] R
+```
 
 ### 5.2 Recurrence computation
 
@@ -261,13 +281,16 @@ the chorus a second time in a row produces `repeatOrdinal = 2`, a third
 chorus resets the streak to 1 (not a repeat) — that's the whole point of the
 adjacency rule (§2.2).
 
-### 5.3 Why append rather than rewind
+### 5.3 Why rewrite the plan rather than rewind
 
-`jumpToPart` appends rather than moving the cursor backwards. This keeps
-history linear and monotonic, keeps `repeatOrdinal` truthful — rewinding
-would show "second time" for what's really the third consecutive
-showing — and keeps a Phase 2 follow source and the local cursor in one
-consistent, forward-moving address space.
+`jumpToPart` never moves the cursor backwards into history. It rewrites only
+what lies ahead. That keeps history linear and monotonic, keeps
+`repeatOrdinal` truthful — rewinding would show "second time" for what's
+really the third consecutive showing — and keeps a Phase 2 follow source and
+the local cursor in one consistent, forward-moving address space: an
+occurrence index already reached never changes meaning. (The original rule
+appended after the tail instead of after the cursor, which kept those
+properties but put every jump past the end of the plan.)
 
 ### 5.4 Line navigation
 
@@ -794,7 +817,7 @@ definition (`repeatOrdinal`, adjacency-only).
 list next to the renderer calls `SequenceEngine.jumpToPart` directly, one
 button per part. This is the same mechanism a presenter uses to jump ahead
 past a chorus the leader skips, or back to one sung again unexpectedly — the
-engine already appends an ad-hoc occurrence and recomputes recurrence
+engine already inserts an ad-hoc occurrence and recomputes recurrence
 correctly for it (§5.2, §5.3), verified against the real corpus: jumping to a
 stanza a second time correctly shows `(final repeat)` even though that part
 never repeats in the stored sequence.
@@ -984,6 +1007,18 @@ The replay lives in `src/output/channel.ts`, not `Presenter` — the
 publisher-side cache is a transport concern, and it also covers the case
 where no Presenter is mounted (the cached message is then `idle`).
 
+**Scroll sync** (added in Board #12 at the maintainer's request): the channel
+is two-way for exactly one message. When a person scrolls the Output and the
+scroll comes to rest, the Output posts a `seek` naming the hymn and the
+flattened line nearest its centre. The Presenter maps that back to an
+occurrence and line (`positionOfLine`) and moves its focus there; its next
+publish re-centres the Output on it. Output still owns no state: it reports
+a request, and the Operator decides. Only a scroll a person started (wheel,
+touch, pointer or key) counts: the Output's own programmatic re-centring must
+never echo back, or every step would turn whole-part focus into line focus.
+A seek naming a different hymn than the one open is ignored. Cursor: shown
+while the mouse moves, hidden after 2s idle.
+
 **Forward compatibility, deliberately not built yet**: `window.open()` +
 `BroadcastChannel` is standard web API, per ADR-0004/0006's reversibility
 reasoning (the frontend is committed, the wrapper is late-binding). If a
@@ -1023,6 +1058,27 @@ than Google's default purple, with Google Sans — verified to carry full
 Malayalam glyph coverage (U+0D00–U+0D7F) and shipped under OFL — unifying
 both UI chrome and hymn content into one typeface, superseding Board #10's
 Noto Serif Malayalam.
+
+### 16.5 Operator panes
+
+The Operator's layout (`docs/visual/DESIGN.md` § Structure) is a primary
+**Sequence** pane plus supporting panes the operator shows or hides. It
+follows how ProPresenter and OpenLP present a song: the whole sung order,
+click to go, with a live-output preview beside it.
+
+- A supporting pane is **data, not layout code**: a registry entry (`id`,
+  title, icon, component). Live and Parts are the first two; a future pane
+  (Finder and recents, a service list) is one more entry.
+- Visibility is a user preference, `preferences.panes: Record<PaneId,
+boolean>` in `UserState` (§11), defaulting to every registered pane
+  shown. An id the registry no longer has is ignored, and a newly
+  registered one defaults to shown, so the stored preference never needs
+  migrating.
+- The Sequence pane renders `engine.occurrenceAt(i)` for every `i`; a tap
+  calls `goTo(i)` or `goTo(i, line)`, never `jumpToPart` — moving within
+  the path is not a deviation from it. Parts keeps `jumpToPart` (§5.1).
+- Live renders from the same `publishOutput` message the Output window
+  receives, so the preview can't disagree with the audience screen.
 
 ### 16.4 Testing
 

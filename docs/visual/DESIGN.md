@@ -371,12 +371,55 @@ unit.
 
 ### Structure
 
-- **Operator**: a centered column (`max-width: ~40rem`) — hymn header,
-  an elevated lyrics card, a filter-chip parts rail alongside it
-  (stacks below the card on narrow viewports), a sticky bottom dock for
-  navigation plus the FAB. The FAB is **Show Output**: presenting is the
-  operator's whole job, and it's the one action that must be easy to hit
-  mid-service.
+- **Operator: panes, modelled on real operator software.** ProPresenter
+  shows the whole song as every slide in arrangement order, grouped and
+  labelled, click to go live, with a live-output preview in a side panel;
+  OpenLP's live controller is a vertical verse list, click to go. None
+  splits a song into "one current card plus a separate part picker", and
+  that split is what made long verses and many-part hymns fight the
+  layout. The Operator is therefore:
+  - **Sequence** (primary pane, always shown): the effective path as a
+    column of blocks, one per occurrence, each headed by its label
+    (`title-medium`) and, when shown, its repeat cue (assist chip). The
+    current block is highlighted (`secondary-container` fill, `primary`
+    edge) and kept centred with native smooth scroll, like the Output.
+    Under line focus the focused line stays `on-surface` and the rest of
+    the block drops to `on-surface-variant`. Tapping a block goes to that
+    occurrence; tapping a line gives it line focus. Long verses and
+    many-part hymns are just a longer list: scrolling here is the normal
+    mode, not an overflow.
+  - **Supporting panes**, each shown or hidden by the operator: **Live**
+    (a small mirror of what the Output shows now) and **Parts** (the part
+    keypad for R6 jumps, with the repeat-cue switch). A future pane, such
+    as Finder and recents or a service list, registers the same way,
+    without reworking the layout.
+  - **Adaptive, MD3 window size classes.** Expanded (≥840px): a
+    fixed-width supporting column (about 20rem) beside the sequence, its
+    visible panes stacked, each scrolling inside itself. Compact and
+    medium (<840px): the sequence full width; every visible supporting
+    pane becomes a dock button opening it as a bottom sheet. Nothing is
+    dropped on mobile, only moved behind a tap.
+  - **Show/hide** lives in a Panels menu in the top bar, one toggle per
+    supporting pane, persisted in the user's preferences. Defaults: Live
+    and Parts both shown.
+- **FAB and dock**: a fixed bottom dock for navigation plus the FAB. The
+  FAB is **Show Output**: presenting is the operator's whole job, and it's
+  the one action that must be easy to hit mid-service. It belongs to the
+  whole Operator, not the Presenter screen alone: fixed bottom-right on
+  every view, since the Output is opened once per service, often before
+  the first hymn (SDD-0001 §16.1). The dock leaves room for it.
+- **Operator detail**: the header carries a back (to search) text button,
+  the hymn title (`title-large`) and its number (`on-surface-variant`).
+  Lines carry no list numbering. The dock's four buttons carry an icon
+  matching their key (left/right chevrons for parts, up/down arrows for
+  lines, as the keyboard does). **Parts outrank lines**, and emphasis says
+  so: Next part is the filled button (the most frequent action in a
+  service), Previous part tonal, the two line buttons outlined. Each pair
+  shares one width (both part buttons as wide as the wider, likewise the
+  line buttons), so the row is symmetric and the part pair stays visibly
+  the larger control. As width runs out, labels collapse to icon-only in
+  reverse priority: lines first, then the FAB, then parts. Labels stay
+  the accessible names throughout.
 - **Output**: full-bleed, one centred column scrolling vertically, the
   focus held at the vertical centre, the safe-area margin around it and
   nothing else on screen.
@@ -384,11 +427,45 @@ unit.
   cap reading-column width on a large display — unconstrained lines on a
   big screen are exactly as illegible as too-small text on a phone.
 
+### Stability: controls never move as content changes
+
+Parts differ in line count and the selection moves every few seconds, so
+anything positioned by content would drift under the operator's pointer
+or thumb mid-service. Three rules follow:
+
+- **The dock is a fixed bottom app bar** (MD3), full width, pinned to the
+  viewport bottom whatever the content's height, with the FAB at its end.
+  The page reserves the bar's height at the bottom so nothing hides
+  under it.
+- **Part chips sit in a grid of equal cells**, in the hymn's part order:
+  numbered stanzas one cell each, so 1, 2, 3… always land in the same
+  places; refrains, bridges and tags (unnumbered, longer labels) span a
+  full row. The rail reads as a keypad, not a word-wrapped sentence.
+  Cells are a fixed size, never stretched, and the grid is at most as
+  many cells wide as the hymn has stanzas (three minimum), so a full-row
+  chip spans the stanzas beneath it, not the whole card.
+- **Selecting a chip never changes its width.** Every filter chip
+  reserves the checkmark's slot; selection only fills it. A wider
+  selected chip would rewrap the rail and move everything below it.
+- **The Operator screen fits the viewport and never scrolls as a page.**
+  Each pane scrolls inside itself instead: the sequence (kept centred on
+  the current block), and each supporting pane in its column or sheet.
+  Across the corpus the longest part is 4 lines at the median and 12 at
+  p99, but a few run to 21–29 (#924, #1274, #890, #930), and #908 has 20
+  parts, so any layout that sized itself to content broke somewhere.
+- **The dock aligns to the content column**, not the centre of the bar:
+  centring it in the full width is what let it collide with the FAB.
+- **The dock never wraps.** Its labels collapse to icon-only before the
+  row runs out of room, not after it has broken onto two lines. That's
+  decided by measuring whether the row fits, not by breakpoints: type
+  scales with the viewport and with the user's text size, so a button's
+  width isn't a fixed number a breakpoint could be tuned to.
+
 ### Whitespace philosophy
 
-The lyrics card is the one surface in the Operator view that should feel
-unhurried — generous internal padding (`lg`), nothing crowding the
-current line. Everything else (dock, chips, top bar) is deliberately
+The sequence is the one surface in the Operator view that should feel
+unhurried — generous padding (`lg`) around each block, nothing crowding
+the current one. Everything else (dock, chips, top bar) is deliberately
 compact, since it's UI the operator glances at, not reads.
 
 ## Interaction states

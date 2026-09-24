@@ -35,7 +35,10 @@ Parts, each reviewed before the next:
 
 1. ~~Foundation~~ — done
 2. ~~Components~~ — done
-3. Operator layout: header, lyrics card, parts rail, dock + FAB
+3. Operator layout, reworked into panes (DESIGN.md § Structure, SDD §16.5):
+   - 3a. Sequence pane, Live and Parts panes, adaptive shell (column/sheets)
+   - 3b. Panels show/hide menu, persisted in preferences
+   - 3c. Output → Operator scroll sync (SDD §16.1, agreed)
 4. Output: tokens and a 10% margin from each edge
 
 ## State
@@ -74,7 +77,8 @@ Breaking these breaks the design. Check before deviating.
 - Domain layer imports no UI framework — [ADR-0005](decisions/0005-use-solidjs.md)
 - Content validated at build time, never repaired at runtime — [arc42 §8.6](architecture/arc42.md)
 - Migration output is committed source, never regenerated wholesale — [ADR-0009](decisions/0009-migrate-the-corpus-by-rule.md)
-- Stored sequence is never mutated; live deviation appends — [SDD-0001 §5.1](design/0001-domain-model.md)
+- Stored sequence never mutated; a jump rewrites only what lies ahead —
+  [SDD-0001 §5.1](design/0001-domain-model.md)
 - A new hymnbook is data, not code — [arc42 §2.3](architecture/arc42.md)
 - Audio, sync, projector, native wrapper deferred — ADR-0006, 0010, 0011
 
@@ -97,6 +101,9 @@ ones only, here:
 
 ## Log
 
+- 2026-09-24 — Jumps skip ahead or repeat in place; Next never dead-ends — §5.1
+- 2026-09-24 — #12 part 3: Operator layout; controls never move with content
+- 2026-09-24 — Output cursor hides after 2s idle, shows on mouse move
 - 2026-09-24 — #12 part 2: MD3 components; Library and Finder restyled
 - 2026-09-24 — #12 part 1: MD3 tokens; Google Sans bundled as "Hymnal Sans"
 - 2026-09-24 — CI pins Node via `.node-version`: `node:sqlite` needs 22.13+
@@ -106,6 +113,3 @@ ones only, here:
 - 2026-09-23 — Output late join: `hello` replays last message — §16.1
 - 2026-09-23 — `repeatOrdinal` (adjacent-only) replaces recurrence — §16.2
 - 2026-09-23 — Design review: Operator/Output split, MD3 in `visual/` — §16
-- 2026-09-23 — Board #10 done: responsive CSS, Settings, PWA, Pages — §15
-- 2026-09-23 — Board #9 done: Presenter, jump-to-part (R6), recents on open
-- 2026-09-22 — Board #8 done: Finder, number/lyric search, recents — §13
