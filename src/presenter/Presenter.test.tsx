@@ -118,7 +118,7 @@ describe("Presenter", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
-    expect(screen.queryByText(/\(Repeat/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/×/)).not.toBeInTheDocument();
   });
 
   it("moves through lines within a part, focusing one at a time", async () => {
@@ -420,7 +420,7 @@ describe("Presenter", () => {
 
     fireEvent.click(jumpList.getByRole("button", { name: "1" }));
     fireEvent.click(jumpList.getByRole("button", { name: "1" }));
-    expect(screen.queryByText(/\(Repeat/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/×/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Line 1b" })).not.toHaveAttribute("aria-current");
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
   });
@@ -588,5 +588,65 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
     seek.handler?.({ type: "seek", hymnbookId: "book", number: 7, line: 3, whole: false });
     expect(screen.getByRole("button", { name: "Line 2a" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("repeats in place: a count, Undo, one Lyrics block, the Output unmoved (SDD-0001 §5.1)", async () => {
+    publishOutput.mockClear();
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    await screen.findByText("Test Hymn");
+    const published = () => publishOutput.mock.lastCall?.[0];
+    const before = published();
+    expect(screen.queryByRole("button", { name: "Undo repeat" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
+    const count = () => document.querySelector(".repeat-count");
+    expect(count()).toHaveTextContent(/^×3/);
+    expect(published()).toMatchObject({ lines: before.lines, focus: before.focus });
+    // Lyrics: one block for stanza 1, marked ×3, current.
+    expect(currentPart().getByText("×3")).toBeInTheDocument();
+    const lyrics = within(screen.getByRole("region", { name: "Lyrics" }));
+    expect(lyrics.getAllByRole("button", { name: "Line 1a" })).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo repeat" }));
+    expect(count()).toHaveTextContent(/^×2/);
+    // At ×2 Reset would only do what Undo does; it's offered from ×3.
+    expect(screen.queryByRole("button", { name: "Reset repeat" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reset repeat" }));
+    expect(count()).not.toBeInTheDocument();
+    expect(published()).toMatchObject({ lines: before.lines, focus: before.focus });
+    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Undo repeat" }));
+    expect(screen.queryByRole("button", { name: "Undo repeat" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/×/)).not.toBeInTheDocument();
+
+    // Next still carries on through the song.
+    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next part" }));
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+  });
+
+  it("hands the shell its Repeat and Undo repeat while mounted", async () => {
+    const onActions = vi.fn();
+    const { unmount } = render(() => (
+      <Presenter
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        onActions={onActions}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    const actions = onActions.mock.lastCall?.[0];
+    expect(actions.canUndoRepeat()).toBe(false);
+    actions.repeat();
+    expect(actions.canUndoRepeat()).toBe(true);
+    expect(document.querySelector(".repeat-count")).toHaveTextContent(/^×2/);
+    actions.undoRepeat();
+    expect(actions.canUndoRepeat()).toBe(false);
+    unmount();
+    expect(onActions).toHaveBeenLastCalledWith(undefined);
   });
 });

@@ -169,6 +169,27 @@ describe("App", () => {
     expect(within(sheet).getByText("Blank the Output / restore")).toBeInTheDocument();
   });
 
+  it("offers Repeat, then Undo repeat, in the command menu while presenting", async () => {
+    render(() => <App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a hymn" }), {
+      target: { value: "1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    await screen.findByRole("img", { name: "Live output preview" });
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    let menu = await screen.findByRole("dialog", { name: "Command menu" });
+    expect(within(menu).queryByRole("option", { name: /Undo repeat/ })).not.toBeInTheDocument();
+    fireEvent.mouseDown(within(menu).getByRole("option", { name: /Repeat this part/ }));
+    expect(document.querySelector(".repeat-count")).toHaveTextContent(/^×2/);
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    menu = await screen.findByRole("dialog", { name: "Command menu" });
+    fireEvent.mouseDown(within(menu).getByRole("option", { name: /Undo repeat/ }));
+    expect(document.querySelector(".repeat-count")).not.toBeInTheDocument();
+  });
+
   it("blanks the Output with B and restores it with a second press (.)", async () => {
     render(() => <App />);
     fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));

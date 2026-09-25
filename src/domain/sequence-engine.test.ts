@@ -193,6 +193,41 @@ describe("createSequenceEngine", () => {
     expect(engine.current().part.id).toBe("s2"); // resumes, nothing skipped
   });
 
+  it("undoes the repeat it's on, on the same line, and nothing else", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(2);
+    expect(engine.canUndoRepeat()).toBe(false);
+    engine.undoRepeat(); // not on a repeat: nothing changes
+    expect(partsOf(engine)).toEqual(["r", "s1", "r", "s2", "r"]);
+
+    engine.repeatCurrent();
+    engine.repeatCurrent(); // ×3
+    engine.nextLine(); // line 0 of the third showing
+    expect(engine.canUndoRepeat()).toBe(true);
+    engine.undoRepeat();
+    expect(partsOf(engine)).toEqual(["r", "s1", "r", "r", "s2", "r"]);
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 3, lineIndex: 0 });
+    engine.undoRepeat();
+    expect(partsOf(engine)).toEqual(["r", "s1", "r", "s2", "r"]);
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 2, lineIndex: 0 });
+    expect(engine.canUndoRepeat()).toBe(false);
+  });
+
+  it("resets a run of repeats at once, from any showing in it, on the same line", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(2);
+    engine.repeatCurrent();
+    engine.repeatCurrent(); // r, s1, r, r, r, s2, r
+    engine.previous(); // the middle showing
+    engine.nextLine();
+    engine.resetRepeats();
+    expect(partsOf(engine)).toEqual(["r", "s1", "r", "s2", "r"]);
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 2, lineIndex: 0 });
+
+    engine.resetRepeats(); // nothing left to reset
+    expect(partsOf(engine)).toEqual(["r", "s1", "r", "s2", "r"]);
+  });
+
   it("goes back: to the most recent occurrence of a part only behind, then the song resumes", () => {
     const hymn = fixtureHymn();
     hymn.sequence.pop(); // r, s1, r, s2 — no closing refrain
@@ -273,21 +308,21 @@ describe("flattenLines", () => {
     expect(flattenLines(engine).focus).toEqual({ start: 3, end: 5 });
   });
 
-  it("follows the path: inserted repeats included, a jump only moving the focus", () => {
+  it("keeps a repeat in place: no new lines, the focus stays on the copy it repeats", () => {
     const engine = createSequenceEngine(fixtureHymn());
-    engine.repeatCurrent(); // repeat the opening refrain in place
+    const before = flattenLines(engine);
+    engine.repeatCurrent(); // repeat the opening refrain
+    engine.repeatCurrent(); // and again
 
     const { lines, focus } = flattenLines(engine);
-    // r(2) + r(2) + s1(1) + r(2) + s2(2) + r(2) = 11 lines.
-    expect(lines).toHaveLength(11);
-    expect(lines.slice(2, 4).map((l) => l.text)).toEqual(["Refrain line 1", "Refrain line 2"]);
-    expect(focus).toEqual({ start: 2, end: 4 });
+    expect(lines).toEqual(before.lines);
+    expect(focus).toEqual({ start: 0, end: 2 });
+    engine.nextLine(); // a line step inside the third showing
+    expect(flattenLines(engine).focus).toEqual({ start: 0, end: 1 });
 
-    engine.jumpToPart("s2"); // forward past s1, r — both stay
-    const after = flattenLines(engine);
-    expect(after.lines).toHaveLength(11);
-    // r(2) + r(2) + s1(1) + r(2) = 7 lines before s2.
-    expect(after.focus).toEqual({ start: 7, end: 9 });
+    engine.jumpToPart("s2"); // forward past s1, r
+    // r(2) + s1(1) + r(2) = 5 lines before s2.
+    expect(flattenLines(engine).focus).toEqual({ start: 5, end: 7 });
   });
 });
 
@@ -304,6 +339,20 @@ describe("positionOfLine", () => {
       }
     }
     expect(seen).toBe(lines.length);
+  });
+
+  it("lands a repeated run on the showing being sung, else its last, so Next carries on", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(2);
+    engine.repeatCurrent(); // r, s1, r, [r], s2, r
+    expect(positionOfLine(engine, 4)).toEqual({ occurrenceIndex: 3, lineIndex: 1 });
+    engine.previous(); // on the first showing of the run
+    expect(positionOfLine(engine, 3)).toEqual({ occurrenceIndex: 2, lineIndex: 0 });
+
+    engine.goTo(0); // elsewhere: the run's last showing
+    expect(positionOfLine(engine, 3)).toEqual({ occurrenceIndex: 3, lineIndex: 0 });
+    // After the run, lines map past the repeat: s2 starts at line 5.
+    expect(positionOfLine(engine, 5)).toEqual({ occurrenceIndex: 4, lineIndex: 0 });
   });
 
   it("names nothing outside the lines", () => {

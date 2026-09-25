@@ -16,6 +16,7 @@ import {
   createSequenceEngine,
   flattenLines,
   positionOfLine,
+  repeatRuns,
   type SequenceEngine,
 } from "../domain/sequence-engine.ts";
 import type { Hymn, HymnbookId, HymnNumber, Occurrence, Part } from "../domain/types.ts";
@@ -41,6 +42,15 @@ const DOCK_PADDING_PX = 12;
 const FAB_RISE_PX = 20;
 /** How long a stanza digit waits for a second one (SDD-0001 §16.5). */
 const STANZA_DIGIT_MS = 500;
+/** What the shell's command menu can do to the hymn being presented. */
+export interface PresenterActions {
+  repeat(): void;
+  undoRepeat(): void;
+  canUndoRepeat(): boolean;
+  resetRepeats(): void;
+  canResetRepeats(): boolean;
+}
+
 /** Which navigator leads the workspace (SDD-0001 §16.4). */
 export type Navigator = "parts" | "lyrics";
 
@@ -70,6 +80,9 @@ export interface PresenterProps {
   /** Whether a scroll of the Output moves the focus (SDD-0001 §16.1);
    * defaults to on. */
   scrollSync?: boolean;
+  /** Receives the Presenter's actions while mounted, `undefined` after —
+   * the command menu's Repeat and Undo repeat. */
+  onActions?: (actions: PresenterActions | undefined) => void;
 }
 
 /**
@@ -131,9 +144,38 @@ export function Presenter(props: PresenterProps) {
     return e !== undefined && at !== undefined && at < e.length - 1;
   });
 
-  // Repeat cues always show in Lyrics; the toggle returns with part 4
-  // (Presentation), alongside Repeat and on-screen cues.
+  // The path as runs, a part and its back-to-back repeats as one.
+  const runs = createMemo(() => {
+    version();
+    const e = engine();
+    return e ? repeatRuns(e) : [];
+  });
+
+  // Repeat cues always show in Lyrics; the toggle arrives with the
+  // on-screen cues (Board #12 part 4c).
   const showCues = () => true;
+
+  // Repeat (SDD-0001 §5.1): sing the current part again. It stays in place
+  // on the Output; the count says it happened (DESIGN.md § Stability).
+  const repeatOrdinal = () => occurrence()?.repeatOrdinal ?? 1;
+  const canUndoRepeat = createMemo(() => {
+    version();
+    return engine()?.canUndoRepeat() ?? false;
+  });
+  // Reset takes back every repeat at once; at ×2 it would only do what Undo
+  // does, so it's offered from ×3 — a run of three or more showings.
+  const canResetRepeats = createMemo(() => {
+    const here = cursor()?.occurrenceIndex ?? -1;
+    const run = runs().find((r) => here >= r.first && here <= r.last);
+    return !!run && run.last - run.first >= 2;
+  });
+  const repeat = () => mutate((e) => e.repeatCurrent());
+  const undoRepeat = () => mutate((e) => e.undoRepeat());
+  const resetRepeats = () => mutate((e) => e.resetRepeats());
+  onMount(() =>
+    props.onActions?.({ repeat, undoRepeat, canUndoRepeat, resetRepeats, canResetRepeats }),
+  );
+  onCleanup(() => props.onActions?.(undefined));
 
   // What the Output shows — published to the Output window on every
   // navigation (SDD-0001 §16.1), and the Live pane renders the very same
@@ -478,6 +520,32 @@ export function Presenter(props: PresenterProps) {
 
   const partsNavigator = (loaded: Hymn) => (
     <div class="parts-navigator">
+      {/* Above the chips, so it sits in the same place for every hymn; the
+          count and Undo appear after it, moving nothing. */}
+      <div class="repeat-row">
+        <button type="button" class="btn-tonal repeat-button" onClick={repeat}>
+          <span class="icon icon-repeat" aria-hidden="true" />
+          <span class="repeat-label">Repeat</span>
+        </button>
+        <Show when={repeatOrdinal() > 1}>
+          <span class="repeat-count" aria-live="polite">
+            ×{repeatOrdinal()}
+            <span class="visually-hidden"> — sung {repeatOrdinal()} times in a row</span>
+          </span>
+        </Show>
+        <Show when={canUndoRepeat()}>
+          {/* Short on screen, beside the count, so the row never wraps and
+              moves the chips; the full name is the accessible one. */}
+          <button type="button" class="btn-text" aria-label="Undo repeat" onClick={undoRepeat}>
+            Undo
+          </button>
+        </Show>
+        <Show when={canResetRepeats()}>
+          <button type="button" class="btn-text" aria-label="Reset repeat" onClick={resetRepeats}>
+            Reset
+          </button>
+        </Show>
+      </div>
       <section aria-label="Jump to part">
         <ul
           class="chip-set"
@@ -531,15 +599,23 @@ export function Presenter(props: PresenterProps) {
       <div class="lyrics-navigator">
         <section class="sequence" aria-label="Lyrics" ref={list}>
           <ol class="seq-list">
-            <Index each={occurrences()}>
-              {(occ, i) => {
-                const isCurrent = () => cursor()?.occurrenceIndex === i;
+            {/* One block per run: a part and its back-to-back repeats show
+                once, marked ×N, as on the Output (DESIGN.md § Stability). */}
+            <Index each={runs()}>
+              {(run) => {
+                const occ = () => occurrences()[run().first];
+                const here = () => cursor()?.occurrenceIndex ?? -1;
+                const isCurrent = () => here() >= run().first && here() <= run().last;
+                // Taps land on the showing being sung, else the run's last,
+                // so Next carries on past the repeats.
+                const i = () => (isCurrent() ? here() : run().last);
+                const times = () => run().last - run().first + 1;
                 // A part already seen earlier in the path shows compact —
                 // label and first line — unless it's the one being sung
                 // (DESIGN.md § Structure).
                 const isRepeat = () =>
                   occurrences()
-                    .slice(0, i)
+                    .slice(0, run().first)
                     .some((earlier) => earlier.part.id === occ().part.id);
                 const compact = () => isRepeat() && !isCurrent();
                 return (
@@ -551,14 +627,14 @@ export function Presenter(props: PresenterProps) {
                       "seq-compact": compact(),
                     }}
                     aria-current={isCurrent() ? "step" : undefined}
-                    onClick={() => mutate((e) => e.goTo(i))}
+                    onClick={() => mutate((e) => e.goTo(i()))}
                   >
                     <h3 class="seq-heading">
                       <button type="button" class="seq-head title-medium">
                         {partLabel(occ().part)}
                       </button>
-                      <Show when={showCues() && occ().repeatOrdinal > 1}>
-                        <span class="chip-assist">(Repeat {occ().repeatOrdinal})</span>
+                      <Show when={showCues() && times() > 1}>
+                        <span class="chip-assist">×{times()}</span>
                       </Show>
                     </h3>
                     <ol class="hymn-text seq-lines">
@@ -575,7 +651,7 @@ export function Presenter(props: PresenterProps) {
                               }
                               onClick={(event) => {
                                 event.stopPropagation();
-                                mutate((e) => e.goTo(i, lineIndex));
+                                mutate((e) => e.goTo(i(), lineIndex));
                               }}
                             >
                               {line()}

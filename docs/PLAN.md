@@ -43,7 +43,7 @@ Parts, each reviewed before the next:
    - ~~3e. Output → Operator scroll sync (SDD §16.1)~~ — done
 4. Presentation (DESIGN.md § Output view, SDD §16.1):
    - ~~4a. Output on tokens; Output-only presets in Settings > Presentation~~ — done
-   - 4b. Repeat / Undo repeat in Parts; a repeat stays in place, ×N
+   - ~~4b. Repeat / Undo repeat in Parts; a repeat stays in place, ×N~~ — done
    - 4c. Cues: one muted caption, one switch each, all off
 
 ## State
@@ -80,8 +80,9 @@ Ordered. Top unblocked item is next.
 | 23  | Arrangements: mix parts of hymns into a saved mashup                | 22         |
 | 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording          | Phase 2    |
 | 25  | Stage outputs for musicians: lyrics + chords, score, notation       | content    |
+| 26  | Rethink the Operator layout: Parts, Live preview and Lyrics         | —          |
 
-12–13 are Phase 1. 14–15 sit past the scope guard below. 16–25 are notes,
+12–13 are Phase 1. 14–15 sit past the scope guard below. 16–26 are notes,
 not scheduled: the shell reserves room for them (DESIGN.md § Structure).
 
 ## Invariants
@@ -115,6 +116,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-25 — #12 part 4b: Repeat, Undo, Reset; a repeat stays in place on the Output
 - 2026-09-25 — #12 part 4a: Output on tokens; Output-only presets, Warm default
 - 2026-09-25 — #12 part 3e: Output scroll seeks via a reading band; keys forwarded
 - 2026-09-25 — #12 part 3d: Live, sidebar hideable (remembered); Settings grouped
@@ -126,4 +128,3 @@ ones only, here:
 - 2026-09-24 — #12 part 3a: layered shell, hot-swap switcher; calmer M3 register
 - 2026-09-24 — Jumps skip ahead or repeat in place; Next never dead-ends — §5.1
 - 2026-09-24 — #12 part 3: Operator layout; controls never move with content
-- 2026-09-24 — Output cursor hides after 2s idle, shows on mouse move

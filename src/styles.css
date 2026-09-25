@@ -261,6 +261,10 @@ button:disabled {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z'/%3E%3C/svg%3E");
 }
 
+.icon-repeat {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z'/%3E%3C/svg%3E");
+}
+
 .icon-check {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
 }
@@ -1174,6 +1178,49 @@ input[type="checkbox"].switch:checked::before {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+}
+
+/* Repeat, then its count and Undo: they appear after it, so the button
+   itself never moves (DESIGN.md § Stability). */
+.repeat-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.parts-navigator {
+  container-type: inline-size;
+}
+
+/* Narrow (a small phone, or large text): Repeat keeps its icon, as the
+   dock's buttons do, so the row still fits on one line (it needs about
+   17rem with the label, 13.6rem without). Narrower still, at large text
+   sizes, it wraps, onto a second line reserved up front so the chips
+   below never move when the count, Undo and Reset appear. */
+@container (width < 17.25rem) {
+  .repeat-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@container (width < 13.75rem) {
+  .repeat-row {
+    min-height: calc(2 * 2.5rem + var(--space-xs));
+    align-content: flex-start;
+  }
+}
+
+.repeat-count {
+  color: var(--md-sys-color-primary);
+  font-size: 1rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Lyrics scrolls inside itself; "Back to current" floats over its foot. */

@@ -6,7 +6,7 @@ import { Library } from "./library/Library.tsx";
 import { setOutputBlanked, setOutputPresentation, subscribeKeys } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
 import { DEFAULT_OUTPUT_THEME } from "./persistence/user-state.ts";
-import { Presenter } from "./presenter/Presenter.tsx";
+import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { ignoresShortcuts, keyHint, SHORTCUTS } from "./shell/keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { isPaneShown, PANES, type PaneId } from "./shell/panes.ts";
@@ -75,6 +75,8 @@ function Operator() {
   // Blank holds until restored, across navigation and hymn swaps, so it
   // lives here rather than in the Presenter (SDD-0001 §16.5).
   const [blanked, setBlanked] = createSignal(false);
+  // The mounted Presenter's actions, for the command menu.
+  const [presenterActions, setPresenterActions] = createSignal<PresenterActions>();
   const toggleBlank = () => {
     const next = !blanked();
     setBlanked(next);
@@ -170,6 +172,17 @@ function Operator() {
         run: run(toggleBlank),
       },
       { label: "Show Output", hint: keyHint("output"), run: run(openOutput) },
+      ...(presenting() && presenterActions()
+        ? [
+            { label: "Repeat this part", run: run(() => presenterActions()?.repeat()) },
+            ...(presenterActions()?.canUndoRepeat()
+              ? [{ label: "Undo repeat", run: run(() => presenterActions()?.undoRepeat()) }]
+              : []),
+            ...(presenterActions()?.canResetRepeats()
+              ? [{ label: "Reset repeat", run: run(() => presenterActions()?.resetRepeats()) }]
+              : []),
+          ]
+        : []),
       ...(presenting()
         ? [
             {
@@ -397,6 +410,7 @@ function Operator() {
                   panes={preferences.preferences().panes}
                   onPaneChange={preferences.setPane}
                   scrollSync={preferences.preferences().scrollSync ?? true}
+                  onActions={(actions) => setPresenterActions(() => actions)}
                 />
               )}
             </Match>

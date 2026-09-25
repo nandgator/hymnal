@@ -30,6 +30,23 @@ export interface SequenceEngine {
   /** Sing the current part again: insert it right after the cursor and move
    * there. The only way to repeat — never a side effect of a jump. */
   repeatCurrent(): void;
+
+  /** Whether the cursor is on a repeat {@link undoRepeat} can take back. */
+  canUndoRepeat(): boolean;
+
+  /**
+   * Take back the repeat the cursor is on (SDD-0001 §5.1): remove that
+   * ad-hoc entry and return to the showing before it, on the same line, so
+   * the Output doesn't move. A no-op anywhere else.
+   */
+  undoRepeat(): void;
+
+  /**
+   * Take back every repeat of the current part's run at once: its ad-hoc
+   * entries go, the cursor returns to the showing left, on the same line.
+   * A no-op when the run holds no repeat.
+   */
+  resetRepeats(): void;
 }
 
 /**
@@ -176,6 +193,32 @@ class HymnSequenceEngine implements SequenceEngine {
     this.cursorIndex = here + 1;
     this.cursorLineIndex = null;
   }
+
+  canUndoRepeat(): boolean {
+    const here = this.cursorIndex;
+    return (
+      this.path[here].isAdHoc && here > 0 && this.path[here - 1].partId === this.path[here].partId
+    );
+  }
+
+  undoRepeat(): void {
+    if (!this.canUndoRepeat()) return;
+    this.path.splice(this.cursorIndex, 1);
+    this.cursorIndex--;
+  }
+
+  resetRepeats(): void {
+    const { partId } = this.path[this.cursorIndex];
+    let first = this.cursorIndex;
+    while (first > 0 && this.path[first - 1].partId === partId) first--;
+    let last = this.cursorIndex;
+    while (last < this.length - 1 && this.path[last + 1].partId === partId) last++;
+    const kept = this.path.slice(first, last + 1).filter((entry) => !entry.isAdHoc);
+    // A run with no stored entry (none arises today) keeps its first.
+    const run = kept.length > 0 ? kept : [this.path[first]];
+    this.path.splice(first, last - first + 1, ...run);
+    this.cursorIndex = first;
+  }
 }
 
 export function createSequenceEngine(hymn: Hymn): SequenceEngine {
@@ -201,9 +244,28 @@ export interface LineRange {
   end: number;
 }
 
+/**
+ * The effective sequence as runs: a part and its back-to-back repeats are
+ * one run, shown once — a repeat stays in place (SDD-0001 §16.1). `first`
+ * and `last` are occurrence indices, inclusive.
+ */
+export function repeatRuns(engine: SequenceEngine): { first: number; last: number }[] {
+  const runs: { first: number; last: number }[] = [];
+  for (let i = 0; i < engine.length; i++) {
+    const occurrence = engine.occurrenceAt(i);
+    if (!occurrence) continue;
+    const run = runs.at(-1);
+    if (run && occurrence.repeatOrdinal > 1) run.last = i;
+    else runs.push({ first: i, last: i });
+  }
+  return runs;
+}
+
 /** The whole effective sequence flattened to individual lines, with the
  * focused range: the whole occurrence under whole-part focus
- * (`lineIndex: null`), a single line otherwise — SDD-0001 §16.1. */
+ * (`lineIndex: null`), a single line otherwise — SDD-0001 §16.1. A repeat
+ * adds no lines: its focus is the copy it repeats, so the Output holds
+ * still. */
 export function flattenLines(engine: SequenceEngine): {
   lines: FlatLine[];
   focus: LineRange;
@@ -212,11 +274,11 @@ export function flattenLines(engine: SequenceEngine): {
   const focus: LineRange = { start: 0, end: 0 };
   const { occurrenceIndex, lineIndex } = engine.cursor;
 
-  for (let i = 0; i < engine.length; i++) {
-    const occurrence = engine.occurrenceAt(i);
+  for (const run of repeatRuns(engine)) {
+    const occurrence = engine.occurrenceAt(run.first);
     if (!occurrence) continue;
 
-    if (i === occurrenceIndex) {
+    if (occurrenceIndex >= run.first && occurrenceIndex <= run.last) {
       focus.start = lines.length + (lineIndex ?? 0);
       focus.end =
         lineIndex === null ? lines.length + occurrence.part.lines.length : focus.start + 1;
@@ -230,16 +292,22 @@ export function flattenLines(engine: SequenceEngine): {
 }
 
 /** The inverse of {@link flattenLines}: which occurrence and line a flattened
- * line index names, or undefined past the end — SDD-0001 §16.1, scroll sync. */
+ * line index names, or undefined past the end — SDD-0001 §16.1, scroll sync.
+ * A line in a repeated run names the showing being sung if the cursor is in
+ * that run, else the run's last, so Next carries on past the repeats. */
 export function positionOfLine(
   engine: SequenceEngine,
   line: number,
 ): { occurrenceIndex: number; lineIndex: number } | undefined {
   if (!Number.isInteger(line) || line < 0) return undefined;
+  const here = engine.cursor.occurrenceIndex;
   let start = 0;
-  for (let i = 0; i < engine.length; i++) {
-    const count = engine.occurrenceAt(i)?.part.lines.length ?? 0;
-    if (line < start + count) return { occurrenceIndex: i, lineIndex: line - start };
+  for (const run of repeatRuns(engine)) {
+    const count = engine.occurrenceAt(run.first)?.part.lines.length ?? 0;
+    if (line < start + count) {
+      const inRun = here >= run.first && here <= run.last;
+      return { occurrenceIndex: inRun ? here : run.last, lineIndex: line - start };
+    }
     start += count;
   }
   return undefined;

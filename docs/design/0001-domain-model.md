@@ -265,7 +265,10 @@ occurrence of the current part is inserted right after the cursor and
 the cursor moves to it (`repeatOrdinal` then reads 2, 3, …). `undoRepeat()`
 takes back the repeat the cursor is on: it only applies to an ad-hoc
 occurrence immediately repeating the one before it, removes that entry and
-returns the cursor to the previous showing.
+returns the cursor to the previous showing, on the same line, so the
+Output (which shows a run of repeats once, §16.1) doesn't move.
+`resetRepeats()` takes back every repeat of the current run at once, from
+any showing in it, likewise keeping the line.
 
 ```text
 stored: 1 R 2 R 3 R

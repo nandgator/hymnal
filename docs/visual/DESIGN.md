@@ -539,9 +539,13 @@ or thumb mid-service. Three rules follow:
 - **Tapping the current part's chip restarts it**, never repeats it: a
   stray tap can't queue a verse the congregation would see twice.
   Deliberate repeats arrive in part 4 (Presentation) with what makes them
-  legible. **Repeat** sits in the Parts pane beside the chips and becomes
-  **Undo repeat** while the cursor is on a repeat; it's also in the
-  command menu, and its key waits for the keymap review (PLAN Board #20).
+  legible. **Repeat** sits in the Parts pane above the chips, in the same
+  place for every hymn; while the cursor is on a repeat, its count (×2)
+  and **Undo repeat** (takes back one showing) appear after it, moving
+  nothing, so a third Repeat is still one tap. From ×3, **Reset repeat**
+  follows (back to a single showing at once); at ×2 it would only do
+  what Undo does. Both are also in the command menu, and their keys
+  wait for the keymap review (PLAN Board #20).
   A repeat stays on the same page with its count going up (×2, ×3 …):
   the Output doesn't scroll to a copy, Lyrics shows one block marked ×N
   instead of a stack, and the Output can show that ×N as a cue.
