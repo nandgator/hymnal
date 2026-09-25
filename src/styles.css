@@ -462,6 +462,33 @@ button:disabled {
   color: var(--md-sys-color-on-surface-variant);
 }
 
+.crumb-book-icon {
+  display: none;
+}
+
+/* A phone (MD3 compact, < 600dp), with a hymn up: the hymnbook as its
+   icon and the hymn as its number. A clipped title helped no one, and the
+   Live strip shows the words. Both titles stay the accessible names. */
+@media (max-width: 599px) {
+  .crumbs:has(.crumb-hymn) .crumb-book-icon {
+    display: inline-block;
+    color: var(--md-sys-color-on-surface);
+  }
+
+  .crumbs:has(.crumb-hymn) :is(.crumb-book, .crumb-hymn) .crumb-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .crumbs > .crumb-book:first-child {
+    flex-shrink: 0;
+  }
+}
+
 /* Width by content, not by page (Supabase): lists and forms read at a
    comfortable measure; the Operator workspace takes the full width. */
 .workspace {

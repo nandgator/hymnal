@@ -449,6 +449,10 @@ unit.
      stays, the Output follows (snapping to the new hymn, never
      scrolling from the old one), and nothing is reopened or
      repositioned mid-service.
+     On a phone (MD3 compact, under 600dp) with a hymn up, the crumbs
+     shrink to the hymnbook's icon and the hymn's number: a title
+     clipped to a letter helps no one, and both stay the buttons'
+     accessible names.
   3. **Workspace**, full width (Supabase's `full`, for dense tools):
      the Operator below. Library and Finder use the default width, and
      Settings and About the small one.

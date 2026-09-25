@@ -363,10 +363,13 @@ function Operator() {
               {(book) => (
                 <button
                   type="button"
-                  class="crumb"
+                  class="crumb crumb-book"
                   aria-haspopup="dialog"
                   onClick={() => setBookPickerOpen(true)}
                 >
+                  {/* On a phone, beside a hymn, the book is its icon; its
+                      title stays the accessible name (styles.css). */}
+                  <span class="icon icon-library crumb-book-icon" aria-hidden="true" />
                   <span class="crumb-text">{book().title}</span>
                   <span class="icon icon-expand" aria-hidden="true" />
                 </button>
@@ -380,7 +383,7 @@ function Operator() {
                   </span>
                   <button
                     type="button"
-                    class="crumb"
+                    class="crumb crumb-hymn"
                     aria-haspopup="dialog"
                     onClick={() => setHymnPickerOpen(true)}
                   >

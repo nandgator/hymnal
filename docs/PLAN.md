@@ -103,6 +103,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-25 — Phone switcher row: hymnbook icon + hymn number, titles as names
 - 2026-09-25 — #12 done. Part 4c: cues (number badge, lower third), fade on change
 - 2026-09-25 — #12 part 4b: Repeat, Undo, Reset; a repeat stays in place on the Output
 - 2026-09-25 — #12 part 4a: Output on tokens; Output-only presets, Warm default
@@ -114,4 +115,3 @@ ones only, here:
 - 2026-09-24 — Relicensed AGPL-3.0-only → Apache-2.0; resolves arc42 R3 — ADR-0016
 - 2026-09-24 — #12 part 3b: Live + navigator workspace; MD3 height classes
 - 2026-09-24 — #12 part 3a: layered shell, hot-swap switcher; calmer M3 register
-- 2026-09-24 — Jumps skip ahead or repeat in place; Next never dead-ends — §5.1
