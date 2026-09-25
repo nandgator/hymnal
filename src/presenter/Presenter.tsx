@@ -213,6 +213,8 @@ export function Presenter(props: PresenterProps) {
       hymnbookTitle: props.hymnbookTitle,
       part: partCueLabel(e.current().part),
       repeat: e.current().repeatOrdinal,
+      // The corpus has one special part at most, always a refrain.
+      refrain: e.hymn.parts.find((part) => part.kind !== "stanza")?.id,
     };
   });
   createEffect(() => {

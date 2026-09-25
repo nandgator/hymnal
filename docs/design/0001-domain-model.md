@@ -1058,9 +1058,42 @@ from the message and the `presentation` cues alone. **A repeat stays in
 place**: an ad-hoc occurrence repeating the one before it (`repeatOrdinal > 1`)
 adds no lines to the flattened column; its focus is the earlier copy's,
 so the Output doesn't scroll away to identical text and `positionOfLine`
-never lands on it. Modes 2 (chorus in a persistent
-parallel pane) and 3 (paginated, `scroll-snap` over the same scroll) are
-Board #13, built after the MD3 visual language (§16.3) exists.
+never lands on it.
+
+**The refrain, pinned** (Board #13, which replaced the earlier Modes 2 and
+3). The corpus decides the shape: every special part in it is a refrain
+(no bridge or tag), a hymn has at most one, 1,188 of 1,631 hymns have
+one, and 918 of those open on it. So:
+
+- **Pinned from the first line.** With "Pin the refrain" on (a
+  Presentation setting, on by default), the refrain sits in a band at the
+  foot of the screen, above the cue caption, dimmed until sung. Its
+  copies leave the scrolling column, which holds only the verses: the
+  Output never shows the same refrain twice. Singing it lights the band
+  in place (a repeat too, with ×N as a cue); the verse column holds
+  still, all dimmed, until the next verse. The band is there from the
+  first line because the type size is held per hymn: a band arriving
+  mid-hymn would force a resize.
+- **Big type wins.** The tallest verse and the refrain must fit together
+  at one size, which costs type (estimated over the corpus, ignoring
+  wrapping: median 94% of the flowing size, a tenth of hymns 69% or less,
+  worst 52%). A hymn whose pinned fit would fall below 80% of its
+  flowing fit flows instead. The Output measures and decides, the same
+  way the fit is measured there; the message only names the refrain.
+  Live decides at its own size, so a projector of an unusual aspect
+  could rarely disagree with it.
+- **Identifiable without a label.** A refrain sits on a faint tonal band,
+  pinned or flowing (in a hymn that flows, or with the setting off): a
+  shape, readable in any script. Not italics, as printed hymnals use:
+  Malayalam has no true italic, and a synthesized slant looks broken.
+- **Scroll sync is unchanged.** Only the verse column scrolls by hand;
+  lines keep their flattened indices, so seeks map back as before.
+
+Mode 3, pages flipped like slides (`scroll-snap` over the same scroll),
+was dropped: the per-hymn fit, the eyeline, part gaps and the reading
+band now give the scroll what pages offered. What pages alone give is no
+motion at all, the slides convention; that could return as a display
+option if a venue asks, without reworking this.
 
 **Drift back**: someone may scroll the Output window by hand (a mouse over
 the second screen). Unless scroll sync (below) takes that as a seek, the

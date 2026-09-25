@@ -29,10 +29,12 @@ hymnal is built.
 
 ## Now
 
-**Board #12 (MD3 visual redesign) is done**: foundation, components, the
-layered Operator (§16.4–16.5), scroll sync and Presentation (§16.1). Spec:
-[`visual/DESIGN.md`](visual/DESIGN.md). Next is Board #13, Output Modes 2
-and 3, now unblocked: reason it through before building.
+**Board #13 (the refrain, pinned) is in progress.** Board #12 is done.
+Spec: SDD-0001 §16.1 (The refrain, pinned), DESIGN.md § Layout. Parts,
+each reviewed before the next:
+
+1. ~~The refrain on a tonal band, flowing; the message names the refrain~~ — done
+2. Pinned band: layout, fit with the 80% floor, "Pin the refrain" setting
 
 ## State
 
@@ -52,22 +54,22 @@ and 3, now unblocked: reason it through before building.
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                | Blocked by |
-| --- | ------------------------------------------------------------------- | ---------- |
-| 13  | Output layout Modes 2 (parallel chorus) + 3 (paginated scroll-snap) | —          |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)         | —          |
-| 15  | Transliteration: search and display across scripts (ADR-0014)       | —          |
-| 16  | Feedback and corrections from users — where collected: TBD          | —          |
-| 17  | About: acknowledgements, copyright, credits                         | —          |
-| 18  | Over-the-air update notices (as Supabase announces changes)         | —          |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)     | 2nd book   |
-| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now  | near done  |
-| 21  | Hold: freeze the Output on what's showing, navigate, release        | —          |
-| 22  | Service queue: line up hymns for a service (a supporting pane)      | —          |
-| 23  | Arrangements: mix parts of hymns into a saved mashup                | 22         |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording          | Phase 2    |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation       | content    |
-| 26  | Rethink the Operator layout: Parts, Live preview and Lyrics         | —          |
+| #   | Task                                                               | Blocked by |
+| --- | ------------------------------------------------------------------ | ---------- |
+| 13  | The refrain, pinned in a band (SDD §16.1); Mode 3 dropped          | —          |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)        | —          |
+| 15  | Transliteration: search and display across scripts (ADR-0014)      | —          |
+| 16  | Feedback and corrections from users — where collected: TBD         | —          |
+| 17  | About: acknowledgements, copyright, credits                        | —          |
+| 18  | Over-the-air update notices (as Supabase announces changes)        | —          |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)    | 2nd book   |
+| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now | near done  |
+| 21  | Hold: freeze the Output on what's showing, navigate, release       | —          |
+| 22  | Service queue: line up hymns for a service (a supporting pane)     | —          |
+| 23  | Arrangements: mix parts of hymns into a saved mashup               | 22         |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording         | Phase 2    |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation      | content    |
+| 26  | Rethink the Operator layout: Parts, Live preview and Lyrics        | —          |
 
 13 is Phase 1. 14–15 sit past the scope guard below. 16–26 are notes,
 not scheduled: the shell reserves room for them (DESIGN.md § Structure).
@@ -103,6 +105,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-25 — #13 designed: refrain pinned, Mode 3 dropped; part 1: refrain band
 - 2026-09-25 — Phone switcher row: hymnbook icon + hymn number, titles as names
 - 2026-09-25 — #12 done. Part 4c: cues (number badge, lower third), fade on change
 - 2026-09-25 — #12 part 4b: Repeat, Undo, Reset; a repeat stays in place on the Output
@@ -114,4 +117,3 @@ ones only, here:
 - 2026-09-24 — Finder searches as you type (combobox); shortcuts off while typing
 - 2026-09-24 — Relicensed AGPL-3.0-only → Apache-2.0; resolves arc42 R3 — ADR-0016
 - 2026-09-24 — #12 part 3b: Live + navigator workspace; MD3 height classes
-- 2026-09-24 — #12 part 3a: layered shell, hot-swap switcher; calmer M3 register

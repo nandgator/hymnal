@@ -191,6 +191,25 @@ describe("Output", () => {
     expect(document.querySelector(".output-badge")).toHaveTextContent("7");
   });
 
+  it("marks the refrain's lines as one band, each showing its own", () => {
+    render(() => <Output />);
+    channel.handler?.({
+      type: "content",
+      hymnbookId: "book",
+      number: 7,
+      title: "Test Hymn",
+      lines: [...LINES, { text: "Line 2a", partId: "s2", isPartStart: true }, ...LINES.slice(2)],
+      focus: { start: 0, end: 2 },
+      refrain: "r",
+    });
+    const refrains = screen.getAllByText("Refrain line");
+    expect(refrains).toHaveLength(2);
+    for (const line of refrains) {
+      expect(line).toHaveClass("output-refrain", "output-refrain-start", "output-refrain-end");
+    }
+    expect(screen.getByText("Line 1a")).not.toHaveClass("output-refrain");
+  });
+
   it("fades each cue a few seconds after it changes, when set to", () => {
     vi.useFakeTimers();
     render(() => <Output />);

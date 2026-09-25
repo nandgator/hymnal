@@ -132,6 +132,17 @@ export function OutputView(props: OutputViewProps) {
   /** The lines lit by the band; null means the focus is lit. */
   const [bandLit, setBandLit] = createSignal<LineRange | null>(null);
   const lit = () => bandLit() ?? props.message.focus;
+  // Whether line i is the refrain's; `sameBlock` also requires it to
+  // continue the block before it (a new part starts a new band).
+  const isRefrain = (i: number, sameBlock = false) => {
+    const line = props.message.lines[i];
+    return (
+      !!line &&
+      !!props.message.refrain &&
+      line.partId === props.message.refrain &&
+      !(sameBlock && line.isPartStart)
+    );
+  };
   const caption = () => cueCaption(props.message, props.cues);
   // Memos, so they change only when a cue turns on or off — not on every
   // step, which would refit (and snap) instead of scrolling smoothly.
@@ -332,6 +343,10 @@ export function OutputView(props: OutputViewProps) {
                 "output-line-current": i >= lit().start && i < lit().end,
                 // Parts are set apart by a gap, as in a printed hymnal.
                 "output-part-start": line().isPartStart && i > 0,
+                // The refrain on a faint tonal band: a shape, in any script.
+                "output-refrain": isRefrain(i),
+                "output-refrain-start": isRefrain(i) && line().isPartStart,
+                "output-refrain-end": isRefrain(i) && !isRefrain(i + 1, true),
               }}
             >
               {line().text}

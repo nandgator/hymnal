@@ -553,6 +553,13 @@ unit.
   visible without a label. Scrolled by hand, the highlight becomes a
   reading band fixed where the focus's part sat, one part tall, lighting
   whatever passes through it, until the scroll rests (SDD-0001 §16.1).
+- **The refrain, pinned** (SDD-0001 §16.1, "Pin the refrain", on): a
+  band at the foot, above the cue caption, holding the refrain, dimmed
+  until sung and lit in place when it is; the column above scrolls the
+  verses alone, its eyeline 42% down its own height. A refrain is marked
+  by a faint tonal band (as Lyrics marks the current block, quieter),
+  pinned or flowing, never by a label or italics. A hymn whose type
+  would shrink below 80% to pin it flows instead.
 - **One hard breakpoint** (`~60rem`), not to change the type scale but to
   cap reading-column width on a large display — unconstrained lines on a
   big screen are exactly as illegible as too-small text on a phone.

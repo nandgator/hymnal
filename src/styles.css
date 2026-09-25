@@ -1865,6 +1865,24 @@ html[data-scrolling],
   color: var(--output-ink);
 }
 
+/* The refrain on a faint tonal band (SDD-0001 §16.1): identifiable in
+   any script, where a label would need a language and italics don't
+   exist (Malayalam). Per line, so the band is continuous; the part gap
+   is a margin, outside it. */
+.output-refrain {
+  background-color: color-mix(in srgb, var(--output-ink) 6%, var(--output-ground));
+}
+
+.output-refrain-start {
+  border-top-left-radius: 0.3em;
+  border-top-right-radius: 0.3em;
+}
+
+.output-refrain-end {
+  border-bottom-left-radius: 0.3em;
+  border-bottom-right-radius: 0.3em;
+}
+
 /* Cues (DESIGN.md § Typography): a lower third, on still ground. With
    cues on, the bottom safe margin grows to 16% (OutputView's CUE_SAFE),
    which lit lines never enter; the lyrics fade out inside it, so nothing

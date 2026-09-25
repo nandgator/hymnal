@@ -1,5 +1,5 @@
 import type { FlatLine, LineRange } from "../domain/sequence-engine.ts";
-import type { HymnbookId, HymnNumber } from "../domain/types.ts";
+import type { HymnbookId, HymnNumber, PartId } from "../domain/types.ts";
 import type { OutputCues, OutputTheme } from "../persistence/user-state.ts";
 
 /**
@@ -22,6 +22,9 @@ export type OutputMessage =
       hymnbookTitle?: string;
       part?: string;
       repeat?: number;
+      /** The hymn's refrain, if it has one — marked on the Output, and
+       * pinned where it fits (SDD-0001 §16.1). */
+      refrain?: PartId;
     }
   | { type: "idle" }
   /** Hides what's presented, or shows it again — distinct from `idle`,
