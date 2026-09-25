@@ -20,10 +20,11 @@
     "format:md": "prettier --write \"**/*.md\"",
     "format:ts": "biome format --write .",
     "format": "bun run format:md && bun run format:ts",
+    "typecheck": "bun run tsc -b",
     "check:md": "prettier --check \"**/*.md\" && markdownlint-cli2",
     "check:ts": "biome check .",
     "check": "bun run check:md && bun run check:ts && tsc -b && vitest run",
-    "cqa:fix": "bun run format && bun run lint"
+    "cqa:fix": "bun run format && bun run lint && bun run typecheck"
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "^3.53.4-build1",
