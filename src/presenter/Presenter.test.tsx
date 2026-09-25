@@ -1,12 +1,23 @@
 import { fireEvent, render, screen, within } from "@solidjs/testing-library";
 import { describe, expect, it, vi } from "vitest";
 import type { HymnSource } from "../domain/types.ts";
+import type { SeekMessage } from "../output/channel.ts";
 import type { ContentStore } from "../persistence/content-store.ts";
 import type { UserState } from "../persistence/user-state.ts";
 import { Presenter } from "./Presenter.tsx";
 
 const publishOutput = vi.hoisted(() => vi.fn());
-vi.mock("../output/channel.ts", () => ({ publishOutput }));
+// The Output's seek requests (SDD-0001 §16.1), delivered by hand in tests.
+const seek = vi.hoisted(() => ({
+  handler: undefined as ((message: SeekMessage) => void) | undefined,
+}));
+vi.mock("../output/channel.ts", () => ({
+  publishOutput,
+  subscribeSeek: (handler: (message: SeekMessage) => void) => {
+    seek.handler = handler;
+    return () => {};
+  },
+}));
 
 const HYMN: HymnSource = {
   number: 7,
@@ -528,5 +539,54 @@ describe("Presenter", () => {
     fireEvent.click(screen.getByRole("button", { name: "Hide Lyrics" }));
     expect(screen.queryByRole("complementary", { name: "Lyrics" })).not.toBeInTheDocument();
     expect(onPaneChange).toHaveBeenCalledWith("sidebar", false);
+  });
+
+  it("goes to the line a scroll of the Output rests on, with line focus (SDD-0001 §16.1)", async () => {
+    render(() => (
+      <Presenter hymnNumber={7} hymnbookId="book" store={fakeStore()} userState={fakeUserState()} />
+    ));
+    await screen.findByText("Test Hymn");
+
+    // Flattened: 1a 1b | Refrain | 2a | Refrain — line 3 is "Line 2a".
+    seek.handler?.({ type: "seek", hymnbookId: "book", number: 7, line: 3, whole: false });
+    expect(screen.getByRole("button", { name: "Line 2a" })).toHaveAttribute("aria-current", "true");
+
+    // Next part carries on from there.
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+  });
+
+  it("lands on the whole part when the scroll began from whole-part focus", async () => {
+    render(() => (
+      <Presenter hymnNumber={7} hymnbookId="book" store={fakeStore()} userState={fakeUserState()} />
+    ));
+    await screen.findByText("Test Hymn");
+
+    seek.handler?.({ type: "seek", hymnbookId: "book", number: 7, line: 3, whole: true });
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("2");
+    expect(screen.getByRole("button", { name: "Line 2a" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("ignores a seek for another hymn, or with scroll sync off", async () => {
+    const { unmount } = render(() => (
+      <Presenter hymnNumber={7} hymnbookId="book" store={fakeStore()} userState={fakeUserState()} />
+    ));
+    await screen.findByText("Test Hymn");
+    seek.handler?.({ type: "seek", hymnbookId: "book", number: 8, line: 3, whole: false });
+    expect(screen.getByRole("button", { name: "Line 2a" })).not.toHaveAttribute("aria-current");
+    unmount();
+
+    render(() => (
+      <Presenter
+        hymnNumber={7}
+        hymnbookId="book"
+        store={fakeStore()}
+        userState={fakeUserState()}
+        scrollSync={false}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    seek.handler?.({ type: "seek", hymnbookId: "book", number: 7, line: 3, whole: false });
+    expect(screen.getByRole("button", { name: "Line 2a" })).not.toHaveAttribute("aria-current");
   });
 });

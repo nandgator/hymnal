@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSequenceEngine, flattenLines } from "./sequence-engine.ts";
+import { createSequenceEngine, flattenLines, positionOfLine } from "./sequence-engine.ts";
 import type { Hymn } from "./types.ts";
 
 /** Chorus + verses, the most common corpus shape — SDD-0001 §7. */
@@ -288,5 +288,29 @@ describe("flattenLines", () => {
     expect(after.lines).toHaveLength(11);
     // r(2) + r(2) + s1(1) + r(2) = 7 lines before s2.
     expect(after.focus).toEqual({ start: 7, end: 9 });
+  });
+});
+
+describe("positionOfLine", () => {
+  it("inverts flattenLines: every flattened line maps back to its occurrence and line", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    const { lines } = flattenLines(engine);
+    let seen = 0;
+    for (let i = 0; i < engine.length; i++) {
+      const count = engine.occurrenceAt(i)?.part.lines.length ?? 0;
+      for (let line = 0; line < count; line++) {
+        expect(positionOfLine(engine, seen)).toEqual({ occurrenceIndex: i, lineIndex: line });
+        seen++;
+      }
+    }
+    expect(seen).toBe(lines.length);
+  });
+
+  it("names nothing outside the lines", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    const { lines } = flattenLines(engine);
+    expect(positionOfLine(engine, lines.length)).toBeUndefined();
+    expect(positionOfLine(engine, -1)).toBeUndefined();
+    expect(positionOfLine(engine, 1.5)).toBeUndefined();
   });
 });

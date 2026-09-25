@@ -1,8 +1,19 @@
 import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
-import { type OutputMessage, subscribeOutput } from "./channel.ts";
+import { forwardKey, type OutputMessage, requestSeek, subscribeOutput } from "./channel.ts";
 import { OutputView } from "./OutputView.tsx";
 
 const CURSOR_IDLE_MS = 2000;
+/** Named keys forwarded to the Operator, besides every printable one. */
+const FORWARDED_KEYS = new Set([
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "ArrowDown",
+  "PageUp",
+  "PageDown",
+  "Home",
+  "End",
+]);
 
 /**
  * Board #11 — the chrome-less, audience-facing screen (SDD-0001 §16.1).
@@ -43,6 +54,19 @@ export function Output() {
     clearTimeout(cursorTimer);
   });
 
+  // Keys pressed here act as in the Operator (SDD-0001 §16.1): with the
+  // Output fullscreen on the projector, a clicker's keys often land in this
+  // window. Every plain key is forwarded rather than scrolling the view;
+  // chords stay the browser's.
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.key.length !== 1 && !FORWARDED_KEYS.has(event.key)) return;
+    event.preventDefault();
+    forwardKey({ key: event.key, shiftKey: event.shiftKey });
+  };
+  onMount(() => window.addEventListener("keydown", onKeyDown));
+  onCleanup(() => window.removeEventListener("keydown", onKeyDown));
+
   onMount(() => {
     const unsubscribe = subscribeOutput(receive);
     onCleanup(unsubscribe);
@@ -58,6 +82,14 @@ export function Output() {
           message={current()}
           variant="full"
           blanked={blanked()}
+          onSeek={(line, whole) =>
+            requestSeek({
+              hymnbookId: current().hymnbookId,
+              number: current().number,
+              line,
+              whole,
+            })
+          }
           classList={{ "output-cursor": cursorVisible() }}
         />
       )}

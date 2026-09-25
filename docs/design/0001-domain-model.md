@@ -1032,14 +1032,17 @@ to its first line instead of centred. Scrolling is native
 a hand-rolled transform: smooth scroll runs at roughly constant velocity,
 so a one-line step and a whole-part jump both take a duration proportional
 to their distance for free. A new hymn snaps instantly rather than
-scrolling from the previous one. **No part label, no recurrence cue,
+scrolling from the previous one. **Parts are
+set apart by a gap** (about half a line), as in a printed hymnal, so the
+congregation can see where a verse ends and the refrain begins: a shape,
+not a label, so it needs no language. **No part label, no recurrence cue,
 ever** — those are Operator aids; a cue tracking the _stored_ order has no
 meaning to a congregation watching lyrics. Modes 2 (chorus in a persistent
 parallel pane) and 3 (paginated, `scroll-snap` over the same scroll) are
 Board #13, built after the MD3 visual language (§16.3) exists.
 
 **Drift back**: someone may scroll the Output window by hand (a mouse over
-the second screen). Until scroll sync (below) gives that a meaning, the
+the second screen). Unless scroll sync (below) takes that as a seek, the
 Output returns to the focus by itself about 1.5s after a manual scroll
 stops, so the audience is never left on empty screen. Any Operator step
 also re-centres it at once.
@@ -1051,17 +1054,45 @@ The replay lives in `src/output/channel.ts`, not `Presenter` — the
 publisher-side cache is a transport concern, and it also covers the case
 where no Presenter is mounted (the cached message is then `idle`).
 
-**Scroll sync** (added in Board #12 at the maintainer's request): the channel
-is two-way for exactly one message. When a person scrolls the Output and the
-scroll comes to rest, the Output posts a `seek` naming the hymn and the
-flattened line nearest its centre. The Presenter maps that back to an
-occurrence and line (`positionOfLine`) and moves its focus there; its next
-publish re-centres the Output on it. Output still owns no state: it reports
-a request, and the Operator decides. Only a scroll a person started (wheel,
-touch, pointer or key) counts: the Output's own programmatic re-centring must
-never echo back, or every step would turn whole-part focus into line focus.
-A seek naming a different hymn than the one open is ignored. Cursor: shown
-while the mouse moves, hidden after 2s idle.
+**Scroll sync** (added in Board #12 at the maintainer's request, built in
+part 3e): the channel is two-way, and the Output only ever reports; the
+Operator decides.
+
+- **A reading band while scrolling by hand.** When a person starts to
+  scroll the Output (wheel, touch or pointer), the highlight stops
+  following the Operator and becomes a band fixed to the viewport where
+  the focus's part sat, one part tall by default: lines light as they
+  pass through it, whichever part they belong to. Nothing jumps as a
+  trackpad glides. The band can instead be one line tall (`bandSize`); a
+  shortcut to switch it waits for the keymap review (PLAN Board #20).
+- **On rest, a seek.** Once scrolling pauses (about 200ms), the Output
+  posts `{ type: "seek", hymnbookId, number, line, whole }`: the flattened
+  line at the band's centre, and whether the band was part-sized. The
+  Presenter maps it back (`positionOfLine`, the inverse of
+  `flattenLines`) and matches the band: part-sized lands on that line's
+  whole part, and the view settles onto it; line-sized lands on that
+  line, where the band already holds it. Next part carries on from
+  there. Its next publish ends the band.
+- **Only a person's scroll counts.** The Output's own programmatic
+  re-centring never arms a seek, or every step would echo back.
+- **The Operator may say no.** Sync is a Workspace setting, "Scrolling the
+  Output moves the Operator", on by default, kept as
+  `preferences.scrollSync` (absent means on). Off, the Presenter ignores
+  seeks. A seek naming a different hymn than the one open is ignored too.
+- **Drift back is the fallback.** The Output returns to the focus about
+  1.5s after a hand scroll unless a new message arrives first: with sync
+  off, or the Operator closed, the audience comes back to what's live.
+- **Keys in the Output act as in the Operator.** With the Output
+  fullscreen on the projector, a clicker's keys often land in its window.
+  The Output forwards every plain key (no Ctrl, ⌘ or Alt) as
+  `{ type: "key", key, shiftKey }` instead of scrolling itself, and the
+  Operator replays it through its own keymap (§16.5), so arrows, Space,
+  digits, R and B do exactly what they do there.
+- **Live never seeks.** The Operator's Live pane stays a picture that takes
+  no input, so a stray swipe over the Operator can't move the audience
+  screen; Lyrics is the Operator's own way to go to a line.
+
+Cursor: shown while the mouse moves, hidden after 2s idle.
 
 **Forward compatibility, deliberately not built yet**: `window.open()` +
 `BroadcastChannel` is standard web API, per ADR-0004/0006's reversibility

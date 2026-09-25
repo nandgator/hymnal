@@ -144,4 +144,15 @@ describe("Settings", () => {
       expect.objectContaining({ navigator: "lyrics" }),
     );
   });
+
+  it("has scroll sync on by default, and remembers turning it off (SDD-0001 §16.1)", async () => {
+    const setPreferences = vi.fn(async () => {});
+    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
+    await screen.findByText("100%");
+
+    const sync = screen.getByRole("switch", { name: /Scrolling the Output moves the Operator/ });
+    expect(sync).toBeChecked();
+    fireEvent.click(sync);
+    expect(setPreferences).toHaveBeenLastCalledWith(expect.objectContaining({ scrollSync: false }));
+  });
 });

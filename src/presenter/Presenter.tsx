@@ -15,10 +15,11 @@ import { BUNDLED_HYMNBOOK_ID } from "../config.ts";
 import {
   createSequenceEngine,
   flattenLines,
+  positionOfLine,
   type SequenceEngine,
 } from "../domain/sequence-engine.ts";
 import type { Hymn, HymnbookId, HymnNumber, Occurrence, Part } from "../domain/types.ts";
-import { type OutputMessage, publishOutput } from "../output/channel.ts";
+import { type OutputMessage, publishOutput, subscribeSeek } from "../output/channel.ts";
 import { OutputView } from "../output/OutputView.tsx";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
@@ -66,6 +67,9 @@ export interface PresenterProps {
    * §16.4). The shell keeps it in preferences. */
   panes?: Record<string, boolean>;
   onPaneChange?: (id: PaneId, shown: boolean) => void;
+  /** Whether a scroll of the Output moves the focus (SDD-0001 §16.1);
+   * defaults to on. */
+  scrollSync?: boolean;
 }
 
 /**
@@ -153,6 +157,27 @@ export function Presenter(props: PresenterProps) {
     if (message) publishOutput(message);
   });
   onCleanup(() => publishOutput({ type: "idle" }));
+
+  // Scroll sync (SDD-0001 §16.1): the Output asks, the Operator decides. A
+  // seek keeps the focus kind the scroll began with — a whole part lands on
+  // the band's part, a line on that line — and the publish that follows
+  // re-centres the Output on it. Declined (sync off, or another hymn), the
+  // Output drifts back by itself.
+  onMount(() => {
+    const unsubscribe = subscribeSeek((seek) => {
+      if (props.scrollSync === false) return;
+      const e = engine();
+      if (!e || seek.hymnbookId !== e.hymn.hymnbookId || seek.number !== e.hymn.number) return;
+      const position = positionOfLine(e, seek.line);
+      if (!position) return;
+      mutate((current) =>
+        seek.whole
+          ? current.goTo(position.occurrenceIndex)
+          : current.goTo(position.occurrenceIndex, position.lineIndex),
+      );
+    });
+    onCleanup(unsubscribe);
+  });
 
   // The whole effective path, for the Sequence pane.
   const occurrences = createMemo((): Occurrence[] => {

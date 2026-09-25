@@ -443,10 +443,11 @@ unit.
     move a control between screen and Settings is deferred, not dropped.
   - **Settings, grouped**: one sheet, MD3 list sections. **Display**:
     theme (System | Light | Dark) and text size (A− 100% A+).
-    **Workspace**: Show Live, Show sidebar (switches), and which
-    navigator leads (Parts | Lyrics). **Keyboard**: opens the shortcut
-    sheet, whose Close then reads Back and returns to Settings. Part 4
-    adds **Presentation** (themes, cues) as one more section.
+    **Workspace**: Show Live, Show sidebar, Scrolling the Output moves
+    the Operator (switches), and which navigator leads (Parts | Lyrics).
+    **Keyboard**: opens the shortcut sheet, whose Close then reads Back
+    and returns to Settings. Part 4 adds **Presentation** (themes, cues)
+    as one more section.
   - **Show/hide**: Live and the sidebar, remembered (SDD-0001 §16.4).
     The leading navigator and the dock never hide. Panes remain a
     registry, so future ones slot in without another layout rework.
@@ -479,8 +480,12 @@ unit.
   Operator's **Live pane is the same component scaled to its box**: a true
   miniature, identical line by line, not a separate rendering.
 - **Output**: full-bleed, one centred column scrolling vertically, the
-  focus held at the vertical centre, the safe-area margin around it and
-  nothing else on screen.
+  focus held at the eyeline, the safe-area margin around it and nothing
+  else on screen. Parts are separated by a gap of about half a line, as
+  in a printed hymnal: where a verse ends and the refrain begins is
+  visible without a label. Scrolled by hand, the highlight becomes a
+  reading band fixed where the focus's part sat, one part tall, lighting
+  whatever passes through it, until the scroll rests (SDD-0001 §16.1).
 - **One hard breakpoint** (`~60rem`), not to change the type scale but to
   cap reading-column width on a large display — unconstrained lines on a
   big screen are exactly as illegible as too-small text on a phone.

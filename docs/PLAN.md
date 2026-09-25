@@ -40,7 +40,7 @@ Parts, each reviewed before the next:
    - ~~3b. Workspace: Live + Parts | Lyrics, touch-first~~ — done
    - ~~3c. Keyboard shortcuts, `?` sheet, command menu (Ctrl/⌘+K)~~ — done
    - ~~3d. Pane show/hide, persisted~~ — done
-   - 3e. Output → Operator scroll sync (SDD §16.1)
+   - ~~3e. Output → Operator scroll sync (SDD §16.1)~~ — done
 4. Presentation: Output styled from tokens (ground/ink/muted), not
    hardcoded; preset themes (Dark, Light, High contrast, Warm…); cues
    each toggleable, all off (hymn #/title, hymnbook, part, repeat ×N);
@@ -74,9 +74,14 @@ Ordered. Top unblocked item is next.
 | 17  | About: acknowledgements, copyright, credits                         | —          |
 | 18  | Over-the-air update notices (as Supabase announces changes)         | —          |
 | 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)     | 2nd book   |
-| 20  | Keyboard shortcut review: add, drop, rearrange (SDD §16.5)          | near done  |
+| 20  | Keyboard shortcut review (SDD §16.5); incl. band size part ↔ line   | near done  |
+| 21  | Hold: freeze the Output on what's showing, navigate, release        | —          |
+| 22  | Service queue: line up hymns for a service (a supporting pane)      | —          |
+| 23  | Arrangements: mix parts of hymns into a saved mashup                | 22         |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording          | Phase 2    |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation       | content    |
 
-12–13 are Phase 1. 14–15 sit past the scope guard below. 16–20 are notes,
+12–13 are Phase 1. 14–15 sit past the scope guard below. 16–25 are notes,
 not scheduled: the shell reserves room for them (DESIGN.md § Structure).
 
 ## Invariants
@@ -110,6 +115,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-25 — #12 part 3e: Output scroll seeks via a reading band; keys forwarded
 - 2026-09-25 — #12 part 3d: Live, sidebar hideable (remembered); Settings grouped
 - 2026-09-25 — #12 part 3c: keymap, `?` sheet, Ctrl/⌘+K menu; B blanks, held — §16.5
 - 2026-09-24 — Output fits per hymn, eyeline 42%; Live = scaled Output; repeat explicit

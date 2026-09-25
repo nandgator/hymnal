@@ -228,3 +228,19 @@ export function flattenLines(engine: SequenceEngine): {
 
   return { lines, focus };
 }
+
+/** The inverse of {@link flattenLines}: which occurrence and line a flattened
+ * line index names, or undefined past the end — SDD-0001 §16.1, scroll sync. */
+export function positionOfLine(
+  engine: SequenceEngine,
+  line: number,
+): { occurrenceIndex: number; lineIndex: number } | undefined {
+  if (!Number.isInteger(line) || line < 0) return undefined;
+  let start = 0;
+  for (let i = 0; i < engine.length; i++) {
+    const count = engine.occurrenceAt(i)?.part.lines.length ?? 0;
+    if (line < start + count) return { occurrenceIndex: i, lineIndex: line - start };
+    start += count;
+  }
+  return undefined;
+}

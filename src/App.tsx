@@ -3,7 +3,7 @@ import { BUNDLED_HYMNBOOK_ID } from "./config.ts";
 import type { Hymn, Hymnbook, HymnbookId, HymnNumber } from "./domain/types.ts";
 import { type Command, Finder } from "./finder/Finder.tsx";
 import { Library } from "./library/Library.tsx";
-import { setOutputBlanked } from "./output/channel.ts";
+import { setOutputBlanked, subscribeKeys } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
 import { Presenter } from "./presenter/Presenter.tsx";
 import { ignoresShortcuts, keyHint, SHORTCUTS } from "./shell/keymap.ts";
@@ -237,6 +237,16 @@ function Operator() {
   onMount(() => window.addEventListener("keydown", onKeyDown));
   onCleanup(() => window.removeEventListener("keydown", onKeyDown));
 
+  // Keys pressed in the Output window, replayed here so they do exactly what
+  // they do in the Operator — the shell's keys and the Presenter's alike
+  // (SDD-0001 §16.1).
+  onMount(() => {
+    const unsubscribe = subscribeKeys(({ key, shiftKey }) =>
+      window.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, cancelable: true })),
+    );
+    onCleanup(unsubscribe);
+  });
+
   const sectionButton = (item: (typeof SECTIONS)[number], variant: "rail" | "menu") => (
     <button
       type="button"
@@ -379,6 +389,7 @@ function Operator() {
                   onRestore={toggleBlank}
                   panes={preferences.preferences().panes}
                   onPaneChange={preferences.setPane}
+                  scrollSync={preferences.preferences().scrollSync ?? true}
                 />
               )}
             </Match>

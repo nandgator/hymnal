@@ -192,6 +192,24 @@ export function Settings(props: SettingsProps) {
             </label>
           )}
         </For>
+        <label class="settings-row">
+          <span class="settings-label">
+            Scrolling the Output moves the Operator
+            <span class="settings-supporting">
+              Off, the Output drifts back to what's live after a hand scroll
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            class="switch"
+            checked={preferences().scrollSync ?? true}
+            aria-checked={preferences().scrollSync ?? true}
+            onChange={(event) =>
+              update({ ...preferences(), scrollSync: event.currentTarget.checked })
+            }
+          />
+        </label>
         <div class="settings-row">
           <span class="settings-label">Leads with</span>
           {segmented(

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { publishOutput, setOutputBlanked, subscribeOutput } from "./channel.ts";
+import {
+  publishOutput,
+  requestSeek,
+  setOutputBlanked,
+  subscribeOutput,
+  subscribeSeek,
+} from "./channel.ts";
 
 const CHANNEL_NAME = "hymnal-output";
 
@@ -106,5 +112,36 @@ describe("output channel", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(seen.at(-1)).toEqual({ type: "blank", blanked: false });
     otherWindow.close();
+  });
+
+  it("carries a seek from the Output to the Presenter's subscribeSeek, never to subscribeOutput", async () => {
+    const seeks: unknown[] = [];
+    const outputs: unknown[] = [];
+    const stopSeeks = subscribeSeek((seek) => seeks.push(seek));
+    const stopOutputs = subscribeOutput((message) => outputs.push(message));
+    const outputWindow = new BroadcastChannel(CHANNEL_NAME);
+
+    outputWindow.postMessage({ type: "seek", hymnbookId: "book", number: 7, line: 3 });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(seeks).toEqual([{ type: "seek", hymnbookId: "book", number: 7, line: 3 }]);
+    expect(outputs.some((message) => (message as { type: string }).type === "seek")).toBe(false);
+    stopSeeks();
+    stopOutputs();
+    outputWindow.close();
+  });
+
+  it("requestSeek posts a seek other windows receive", async () => {
+    const presenterWindow = new BroadcastChannel(CHANNEL_NAME);
+    const pending = nextMessage(presenterWindow);
+    requestSeek({ hymnbookId: "book", number: 7, line: 2, whole: false });
+    expect(await pending).toEqual({
+      type: "seek",
+      hymnbookId: "book",
+      number: 7,
+      line: 2,
+      whole: false,
+    });
+    presenterWindow.close();
   });
 });

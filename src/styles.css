@@ -1655,6 +1655,14 @@ html[data-scrolling],
   transition: opacity 200ms ease;
 }
 
+/* Parts set apart as in a printed hymnal (SDD-0001 §16.1): where a verse
+   ends and the refrain begins, without a label. In em, so it scales with
+   the fitted type, and a margin, so the fit's block heights (measured
+   within a part) don't count it. */
+.output-part-start {
+  margin-top: 0.5em;
+}
+
 .output-line-current {
   opacity: 1;
 }

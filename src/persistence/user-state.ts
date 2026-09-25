@@ -17,6 +17,9 @@ export interface Preferences {
   /** Which supporting panes show, by pane id; absent means shown, so a new
    * pane needs no migration — SDD-0001 §16.4. */
   panes?: Record<string, boolean>;
+  /** Whether scrolling the Output moves the Operator; absent means on —
+   * SDD-0001 §16.1. */
+  scrollSync?: boolean;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {

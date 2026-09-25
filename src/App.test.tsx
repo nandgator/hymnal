@@ -225,6 +225,16 @@ describe("App", () => {
     fireEvent.keyDown(window, { key: "L" });
     expect(screen.getByRole("img", { name: "Live output preview" })).toBeInTheDocument();
   });
+
+  it("replays keys pressed in the Output window, as if pressed here (SDD-0001 §16.1)", async () => {
+    render(() => <App />);
+    await screen.findByRole("button", { name: "Find a hymn" });
+
+    const outputWindow = new BroadcastChannel("hymnal-output");
+    outputWindow.postMessage({ type: "key", key: "?", shiftKey: true });
+    expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+    outputWindow.close();
+  });
 });
 
 afterEach(() => {
