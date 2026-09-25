@@ -29,22 +29,10 @@ hymnal is built.
 
 ## Now
 
-**Board #12 (MD3 visual redesign) is in progress.** Board #11 is done.
-Spec: [`visual/DESIGN.md`](visual/DESIGN.md) and SDD-0001 §16.3.
-Parts, each reviewed before the next:
-
-1. ~~Foundation~~ — done
-2. ~~Components~~ — done
-3. Operator, layered app shell (DESIGN.md § Structure, SDD §16.4–16.5):
-   - ~~3a. Shell: rail/menu, switcher row with hot-swap~~ — done
-   - ~~3b. Workspace: Live + Parts | Lyrics, touch-first~~ — done
-   - ~~3c. Keyboard shortcuts, `?` sheet, command menu (Ctrl/⌘+K)~~ — done
-   - ~~3d. Pane show/hide, persisted~~ — done
-   - ~~3e. Output → Operator scroll sync (SDD §16.1)~~ — done
-4. Presentation (DESIGN.md § Output view, SDD §16.1):
-   - ~~4a. Output on tokens; Output-only presets in Settings > Presentation~~ — done
-   - ~~4b. Repeat / Undo repeat in Parts; a repeat stays in place, ×N~~ — done
-   - 4c. Cues: one muted caption, one switch each, all off
+**Board #12 (MD3 visual redesign) is done**: foundation, components, the
+layered Operator (§16.4–16.5), scroll sync and Presentation (§16.1). Spec:
+[`visual/DESIGN.md`](visual/DESIGN.md). Next is Board #13, Output Modes 2
+and 3, now unblocked: reason it through before building.
 
 ## State
 
@@ -57,7 +45,7 @@ Parts, each reviewed before the next:
 | Corpus  | 1,631 hymns migrated to `content/`; 12 flagged for hand review           |
 | Content | `bun run build:content` builds `public/content/*.sqlite`, FTS5 + hash    |
 | Persist | Content store (SQLite/OPFS, worker) + user state (idb) — SDD-0001 §10-11 |
-| UI      | Library → Finder → Presenter + Output window; MD3 redesign next — §12-16 |
+| UI      | Library → Finder → Operator + Output window, MD3 — SDD-0001 §12-16       |
 | Deploy  | GitHub Actions → GitHub Pages, PWA shell, offline — SDD-0001 §15         |
 
 ## Board
@@ -66,15 +54,14 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                                | Blocked by |
 | --- | ------------------------------------------------------------------- | ---------- |
-| 12  | Visual redesign: Material Design 3 (SDD-0001 §16.3, `visual/`)      | —          |
-| 13  | Output layout Modes 2 (parallel chorus) + 3 (paginated scroll-snap) | 12         |
+| 13  | Output layout Modes 2 (parallel chorus) + 3 (paginated scroll-snap) | —          |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)         | —          |
 | 15  | Transliteration: search and display across scripts (ADR-0014)       | —          |
 | 16  | Feedback and corrections from users — where collected: TBD          | —          |
 | 17  | About: acknowledgements, copyright, credits                         | —          |
 | 18  | Over-the-air update notices (as Supabase announces changes)         | —          |
 | 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)     | 2nd book   |
-| 20  | Keyboard shortcut review (SDD §16.5); incl. band size part ↔ line   | near done  |
+| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now  | near done  |
 | 21  | Hold: freeze the Output on what's showing, navigate, release        | —          |
 | 22  | Service queue: line up hymns for a service (a supporting pane)      | —          |
 | 23  | Arrangements: mix parts of hymns into a saved mashup                | 22         |
@@ -82,7 +69,7 @@ Ordered. Top unblocked item is next.
 | 25  | Stage outputs for musicians: lyrics + chords, score, notation       | content    |
 | 26  | Rethink the Operator layout: Parts, Live preview and Lyrics         | —          |
 
-12–13 are Phase 1. 14–15 sit past the scope guard below. 16–26 are notes,
+13 is Phase 1. 14–15 sit past the scope guard below. 16–26 are notes,
 not scheduled: the shell reserves room for them (DESIGN.md § Structure).
 
 ## Invariants
@@ -116,6 +103,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-25 — #12 done. Part 4c: cues (number badge, lower third), fade on change
 - 2026-09-25 — #12 part 4b: Repeat, Undo, Reset; a repeat stays in place on the Output
 - 2026-09-25 — #12 part 4a: Output on tokens; Output-only presets, Warm default
 - 2026-09-25 — #12 part 3e: Output scroll seeks via a reading band; keys forwarded
@@ -127,4 +115,3 @@ ones only, here:
 - 2026-09-24 — #12 part 3b: Live + navigator workspace; MD3 height classes
 - 2026-09-24 — #12 part 3a: layered shell, hot-swap switcher; calmer M3 register
 - 2026-09-24 — Jumps skip ahead or repeat in place; Next never dead-ends — §5.1
-- 2026-09-24 — #12 part 3: Operator layout; controls never move with content

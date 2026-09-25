@@ -193,6 +193,17 @@ describe("createSequenceEngine", () => {
     expect(engine.current().part.id).toBe("s2"); // resumes, nothing skipped
   });
 
+  it("widens line focus to the whole part when a part step has nowhere to go", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.nextLine(); // line 0 of the first part
+    engine.previous();
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 0, lineIndex: null });
+
+    engine.goTo(4, 1); // the last part, its second line
+    engine.next();
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 4, lineIndex: null });
+  });
+
   it("undoes the repeat it's on, on the same line, and nothing else", () => {
     const engine = createSequenceEngine(fixtureHymn());
     engine.goTo(2);

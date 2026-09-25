@@ -1,4 +1,5 @@
 import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
+import type { OutputCues } from "../persistence/user-state.ts";
 import { forwardKey, type OutputMessage, requestSeek, subscribeOutput } from "./channel.ts";
 import { OutputView } from "./OutputView.tsx";
 
@@ -33,12 +34,16 @@ export function Output() {
   // Blank holds apart from the content, which keeps arriving underneath, so
   // restoring shows wherever the operator has got to (SDD-0001 §16.5).
   const [blanked, setBlanked] = createSignal(false);
-  // The theme follows the Operator's Settings live (SDD-0001 §16.1).
+  const [cues, setCues] = createSignal<OutputCues>({});
+  const [reveal, setReveal] = createSignal(0);
+  // Theme and cues follow the Operator's Settings live (SDD-0001 §16.1).
   const receive = (next: OutputMessage) => {
     if (next.type === "blank") setBlanked(next.blanked);
-    else if (next.type === "presentation")
+    else if (next.type === "reveal") setReveal((n) => n + 1);
+    else if (next.type === "presentation") {
       document.documentElement.setAttribute("data-output-theme", next.theme);
-    else setMessage(next);
+      setCues(next.cues);
+    } else setMessage(next);
   };
 
   // Visible while the mouse moves, so the operator can position and
@@ -85,6 +90,8 @@ export function Output() {
           message={current()}
           variant="full"
           blanked={blanked()}
+          cues={cues()}
+          reveal={reveal()}
           onSeek={(line, whole) =>
             requestSeek({
               hymnbookId: current().hymnbookId,

@@ -320,6 +320,13 @@ explicit repeat or undo, and those are events it receives too.
 occurrence at its end. `lineIndex: null` means the whole part is focused, which
 is the default when arriving at a new occurrence.
 
+A part step (`next`, `previous`) always lands on a whole part. At either
+end of the path there's no part to go to, but from line focus it still
+widens to the whole current part rather than doing nothing, so Previous
+on the first part's line and Next on the last part's line light that part
+whole, as the step would anywhere else. The dock's part buttons stay
+enabled in that state for the same reason.
+
 `OPEN:` Whether the default on arrival should be whole-part or first-line. This
 is a feel question, answerable only with something on screen.
 
@@ -1041,10 +1048,14 @@ congregation can see where a verse ends and the refrain begins: a shape,
 not a label, so it needs no language. **No part label, no recurrence cue
 unless the operator turns one on** — those are Operator aids; a cue
 tracking the _stored_ order has no meaning to a congregation watching
-lyrics. Cues (hymn number and title, hymnbook, part, repeat ×N) are
-opt-in, one switch each, all off, and share one muted caption at the top
-of the safe area (`visual/DESIGN.md`). **A repeat stays in place**: an
-ad-hoc occurrence repeating the one before it (`repeatOrdinal > 1`)
+lyrics. Cues (hymn number, title, hymnbook, part, repeat ×N) are opt-in,
+one switch each, all off: the number as a badge top left (for printed
+songbooks), the rest as a lower-third caption, each on still ground in a
+safe margin that grows while it shows (`visual/DESIGN.md`). The
+`content` message carries what they need (hymnbook title, the focused
+part's display label, its repeat count), so the Output formats the cues
+from the message and the `presentation` cues alone. **A repeat stays in
+place**: an ad-hoc occurrence repeating the one before it (`repeatOrdinal > 1`)
 adds no lines to the flattened column; its focus is the earlier copy's,
 so the Output doesn't scroll away to identical text and `positionOfLine`
 never lands on it. Modes 2 (chorus in a persistent

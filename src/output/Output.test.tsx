@@ -155,10 +155,87 @@ describe("Output", () => {
 
   it("takes the Operator's Output theme, live (SDD-0001 §16.1)", () => {
     render(() => <Output />);
-    channel.handler?.({ type: "presentation", theme: "contrast" });
+    channel.handler?.({ type: "presentation", theme: "contrast", cues: {} });
     expect(document.documentElement.getAttribute("data-output-theme")).toBe("contrast");
-    channel.handler?.({ type: "presentation", theme: "dark" });
+    channel.handler?.({ type: "presentation", theme: "dark", cues: {} });
     expect(document.documentElement.getAttribute("data-output-theme")).toBe("dark");
+  });
+
+  it("shows no caption until a cue is on, then only the cues switched on", () => {
+    render(() => <Output />);
+    channel.handler?.({
+      type: "content",
+      hymnbookId: "book",
+      number: 7,
+      title: "Test Hymn",
+      lines: LINES,
+      focus: { start: 2, end: 3 },
+      hymnbookTitle: "Test Book",
+      part: "Refrain",
+      repeat: 2,
+    });
+    expect(document.querySelector(".output-caption")).not.toBeInTheDocument();
+
+    channel.handler?.({ type: "presentation", theme: "warm", cues: { title: true, repeat: true } });
+    expect(document.querySelector(".output-caption")).toHaveTextContent("Test Hymn · ×2");
+    expect(document.querySelector(".output-badge")).not.toBeInTheDocument();
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: { number: true, hymnbook: true, title: true, part: true, repeat: true },
+    });
+    expect(document.querySelector(".output-caption")).toHaveTextContent(
+      "Test Book · Test Hymn · Refrain · ×2",
+    );
+    // The number is its own badge, for songbooks.
+    expect(document.querySelector(".output-badge")).toHaveTextContent("7");
+  });
+
+  it("fades each cue a few seconds after it changes, when set to", () => {
+    vi.useFakeTimers();
+    render(() => <Output />);
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: { part: true, number: true, fade: true },
+    });
+    const content = (focus: number, part: string) =>
+      channel.handler?.({
+        type: "content",
+        hymnbookId: "book",
+        number: 7,
+        title: "Test Hymn",
+        lines: LINES,
+        focus: { start: focus, end: focus + 1 },
+        part,
+      });
+    content(0, "Verse 1");
+    const caption = () => document.querySelector(".output-caption");
+    const badge = () => document.querySelector(".output-badge");
+    expect(caption()).not.toHaveClass("output-cue-faded");
+
+    vi.advanceTimersByTime(8000);
+    expect(caption()).toHaveClass("output-cue-faded");
+    expect(badge()).toHaveClass("output-cue-faded");
+
+    content(2, "Refrain"); // the part changes: its caption returns, the number doesn't
+    expect(caption()).not.toHaveClass("output-cue-faded");
+    expect(badge()).toHaveClass("output-cue-faded");
+
+    // The operator's "Show cues now" brings them all back for a while.
+    channel.handler?.({ type: "reveal" });
+    expect(badge()).not.toHaveClass("output-cue-faded");
+    vi.advanceTimersByTime(8000);
+    expect(badge()).toHaveClass("output-cue-faded");
+  });
+
+  it("still scrolls smoothly between steps with cues on, refitting only when they toggle", () => {
+    render(() => <Output />);
+    channel.handler?.({ type: "presentation", theme: "warm", cues: { part: true, number: true } });
+    show(0);
+    scrollTo.mockClear();
+    show(2);
+    expect(scrollTo).toHaveBeenLastCalledWith(expect.objectContaining({ behavior: "smooth" }));
   });
 
   it("asks to seek once a person's scroll comes to rest (SDD-0001 §16.1)", () => {

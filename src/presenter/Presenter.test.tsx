@@ -158,6 +158,28 @@ describe("Presenter", () => {
     expect(screen.getByRole("button", { name: "Next part" })).toBeDisabled();
   });
 
+  it("widens line focus to the whole part at either end, from the keys or the dock", async () => {
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    await screen.findByText("Test Hymn");
+    const line1a = () => screen.getByRole("button", { name: "Line 1a" });
+
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    expect(line1a()).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("button", { name: "Previous part" })).toBeEnabled();
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(line1a()).not.toHaveAttribute("aria-current");
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
+    expect(screen.getByRole("button", { name: "Previous part" })).toBeDisabled();
+
+    fireEvent.keyDown(window, { key: "End" }); // the closing refrain, whole
+    fireEvent.keyDown(window, { key: "ArrowDown" }); // its only line
+    const refrainLine = () => currentPart().getByRole("button", { name: "Refrain line" });
+    expect(refrainLine()).toHaveAttribute("aria-current", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Next part" }));
+    expect(refrainLine()).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "Next part" })).toBeDisabled();
+  });
+
   it("navigates by keyboard, for remotes/clickers as well as arrow keys (arc42 §8.8)", async () => {
     render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
     await screen.findByText("Test Hymn");
@@ -648,5 +670,23 @@ describe("Presenter", () => {
     expect(actions.canUndoRepeat()).toBe(false);
     unmount();
     expect(onActions).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it("tells the Output which part is up, as a congregation reads it, and its repeat count", async () => {
+    publishOutput.mockClear();
+    render(() => (
+      <Presenter
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        hymnbookTitle="Test Book"
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    const published = () => publishOutput.mock.lastCall?.[0];
+    expect(published()).toMatchObject({ hymnbookTitle: "Test Book", part: "Verse 1", repeat: 1 });
+    fireEvent.click(screen.getByRole("button", { name: "Next part" }));
+    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
+    expect(published()).toMatchObject({ part: "Refrain", repeat: 2 });
   });
 });

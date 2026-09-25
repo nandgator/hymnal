@@ -376,13 +376,43 @@ devotional, legible-at-distance tool.
   one line under line focus. Hierarchy is carried by color alone, never
   by size, weight or chrome.
 - **No labels in the Output view unless the operator asks.** Part name,
-  verse number and recurrence are Operator aids. Cues are opt-in, each
-  its own switch in Settings > Presentation, all off by default: hymn
-  number and title, hymnbook, part, repeat ×N. When on, they share one
-  caption line in `output-ink-muted` at the top of the safe area, fixed
-  while the lyrics scroll beneath it, e.g. `312 · Amazing Grace · Verse 2
-· ×2`, well clear of the eyeline. With every cue off, nothing but lyrics
-  renders there.
+  verse number and recurrence are Operator aids. Cues are opt-in, each its
+  own switch in Settings > Presentation (and the command menu, not on
+  screen: set once per service), all off by default: hymn number, hymn
+  title, hymnbook, part, repeat ×N. With every cue off, nothing but lyrics
+  renders there. The rule for all of them: **cues sit on still ground.**
+  Nothing may scroll behind them, since movement across a fixed frame
+  draws the eye, and the top of a screen reads as a notification. A filled
+  island, then an outlined one, at the top both outranked the lit lyrics.
+  - **The caption, a lower third**: hymnbook · title · part · ×N (e.g.
+    `Hymnbook · Amazing Grace · Verse 2 · ×2`) as plain `output-ink-dimmed`
+    text centred in the bottom margin, no container. A stanza reads
+    **Verse n**, other parts by kind (Refrain, Bridge, Tag); ×N shows only
+    on a repeat.
+  - **The number badge**, for those following in a printed songbook: the
+    hymn's number in a FAB-like tonal tile (9% ink over the ground,
+    `output-ink-muted`), top left, larger than the caption so it reads
+    from the back, inset equally from top and left (in `cqmin`, so the
+    corner gap stays even at any aspect ratio). It changes only with the
+    hymn, so it's still ground too.
+  - **Each takes its margin.** While a cue shows there, that safe margin
+    grows from 10% to 16%. The fit and the eyeline respect it, so lit
+    lines never enter it, and the lyrics fade out inside it: only lines
+    not being sung are ever dimmed by it. Toggling a cue refits the hymn.
+  - **Fade, one switch for all** ("Fade cues after a few seconds", off by
+    default): each cue, the number included, shows when it changes (a new
+    hymn, a new part, a repeat) and fades 8s later, as a broadcast lower
+    third does. Only its opacity changes; its margin stays reserved, so
+    the lyrics never resize or move. Off, cues stay: someone arriving
+    mid-hymn with a songbook still finds the number. **Show cues now**
+    (command menu; its key waits for Board #20) brings them back for
+    another 8s, from the Operator, since the operator is the one who
+    knows they're wanted. Not hover or touch on the Output: a mouse there
+    shows the cursor to the room, and projected screens rarely take touch.
+    Per-cue delays were left out as complexity few would use.
+  - Sized to the screen (`cqmin`), not the fit; they fade with the lyrics
+    when blanked and show in Live like everything else. All inside the
+    safe margin, never on the edge, which a TV's overscan crops.
 - **Recurrence cue is a plain running ordinal** ("Repeat 2", "Repeat 3"),
   never "final repeat": a repeat only fires on an _immediately adjacent_
   recurrence of the same part (evidenced against the corpus — 0 of 1,631
@@ -469,8 +499,8 @@ unit.
     expanding on tap; the navigator fills the room below it; the dock as
     everywhere.
   - **Where a control lives follows how often it's used mid-service**:
-    frequent ones (the navigator swap, the sidebar's Hide/Show, later the
-    repeat-cue switch) stay on screen; occasional ones go into Settings.
+    frequent ones (the navigator swap, the sidebar's Hide/Show, Repeat)
+    stay on screen; occasional ones go into Settings.
     Nothing mid-service needs a trip into Settings: each pane toggle is
     also a key (L for Live) and a command-menu action. Letting the user
     move a control between screen and Settings is deferred, not dropped.

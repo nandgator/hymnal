@@ -67,12 +67,25 @@ export function isTyping(event: KeyboardEvent): boolean {
   );
 }
 
+/** Keys pressed in the Output window, replayed here (SDD-0001 §16.1). */
+const forwarded = new WeakSet<Event>();
+
+/** Replays a key pressed in the Output window through this window's keymap.
+ * It was never meant for a sheet open here, so an open sheet doesn't stop
+ * it. */
+export function replayForwardedKey(key: string, shiftKey: boolean): void {
+  const event = new KeyboardEvent("keydown", { key, shiftKey, cancelable: true });
+  forwarded.add(event);
+  window.dispatchEvent(event);
+}
+
 /**
  * Whether single-key shortcuts should ignore this keydown: typing, a sheet
  * open (its own keys, e.g. the hymn picker's arrows, win), or a Ctrl/⌘/Alt
- * chord the browser owns.
+ * chord the browser owns. A key forwarded from the Output is none of these.
  */
 export function ignoresShortcuts(event: KeyboardEvent): boolean {
+  if (forwarded.has(event)) return event.defaultPrevented;
   return (
     event.defaultPrevented ||
     event.ctrlKey ||

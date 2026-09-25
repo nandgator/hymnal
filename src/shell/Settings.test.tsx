@@ -177,4 +177,19 @@ describe("Settings", () => {
     // The Operator's own theme is untouched.
     expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
   });
+
+  it("has every Output cue off by default, and remembers turning one on", async () => {
+    const setPreferences = vi.fn(async () => {});
+    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
+    await screen.findByText("100%");
+
+    const presentation = within(screen.getByRole("region", { name: "Presentation" }));
+    for (const name of [/hymn number/, /hymn title/, /hymnbook/, /part/, /repeat count/]) {
+      expect(presentation.getByRole("switch", { name })).not.toBeChecked();
+    }
+    fireEvent.click(presentation.getByRole("switch", { name: /part/ }));
+    expect(setPreferences).toHaveBeenLastCalledWith(
+      expect.objectContaining({ outputCues: { part: true } }),
+    );
+  });
 });

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@solidjs/testing-library";
+import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App.tsx";
 import type { ContentStore } from "./persistence/content-store.ts";
@@ -167,6 +167,31 @@ describe("App", () => {
     fireEvent.keyDown(window, { key: "?" });
     const sheet = await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
     expect(within(sheet).getByText("Blank the Output / restore")).toBeInTheDocument();
+  });
+
+  it("steps with keys pressed in the Output window, even with a sheet open here", async () => {
+    render(() => <App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a hymn" }), {
+      target: { value: "1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    await screen.findByRole("img", { name: "Live output preview" });
+    // The mock hymn has one line: Down gives it line focus.
+    const focused = () =>
+      screen.getByRole("button", { name: "A line" }).getAttribute("aria-current");
+
+    fireEvent.keyDown(window, { key: ",", ctrlKey: true });
+    await screen.findByRole("dialog", { name: "Settings" });
+    // A key typed here still goes to the sheet, not the Operator.
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    expect(focused()).toBeNull();
+
+    const outputWindow = new BroadcastChannel("hymnal-output");
+    outputWindow.postMessage({ type: "key", key: "ArrowDown", shiftKey: false });
+    await waitFor(() => expect(focused()).toBe("true"));
+    expect(screen.getByRole("dialog", { name: "Settings" })).toBeInTheDocument();
+    outputWindow.close();
   });
 
   it("offers Repeat, then Undo repeat, in the command menu while presenting", async () => {

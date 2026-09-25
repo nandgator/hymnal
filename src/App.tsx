@@ -3,14 +3,19 @@ import { BUNDLED_HYMNBOOK_ID } from "./config.ts";
 import type { Hymn, Hymnbook, HymnbookId, HymnNumber } from "./domain/types.ts";
 import { type Command, Finder } from "./finder/Finder.tsx";
 import { Library } from "./library/Library.tsx";
-import { setOutputBlanked, setOutputPresentation, subscribeKeys } from "./output/channel.ts";
+import {
+  revealCues,
+  setOutputBlanked,
+  setOutputPresentation,
+  subscribeKeys,
+} from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
 import { DEFAULT_OUTPUT_THEME } from "./persistence/user-state.ts";
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
-import { ignoresShortcuts, keyHint, SHORTCUTS } from "./shell/keymap.ts";
+import { ignoresShortcuts, keyHint, replayForwardedKey, SHORTCUTS } from "./shell/keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { isPaneShown, PANES, type PaneId } from "./shell/panes.ts";
-import { canAdjustScale, createPreferences, Settings } from "./shell/Settings.tsx";
+import { canAdjustScale, createPreferences, OUTPUT_CUES, Settings } from "./shell/Settings.tsx";
 import { Sheet } from "./shell/Sheet.tsx";
 import { installScrollReveal } from "./shell/scrollReveal.ts";
 
@@ -69,12 +74,23 @@ function Operator() {
   // The Output follows Presentation settings live, and a late Output gets
   // them replayed (SDD-0001 §16.1).
   createEffect(() =>
-    setOutputPresentation({ theme: preferences.preferences().outputTheme ?? DEFAULT_OUTPUT_THEME }),
+    setOutputPresentation({
+      theme: preferences.preferences().outputTheme ?? DEFAULT_OUTPUT_THEME,
+      cues: preferences.preferences().outputCues ?? {},
+    }),
   );
 
   // Blank holds until restored, across navigation and hymn swaps, so it
   // lives here rather than in the Presenter (SDD-0001 §16.5).
   const [blanked, setBlanked] = createSignal(false);
+  // "Show cues now": faded cues return for their fade time, on the Output
+  // and in Live alike.
+  const [cuesRevealed, setCuesRevealed] = createSignal(0);
+  const showCues = () => {
+    setCuesRevealed((n) => n + 1);
+    revealCues();
+  };
+
   // The mounted Presenter's actions, for the command menu.
   const [presenterActions, setPresenterActions] = createSignal<PresenterActions>();
   const toggleBlank = () => {
@@ -197,6 +213,20 @@ function Operator() {
         hint: pane.key,
         run: run(() => togglePane(pane.id)),
       })),
+      ...OUTPUT_CUES.map((cue) => {
+        const on = !!prefs.outputCues?.[cue.id];
+        return {
+          label: `${on ? "Hide" : "Show"} ${cue.name.toLowerCase()} on the Output`,
+          run: run(() => preferences.setCue(cue.id, !on)),
+        };
+      }),
+      ...(prefs.outputCues?.fade && OUTPUT_CUES.some((cue) => prefs.outputCues?.[cue.id])
+        ? [{ label: "Show cues now", run: run(showCues) }]
+        : []),
+      {
+        label: prefs.outputCues?.fade ? "Keep cues on the Output" : "Fade cues on the Output",
+        run: run(() => preferences.setCue("fade", !prefs.outputCues?.fade)),
+      },
       { label: "Switch hymnbook", run: run(() => openSheet(setBookPickerOpen)) },
       { label: "Library", run: run(() => go("library")) },
       { label: "Settings", hint: keyHint("settings"), run: run(() => openSheet(setSettingsOpen)) },
@@ -261,9 +291,7 @@ function Operator() {
   // they do in the Operator — the shell's keys and the Presenter's alike
   // (SDD-0001 §16.1).
   onMount(() => {
-    const unsubscribe = subscribeKeys(({ key, shiftKey }) =>
-      window.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, cancelable: true })),
-    );
+    const unsubscribe = subscribeKeys(({ key, shiftKey }) => replayForwardedKey(key, shiftKey));
     onCleanup(unsubscribe);
   });
 
@@ -411,6 +439,9 @@ function Operator() {
                   onPaneChange={preferences.setPane}
                   scrollSync={preferences.preferences().scrollSync ?? true}
                   onActions={(actions) => setPresenterActions(() => actions)}
+                  hymnbookTitle={hymnbook()?.title}
+                  cues={preferences.preferences().outputCues}
+                  revealCues={cuesRevealed()}
                 />
               )}
             </Match>

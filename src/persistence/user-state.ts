@@ -11,6 +11,21 @@ export interface RecentEntry {
  * § Output view. */
 export type OutputTheme = "dark" | "light" | "contrast" | "warm";
 
+/** Which cues the Output's caption shows — each off unless set
+ * (DESIGN.md § Typography, SDD-0001 §16.1). */
+export interface OutputCues {
+  /** The hymn's number, as a badge top-left — for those following in a
+   * printed songbook. */
+  number?: boolean;
+  title?: boolean;
+  hymnbook?: boolean;
+  part?: boolean;
+  repeat?: boolean;
+  /** Not a cue but how they all behave: each shows when it changes, then
+   * fades after a few seconds. */
+  fade?: boolean;
+}
+
 /** The Output's preset when none is chosen. */
 export const DEFAULT_OUTPUT_THEME: OutputTheme = "warm";
 
@@ -29,6 +44,8 @@ export interface Preferences {
   scrollSync?: boolean;
   /** The Output's preset; absent means {@link DEFAULT_OUTPUT_THEME} — SDD-0001 §16.1. */
   outputTheme?: OutputTheme;
+  /** The Output's cues; absent or missing ones are off. */
+  outputCues?: OutputCues;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {

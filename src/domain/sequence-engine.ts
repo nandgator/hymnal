@@ -123,18 +123,17 @@ class HymnSequenceEngine implements SequenceEngine {
     return occurrence;
   }
 
+  // Part steps always land on a whole part. At either end there's no part
+  // to go to, but from line focus they still widen to the whole part the
+  // cursor is in, rather than doing nothing.
   next(): void {
-    if (this.cursorIndex < this.length - 1) {
-      this.cursorIndex++;
-      this.cursorLineIndex = null;
-    }
+    if (this.cursorIndex < this.length - 1) this.cursorIndex++;
+    this.cursorLineIndex = null;
   }
 
   previous(): void {
-    if (this.cursorIndex > 0) {
-      this.cursorIndex--;
-      this.cursorLineIndex = null;
-    }
+    if (this.cursorIndex > 0) this.cursorIndex--;
+    this.cursorLineIndex = null;
   }
 
   nextLine(): void {

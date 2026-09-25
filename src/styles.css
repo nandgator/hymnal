@@ -1838,6 +1838,91 @@ html[data-scrolling],
   color: var(--output-ink);
 }
 
+/* Cues (DESIGN.md § Typography): a lower third, on still ground. With
+   cues on, the bottom safe margin grows to 16% (OutputView's CUE_SAFE),
+   which lit lines never enter; the lyrics fade out inside it, so nothing
+   scrolls behind the cues and nothing sung is dimmed.
+   Just dimmed text: on still ground it needs no container. Sized to the
+   screen, not the fit. Sticky at zero height, so it takes no room. */
+.output-caption {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  height: 0;
+}
+
+.output-caption::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 16cqh;
+  background: linear-gradient(to top, var(--output-ground) 60%, transparent);
+  pointer-events: none;
+}
+
+.output-caption-text {
+  position: absolute;
+  inset: auto 10cqw 3cqh;
+  margin: 0;
+  overflow: hidden;
+  color: var(--output-ink-dimmed);
+  font-size: 2.8cqmin;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity 300ms ease;
+}
+
+/* The songbook number (DESIGN.md § Typography): a FAB-like tile in the top
+   left of the safe margin, for those following in a printed songbook. It
+   changes only with the hymn, so it's still; with it on, the top margin
+   grows as the bottom one does for the caption, and the lyrics fade out
+   before reaching it. Larger than the caption: it's read from the back. */
+.output-badge {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 0;
+}
+
+.output-badge::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 16cqh;
+  background: linear-gradient(var(--output-ground) 60%, transparent);
+  pointer-events: none;
+}
+
+.output-badge-text {
+  position: absolute;
+  /* One unit for both, so the corner gap is even at any aspect ratio. */
+  top: 4cqmin;
+  left: 4cqmin;
+  margin: 0;
+  padding: 0.2em 0.55em;
+  border-radius: 0.4em;
+  background-color: color-mix(in srgb, var(--output-ink) 9%, var(--output-ground));
+  color: var(--output-ink-muted);
+  font-size: 5cqmin;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1.2;
+  transition: opacity 300ms ease;
+}
+
+.output-blanked :is(.output-caption-text, .output-badge-text),
+.output-cue-faded :is(.output-caption-text, .output-badge-text) {
+  opacity: 0;
+}
+
+/* Fading out, slower than blank: a cue receding, not a cut. */
+.output-cue-faded :is(.output-caption-text, .output-badge-text) {
+  transition-duration: 1200ms;
+}
+
 /* Blanked: the text fades to the bare ground, still laid out and
    positioned, so restoring is instant and in place. */
 .output-blanked .output-list {

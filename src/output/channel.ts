@@ -1,6 +1,6 @@
 import type { FlatLine, LineRange } from "../domain/sequence-engine.ts";
 import type { HymnbookId, HymnNumber } from "../domain/types.ts";
-import type { OutputTheme } from "../persistence/user-state.ts";
+import type { OutputCues, OutputTheme } from "../persistence/user-state.ts";
 
 /**
  * Presenter → Output, one browser, two windows (Board #11, SDD-0001 §16.1).
@@ -16,15 +16,23 @@ export type OutputMessage =
       title: string;
       lines: FlatLine[];
       focus: LineRange;
+      /** What the cues need (SDD-0001 §16.1): the hymnbook's title, the
+       * focused part as a congregation reads it ("Verse 2", "Refrain"), and
+       * how many times in a row it's being sung. */
+      hymnbookTitle?: string;
+      part?: string;
+      repeat?: number;
     }
   | { type: "idle" }
   /** Hides what's presented, or shows it again — distinct from `idle`,
    * which means nothing is presented (SDD-0001 §16.5). */
   | { type: "blank"; blanked: boolean }
   /** The Operator's Presentation settings, followed live (SDD-0001 §16.1). */
-  | PresentationMessage;
+  | PresentationMessage
+  /** Show faded cues again for a while — a moment, never replayed. */
+  | { type: "reveal" };
 
-export type PresentationMessage = { type: "presentation"; theme: OutputTheme };
+export type PresentationMessage = { type: "presentation"; theme: OutputTheme; cues: OutputCues };
 
 /** Output → Presenter: "I just opened — send me what's showing." */
 type HelloMessage = { type: "hello" };
@@ -73,6 +81,11 @@ function getChannel(): BroadcastChannel {
 }
 
 /** Presenter calls this on every navigation, and once more with `idle` on unmount. */
+/** Shows the Output's faded cues again for their fade time. */
+export function revealCues(): void {
+  getChannel().postMessage({ type: "reveal" } satisfies OutputMessage);
+}
+
 export function publishOutput(message: Extract<OutputMessage, { type: "content" | "idle" }>): void {
   lastPublished = message;
   getChannel().postMessage(message);
@@ -84,7 +97,8 @@ export function setOutputBlanked(next: boolean): void {
   getChannel().postMessage({ type: "blank", blanked } satisfies OutputMessage);
 }
 
-/** Sends the Output's theme; held and replayed to a late Output like blank. */
+/** Sends the Output's theme and cues; held and replayed to a late Output
+ * like blank. */
 export function setOutputPresentation(settings: Omit<PresentationMessage, "type">): void {
   presentation = { type: "presentation", ...settings };
   getChannel().postMessage(presentation);
@@ -103,7 +117,8 @@ export function subscribeOutput(handler: (message: OutputMessage) => void): () =
       data.type === "content" ||
       data.type === "idle" ||
       data.type === "blank" ||
-      data.type === "presentation"
+      data.type === "presentation" ||
+      data.type === "reveal"
     )
       handler(data);
   };

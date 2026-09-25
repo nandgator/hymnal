@@ -3,6 +3,7 @@ import {
   DEFAULT_OUTPUT_THEME,
   DEFAULT_PREFERENCES,
   userState as defaultUserState,
+  type OutputCues,
   type OutputTheme,
   type Preferences,
   type UserState,
@@ -23,6 +24,19 @@ const OUTPUT_THEMES: { value: OutputTheme; label: string }[] = [
   { value: "contrast", label: "Contrast" },
   { value: "warm", label: "Warm" },
 ];
+/** The Output's cues, each its own switch, all off (DESIGN.md §
+ * Typography); the command menu reads the same list. */
+export const OUTPUT_CUES: {
+  id: Exclude<keyof OutputCues, "fade">;
+  name: string;
+  example: string;
+}[] = [
+  { id: "number", name: "Hymn number", example: "312, top left, for songbooks" },
+  { id: "title", name: "Hymn title", example: "Amazing Grace" },
+  { id: "hymnbook", name: "Hymnbook", example: "the book's title" },
+  { id: "part", name: "Part", example: "Verse 2, Refrain" },
+  { id: "repeat", name: "Repeat count", example: "×2, on a repeat" },
+];
 const NAVIGATORS: { value: Preferences["navigator"]; label: string }[] = [
   { value: "parts", label: "Parts" },
   { value: "lyrics", label: "Lyrics" },
@@ -38,6 +52,8 @@ export interface PreferencesController {
   adjustScale: (direction: 1 | -1) => void;
   /** Shows or hides a supporting pane (SDD-0001 §16.4). */
   setPane: (id: PaneId, shown: boolean) => void;
+  /** Turns one of the Output's cues on or off (SDD-0001 §16.1). */
+  setCue: (id: keyof OutputCues, on: boolean) => void;
 }
 
 export const canAdjustScale = (preferences: Preferences, direction: 1 | -1) =>
@@ -80,6 +96,10 @@ export function createPreferences(state: UserState = defaultUserState): Preferen
       const current = preferences();
       update({ ...current, panes: { ...current.panes, [id]: shown } });
     },
+    setCue: (id, on) => {
+      const current = preferences();
+      update({ ...current, outputCues: { ...current.outputCues, [id]: on } });
+    },
   };
 }
 
@@ -99,7 +119,7 @@ export interface SettingsProps {
  * Presentation, Keyboard.
  */
 export function Settings(props: SettingsProps) {
-  const { preferences, update, adjustScale, setPane } =
+  const { preferences, update, adjustScale, setPane, setCue } =
     props.controller ?? createPreferences(props.userState ?? defaultUserState);
   const id = `settings-${++nextId}`;
 
@@ -268,6 +288,38 @@ export function Settings(props: SettingsProps) {
             </For>
           </fieldset>
         </div>
+        <For each={OUTPUT_CUES}>
+          {(cue) => (
+            <label class="settings-row">
+              <span class="settings-label">
+                Show {cue.name.toLowerCase()}
+                <span class="settings-supporting">On the Output, e.g. {cue.example}</span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                class="switch"
+                checked={!!preferences().outputCues?.[cue.id]}
+                aria-checked={!!preferences().outputCues?.[cue.id]}
+                onChange={(event) => setCue(cue.id, event.currentTarget.checked)}
+              />
+            </label>
+          )}
+        </For>
+        <label class="settings-row">
+          <span class="settings-label">
+            Fade cues after a few seconds
+            <span class="settings-supporting">Each shows when it changes, then fades</span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            class="switch"
+            checked={!!preferences().outputCues?.fade}
+            aria-checked={!!preferences().outputCues?.fade}
+            onChange={(event) => setCue("fade", event.currentTarget.checked)}
+          />
+        </label>
       </section>
 
       <Show when={props.onShowShortcuts}>

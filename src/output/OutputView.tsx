@@ -1,11 +1,28 @@
-import { createEffect, createMemo, createSignal, Index, onCleanup, onMount } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  Index,
+  on,
+  onCleanup,
+  onMount,
+  Show,
+} from "solid-js";
 import type { LineRange } from "../domain/sequence-engine.ts";
+import type { OutputCues } from "../persistence/user-state.ts";
 import type { OutputMessage } from "./channel.ts";
 
 type ContentMessage = Extract<OutputMessage, { type: "content" }>;
 
 /** Share of the height kept clear at top and bottom — the safe margin. */
 const SAFE = 0.1;
+/** A margin while cues show there (the caption at the bottom, the number
+ * badge at the top): room for their still band, which lit lines never
+ * enter, so the band's fade only dims lines not being sung (DESIGN.md §
+ * Typography). */
+const CUE_SAFE = 0.16;
+/** With cues set to fade: how long each shows after it last changed. */
+const CUE_FADE_MS = 8000;
 /** Where the focus centres, from the top: a little above middle, a
  * teleprompter's eyeline (DESIGN.md § Structure). */
 const EYELINE = 0.42;
@@ -35,6 +52,24 @@ export interface OutputViewProps {
    * is in (the default), or one line. A future shortcut may switch it
    * (PLAN Board #20). */
   bandSize?: "part" | "line";
+  /** Which cues the caption shows; none by default (DESIGN.md). */
+  cues?: OutputCues;
+  /** Bumped to show faded cues again for their fade time. */
+  reveal?: number;
+}
+
+/** The cue caption, e.g. "Hymnbook · Amazing Grace · Verse 2 · ×2": only
+ * the cues switched on, ×N only on a repeat. Empty with none on. The number
+ * is its own badge, not part of it. */
+export function cueCaption(message: ContentMessage, cues: OutputCues = {}): string {
+  return [
+    cues.hymnbook && message.hymnbookTitle,
+    cues.title && message.title,
+    cues.part && message.part,
+    cues.repeat && (message.repeat ?? 1) > 1 && `×${message.repeat}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /**
@@ -97,6 +132,32 @@ export function OutputView(props: OutputViewProps) {
   /** The lines lit by the band; null means the focus is lit. */
   const [bandLit, setBandLit] = createSignal<LineRange | null>(null);
   const lit = () => bandLit() ?? props.message.focus;
+  const caption = () => cueCaption(props.message, props.cues);
+  // Memos, so they change only when a cue turns on or off — not on every
+  // step, which would refit (and snap) instead of scrolling smoothly.
+  const hasCaption = createMemo(() => !!caption());
+  const badge = createMemo(() => !!props.cues?.number);
+  const safeBottom = () => (hasCaption() ? CUE_SAFE : SAFE);
+  const safeTop = () => (badge() ? CUE_SAFE : SAFE);
+
+  // Cues set to fade (DESIGN.md § Typography): each shows when it changes,
+  // then fades. Only its opacity: its margin stays reserved, so the lyrics
+  // never resize or move as a cue comes and goes.
+  const fading = (key: () => unknown) => {
+    const [shown, setShown] = createSignal(true);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    createEffect(
+      on([key, () => !!props.cues?.fade, () => props.reveal], ([, fade]) => {
+        clearTimeout(timer);
+        setShown(true);
+        if (fade) timer = setTimeout(() => setShown(false), CUE_FADE_MS);
+      }),
+    );
+    onCleanup(() => clearTimeout(timer));
+    return shown;
+  };
+  const captionShown = fading(createMemo(caption));
+  const badgeShown = fading(createMemo(() => props.message.number));
 
   const startBand = () => {
     if (band || !view) return;
@@ -108,8 +169,8 @@ export function OutputView(props: OutputViewProps) {
     const first = lineRefs[start];
     if (!first) return;
     const height = view.clientHeight;
-    const top = Math.max(height * SAFE, first.offsetTop - view.scrollTop);
-    const bottom = Math.min(height * (1 - SAFE), top + heightOf(start, end));
+    const top = Math.max(height * safeTop(), first.offsetTop - view.scrollTop);
+    const bottom = Math.min(height * (1 - safeBottom()), top + heightOf(start, end));
     band = { top, bottom, whole };
   };
 
@@ -158,14 +219,14 @@ export function OutputView(props: OutputViewProps) {
     if (!view || !first) return;
     const height = view.clientHeight;
     const block = heightOf(start, end);
-    const room = height * (1 - 2 * SAFE);
+    const room = height * (1 - safeTop() - safeBottom());
     // Where the block's top should sit within the screen.
     const top =
       block > room
-        ? height * SAFE
+        ? height * safeTop()
         : Math.max(
-            height * SAFE,
-            Math.min(height * EYELINE - block / 2, height * (1 - SAFE) - block),
+            height * safeTop(),
+            Math.min(height * EYELINE - block / 2, height * (1 - safeBottom()) - block),
           );
     view.scrollTo?.({ top: first.offsetTop - top, behavior });
   };
@@ -174,7 +235,7 @@ export function OutputView(props: OutputViewProps) {
   // Wrapping changes as the type shrinks, so it converges in a few passes.
   const refit = () => {
     if (!view) return;
-    const room = view.clientHeight * (1 - 2 * SAFE);
+    const room = view.clientHeight * (1 - safeTop() - safeBottom());
     let fit = 1;
     view.style.setProperty("--fit", "1");
     for (let pass = 0; pass < 4 && room > 0; pass++) {
@@ -185,6 +246,9 @@ export function OutputView(props: OutputViewProps) {
     }
     position("instant");
   };
+
+  // Cues turning on or off change the room: fit again.
+  createEffect(on([hasCaption, badge], refit, { defer: true }));
 
   createEffect(() => {
     const { hymnbookId, number } = props.message;
@@ -248,6 +312,13 @@ export function OutputView(props: OutputViewProps) {
       // The mini view is a picture of the Output; the full one is the Output.
       {...(props.variant === "mini" ? { role: "img", "aria-label": "Live output preview" } : {})}
     >
+      {/* The songbook number: top left, sticky and zero-height like the
+          caption, and still — it changes only with the hymn. */}
+      <Show when={badge()}>
+        <div class="output-badge" classList={{ "output-cue-faded": !badgeShown() }}>
+          <p class="output-badge-text">{props.message.number}</p>
+        </div>
+      </Show>
       <ul class="output-list">
         <li class="output-spacer" aria-hidden="true" />
         <Index each={props.message.lines}>
@@ -269,6 +340,16 @@ export function OutputView(props: OutputViewProps) {
         </Index>
         <li class="output-spacer" aria-hidden="true" />
       </ul>
+      {/* Last, sticky to the bottom and zero-height: it rides the bottom
+          safe margin, taking no room from the lyrics (DESIGN.md §
+          Typography). */}
+      <Show when={caption()}>
+        {(caption) => (
+          <div class="output-caption" classList={{ "output-cue-faded": !captionShown() }}>
+            <p class="output-caption-text">{caption()}</p>
+          </div>
+        )}
+      </Show>
     </div>
   );
 }

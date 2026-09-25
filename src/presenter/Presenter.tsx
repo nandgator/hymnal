@@ -23,7 +23,11 @@ import type { Hymn, HymnbookId, HymnNumber, Occurrence, Part } from "../domain/t
 import { type OutputMessage, publishOutput, subscribeSeek } from "../output/channel.ts";
 import { OutputView } from "../output/OutputView.tsx";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
-import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
+import {
+  userState as defaultUserState,
+  type OutputCues,
+  type UserState,
+} from "../persistence/user-state.ts";
 import { ignoresShortcuts } from "../shell/keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY, TALL_QUERY } from "../shell/media.ts";
 import type { PaneId } from "../shell/panes.ts";
@@ -33,6 +37,12 @@ import type { PaneId } from "../shell/panes.ts";
 function partLabel(part: Part): string {
   if (part.label) return part.label;
   return part.kind[0].toUpperCase() + part.kind.slice(1);
+}
+
+/** A part as the Output's cue names it for a congregation (DESIGN.md §
+ * Typography): "Verse 2" for a stanza, else its kind — "Refrain". */
+export function partCueLabel(part: Part): string {
+  return part.label ? `Verse ${part.label}` : partLabel(part);
 }
 
 const DOCK_COLLAPSE_MAX = 3;
@@ -83,6 +93,12 @@ export interface PresenterProps {
   /** Receives the Presenter's actions while mounted, `undefined` after —
    * the command menu's Repeat and Undo repeat. */
   onActions?: (actions: PresenterActions | undefined) => void;
+  /** For the Output's hymnbook cue. */
+  hymnbookTitle?: string;
+  /** Which cues Live's caption shows, as the Output's (SDD-0001 §16.1). */
+  cues?: OutputCues;
+  /** Bumped when the operator shows faded cues again. */
+  revealCues?: number;
 }
 
 /**
@@ -137,11 +153,13 @@ export function Presenter(props: PresenterProps) {
     version();
     return engine()?.current();
   });
-  const canPrevious = createMemo(() => (cursor()?.occurrenceIndex ?? 0) > 0);
+  // At either end, a part step still widens line focus to the whole part.
+  const onLine = () => cursor()?.lineIndex != null;
+  const canPrevious = createMemo(() => (cursor()?.occurrenceIndex ?? 0) > 0 || onLine());
   const canNext = createMemo(() => {
     const e = engine();
     const at = cursor()?.occurrenceIndex;
-    return e !== undefined && at !== undefined && at < e.length - 1;
+    return e !== undefined && at !== undefined && (at < e.length - 1 || onLine());
   });
 
   // The path as runs, a part and its back-to-back repeats as one.
@@ -192,6 +210,9 @@ export function Presenter(props: PresenterProps) {
       number: e.hymn.number,
       title: e.hymn.title,
       ...flattenLines(e),
+      hymnbookTitle: props.hymnbookTitle,
+      part: partCueLabel(e.current().part),
+      repeat: e.current().repeatOrdinal,
     };
   });
   createEffect(() => {
@@ -462,6 +483,8 @@ export function Presenter(props: PresenterProps) {
         <OutputView
           message={message()}
           variant="mini"
+          cues={props.cues}
+          reveal={props.revealCues}
           classList={{ "live-blanked": !!props.blanked }}
         />
       )}
