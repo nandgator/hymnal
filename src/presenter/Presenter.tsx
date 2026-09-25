@@ -22,6 +22,7 @@ import { type OutputMessage, publishOutput } from "../output/channel.ts";
 import { OutputView } from "../output/OutputView.tsx";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
+import { ignoresShortcuts } from "../shell/keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY, TALL_QUERY } from "../shell/media.ts";
 
 // Most parts carry no label — it's printed only for numbered stanzas
@@ -36,6 +37,8 @@ const MIN_CHIP_COLUMNS = 3;
 const FAB_GAP_PX = 16;
 const DOCK_PADDING_PX = 12;
 const FAB_RISE_PX = 20;
+/** How long a stanza digit waits for a second one (SDD-0001 §16.5). */
+const STANZA_DIGIT_MS = 500;
 /** Which navigator leads the workspace (SDD-0001 §16.4). */
 export type Navigator = "parts" | "lyrics";
 
@@ -54,6 +57,10 @@ export interface PresenterProps {
   /** Which navigator leads; the shell keeps it in preferences. */
   navigator?: Navigator;
   onNavigatorChange?: (navigator: Navigator) => void;
+  /** The Output is blanked (SDD-0001 §16.5); the shell holds it. */
+  blanked?: boolean;
+  /** Restores a blanked Output — the Live pane's Blanked badge. */
+  onRestore?: () => void;
 }
 
 /**
@@ -152,30 +159,62 @@ export function Presenter(props: PresenterProps) {
     );
   });
 
-  // Full keyboard navigation (arc42 §8.8) — arrow keys for fine control,
-  // Page Up/Down since that's what most presentation remotes/clickers send.
+  // Stanza digits (SDD-0001 §16.5): a digit that can't start a longer
+  // stanza label jumps at once; one that can waits briefly for the second,
+  // so the audience never sees stanza 1 flash on the way to 12.
+  let digits = "";
+  let digitTimer: ReturnType<typeof setTimeout> | undefined;
+  onCleanup(() => clearTimeout(digitTimer));
+  const typeDigit = (digit: string) => {
+    clearTimeout(digitTimer);
+    const typed = digits + digit;
+    digits = "";
+    const stanzas = (engine()?.hymn.parts ?? []).filter((part) => part.kind === "stanza");
+    const exact = stanzas.find((part) => part.label === typed);
+    const jump = () => {
+      if (exact) mutate((e) => e.jumpToPart(exact.id));
+    };
+    if (stanzas.some((part) => part.label !== typed && part.label?.startsWith(typed))) {
+      digits = typed;
+      digitTimer = setTimeout(() => {
+        digits = "";
+        jump();
+      }, STANZA_DIGIT_MS);
+    } else {
+      jump();
+    }
+  };
+
+  // Full keyboard navigation (arc42 §8.8, SDD-0001 §16.5) — arrow keys for
+  // fine control, Page Up/Down since that's what most presentation
+  // remotes/clickers send. Off while typing or while a sheet is open: the
+  // hymn picker's arrow keys move its highlight, never the Output. The
+  // shell handles the keys that work on every screen.
   const onKeyDown = (event: KeyboardEvent) => {
-    // Off while typing or while a sheet/dialog is open (SDD-0001 §16.5): the
-    // hymn picker's arrow keys move its highlight, never the Output.
-    // Text entry only: a focused radio (the Parts | Lyrics switch) or checkbox
-    // must not swallow the remote's keys.
-    const target = event.target;
-    const typing =
-      target instanceof HTMLElement &&
-      (target.isContentEditable ||
-        target.closest("textarea, select") !== null ||
-        (target instanceof HTMLInputElement &&
-          !["radio", "checkbox", "button", "submit", "range"].includes(target.type)));
-    if (typing) return;
-    if (document.querySelector("dialog[open]")) return;
+    if (ignoresShortcuts(event)) return;
+    // Space is Next part even on a focused button, so a clicker never
+    // re-presses the last chip tapped; radios and checkboxes keep it.
+    if (event.key === " " && event.target instanceof HTMLInputElement) return;
+    if (/^\d$/.test(event.key)) {
+      event.preventDefault();
+      typeDigit(event.key);
+      return;
+    }
     const action: ((e: SequenceEngine) => void) | undefined = {
       ArrowRight: (e: SequenceEngine) => e.next(),
       PageDown: (e: SequenceEngine) => e.next(),
+      " ": (e: SequenceEngine) => (event.shiftKey ? e.previous() : e.next()),
       ArrowLeft: (e: SequenceEngine) => e.previous(),
       PageUp: (e: SequenceEngine) => e.previous(),
       ArrowDown: (e: SequenceEngine) => e.nextLine(),
       ArrowUp: (e: SequenceEngine) => e.previousLine(),
-    }[event.key];
+      Home: (e: SequenceEngine) => e.goTo(0),
+      End: (e: SequenceEngine) => e.goTo(e.length - 1),
+      r: (e: SequenceEngine) => {
+        const refrain = e.hymn.parts.find((part) => part.kind === "refrain");
+        if (refrain) e.jumpToPart(refrain.id);
+      },
+    }[event.key.length === 1 ? event.key.toLowerCase() : event.key];
     if (!action) return;
     event.preventDefault();
     mutate(action);
@@ -312,6 +351,7 @@ export function Presenter(props: PresenterProps) {
   // first to collapse to icon-only. Labels stay the accessible name.
   const dockButton = (
     label: string,
+    key: { aria: string; shown: string },
     icon: string,
     variant: "btn-filled" | "btn-tonal" | "btn-outlined",
     action: (e: SequenceEngine) => void,
@@ -322,6 +362,8 @@ export function Presenter(props: PresenterProps) {
       class={`${variant} dock-button ${variant === "btn-outlined" ? "dock-line" : "dock-part"}`}
       onClick={() => mutate(action)}
       disabled={disabled?.()}
+      aria-keyshortcuts={key.aria}
+      title={`${label} (${key.shown})`}
     >
       <span class={`icon ${icon}`} aria-hidden="true" />
       <span class="dock-label">{label}</span>
@@ -333,7 +375,30 @@ export function Presenter(props: PresenterProps) {
   // Structure).
   const livePreview = () => (
     <Show when={outputMessage()}>
-      {(message) => <OutputView message={message()} variant="mini" />}
+      {(message) => (
+        <OutputView
+          message={message()}
+          variant="mini"
+          classList={{ "live-blanked": !!props.blanked }}
+        />
+      )}
+    </Show>
+  );
+
+  // Blanked (SDD-0001 §16.5): Live stays readable, dimmed, so the operator
+  // can prepare behind it; the badge is the restore.
+  const blankedBadge = () => (
+    <Show when={props.blanked}>
+      <button
+        type="button"
+        class="live-badge"
+        aria-keyshortcuts="B"
+        title="Restore the Output (B)"
+        onClick={() => props.onRestore?.()}
+      >
+        Blanked
+        <span class="visually-hidden"> — restore the Output</span>
+      </button>
     </Show>
   );
 
@@ -341,18 +406,22 @@ export function Presenter(props: PresenterProps) {
   // expands it (DESIGN.md § Structure).
   const liveStrip = () => (
     <div class="live-strip">
-      <button
-        type="button"
-        class="live-strip-toggle"
-        aria-expanded={liveExpanded()}
-        onClick={() => setLiveExpanded((open) => !open)}
-      >
-        <span class="live-strip-label">Live</span>
-        <span class="live-strip-text">
-          {outputMessage()?.lines[outputMessage()?.focus.start ?? 0]?.text}
-        </span>
-        <span class="icon icon-expand" aria-hidden="true" />
-      </button>
+      <div class="live-strip-row">
+        <button
+          type="button"
+          class="live-strip-toggle"
+          classList={{ "live-blanked": !!props.blanked }}
+          aria-expanded={liveExpanded()}
+          onClick={() => setLiveExpanded((open) => !open)}
+        >
+          <span class="live-strip-label">Live</span>
+          <span class="live-strip-text">
+            {outputMessage()?.lines[outputMessage()?.focus.start ?? 0]?.text}
+          </span>
+          <span class="icon icon-expand" aria-hidden="true" />
+        </button>
+        {blankedBadge()}
+      </div>
       <Show when={liveExpanded()}>{livePreview()}</Show>
     </div>
   );
@@ -536,6 +605,7 @@ export function Presenter(props: PresenterProps) {
                 >
                   <section class="live-pane" aria-label="Live">
                     {livePreview()}
+                    {blankedBadge()}
                   </section>
                 </Show>
 
@@ -599,17 +669,29 @@ export function Presenter(props: PresenterProps) {
             >
               {dockButton(
                 "Previous part",
+                { aria: "ArrowLeft", shown: "←" },
                 "icon-chevron-left",
                 "btn-tonal",
                 (e) => e.previous(),
                 () => !canPrevious(),
               )}
-              {dockButton("Previous line", "icon-arrow-up", "btn-outlined", (e) =>
-                e.previousLine(),
+              {dockButton(
+                "Previous line",
+                { aria: "ArrowUp", shown: "↑" },
+                "icon-arrow-up",
+                "btn-outlined",
+                (e) => e.previousLine(),
               )}
-              {dockButton("Next line", "icon-arrow-down", "btn-outlined", (e) => e.nextLine())}
+              {dockButton(
+                "Next line",
+                { aria: "ArrowDown", shown: "↓" },
+                "icon-arrow-down",
+                "btn-outlined",
+                (e) => e.nextLine(),
+              )}
               {dockButton(
                 "Next part",
+                { aria: "ArrowRight", shown: "→" },
                 "icon-chevron-right",
                 "btn-filled",
                 (e) => e.next(),

@@ -14,7 +14,13 @@ const THEME_CYCLE: Preferences["theme"][] = ["system", "light", "dark"];
 export interface PreferencesController {
   preferences: () => Preferences;
   update: (next: Preferences) => void;
+  /** Steps the Operator's text scale within its bounds — Settings' A− A+
+   * and the + − keys (SDD-0001 §16.5). */
+  adjustScale: (direction: 1 | -1) => void;
 }
+
+export const canAdjustScale = (preferences: Preferences, direction: 1 | -1) =>
+  direction > 0 ? preferences.fontScale < MAX_SCALE : preferences.fontScale > MIN_SCALE;
 
 /**
  * Loads the user's preferences and applies them globally as `--font-scale`
@@ -34,11 +40,18 @@ export function createPreferences(state: UserState = defaultUserState): Preferen
     root.style.setProperty("--font-scale", String(prefs.fontScale));
   });
 
+  const update = (next: Preferences) => {
+    mutate(next);
+    void state.setPreferences(next);
+  };
   return {
     preferences,
-    update: (next) => {
-      mutate(next);
-      void state.setPreferences(next);
+    update,
+    adjustScale: (direction) => {
+      const current = preferences();
+      const scaled = current.fontScale + direction * SCALE_STEP;
+      const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scaled));
+      update({ ...current, fontScale: Math.round(clamped * 1000) / 1000 });
     },
   };
 }
@@ -57,7 +70,7 @@ export interface SettingsProps {
  * Library and Finder too, not only Presenter.
  */
 export function Settings(props: SettingsProps) {
-  const { preferences, update } =
+  const { preferences, update, adjustScale } =
     props.controller ?? createPreferences(props.userState ?? defaultUserState);
 
   const cycleTheme = () => {
@@ -66,19 +79,13 @@ export function Settings(props: SettingsProps) {
     update({ ...current, theme: next });
   };
 
-  const adjustScale = (delta: number) => {
-    const current = preferences();
-    const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, current.fontScale + delta));
-    update({ ...current, fontScale: Math.round(clamped * 1000) / 1000 });
-  };
-
   return (
     <fieldset class="settings" aria-label="Display settings">
       <button
         type="button"
         class="btn-text"
-        onClick={() => adjustScale(-SCALE_STEP)}
-        disabled={preferences().fontScale <= MIN_SCALE}
+        onClick={() => adjustScale(-1)}
+        disabled={!canAdjustScale(preferences(), -1)}
         aria-label="Decrease text size"
       >
         A−
@@ -86,8 +93,8 @@ export function Settings(props: SettingsProps) {
       <button
         type="button"
         class="btn-text"
-        onClick={() => adjustScale(SCALE_STEP)}
-        disabled={preferences().fontScale >= MAX_SCALE}
+        onClick={() => adjustScale(1)}
+        disabled={!canAdjustScale(preferences(), 1)}
         aria-label="Increase text size"
       >
         A+

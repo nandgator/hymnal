@@ -174,6 +174,101 @@ button:disabled {
 }
 
 /* ---------------------------------------------------------------------------
+   Icons: Material Symbols paths as CSS masks, so they take currentColor and
+   need no icon font or extra requests.
+   ------------------------------------------------------------------------ */
+
+.icon {
+  display: inline-block;
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  background-color: currentColor;
+  mask-position: center;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+}
+
+.icon-arrow-back {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z'/%3E%3C/svg%3E");
+}
+
+.icon-chevron-left {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z'/%3E%3C/svg%3E");
+}
+
+.icon-chevron-right {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'/%3E%3C/svg%3E");
+}
+
+.icon-arrow-up {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z'/%3E%3C/svg%3E");
+}
+
+.icon-arrow-down {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z'/%3E%3C/svg%3E");
+}
+
+.icon-queue-music {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 6H3v2h12zm0 4H3v2h12zM3 16h8v-2H3zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6z'/%3E%3C/svg%3E");
+}
+
+.icon-library {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 6H2v14c0 1.1.9 2 2 2h14v-2H4zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m-1 9H9V9h10zm-4 4H9v-2h6zm4-8H9V5h10z'/%3E%3C/svg%3E");
+}
+
+.icon-settings {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6'/%3E%3C/svg%3E");
+}
+
+.icon-menu {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z'/%3E%3C/svg%3E");
+}
+
+.icon-expand {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z'/%3E%3C/svg%3E");
+}
+
+.icon-check {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+}
+
+.icon-repeat {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z'/%3E%3C/svg%3E");
+}
+
+.icon-grid {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 8h4V4H4zm6 12h4v-4h-4zm-6 0h4v-4H4zm0-6h4v-4H4zm6 0h4v-4h-4zm6-10v4h4V4zm-6 4h4V4h-4zm6 6h4v-4h-4zm0 6h4v-4h-4z'/%3E%3C/svg%3E");
+}
+
+.icon-present {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M21 3H3c-1.11 0-2 .89-2 2v14c0 1.11.89 2 2 2h18c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2m0 16.02H3V4.98h18zM10 12H8l4-4 4 4h-2v4h-4z'/%3E%3C/svg%3E");
+}
+
+/* Hidden visually, still the accessible name. display: none would drop it
+   from the name too. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.icon-button {
+  width: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+}
+
+.icon-button .icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* ---------------------------------------------------------------------------
    Shell — layered, after Supabase Studio (DESIGN.md § Structure): a section
    rail (≥840px) or menu, the switcher row, then the workspace, its width
    chosen by content. Hairlines separate the layers; nothing is raised.
@@ -695,91 +790,44 @@ input[type="checkbox"].switch:checked::before {
   font-variant-numeric: tabular-nums;
 }
 
+/* A key hint: the command menu's rows and the shortcut sheet. */
+.key-hint {
+  min-width: 1.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--shape-xs);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+  box-shadow: inset 0 -1px 0 var(--md-sys-color-outline-variant);
+  font-family: var(--font-family);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.finder-option .key-hint {
+  margin-inline-start: auto;
+}
+
+.shortcut-table {
+  border-collapse: collapse;
+}
+
+.shortcut-table th,
+.shortcut-table td {
+  padding: var(--space-xs) var(--space-sm);
+  text-align: start;
+  vertical-align: baseline;
+}
+
+.shortcut-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+  font-weight: 400;
+}
+
 .list-row-supporting {
   color: var(--md-sys-color-on-surface-variant);
-}
-
-/* ---------------------------------------------------------------------------
-   Icons: Material Symbols paths as CSS masks, so they take currentColor and
-   need no icon font or extra requests.
-   ------------------------------------------------------------------------ */
-
-.icon {
-  display: inline-block;
-  flex: none;
-  width: 1.25rem;
-  height: 1.25rem;
-  background-color: currentColor;
-  mask-position: center;
-  mask-size: contain;
-  mask-repeat: no-repeat;
-}
-
-.icon-arrow-back {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z'/%3E%3C/svg%3E");
-}
-
-.icon-chevron-left {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z'/%3E%3C/svg%3E");
-}
-
-.icon-chevron-right {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'/%3E%3C/svg%3E");
-}
-
-.icon-arrow-up {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z'/%3E%3C/svg%3E");
-}
-
-.icon-arrow-down {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z'/%3E%3C/svg%3E");
-}
-
-.icon-queue-music {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 6H3v2h12zm0 4H3v2h12zM3 16h8v-2H3zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6z'/%3E%3C/svg%3E");
-}
-
-.icon-library {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 6H2v14c0 1.1.9 2 2 2h14v-2H4zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m-1 9H9V9h10zm-4 4H9v-2h6zm4-8H9V5h10z'/%3E%3C/svg%3E");
-}
-
-.icon-settings {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6'/%3E%3C/svg%3E");
-}
-
-.icon-menu {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z'/%3E%3C/svg%3E");
-}
-
-.icon-expand {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z'/%3E%3C/svg%3E");
-}
-
-.icon-check {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
-}
-
-.icon-repeat {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z'/%3E%3C/svg%3E");
-}
-
-.icon-grid {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 8h4V4H4zm6 12h4v-4h-4zm-6 0h4v-4H4zm0-6h4v-4H4zm6 0h4v-4h-4zm6-10v4h4V4zm-6 4h4V4h-4zm6 6h4v-4h-4zm0 6h4v-4h-4z'/%3E%3C/svg%3E");
-}
-
-.icon-present {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M21 3H3c-1.11 0-2 .89-2 2v14c0 1.11.89 2 2 2h18c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2m0 16.02H3V4.98h18zM10 12H8l4-4 4 4h-2v4h-4z'/%3E%3C/svg%3E");
-}
-
-/* Hidden visually, still the accessible name. display: none would drop it
-   from the name too. */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 
 /* ---------------------------------------------------------------------------
@@ -791,10 +839,6 @@ input[type="checkbox"].switch:checked::before {
    the panes scroll inside themselves. Library and Finder scroll normally. */
 .shell:has(.operator) {
   height: 100dvh;
-}
-
-.shell:has(.operator) .shell-main {
-  min-height: 0;
 }
 
 .shell:has(.operator) .workspace {
@@ -868,15 +912,47 @@ input[type="checkbox"].switch:checked::before {
 }
 
 .live-pane {
+  position: relative;
   display: flex;
   flex: 0 1000 36dvh;
   justify-content: center;
   min-height: 5rem;
 }
 
-.live-pane .output-view-mini {
-  height: 100%;
-  max-width: 100%;
+/* Blanked (SDD-0001 §16.5): the Output shows bare ground; Live stays
+   readable, dimmed, so the operator can prepare behind it. */
+.live-blanked {
+  opacity: 0.4;
+}
+
+.live-badge {
+  position: absolute;
+  top: var(--space-sm);
+  left: 50%;
+  min-height: 2rem;
+  padding: 0 var(--space-sm);
+  border: none;
+  border-radius: var(--shape-sm);
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+
+.live-strip-row {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.live-strip-row .live-badge {
+  position: static;
+  flex: none;
+  min-height: 3rem;
+  transform: none;
 }
 
 .navigator,
@@ -1108,6 +1184,10 @@ html {
   scrollbar-gutter: stable;
 }
 
+.shell:has(.operator) .shell-main {
+  min-height: 0;
+}
+
 html[data-scrolling],
 .shell-main[data-scrolling] {
   --scrollbar-thumb: var(--md-sys-color-outline-variant);
@@ -1268,18 +1348,6 @@ html[data-scrolling],
 }
 
 /* Icon-only: a fixed MD3 touch target, not scaled with the text. */
-.icon-button {
-  width: 48px;
-  min-width: 48px;
-  min-height: 48px;
-  padding: 0;
-}
-
-.icon-button .icon {
-  width: 24px;
-  height: 24px;
-}
-
 /* A keypad of equal cells (DESIGN.md § Stability): numbered stanzas one
    cell each, unnumbered parts (refrain, bridge, tag) a full row. */
 /* Fixed cells, never stretched; at most one row of stanzas wide, so a
@@ -1376,7 +1444,9 @@ html[data-scrolling],
    parts). Presenter sets the level by measuring whether the labelled row
    fits (DESIGN.md § Stability); nothing here is a width breakpoint. Labels
    stay in the accessibility tree: visually hidden, never display: none. */
-:root:not([data-dock-collapse="0"])[data-dock-collapse] .dock-line .dock-label,
+:root:is([data-dock-collapse="1"], [data-dock-collapse="2"], [data-dock-collapse="3"])
+  .dock-line
+  .dock-label,
 :root:is([data-dock-collapse="2"], [data-dock-collapse="3"]) .fab-label,
 :root[data-dock-collapse="3"] .dock-part .dock-label {
   position: absolute;
@@ -1391,7 +1461,7 @@ html[data-scrolling],
    keep MD3's fixed touch targets (48px buttons, 56px FAB, 24px icons)
    rather than growing with it — otherwise at 2x text a phone can't fit
    even a fully collapsed dock. */
-:root:not([data-dock-collapse="0"])[data-dock-collapse] .dock-line,
+:root:is([data-dock-collapse="1"], [data-dock-collapse="2"], [data-dock-collapse="3"]) .dock-line,
 :root[data-dock-collapse="3"] .dock-part {
   width: 48px;
   min-width: 48px;
@@ -1406,7 +1476,9 @@ html[data-scrolling],
   padding: 0;
 }
 
-:root:not([data-dock-collapse="0"])[data-dock-collapse] .dock-line .icon,
+:root:is([data-dock-collapse="1"], [data-dock-collapse="2"], [data-dock-collapse="3"])
+  .dock-line
+  .icon,
 :root[data-dock-collapse="3"] .dock-part .icon,
 :root:is([data-dock-collapse="2"], [data-dock-collapse="3"]) .fab-fixed .icon {
   width: 24px;
@@ -1496,12 +1568,18 @@ html[data-scrolling],
   pointer-events: none;
 }
 
+.live-pane .output-view-mini {
+  height: 100%;
+  max-width: 100%;
+}
+
 .output-list {
   margin: 0;
   padding: 0 5cqw;
   font-size: calc(7.5cqmin * var(--fit, 1));
   line-height: 1.5;
   list-style: none;
+  transition: opacity 300ms ease;
 }
 
 .output-cursor {
@@ -1521,4 +1599,10 @@ html[data-scrolling],
 
 .output-line-current {
   opacity: 1;
+}
+
+/* Blanked: the text fades to the bare ground, still laid out and
+   positioned, so restoring is instant and in place. */
+.output-blanked .output-list {
+  opacity: 0;
 }

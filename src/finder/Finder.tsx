@@ -32,6 +32,17 @@ export interface FinderProps {
   onSelect: (number: HymnNumber) => void;
   /** Called when the user wants to go back to hymnbook selection. */
   onBack?: () => void;
+  /** Actions listed ahead of the hymns — this makes the Finder the command
+   * menu (SDD-0001 §16.5). */
+  commands?: Command[];
+}
+
+/** An action in the command menu. */
+export interface Command {
+  label: string;
+  /** Its keyboard shortcut, shown at the row's end. */
+  hint?: string;
+  run: () => void;
 }
 
 /** One row in the live results list. */
@@ -42,7 +53,22 @@ interface Option {
   snippet?: string;
 }
 
+/** One row in the listbox: an action, or a hymn. */
+type Row = { kind: "command"; command: Command } | { kind: "hymn"; option: Option };
+
 let nextId = 0;
+
+/** Whether every word typed starts a word of the label: "bl" and "blank
+ * out" both find "Blank the Output". A number never matches, so the fast
+ * path — a number, Enter — still opens a hymn. */
+function matchesCommand(label: string, query: string): boolean {
+  const words = label.toLowerCase().split(/\s+/);
+  return query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((typed) => words.some((word) => word.startsWith(typed)));
+}
 
 /**
  * Board #8 — retrieval by number and by lyric text, plus recents (arc42
@@ -107,18 +133,28 @@ export function Finder(props: FinderProps) {
     }));
   });
 
+  const rows = createMemo((): Row[] => [
+    ...(props.commands ?? [])
+      .filter((command) => !isNumber() && matchesCommand(command.label, trimmed()))
+      .map((command) => ({ kind: "command" as const, command })),
+    ...options().map((option) => ({ kind: "hymn" as const, option })),
+  ]);
+
   const [active, setActive] = createSignal(0);
   createEffect(() => {
-    options();
+    rows();
     setActive(0);
   });
+
+  const pick = (row: Row) =>
+    row.kind === "command" ? row.command.run() : props.onSelect(row.option.number);
 
   const noMatch = () =>
     !isNumber() && !!lyricQuery() && lyricResults.state === "ready" && lyricResults().length === 0;
 
   const choose = () => {
-    const option = options()[active()];
-    if (option) return props.onSelect(option.number);
+    const row = rows()[active()];
+    if (row) return pick(row);
     // A number with no suggestion still opens — Presenter reports it if no
     // such hymn exists.
     if (isNumber()) return props.onSelect(Number(trimmed()));
@@ -126,7 +162,7 @@ export function Finder(props: FinderProps) {
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
-    const count = options().length;
+    const count = rows().length;
     if (event.key === "ArrowDown" && count) {
       event.preventDefault();
       setActive((i) => (i + 1) % count);
@@ -163,14 +199,17 @@ export function Finder(props: FinderProps) {
             type="text"
             role="combobox"
             aria-autocomplete="list"
-            aria-expanded={options().length > 0}
+            aria-expanded={rows().length > 0}
             aria-controls={listId}
-            aria-activedescendant={options().length ? optionId(active()) : undefined}
+            aria-activedescendant={rows().length ? optionId(active()) : undefined}
             value={query()}
             onInput={(event) => setQuery(event.currentTarget.value)}
             onKeyDown={onKeyDown}
-            placeholder="Hymn number or lyrics"
-            aria-label="Find a hymn"
+            // In a sheet (the hymn picker, the command menu) the box takes
+            // focus on open, not the sheet's Close button.
+            autofocus
+            placeholder={props.commands ? "Hymn number, lyrics or action" : "Hymn number or lyrics"}
+            aria-label={props.commands ? "Find a hymn or action" : "Find a hymn"}
           />
         </div>
         <button type="submit" class="btn-filled">
@@ -184,9 +223,14 @@ export function Finder(props: FinderProps) {
 
       {/* Keyboard reaches the options through the input's
           aria-activedescendant (the ARIA combobox pattern), not focus. */}
-      <div id={listId} class="list" role="listbox" aria-label="Matching hymns">
-        <For each={options()}>
-          {(option, index) => (
+      <div
+        id={listId}
+        class="list"
+        role="listbox"
+        aria-label={props.commands ? "Matching hymns and actions" : "Matching hymns"}
+      >
+        <For each={rows()}>
+          {(row, index) => (
             <div
               id={optionId(index())}
               role="option"
@@ -201,16 +245,27 @@ export function Finder(props: FinderProps) {
               // mousedown, not click: keeps focus in the box while choosing.
               onMouseDown={(event) => {
                 event.preventDefault();
-                props.onSelect(option.number);
+                pick(row);
               }}
             >
-              <span class="finder-number">#{option.number}</span>
-              <span class="finder-title">
-                {option.title}
-                <Show when={option.snippet}>
-                  {(snippet) => <span class="list-row-supporting"> — {snippet()}</span>}
-                </Show>
-              </span>
+              {row.kind === "command" ? (
+                <>
+                  <span class="finder-title">{row.command.label}</span>
+                  <Show when={row.command.hint}>
+                    {(hint) => <kbd class="key-hint">{hint()}</kbd>}
+                  </Show>
+                </>
+              ) : (
+                <>
+                  <span class="finder-number">#{row.option.number}</span>
+                  <span class="finder-title">
+                    {row.option.title}
+                    <Show when={row.option.snippet}>
+                      {(snippet) => <span class="list-row-supporting"> — {snippet()}</span>}
+                    </Show>
+                  </span>
+                </>
+              )}
             </div>
           )}
         </For>

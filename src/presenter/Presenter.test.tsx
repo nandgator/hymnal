@@ -413,4 +413,99 @@ describe("Presenter", () => {
     expect(screen.getByRole("button", { name: "Line 1b" })).not.toHaveAttribute("aria-current");
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
   });
+
+  it("takes the rest of the keymap: Space, Home/End, stanza digits, R (SDD-0001 §16.5)", async () => {
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    await screen.findByText("Test Hymn");
+    const heading = () => currentPart().getByRole("heading", { level: 3 });
+
+    fireEvent.keyDown(window, { key: " " });
+    expect(heading()).toHaveTextContent("Refrain");
+    fireEvent.keyDown(window, { key: " ", shiftKey: true });
+    expect(heading()).toHaveTextContent("1");
+
+    fireEvent.keyDown(window, { key: "End" });
+    expect(screen.getByRole("button", { name: "Next part" })).toBeDisabled();
+    fireEvent.keyDown(window, { key: "Home" });
+    expect(screen.getByRole("button", { name: "Previous part" })).toBeDisabled();
+
+    fireEvent.keyDown(window, { key: "2" });
+    expect(heading()).toHaveTextContent("2");
+    fireEvent.keyDown(window, { key: "R" });
+    expect(heading()).toHaveTextContent("Refrain");
+    // Not a stanza: nothing happens.
+    fireEvent.keyDown(window, { key: "9" });
+    expect(heading()).toHaveTextContent("Refrain");
+  });
+
+  it("makes Space Next part even on a focused chip, never re-pressing it", async () => {
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    await screen.findByText("Test Hymn");
+    const chip = within(screen.getByRole("region", { name: "Jump to part" })).getByRole("button", {
+      name: "1",
+    });
+    chip.focus();
+
+    const event = new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true });
+    chip.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+  });
+
+  it("waits briefly for a second stanza digit only when one could follow", async () => {
+    const twelve: HymnSource = {
+      ...HYMN,
+      parts: Array.from({ length: 12 }, (_, i) => ({
+        id: `s${i + 1}`,
+        kind: "stanza" as const,
+        label: String(i + 1),
+        lines: [`Stanza ${i + 1}`],
+      })),
+      sequence: Array.from({ length: 12 }, (_, i) => ({ partId: `s${i + 1}` })),
+    };
+    render(() => (
+      <Presenter
+        hymnNumber={7}
+        store={fakeStore({ getHymn: async () => twelve })}
+        userState={fakeUserState()}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    const heading = () => currentPart().getByRole("heading", { level: 3 });
+    vi.useFakeTimers();
+    try {
+      fireEvent.keyDown(window, { key: "3" });
+      expect(heading()).toHaveTextContent("3"); // nothing longer starts with 3
+
+      fireEvent.keyDown(window, { key: "1" });
+      expect(heading()).toHaveTextContent("3"); // could be 10, 11 or 12
+      fireEvent.keyDown(window, { key: "2" });
+      expect(heading()).toHaveTextContent("12");
+
+      fireEvent.keyDown(window, { key: "1" });
+      vi.advanceTimersByTime(500);
+      expect(heading()).toHaveTextContent("1");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("dims Live while the Output is blanked, with a badge that restores it", async () => {
+    const onRestore = vi.fn();
+    render(() => (
+      <Presenter
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        blanked
+        onRestore={onRestore}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+
+    expect(screen.getByRole("img", { name: "Live output preview" })).toHaveClass("live-blanked");
+    fireEvent.click(screen.getByRole("button", { name: /Blanked/ }));
+    expect(onRestore).toHaveBeenCalled();
+  });
 });

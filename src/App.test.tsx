@@ -143,6 +143,44 @@ describe("App", () => {
     expect(screen.queryByRole("button", { name: "Show Output" })).not.toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Display settings" })).not.toBeInTheDocument();
   });
+
+  it("opens the command menu with Ctrl+K or /, and the shortcut sheet with ? (SDD-0001 §16.5)", async () => {
+    render(() => <App />);
+    // The menu waits for a hymnbook to search.
+    await screen.findByRole("button", { name: "Find a hymn" });
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const menu = await screen.findByRole("dialog", { name: "Command menu" });
+    expect(within(menu).getByRole("option", { name: /Blank the Output/ })).toBeInTheDocument();
+    // Ctrl+K again closes it, even from inside its text box.
+    fireEvent.keyDown(within(menu).getByRole("combobox"), { key: "k", ctrlKey: true });
+    expect(screen.queryByRole("dialog", { name: "Command menu" })).not.toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "/" });
+    expect(await screen.findByRole("dialog", { name: "Command menu" })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+
+    fireEvent.keyDown(window, { key: "?" });
+    const sheet = await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
+    expect(within(sheet).getByText("Blank the Output / restore")).toBeInTheDocument();
+  });
+
+  it("blanks the Output with B and restores it with a second press (.)", async () => {
+    render(() => <App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a hymn" }), {
+      target: { value: "1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    await screen.findByRole("img", { name: "Live output preview" });
+
+    fireEvent.keyDown(window, { key: "b" });
+    expect(screen.getByRole("img", { name: "Live output preview" })).toHaveClass("live-blanked");
+    fireEvent.keyDown(window, { key: "." });
+    expect(screen.getByRole("img", { name: "Live output preview" })).not.toHaveClass(
+      "live-blanked",
+    );
+  });
 });
 
 afterEach(() => {

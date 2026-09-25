@@ -16,7 +16,10 @@ export type OutputMessage =
       lines: FlatLine[];
       focus: LineRange;
     }
-  | { type: "idle" };
+  | { type: "idle" }
+  /** Hides what's presented, or shows it again — distinct from `idle`,
+   * which means nothing is presented (SDD-0001 §16.5). */
+  | { type: "blank"; blanked: boolean };
 
 /** Output → Presenter: "I just opened — send me what's showing." */
 type HelloMessage = { type: "hello" };
@@ -25,6 +28,7 @@ const CHANNEL_NAME = "hymnal-output";
 
 let channel: BroadcastChannel | undefined;
 let lastPublished: OutputMessage | undefined;
+let blanked = false;
 
 function getChannel(): BroadcastChannel {
   if (!channel) {
@@ -33,16 +37,24 @@ function getChannel(): BroadcastChannel {
     // whatever this window last published, instead of sitting blank until
     // the next keypress.
     channel.addEventListener("message", (event: MessageEvent<OutputMessage | HelloMessage>) => {
-      if (event.data.type === "hello" && lastPublished) channel?.postMessage(lastPublished);
+      if (event.data.type !== "hello") return;
+      if (lastPublished) channel?.postMessage(lastPublished);
+      if (blanked) channel?.postMessage({ type: "blank", blanked } satisfies OutputMessage);
     });
   }
   return channel;
 }
 
 /** Presenter calls this on every navigation, and once more with `idle` on unmount. */
-export function publishOutput(message: OutputMessage): void {
+export function publishOutput(message: Exclude<OutputMessage, { type: "blank" }>): void {
   lastPublished = message;
   getChannel().postMessage(message);
+}
+
+/** Blanks the Output, or restores it; held across navigation and hymns. */
+export function setOutputBlanked(next: boolean): void {
+  blanked = next;
+  getChannel().postMessage({ type: "blank", blanked } satisfies OutputMessage);
 }
 
 /**

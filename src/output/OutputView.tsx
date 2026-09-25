@@ -19,6 +19,9 @@ export interface OutputViewProps {
   /** "full": the audience screen. "mini": the Operator's Live pane — the
    * same view, scaled to its box. */
   variant: "full" | "mini";
+  /** Blanked (SDD-0001 §16.5): the text fades out, still laid out and
+   * positioned underneath, so restoring is instant and in place. */
+  blanked?: boolean;
   /** Extra classes on the scroll container (e.g. the Output's cursor). */
   classList?: Record<string, boolean>;
 }
@@ -141,7 +144,7 @@ export function OutputView(props: OutputViewProps) {
     <div
       ref={view}
       class={`output-view output-view-${props.variant}`}
-      classList={props.classList}
+      classList={{ ...props.classList, "output-blanked": !!props.blanked }}
       // The mini view is a picture of the Output; the full one is the Output.
       {...(props.variant === "mini" ? { role: "img", "aria-label": "Live output preview" } : {})}
     >

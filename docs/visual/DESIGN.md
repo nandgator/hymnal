@@ -95,12 +95,12 @@ typography:
     note: multiplied by --font-scale (user setting), never a fixed px — see Layout
   output-line:
     fontFamily: "Hymnal Sans, Noto Sans Malayalam, system-ui, sans-serif"
-    fontSize: "clamp(2.2rem, 6.5vw, 5rem)"
+    fontSize: "calc(7.5cqmin * var(--fit))"
     fontWeight: 500
     lineHeight: 1.35
     color: "{colors.output-ink}"
     colorDimmed: "{colors.output-ink-muted}"
-    note: one style for every line, lit or dimmed — focus changes color only, never size or weight, which would reflow the column mid-scroll. Values provisional until Board #12 part 4, which sizes by the screen itself (vmin, no rem cap) — the Output is the screen that lands on a 4K/8K TV at 100% scaling, where a rem cap would stop the lyrics growing at a fraction of the size they should be. The Operator keeps rem plus the user's text scale: CSS px already map through the device pixel ratio, so OS scaling handles pixel density
+    note: one style for every line, lit or dimmed — focus changes color only, never size or weight, which would reflow the column mid-scroll. Sized by the screen itself (cqmin — vmin on the full Output, a true scale model in the Live pane), shrunk per hymn by --fit (§ Structure), with no rem cap — the Output is the screen that lands on a 4K/8K TV at 100% scaling, where a rem cap would stop the lyrics growing at a fraction of the size they should be. The Operator keeps rem plus the user's text scale: CSS px already map through the device pixel ratio, so OS scaling handles pixel density. Built so far with hardcoded #000/#fff, 0.3 opacity for dimmed, weight 400, line-height 1.5; Board #12 part 4 moves it onto these tokens and settles weight and line-height
 
 rounded:
   none: 0px
@@ -390,8 +390,10 @@ unit.
      the Operator below. Library and Finder use the default width, and
      Settings and About the small one.
   4. **Dock and FAB**, pinned to the bottom (below).
-     A command menu (Ctrl/⌘+K) reaches everything from anywhere: go to a
-     hymn, switch hymnbook, open the Output, toggle panes.
+     A command menu (Ctrl/⌘+K or `/`) reaches everything from anywhere:
+     one box that finds a hymn by number or lyrics, or an action by name,
+     each action showing its key (SDD-0001 §16.5). A `?` sheet lists every
+     shortcut.
 - **Operator workspace.** **Live** is the anchor: what the congregation
   sees now (a mirror of the Output message, SDD-0001 §16.4). Beside it,
   one **navigator**, switched with a segmented button **Parts | Lyrics**
@@ -426,6 +428,9 @@ unit.
     the strip even on a wide screen, and the navigator gets the room.
     Below even that, the main column scrolls inside itself as the last
     resort; the page never does.
+  - **Blanked**: while the Output is blanked (B), Live dims and carries a
+    **Blanked** badge, which restores on a tap; the strip shows it too. The
+    operator can keep navigating behind it (SDD-0001 §16.5).
   - **Phone**: Live collapses to a thin strip showing the current line,
     expanding on tap; the navigator fills the room below it; the dock as
     everywhere.

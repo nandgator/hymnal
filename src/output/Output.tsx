@@ -12,11 +12,20 @@ const CURSOR_IDLE_MS = 2000;
  * is {@link OutputView}, shared with the Operator's Live pane.
  */
 export function Output() {
-  const [message, setMessage] = createSignal<OutputMessage>({ type: "idle" });
+  const [message, setMessage] = createSignal<Exclude<OutputMessage, { type: "blank" }>>({
+    type: "idle",
+  });
   const content = createMemo(() => {
     const current = message();
     return current.type === "content" ? current : undefined;
   });
+  // Blank holds apart from the content, which keeps arriving underneath, so
+  // restoring shows wherever the operator has got to (SDD-0001 §16.5).
+  const [blanked, setBlanked] = createSignal(false);
+  const receive = (next: OutputMessage) => {
+    if (next.type === "blank") setBlanked(next.blanked);
+    else setMessage(next);
+  };
 
   // Visible while the mouse moves, so the operator can position and
   // fullscreen the window; hidden once still, so it never sits parked
@@ -35,7 +44,7 @@ export function Output() {
   });
 
   onMount(() => {
-    const unsubscribe = subscribeOutput(setMessage);
+    const unsubscribe = subscribeOutput(receive);
     onCleanup(unsubscribe);
   });
 
@@ -48,6 +57,7 @@ export function Output() {
         <OutputView
           message={current()}
           variant="full"
+          blanked={blanked()}
           classList={{ "output-cursor": cursorVisible() }}
         />
       )}

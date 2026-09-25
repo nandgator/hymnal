@@ -38,10 +38,11 @@ Parts, each reviewed before the next:
 3. Operator, layered app shell (DESIGN.md § Structure, SDD §16.4–16.5):
    - ~~3a. Shell: rail/menu, switcher row with hot-swap~~ — done
    - ~~3b. Workspace: Live + Parts | Lyrics, touch-first~~ — done
-   - 3c. Keyboard shortcuts, `?` sheet, command menu (Ctrl/⌘+K)
+   - ~~3c. Keyboard shortcuts, `?` sheet, command menu (Ctrl/⌘+K)~~ — done
    - 3d. Pane show/hide, persisted
    - 3e. Output → Operator scroll sync (SDD §16.1)
-4. Presentation: preset themes (Dark, Light, High contrast, Warm…); cues
+4. Presentation: Output styled from tokens (ground/ink/muted), not
+   hardcoded; preset themes (Dark, Light, High contrast, Warm…); cues
    each toggleable, all off (hymn #/title, hymnbook, part, repeat ×N);
    Repeat returns, staying on the page with a ×N count; Undo repeat
 
@@ -105,10 +106,10 @@ ones only, here:
 | Question                          | Blocks      |
 | --------------------------------- | ----------- |
 | Lyrics copyright / redistribution | Any release |
-| One-key blank Output (B or .)     | 3c keymap   |
 
 ## Log
 
+- 2026-09-25 — #12 part 3c: keymap, `?` sheet, Ctrl/⌘+K menu; B blanks, held — §16.5
 - 2026-09-24 — Output fits per hymn, eyeline 42%; Live = scaled Output; repeat explicit
 - 2026-09-24 — Finder searches as you type (combobox); shortcuts off while typing
 - 2026-09-24 — Relicensed AGPL-3.0-only → Apache-2.0; resolves arc42 R3 — ADR-0016

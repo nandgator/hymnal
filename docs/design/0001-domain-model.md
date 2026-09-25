@@ -1142,31 +1142,70 @@ boolean>`, defaulting to shown; an unknown id is ignored and a new one
 ### 16.5 Keyboard shortcuts
 
 Figma-style: single keys, no modifier where one isn't needed, discoverable
-from a `?` sheet and from tooltips. Every shortcut is off while focus is in a
-text field, so typing a search never moves the Output. Remote clickers send
+from a `?` sheet, from the command menu (each action shows its key) and from
+tooltips. Every shortcut is off while focus is in a text field, so typing a
+search never moves the Output, and while a sheet is open, except Ctrl/⌘+K,
+which works from anywhere, including a text field. Keys held with Ctrl, ⌘ or
+Alt are left to the browser (zoom, find, reload). Remote clickers send
 arrows, Page Up/Down, and `.` or `B` for a black screen, so those work too.
 
-| Keys                    | Action                                       |
-| ----------------------- | -------------------------------------------- |
-| → Page Down Space       | Next part                                    |
-| ← Page Up Shift+Space   | Previous part                                |
-| ↓ ↑                     | Next / previous line                         |
-| Home End                | First / last part                            |
-| 1–9, two digits quickly | Jump to stanza _n_ (§5.1)                    |
-| R                       | Jump to the refrain                          |
-| B or .                  | Blank the Output / restore (proposed, below) |
-| O                       | Open or focus the Output window              |
-| N                       | Swap navigator (Parts ↔ Lyrics)              |
-| L                       | Show or hide Live                            |
-| / or Ctrl/⌘+K           | Command menu: go to a hymn, switch hymnbook  |
-| + −                     | Text size                                    |
-| ?                       | Shortcut sheet                               |
-| Esc                     | Close a sheet or menu                        |
+| Keys                    | Action                                      |
+| ----------------------- | ------------------------------------------- |
+| → Page Down Space       | Next part                                   |
+| ← Page Up Shift+Space   | Previous part                               |
+| ↓ ↑                     | Next / previous line                        |
+| Home End                | First / last part                           |
+| 1–9, two digits quickly | Jump to stanza _n_ (§5.1)                   |
+| R                       | Jump to the refrain                         |
+| B or .                  | Blank the Output / restore                  |
+| O                       | Open or focus the Output window             |
+| N                       | Swap navigator (Parts ↔ Lyrics)             |
+| L                       | Show or hide Live (with pane show/hide, 3d) |
+| / or Ctrl/⌘+K           | Command menu: hymns and actions             |
+| + −                     | Operator text size                          |
+| ?                       | Shortcut sheet                              |
+| Esc                     | Close a sheet or menu                       |
 
-**Proposed, not yet decided: blank.** Every worship tool has a one-key
-black screen (a sermon starts, a slide is wrong). The Output would gain a
-third message, `blank`, distinct from `idle`: `idle` means nothing is
-presented; `blank` hides what is, and restores it on the second press.
+- **One table, two owners.** The table is data (`src/shell/keymap.ts`),
+  rendered by the `?` sheet and read by the command menu for its key hints,
+  so the three can't disagree. The shell handles the keys that work on every
+  screen (B, O, N, /, Ctrl/⌘+K, +, −, ?); the Presenter handles the ones
+  that move an engine (parts, lines, stanzas, refrain).
+- **Space is Next part**, even on a focused button: a clicker or a thumb
+  on the space bar must never re-press whatever chip was last tapped (which
+  would restart that part). Enter still activates a focused button. Radios
+  and checkboxes keep Space, as with the arrow keys.
+- **Stanza digits.** A digit jumps at once when no longer stanza label
+  starts with it; `1` in a hymn with 12 stanzas waits about half a second
+  for a second digit, then goes to 1. Typing a number that isn't a stanza
+  does nothing. So a hymn of up to nine stanzas never waits, and the
+  audience never sees stanza 1 flash on the way to 12.
+- **R** jumps to the hymn's first refrain, by the same move rule as a chip
+  (§5.1); a hymn with no refrain ignores it.
+- **+ −** step the Operator's text scale, the same step and bounds as
+  Settings. The Output isn't affected: it fits itself per hymn (§16.1).
+
+**Blank.** Every worship tool has a one-key black screen (a sermon starts,
+a slide is wrong). B or `.` blanks the Output; pressing it again restores.
+Blank **holds** until restored: the operator can navigate, or swap hymn or
+hymnbook, behind it, and restore shows wherever they are. It's a separate
+channel message, `{ type: "blank", blanked }`, not a kind of content, and
+distinct from `idle`: `idle` means nothing is presented; `blank` hides what
+is. The Output keeps laying out and positioning the hymn underneath, and
+fades the text out to the bare background, so restore is instant and
+already in place. Late join replays both the last content and the blank
+state. The state lives in the shell, not the Presenter, so it survives a
+hot-swap. The Operator shows it: the Live preview dims, with a **Blanked**
+badge that restores on a tap, and the command menu lists Blank or Restore.
+
+**Command menu** (Ctrl/⌘+K or `/`): one box over hymns and actions. It is
+the Finder (§13) with actions listed ahead of the hymn results: an action
+shows when every word typed starts a word of its name, so "bl" finds
+"Blank the Output". A number matches no action, so the Finder's fast path
+holds: `/`, a number, Enter. With the box empty, the actions show, each
+with its key. Actions: Blank or Restore the Output, Show Output, Swap
+navigator (with a hymn open), Switch hymnbook, Library, Settings, Text
+size up and down, Keyboard shortcuts.
 
 ### 16.6 Testing
 

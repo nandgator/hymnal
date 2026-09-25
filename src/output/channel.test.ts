@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { publishOutput, subscribeOutput } from "./channel.ts";
+import { publishOutput, setOutputBlanked, subscribeOutput } from "./channel.ts";
 
 const CHANNEL_NAME = "hymnal-output";
 
@@ -88,5 +88,23 @@ describe("output channel", () => {
 
     unsubscribe();
     presenterWindow.close();
+  });
+
+  it("sends blank and restore, and replays a held blank to a late Output", async () => {
+    const otherWindow = new BroadcastChannel(CHANNEL_NAME);
+    const blank = nextMessage(otherWindow);
+    setOutputBlanked(true);
+    expect(await blank).toEqual({ type: "blank", blanked: true });
+
+    const seen: unknown[] = [];
+    otherWindow.onmessage = (event) => seen.push(event.data);
+    otherWindow.postMessage({ type: "hello" });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(seen).toContainEqual({ type: "blank", blanked: true });
+
+    setOutputBlanked(false);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(seen.at(-1)).toEqual({ type: "blank", blanked: false });
+    otherWindow.close();
   });
 });

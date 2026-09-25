@@ -230,4 +230,37 @@ describe("Finder", () => {
     fireEvent.mouseMove(second);
     expect(second).toHaveAttribute("aria-selected", "true");
   });
+
+  it("as the command menu, lists actions ahead of hymns, matched by word starts (SDD-0001 §16.5)", async () => {
+    const blank = vi.fn();
+    const onSelect = vi.fn();
+    render(() => (
+      <Finder
+        store={fakeStore()}
+        userState={fakeUserState()}
+        onSelect={onSelect}
+        commands={[
+          { label: "Blank the Output", hint: "B", run: blank },
+          { label: "Show Output", hint: "O", run: () => {} },
+        ]}
+      />
+    ));
+    const box = screen.getByRole("combobox", { name: "Find a hymn or action" });
+
+    // Empty: every action, with its key.
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+    expect(screen.getByRole("option", { name: /Blank the Output/ })).toHaveTextContent("B");
+
+    fireEvent.input(box, { target: { value: "bl out" } });
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    fireEvent.submit(box.closest("form") as HTMLFormElement);
+    expect(blank).toHaveBeenCalled();
+
+    // A number matches no action: the fast path still opens the hymn.
+    fireEvent.input(box, { target: { value: "42" } });
+    await screen.findByRole("option", { name: /Forty-Second/ });
+    expect(screen.queryByRole("option", { name: /Output/ })).not.toBeInTheDocument();
+    fireEvent.submit(box.closest("form") as HTMLFormElement);
+    expect(onSelect).toHaveBeenCalledWith(42);
+  });
 });

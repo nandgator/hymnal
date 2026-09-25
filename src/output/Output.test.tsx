@@ -131,4 +131,18 @@ describe("Output", () => {
       vi.useRealTimers();
     }
   });
+
+  it("fades to the bare background while blanked, still following the focus underneath", () => {
+    render(() => <Output />);
+    show(0);
+    channel.handler?.({ type: "blank", blanked: true });
+
+    const view = screen.getByText("Line 1a").closest(".output-view");
+    expect(view).toHaveClass("output-blanked");
+    show(2);
+    expect(screen.getByText("Refrain line")).toHaveClass("output-line-current");
+
+    channel.handler?.({ type: "blank", blanked: false });
+    expect(view).not.toHaveClass("output-blanked");
+  });
 });

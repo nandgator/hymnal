@@ -1,12 +1,14 @@
-import { createSignal, For, Match, onCleanup, Show, Switch } from "solid-js";
+import { createSignal, For, Match, onCleanup, onMount, Show, Switch } from "solid-js";
 import { BUNDLED_HYMNBOOK_ID } from "./config.ts";
 import type { Hymn, Hymnbook, HymnbookId, HymnNumber } from "./domain/types.ts";
-import { Finder } from "./finder/Finder.tsx";
+import { type Command, Finder } from "./finder/Finder.tsx";
 import { Library } from "./library/Library.tsx";
+import { setOutputBlanked } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
 import { Presenter } from "./presenter/Presenter.tsx";
+import { ignoresShortcuts, keyHint, SHORTCUTS } from "./shell/keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
-import { createPreferences, Settings } from "./shell/Settings.tsx";
+import { canAdjustScale, createPreferences, Settings } from "./shell/Settings.tsx";
 import { Sheet } from "./shell/Sheet.tsx";
 import { installScrollReveal } from "./shell/scrollReveal.ts";
 
@@ -56,6 +58,42 @@ function Operator() {
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [bookPickerOpen, setBookPickerOpen] = createSignal(false);
   const [hymnPickerOpen, setHymnPickerOpen] = createSignal(false);
+  const [commandMenuOpen, setCommandMenuOpen] = createSignal(false);
+  const [shortcutsOpen, setShortcutsOpen] = createSignal(false);
+
+  // Blank holds until restored, across navigation and hymn swaps, so it
+  // lives here rather than in the Presenter (SDD-0001 §16.5).
+  const [blanked, setBlanked] = createSignal(false);
+  const toggleBlank = () => {
+    const next = !blanked();
+    setBlanked(next);
+    setOutputBlanked(next);
+  };
+
+  const openOutput = () => window.open(OUTPUT_URL, OUTPUT_WINDOW_NAME, "popup");
+  const presenting = () => section() === "present" && !!hymnNumber();
+  const swapNavigator = () => {
+    const current = preferences.preferences();
+    preferences.update({
+      ...current,
+      navigator: current.navigator === "parts" ? "lyrics" : "parts",
+    });
+  };
+
+  // Only one sheet at a time: a command opening another sheet, or Ctrl/⌘+K
+  // from inside one, replaces it rather than stacking modals.
+  const closeSheets = () => {
+    setMenuOpen(false);
+    setSettingsOpen(false);
+    setBookPickerOpen(false);
+    setHymnPickerOpen(false);
+    setCommandMenuOpen(false);
+    setShortcutsOpen(false);
+  };
+  const openSheet = (open: (value: boolean) => void) => {
+    closeSheets();
+    open(true);
+  };
 
   const go = (next: Section) => {
     setSection(next);
@@ -92,6 +130,78 @@ function Operator() {
     if (id !== hymnbookId()) setHymnbookId(id);
     findHymn();
   };
+
+  // The command menu's actions (SDD-0001 §16.5), each with its key.
+  const commands = (): Command[] => {
+    const prefs = preferences.preferences();
+    const run = (action: () => void) => () => {
+      setCommandMenuOpen(false);
+      action();
+    };
+    return [
+      {
+        label: blanked() ? "Restore the Output" : "Blank the Output",
+        hint: keyHint("blank"),
+        run: run(toggleBlank),
+      },
+      { label: "Show Output", hint: keyHint("output"), run: run(openOutput) },
+      ...(presenting()
+        ? [
+            {
+              label: `Swap navigator to ${prefs.navigator === "parts" ? "Lyrics" : "Parts"}`,
+              hint: keyHint("navigator"),
+              run: run(swapNavigator),
+            },
+          ]
+        : []),
+      { label: "Switch hymnbook", run: run(() => openSheet(setBookPickerOpen)) },
+      { label: "Library", run: run(() => go("library")) },
+      { label: "Settings", run: run(() => openSheet(setSettingsOpen)) },
+      ...(canAdjustScale(prefs, 1)
+        ? [{ label: "Text size up", hint: "+", run: run(() => preferences.adjustScale(1)) }]
+        : []),
+      ...(canAdjustScale(prefs, -1)
+        ? [{ label: "Text size down", hint: "−", run: run(() => preferences.adjustScale(-1)) }]
+        : []),
+      {
+        label: "Keyboard shortcuts",
+        hint: keyHint("shortcuts"),
+        run: run(() => openSheet(setShortcutsOpen)),
+      },
+    ];
+  };
+
+  // The shell's keys, which work on every screen (SDD-0001 §16.5); the
+  // Presenter handles the ones that move its engine.
+  const onKeyDown = (event: KeyboardEvent) => {
+    // Ctrl/⌘+K works from anywhere, a text field or another sheet included.
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      if (commandMenuOpen()) setCommandMenuOpen(false);
+      else if (hymnbook()) openSheet(setCommandMenuOpen);
+      return;
+    }
+    if (ignoresShortcuts(event)) return;
+    const action = (
+      {
+        b: toggleBlank,
+        ".": toggleBlank,
+        o: openOutput,
+        n: () => presenting() && swapNavigator(),
+        "/": () => hymnbook() && openSheet(setCommandMenuOpen),
+        "+": () => preferences.adjustScale(1),
+        // The + key's own character, unshifted, on most layouts.
+        "=": () => preferences.adjustScale(1),
+        "-": () => preferences.adjustScale(-1),
+        "?": () => openSheet(setShortcutsOpen),
+      } as Record<string, () => unknown>
+    )[event.key.toLowerCase()];
+    if (!action) return;
+    event.preventDefault();
+    action();
+  };
+  onMount(() => window.addEventListener("keydown", onKeyDown));
+  onCleanup(() => window.removeEventListener("keydown", onKeyDown));
 
   const sectionButton = (item: (typeof SECTIONS)[number], variant: "rail" | "menu") => (
     <button
@@ -214,6 +324,8 @@ function Operator() {
                     preferences.update({ ...preferences.preferences(), navigator })
                   }
                   onBack={() => setHymnPickerOpen(true)}
+                  blanked={blanked()}
+                  onRestore={toggleBlank}
                 />
               )}
             </Match>
@@ -226,7 +338,9 @@ function Operator() {
       <button
         type="button"
         class="fab-extended fab-fixed"
-        onClick={() => window.open(OUTPUT_URL, OUTPUT_WINDOW_NAME, "popup")}
+        aria-keyshortcuts="O"
+        title="Show Output (O)"
+        onClick={openOutput}
       >
         <span class="icon icon-present" aria-hidden="true" />
         <span class="fab-label">Show Output</span>
@@ -239,6 +353,44 @@ function Operator() {
         placement={expanded() ? "center" : "bottom"}
       >
         <Finder hymnbookId={hymnbookId()} onSelect={chooseHymn} />
+      </Sheet>
+
+      <Sheet
+        open={commandMenuOpen()}
+        onClose={() => setCommandMenuOpen(false)}
+        title="Command menu"
+        placement={expanded() ? "center" : "bottom"}
+      >
+        <Finder
+          hymnbookId={hymnbookId()}
+          onSelect={(number) => {
+            setCommandMenuOpen(false);
+            chooseHymn(number);
+          }}
+          commands={commands()}
+        />
+      </Sheet>
+
+      <Sheet
+        open={shortcutsOpen()}
+        onClose={() => setShortcutsOpen(false)}
+        title="Keyboard shortcuts"
+        placement="center"
+      >
+        <table class="shortcut-table">
+          <tbody>
+            <For each={SHORTCUTS}>
+              {(shortcut) => (
+                <tr>
+                  <th scope="row" class="shortcut-keys">
+                    <For each={shortcut.keys}>{(key) => <kbd class="key-hint">{key}</kbd>}</For>
+                  </th>
+                  <td class="body-large">{shortcut.label}</td>
+                </tr>
+              )}
+            </For>
+          </tbody>
+        </table>
       </Sheet>
 
       <Sheet
