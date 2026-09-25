@@ -441,12 +441,64 @@ button:disabled {
   padding: var(--space-md) var(--space-lg);
 }
 
+/* Settings, grouped (DESIGN.md § Structure): an MD3 list with section
+   headers; each row a label (and supporting text) then its control. */
 .settings {
   display: flex;
-  gap: var(--space-xs);
-  padding: 0;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-heading {
   margin: 0;
-  border: none;
+  padding: var(--space-xs) var(--space-md);
+  color: var(--md-sys-color-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.007em;
+}
+
+.settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs) var(--space-md);
+  min-height: 3.5rem;
+  padding: var(--space-xs) var(--space-md);
+}
+
+.settings-label {
+  display: flex;
+  flex-direction: column;
+  color: var(--md-sys-color-on-surface);
+  font-size: 1rem;
+}
+
+.settings-supporting {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.settings-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+}
+
+.settings-value {
+  min-width: 3.5rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.settings-link {
+  gap: var(--space-md);
 }
 
 /* ---------------------------------------------------------------------------
@@ -804,7 +856,8 @@ input[type="checkbox"].switch:checked::before {
   text-align: center;
 }
 
-.finder-option .key-hint {
+.finder-option .key-hint,
+.settings-link .key-hint {
   margin-inline-start: auto;
 }
 
@@ -948,11 +1001,16 @@ input[type="checkbox"].switch:checked::before {
   gap: var(--space-xs);
 }
 
+.switcher-row .live-badge,
 .live-strip-row .live-badge {
   position: static;
   flex: none;
   min-height: 3rem;
   transform: none;
+}
+
+.switcher-badge {
+  margin-inline-start: auto;
 }
 
 .navigator,

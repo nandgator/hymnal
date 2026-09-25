@@ -21,9 +21,11 @@ export type ShortcutId =
   | "blank"
   | "output"
   | "navigator"
+  | "live"
   | "command-menu"
   | "text-size"
   | "shortcuts"
+  | "settings"
   | "close";
 
 export const SHORTCUTS: Shortcut[] = [
@@ -36,9 +38,11 @@ export const SHORTCUTS: Shortcut[] = [
   { id: "blank", keys: ["B", "."], label: "Blank the Output / restore" },
   { id: "output", keys: ["O"], label: "Show Output" },
   { id: "navigator", keys: ["N"], label: "Swap navigator (Parts ↔ Lyrics)" },
+  { id: "live", keys: ["L"], label: "Show or hide Live" },
   { id: "command-menu", keys: ["/", "Ctrl+K"], label: "Command menu" },
   { id: "text-size", keys: ["+", "−"], label: "Text size" },
   { id: "shortcuts", keys: ["?"], label: "Keyboard shortcuts" },
+  { id: "settings", keys: ["Ctrl+,"], label: "Settings" },
   { id: "close", keys: ["Esc"], label: "Close a sheet or menu" },
 ];
 

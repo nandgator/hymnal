@@ -24,6 +24,7 @@ import { type ContentStore, getContentStore } from "../persistence/content-store
 import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
 import { ignoresShortcuts } from "../shell/keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY, TALL_QUERY } from "../shell/media.ts";
+import type { PaneId } from "../shell/panes.ts";
 
 // Most parts carry no label — it's printed only for numbered stanzas
 // (SDD-0001 §2.1). Refrains, bridges and tags fall back to their kind.
@@ -61,6 +62,10 @@ export interface PresenterProps {
   blanked?: boolean;
   /** Restores a blanked Output — the Live pane's Blanked badge. */
   onRestore?: () => void;
+  /** Which supporting panes show, by id; absent means shown (SDD-0001
+   * §16.4). The shell keeps it in preferences. */
+  panes?: Record<string, boolean>;
+  onPaneChange?: (id: PaneId, shown: boolean) => void;
 }
 
 /**
@@ -239,7 +244,18 @@ export function Presenter(props: PresenterProps) {
     props.onNavigatorChange?.(next);
   };
   const other = (): Navigator => (navigator() === "parts" ? "lyrics" : "parts");
-  const [sidebarOpen, setSidebarOpen] = createSignal(true);
+  // Pane visibility, kept by the shell like the navigator (SDD-0001 §16.4);
+  // local too, so the Presenter works on its own.
+  const [panes, setPanes] = createSignal<Record<string, boolean>>(props.panes ?? {});
+  createEffect(() => {
+    if (props.panes) setPanes(props.panes);
+  });
+  const shown = (id: PaneId) => panes()[id] ?? true;
+  const setPane = (id: PaneId, next: boolean) => {
+    setPanes((current) => ({ ...current, [id]: next }));
+    props.onPaneChange?.(id, next);
+  };
+  const sidebarOpen = () => shown("sidebar");
   const [liveExpanded, setLiveExpanded] = createSignal(false);
 
   // Keep the current block centred in every Lyrics list on screen, like the
@@ -599,19 +615,21 @@ export function Presenter(props: PresenterProps) {
                 {/* Wide and tall: the full preview. Phone: the strip on its own
                     row. Wide but short: the strip moves into the navigator's
                     header row below, where there's width to spare. */}
-                <Show
-                  when={expanded() && tall()}
-                  fallback={<Show when={!expanded()}>{liveStrip()}</Show>}
-                >
-                  <section class="live-pane" aria-label="Live">
-                    {livePreview()}
-                    {blankedBadge()}
-                  </section>
+                <Show when={shown("live")}>
+                  <Show
+                    when={expanded() && tall()}
+                    fallback={<Show when={!expanded()}>{liveStrip()}</Show>}
+                  >
+                    <section class="live-pane" aria-label="Live">
+                      {livePreview()}
+                      {blankedBadge()}
+                    </section>
+                  </Show>
                 </Show>
 
                 <section class="navigator" aria-label="Navigator">
                   <div class="navigator-header">
-                    <Show when={expanded() && !tall()}>
+                    <Show when={shown("live") && expanded() && !tall()}>
                       <div class="navigator-header-live">{liveStrip()}</div>
                     </Show>
                     {/* MD3 segmented button on native radios: arrow keys move
@@ -641,7 +659,7 @@ export function Presenter(props: PresenterProps) {
                         type="button"
                         class="btn-text"
                         aria-expanded={sidebarOpen()}
-                        onClick={() => setSidebarOpen((open) => !open)}
+                        onClick={() => setPane("sidebar", !sidebarOpen())}
                       >
                         {sidebarOpen() ? "Hide" : "Show"} {NAVIGATOR_TITLES[other()]}
                       </button>

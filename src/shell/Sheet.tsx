@@ -7,6 +7,9 @@ export interface SheetProps {
   /** "bottom": an MD3 modal bottom sheet (phones, pane sheets). "center": a
    * dialog for pickers on a wide screen. */
   placement?: "bottom" | "center";
+  /** The header button's label: "Back" when the sheet was opened from
+   * another, and closing returns there. Defaults to "Close". */
+  closeLabel?: string;
   children: JSX.Element;
 }
 
@@ -51,7 +54,7 @@ export function Sheet(props: SheetProps) {
           <div class="sheet-header">
             <h2 class="title-medium">{props.title}</h2>
             <button type="button" class="btn-text" onClick={() => props.onClose()}>
-              Close
+              {props.closeLabel ?? "Close"}
             </button>
           </div>
           {props.children}

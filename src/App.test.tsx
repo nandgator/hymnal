@@ -141,7 +141,7 @@ describe("App", () => {
     render(() => <App />);
 
     expect(screen.queryByRole("button", { name: "Show Output" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("group", { name: "Display settings" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Display" })).not.toBeInTheDocument();
   });
 
   it("opens the command menu with Ctrl+K or /, and the shortcut sheet with ? (SDD-0001 §16.5)", async () => {
@@ -180,6 +180,50 @@ describe("App", () => {
     expect(screen.getByRole("img", { name: "Live output preview" })).not.toHaveClass(
       "live-blanked",
     );
+  });
+
+  it("opens Settings with Ctrl+,; its shortcut sheet goes Back to it, not closed", async () => {
+    render(() => <App />);
+    await screen.findByRole("button", { name: "Find a hymn" });
+
+    fireEvent.keyDown(window, { key: ",", ctrlKey: true });
+    const settings = await screen.findByRole("dialog", { name: "Settings" });
+    fireEvent.click(within(settings).getByRole("button", { name: /Keyboard shortcuts/ }));
+
+    const sheet = await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Back" }));
+    expect(await screen.findByRole("dialog", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).not.toBeInTheDocument();
+
+    // Opened on its own (?), it just closes.
+    fireEvent.keyDown(window, { key: ",", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "?" });
+    expect(
+      within(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).getByRole(
+        "button",
+        { name: "Close" },
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("hides Live with L, remembered in preferences, and shows it again (SDD-0001 §16.4)", async () => {
+    render(() => <App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Find a hymn" }));
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a hymn" }), {
+      target: { value: "1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    await screen.findByRole("img", { name: "Live output preview" });
+
+    fireEvent.keyDown(window, { key: "l" });
+    expect(screen.queryByRole("img", { name: "Live output preview" })).not.toBeInTheDocument();
+    // Blanked with Live hidden: the badge sits in the switcher row.
+    fireEvent.keyDown(window, { key: "b" });
+    expect(screen.getByRole("button", { name: /Blanked/ }).closest(".switcher-row")).not.toBeNull();
+    fireEvent.keyDown(window, { key: "b" });
+
+    fireEvent.keyDown(window, { key: "L" });
+    expect(screen.getByRole("img", { name: "Live output preview" })).toBeInTheDocument();
   });
 });
 

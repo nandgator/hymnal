@@ -39,7 +39,7 @@ Parts, each reviewed before the next:
    - ~~3a. Shell: rail/menu, switcher row with hot-swap~~ — done
    - ~~3b. Workspace: Live + Parts | Lyrics, touch-first~~ — done
    - ~~3c. Keyboard shortcuts, `?` sheet, command menu (Ctrl/⌘+K)~~ — done
-   - 3d. Pane show/hide, persisted
+   - ~~3d. Pane show/hide, persisted~~ — done
    - 3e. Output → Operator scroll sync (SDD §16.1)
 4. Presentation: Output styled from tokens (ground/ink/muted), not
    hardcoded; preset themes (Dark, Light, High contrast, Warm…); cues
@@ -74,8 +74,9 @@ Ordered. Top unblocked item is next.
 | 17  | About: acknowledgements, copyright, credits                         | —          |
 | 18  | Over-the-air update notices (as Supabase announces changes)         | —          |
 | 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)     | 2nd book   |
+| 20  | Keyboard shortcut review: add, drop, rearrange (SDD §16.5)          | near done  |
 
-12–13 are Phase 1. 14–15 sit past the scope guard below. 16–19 are notes,
+12–13 are Phase 1. 14–15 sit past the scope guard below. 16–20 are notes,
 not scheduled: the shell reserves room for them (DESIGN.md § Structure).
 
 ## Invariants
@@ -109,6 +110,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-25 — #12 part 3d: Live, sidebar hideable (remembered); Settings grouped
 - 2026-09-25 — #12 part 3c: keymap, `?` sheet, Ctrl/⌘+K menu; B blanks, held — §16.5
 - 2026-09-24 — Output fits per hymn, eyeline 42%; Live = scaled Output; repeat explicit
 - 2026-09-24 — Finder searches as you type (combobox); shortcuts off while typing

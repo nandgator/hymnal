@@ -378,7 +378,7 @@ unit.
      from 840px, a menu on a phone. Now: Present and Library. Reserved,
      not built: Feedback and corrections, About (acknowledgements,
      copyright, credits), Updates (over-the-air, as Supabase announces
-     them). Settings (text size, theme) moves to the rail's foot.
+     them). Settings moves to the rail's foot.
   2. **Switcher row**, Supabase's org/project breadcrumb:
      **Hymnbook ▾ / #908 Title ▾**. Each crumb is a picker. The hymnbook
      picker lists installed books; the hymn picker is quick-find (number
@@ -430,18 +430,26 @@ unit.
     resort; the page never does.
   - **Blanked**: while the Output is blanked (B), Live dims and carries a
     **Blanked** badge, which restores on a tap; the strip shows it too. The
-    operator can keep navigating behind it (SDD-0001 §16.5).
+    operator can keep navigating behind it (SDD-0001 §16.5). With no Live
+    on screen, the badge sits at the switcher row's end instead.
   - **Phone**: Live collapses to a thin strip showing the current line,
     expanding on tap; the navigator fills the room below it; the dock as
     everywhere.
-  - **Where a control lives follows how often it's used mid-service**
-    (to settle in 3d): frequent ones (the repeat-cue switch, the
-    navigator swap) stay on screen; occasional ones (text size, theme,
-    pane visibility) go into an organized Settings; the user may move a
-    control between the two. Nothing mid-service should need a trip
-    into Settings.
-  - **Show/hide**: supporting panes remain a registry (SDD-0001 §16.4),
-    so future panes slot in without another layout rework.
+  - **Where a control lives follows how often it's used mid-service**:
+    frequent ones (the navigator swap, the sidebar's Hide/Show, later the
+    repeat-cue switch) stay on screen; occasional ones go into Settings.
+    Nothing mid-service needs a trip into Settings: each pane toggle is
+    also a key (L for Live) and a command-menu action. Letting the user
+    move a control between screen and Settings is deferred, not dropped.
+  - **Settings, grouped**: one sheet, MD3 list sections. **Display**:
+    theme (System | Light | Dark) and text size (A− 100% A+).
+    **Workspace**: Show Live, Show sidebar (switches), and which
+    navigator leads (Parts | Lyrics). **Keyboard**: opens the shortcut
+    sheet, whose Close then reads Back and returns to Settings. Part 4
+    adds **Presentation** (themes, cues) as one more section.
+  - **Show/hide**: Live and the sidebar, remembered (SDD-0001 §16.4).
+    The leading navigator and the dock never hide. Panes remain a
+    registry, so future ones slot in without another layout rework.
 - **FAB and dock**: a fixed bottom dock for navigation plus the FAB. The
   FAB is **Show Output**: presenting is the operator's whole job, and it's
   the one action that must be easy to hit mid-service. It belongs to the

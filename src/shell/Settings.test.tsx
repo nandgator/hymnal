@@ -30,7 +30,8 @@ describe("Settings", () => {
       />
     ));
 
-    await screen.findByText("Theme: dark");
+    expect(await screen.findByRole("radio", { name: "Dark" })).toBeChecked();
+    expect(screen.getByText("125%")).toBeInTheDocument();
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
     expect(document.documentElement.style.getPropertyValue("--font-scale")).toBe("1.25");
   });
@@ -39,34 +40,44 @@ describe("Settings", () => {
     document.documentElement.setAttribute("data-theme", "dark");
     render(() => <Settings userState={fakeUserState()} />);
 
-    await screen.findByText("Theme: system");
+    expect(await screen.findByRole("radio", { name: "System" })).toBeChecked();
     expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
   });
 
-  it("cycles system -> light -> dark -> system and persists each change", async () => {
+  it("groups Display, Workspace and Keyboard (DESIGN.md § Structure)", async () => {
+    const onShowShortcuts = vi.fn();
+    render(() => <Settings userState={fakeUserState()} onShowShortcuts={onShowShortcuts} />);
+
+    for (const name of ["Display", "Workspace", "Keyboard"]) {
+      expect(screen.getByRole("region", { name })).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole("button", { name: /Keyboard shortcuts/ }));
+    expect(onShowShortcuts).toHaveBeenCalled();
+  });
+
+  it("leaves out the Keyboard section with nowhere to show shortcuts", () => {
+    render(() => <Settings userState={fakeUserState()} />);
+    expect(screen.queryByRole("region", { name: "Keyboard" })).not.toBeInTheDocument();
+  });
+
+  it("persists a theme choice", async () => {
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);
-    await screen.findByText("Theme: system");
+    await screen.findByRole("radio", { name: "System" });
 
-    fireEvent.click(screen.getByRole("button", { name: /^Theme:/ }));
-    expect(await screen.findByText("Theme: light")).toBeInTheDocument();
-    expect(setPreferences).toHaveBeenCalledWith({
+    fireEvent.click(screen.getByRole("radio", { name: "Light" }));
+    expect(setPreferences).toHaveBeenLastCalledWith({
       theme: "light",
       fontScale: 1,
       navigator: "parts",
     });
-
-    fireEvent.click(screen.getByRole("button", { name: /^Theme:/ }));
-    expect(await screen.findByText("Theme: dark")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /^Theme:/ }));
-    expect(await screen.findByText("Theme: system")).toBeInTheDocument();
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
   });
 
   it("steps the font scale up and down within bounds", async () => {
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);
-    await screen.findByText("Theme: system");
+    await screen.findByText("100%");
 
     fireEvent.click(screen.getByRole("button", { name: "Increase text size" }));
     expect(setPreferences).toHaveBeenLastCalledWith({
@@ -92,7 +103,8 @@ describe("Settings", () => {
         })}
       />
     ));
-    expect(await screen.findByRole("button", { name: "Decrease text size" })).toBeDisabled();
+    await screen.findByText("75%");
+    expect(screen.getByRole("button", { name: "Decrease text size" })).toBeDisabled();
   });
 
   it("disables the increase button at the maximum scale", async () => {
@@ -103,6 +115,33 @@ describe("Settings", () => {
         })}
       />
     ));
-    expect(await screen.findByRole("button", { name: "Increase text size" })).toBeDisabled();
+    await screen.findByText("200%");
+    expect(screen.getByRole("button", { name: "Increase text size" })).toBeDisabled();
+  });
+
+  it("shows each pane by default and remembers hiding one (SDD-0001 §16.4)", async () => {
+    const setPreferences = vi.fn(async () => {});
+    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
+    await screen.findByText("100%");
+
+    const live = screen.getByRole("switch", { name: /Show Live/ });
+    expect(live).toBeChecked();
+    expect(screen.getByRole("switch", { name: /Show sidebar/ })).toBeChecked();
+
+    fireEvent.click(live);
+    expect(setPreferences).toHaveBeenLastCalledWith(
+      expect.objectContaining({ panes: { live: false } }),
+    );
+  });
+
+  it("sets which navigator leads", async () => {
+    const setPreferences = vi.fn(async () => {});
+    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
+    await screen.findByText("100%");
+
+    fireEvent.click(screen.getByRole("radio", { name: "Lyrics" }));
+    expect(setPreferences).toHaveBeenLastCalledWith(
+      expect.objectContaining({ navigator: "lyrics" }),
+    );
   });
 });

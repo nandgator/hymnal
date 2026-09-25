@@ -8,6 +8,7 @@ import { Output } from "./output/Output.tsx";
 import { Presenter } from "./presenter/Presenter.tsx";
 import { ignoresShortcuts, keyHint, SHORTCUTS } from "./shell/keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
+import { isPaneShown, PANES, type PaneId } from "./shell/panes.ts";
 import { canAdjustScale, createPreferences, Settings } from "./shell/Settings.tsx";
 import { Sheet } from "./shell/Sheet.tsx";
 import { installScrollReveal } from "./shell/scrollReveal.ts";
@@ -60,6 +61,9 @@ function Operator() {
   const [hymnPickerOpen, setHymnPickerOpen] = createSignal(false);
   const [commandMenuOpen, setCommandMenuOpen] = createSignal(false);
   const [shortcutsOpen, setShortcutsOpen] = createSignal(false);
+  // The sheet the shortcut sheet was opened from, if any: its Close then
+  // reads Back and returns there.
+  const [shortcutsReturn, setShortcutsReturn] = createSignal<(open: boolean) => void>();
 
   // Blank holds until restored, across navigation and hymn swaps, so it
   // lives here rather than in the Presenter (SDD-0001 §16.5).
@@ -79,6 +83,9 @@ function Operator() {
       navigator: current.navigator === "parts" ? "lyrics" : "parts",
     });
   };
+
+  const togglePane = (id: PaneId) =>
+    preferences.setPane(id, !isPaneShown(preferences.preferences(), id));
 
   // Only one sheet at a time: a command opening another sheet, or Ctrl/⌘+K
   // from inside one, replaces it rather than stacking modals.
@@ -131,6 +138,17 @@ function Operator() {
     findHymn();
   };
 
+  const showShortcuts = (from?: (open: boolean) => void) => {
+    openSheet(setShortcutsOpen);
+    setShortcutsReturn(() => from);
+  };
+  const closeShortcuts = () => {
+    const back = shortcutsReturn();
+    setShortcutsReturn(undefined);
+    if (back) openSheet(back);
+    else setShortcutsOpen(false);
+  };
+
   // The command menu's actions (SDD-0001 §16.5), each with its key.
   const commands = (): Command[] => {
     const prefs = preferences.preferences();
@@ -154,9 +172,14 @@ function Operator() {
             },
           ]
         : []),
+      ...PANES.map((pane) => ({
+        label: `${isPaneShown(prefs, pane.id) ? "Hide" : "Show"} ${pane.name}`,
+        hint: pane.key,
+        run: run(() => togglePane(pane.id)),
+      })),
       { label: "Switch hymnbook", run: run(() => openSheet(setBookPickerOpen)) },
       { label: "Library", run: run(() => go("library")) },
-      { label: "Settings", run: run(() => openSheet(setSettingsOpen)) },
+      { label: "Settings", hint: keyHint("settings"), run: run(() => openSheet(setSettingsOpen)) },
       ...(canAdjustScale(prefs, 1)
         ? [{ label: "Text size up", hint: "+", run: run(() => preferences.adjustScale(1)) }]
         : []),
@@ -166,7 +189,7 @@ function Operator() {
       {
         label: "Keyboard shortcuts",
         hint: keyHint("shortcuts"),
-        run: run(() => openSheet(setShortcutsOpen)),
+        run: run(() => showShortcuts()),
       },
     ];
   };
@@ -174,12 +197,22 @@ function Operator() {
   // The shell's keys, which work on every screen (SDD-0001 §16.5); the
   // Presenter handles the ones that move its engine.
   const onKeyDown = (event: KeyboardEvent) => {
-    // Ctrl/⌘+K works from anywhere, a text field or another sheet included.
-    if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "k") {
-      event.preventDefault();
-      if (commandMenuOpen()) setCommandMenuOpen(false);
-      else if (hymnbook()) openSheet(setCommandMenuOpen);
-      return;
+    // Ctrl/⌘+K and Ctrl/⌘+, work from anywhere, a text field or another
+    // sheet included, and close what they opened.
+    if ((event.ctrlKey || event.metaKey) && !event.altKey) {
+      const chord = event.key.toLowerCase();
+      if (chord === "k") {
+        event.preventDefault();
+        if (commandMenuOpen()) setCommandMenuOpen(false);
+        else if (hymnbook()) openSheet(setCommandMenuOpen);
+        return;
+      }
+      if (chord === ",") {
+        event.preventDefault();
+        if (settingsOpen()) setSettingsOpen(false);
+        else openSheet(setSettingsOpen);
+        return;
+      }
     }
     if (ignoresShortcuts(event)) return;
     const action = (
@@ -188,12 +221,13 @@ function Operator() {
         ".": toggleBlank,
         o: openOutput,
         n: () => presenting() && swapNavigator(),
+        l: () => togglePane("live"),
         "/": () => hymnbook() && openSheet(setCommandMenuOpen),
         "+": () => preferences.adjustScale(1),
         // The + key's own character, unshifted, on most layouts.
         "=": () => preferences.adjustScale(1),
         "-": () => preferences.adjustScale(-1),
-        "?": () => openSheet(setShortcutsOpen),
+        "?": () => showShortcuts(),
       } as Record<string, () => unknown>
     )[event.key.toLowerCase()];
     if (!action) return;
@@ -300,6 +334,23 @@ function Operator() {
               )}
             </Show>
           </nav>
+          {/* Blanked with no Live on screen (another section, or Live
+              hidden): the badge sits here, in the row's empty end, so a
+              blanked audience screen is never out of sight and nothing
+              shifts (SDD-0001 §16.4). */}
+          <Show
+            when={blanked() && !(presenting() && isPaneShown(preferences.preferences(), "live"))}
+          >
+            <button
+              type="button"
+              class="live-badge switcher-badge"
+              title="Restore the Output"
+              onClick={toggleBlank}
+            >
+              Blanked
+              <span class="visually-hidden"> — restore the Output</span>
+            </button>
+          </Show>
         </header>
 
         <main
@@ -326,6 +377,8 @@ function Operator() {
                   onBack={() => setHymnPickerOpen(true)}
                   blanked={blanked()}
                   onRestore={toggleBlank}
+                  panes={preferences.preferences().panes}
+                  onPaneChange={preferences.setPane}
                 />
               )}
             </Match>
@@ -373,7 +426,8 @@ function Operator() {
 
       <Sheet
         open={shortcutsOpen()}
-        onClose={() => setShortcutsOpen(false)}
+        onClose={closeShortcuts}
+        closeLabel={shortcutsReturn() ? "Back" : undefined}
         title="Keyboard shortcuts"
         placement="center"
       >
@@ -424,7 +478,7 @@ function Operator() {
             <For each={SECTIONS}>{(item) => <li>{sectionButton(item, "menu")}</li>}</For>
           </ul>
         </nav>
-        <Settings controller={preferences} />
+        <Settings controller={preferences} onShowShortcuts={() => showShortcuts(setMenuOpen)} />
       </Sheet>
 
       <Sheet
@@ -433,7 +487,7 @@ function Operator() {
         title="Settings"
         placement="center"
       >
-        <Settings controller={preferences} />
+        <Settings controller={preferences} onShowShortcuts={() => showShortcuts(setSettingsOpen)} />
       </Sheet>
     </div>
   );

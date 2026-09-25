@@ -1,15 +1,26 @@
-import { createEffect, createResource } from "solid-js";
+import { createEffect, createResource, For, Show } from "solid-js";
 import {
   DEFAULT_PREFERENCES,
   userState as defaultUserState,
   type Preferences,
   type UserState,
 } from "../persistence/user-state.ts";
+import { isPaneShown, PANES, type PaneId } from "./panes.ts";
 
 const MIN_SCALE = 0.75;
 const MAX_SCALE = 2;
 const SCALE_STEP = 0.125;
-const THEME_CYCLE: Preferences["theme"][] = ["system", "light", "dark"];
+const THEMES: { value: Preferences["theme"]; label: string }[] = [
+  { value: "system", label: "System" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
+const NAVIGATORS: { value: Preferences["navigator"]; label: string }[] = [
+  { value: "parts", label: "Parts" },
+  { value: "lyrics", label: "Lyrics" },
+];
+
+let nextId = 0;
 
 export interface PreferencesController {
   preferences: () => Preferences;
@@ -17,6 +28,8 @@ export interface PreferencesController {
   /** Steps the Operator's text scale within its bounds — Settings' A− A+
    * and the + − keys (SDD-0001 §16.5). */
   adjustScale: (direction: 1 | -1) => void;
+  /** Shows or hides a supporting pane (SDD-0001 §16.4). */
+  setPane: (id: PaneId, shown: boolean) => void;
 }
 
 export const canAdjustScale = (preferences: Preferences, direction: 1 | -1) =>
@@ -53,6 +66,10 @@ export function createPreferences(state: UserState = defaultUserState): Preferen
       const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scaled));
       update({ ...current, fontScale: Math.round(clamped * 1000) / 1000 });
     },
+    setPane: (id, shown) => {
+      const current = preferences();
+      update({ ...current, panes: { ...current.panes, [id]: shown } });
+    },
   };
 }
 
@@ -61,47 +78,145 @@ export interface SettingsProps {
   userState?: UserState;
   /** The shell's shared controller; without one, Settings makes its own. */
   controller?: PreferencesController;
+  /** Opens the shortcut sheet; without it, the Keyboard section is left out. */
+  onShowShortcuts?: () => void;
 }
 
 /**
- * Board #10 — the "user-controlled text scale and contrast" arc42 §8.7
- * requires, applied globally as `--font-scale` and `data-theme` on the root
- * element (styles.css) rather than per-view, since legibility matters in
- * Library and Finder too, not only Presenter.
+ * Board #10's "user-controlled text scale and contrast" (arc42 §8.7), applied
+ * globally as `--font-scale` and `data-theme` on the root element, grouped
+ * since Board #12 part 3d (DESIGN.md § Structure): Display, Workspace,
+ * Keyboard. Part 4 adds Presentation as one more section.
  */
 export function Settings(props: SettingsProps) {
-  const { preferences, update, adjustScale } =
+  const { preferences, update, adjustScale, setPane } =
     props.controller ?? createPreferences(props.userState ?? defaultUserState);
+  const id = `settings-${++nextId}`;
 
-  const cycleTheme = () => {
-    const current = preferences();
-    const next = THEME_CYCLE[(THEME_CYCLE.indexOf(current.theme) + 1) % THEME_CYCLE.length];
-    update({ ...current, theme: next });
-  };
+  // A segmented button on native radios, as the Operator's navigator switch.
+  const segmented = <T extends string>(
+    legend: string,
+    name: string,
+    options: { value: T; label: string }[],
+    current: () => T,
+    choose: (value: T) => void,
+  ) => (
+    <fieldset class="segmented">
+      <legend class="visually-hidden">{legend}</legend>
+      <For each={options}>
+        {(option) => (
+          <label class="segment">
+            <input
+              type="radio"
+              name={`${id}-${name}`}
+              class="segment-input"
+              checked={current() === option.value}
+              onChange={() => choose(option.value)}
+            />
+            <span class="segment-check icon icon-check" aria-hidden="true" />
+            {option.label}
+          </label>
+        )}
+      </For>
+    </fieldset>
+  );
 
   return (
-    <fieldset class="settings" aria-label="Display settings">
-      <button
-        type="button"
-        class="btn-text"
-        onClick={() => adjustScale(-1)}
-        disabled={!canAdjustScale(preferences(), -1)}
-        aria-label="Decrease text size"
-      >
-        A−
-      </button>
-      <button
-        type="button"
-        class="btn-text"
-        onClick={() => adjustScale(1)}
-        disabled={!canAdjustScale(preferences(), 1)}
-        aria-label="Increase text size"
-      >
-        A+
-      </button>
-      <button type="button" class="btn-text" onClick={cycleTheme}>
-        Theme: {preferences().theme}
-      </button>
-    </fieldset>
+    <div class="settings">
+      <section class="settings-section" aria-labelledby={`${id}-display`}>
+        <h3 id={`${id}-display`} class="settings-heading">
+          Display
+        </h3>
+        <div class="settings-row">
+          <span class="settings-label">Theme</span>
+          {segmented(
+            "Theme",
+            "theme",
+            THEMES,
+            () => preferences().theme,
+            (theme) => update({ ...preferences(), theme }),
+          )}
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">Text size</span>
+          <div class="settings-stepper">
+            <button
+              type="button"
+              class="btn-text"
+              onClick={() => adjustScale(-1)}
+              disabled={!canAdjustScale(preferences(), -1)}
+              aria-label="Decrease text size"
+              title="Decrease text size (−)"
+            >
+              A−
+            </button>
+            <output class="settings-value" aria-live="polite">
+              {Math.round(preferences().fontScale * 100)}%
+            </output>
+            <button
+              type="button"
+              class="btn-text"
+              onClick={() => adjustScale(1)}
+              disabled={!canAdjustScale(preferences(), 1)}
+              aria-label="Increase text size"
+              title="Increase text size (+)"
+            >
+              A+
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section" aria-labelledby={`${id}-workspace`}>
+        <h3 id={`${id}-workspace`} class="settings-heading">
+          Workspace
+        </h3>
+        <For each={PANES}>
+          {(pane) => (
+            <label class="settings-row">
+              <span class="settings-label">
+                Show {pane.name}
+                <span class="settings-supporting">
+                  {pane.description}
+                  {pane.key ? ` (${pane.key})` : ""}
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                class="switch"
+                checked={isPaneShown(preferences(), pane.id)}
+                aria-checked={isPaneShown(preferences(), pane.id)}
+                onChange={(event) => setPane(pane.id, event.currentTarget.checked)}
+              />
+            </label>
+          )}
+        </For>
+        <div class="settings-row">
+          <span class="settings-label">Leads with</span>
+          {segmented(
+            "Leading navigator",
+            "navigator",
+            NAVIGATORS,
+            () => preferences().navigator,
+            (navigator) => update({ ...preferences(), navigator }),
+          )}
+        </div>
+      </section>
+
+      <Show when={props.onShowShortcuts}>
+        {(show) => (
+          <section class="settings-section" aria-labelledby={`${id}-keyboard`}>
+            <h3 id={`${id}-keyboard`} class="settings-heading">
+              Keyboard
+            </h3>
+            <button type="button" class="list-row settings-link" onClick={() => show()()}>
+              Keyboard shortcuts
+              <kbd class="key-hint">?</kbd>
+            </button>
+          </section>
+        )}
+      </Show>
+    </div>
   );
 }

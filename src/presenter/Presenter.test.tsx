@@ -508,4 +508,25 @@ describe("Presenter", () => {
     fireEvent.click(screen.getByRole("button", { name: /Blanked/ }));
     expect(onRestore).toHaveBeenCalled();
   });
+
+  it("hides the panes preferences hide, and reports the sidebar toggle", async () => {
+    const onPaneChange = vi.fn();
+    render(() => (
+      <Presenter
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        panes={{ live: false }}
+        onPaneChange={onPaneChange}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+
+    expect(screen.queryByRole("region", { name: "Live" })).not.toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Lyrics" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide Lyrics" }));
+    expect(screen.queryByRole("complementary", { name: "Lyrics" })).not.toBeInTheDocument();
+    expect(onPaneChange).toHaveBeenCalledWith("sidebar", false);
+  });
 });

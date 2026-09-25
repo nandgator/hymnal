@@ -14,6 +14,9 @@ export interface Preferences {
   fontScale: number;
   /** Which navigator leads the Operator workspace — SDD-0001 §16.4. */
   navigator: "parts" | "lyrics";
+  /** Which supporting panes show, by pane id; absent means shown, so a new
+   * pane needs no migration — SDD-0001 §16.4. */
+  panes?: Record<string, boolean>;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {

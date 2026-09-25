@@ -1121,11 +1121,19 @@ Studio: sections, a switcher row, the workspace, the dock.
   `goTo(i, line)`, never `jumpToPart`: moving within the path isn't a
   deviation from it. Scrolling Lyrics never calls the engine; only a tap
   does.
-- **Supporting panes stay data, not layout code**: a registry entry (`id`,
-  title, icon, component), so a future pane (Finder and recents, a service
-  list) is one more entry. Visibility is `preferences.panes: Record<PaneId,
-boolean>`, defaulting to shown; an unknown id is ignored and a new one
-  defaults to shown, so the stored preference never needs migrating.
+- **Supporting panes stay data, not layout code**: a registry
+  (`src/shell/panes.ts`) of `id`, title and key, read by Settings, the
+  command menu and the keymap, so a future pane (Finder and recents, a
+  service list) is one more entry plus where it renders. Two today:
+  **Live** (the preview, or the strip; L) and the **sidebar** (the other
+  navigator, from 840px). The leading navigator and the dock never hide:
+  they're the controls. Visibility is `preferences.panes: Record<string,
+boolean>`, read as `panes[id] ?? true`; an unknown id is ignored and a new
+  one defaults to shown, so the stored preference never needs migrating.
+  With no Live on screen (Live hidden, or another section), the Blanked
+  badge (§16.5) sits at the end of the switcher row, space nothing else
+  uses, so a blanked audience screen is never out of sight and nothing
+  shifts.
 - **Hot-swap.** The hymnbook and hymn are the Operator's inputs, not its
   identity. Choosing another from the switcher row or the command menu
   replaces the engine in place: a new `SequenceEngine` for the new hymn, the
@@ -1144,32 +1152,37 @@ boolean>`, defaulting to shown; an unknown id is ignored and a new one
 Figma-style: single keys, no modifier where one isn't needed, discoverable
 from a `?` sheet, from the command menu (each action shows its key) and from
 tooltips. Every shortcut is off while focus is in a text field, so typing a
-search never moves the Output, and while a sheet is open, except Ctrl/⌘+K,
-which works from anywhere, including a text field. Keys held with Ctrl, ⌘ or
-Alt are left to the browser (zoom, find, reload). Remote clickers send
+search never moves the Output, and while a sheet is open, except the two
+chords, Ctrl/⌘+K and Ctrl/⌘+, (Settings), which work from anywhere,
+including a text field. Other keys held with Ctrl, ⌘ or Alt are left to the
+browser (zoom, find, reload). Single keys are spent sparingly: an occasional
+action gets a chord or the command menu, not a letter, so letters stay free
+for what later parts need. The whole keymap is reviewed near completion
+(PLAN Board #20). Remote clickers send
 arrows, Page Up/Down, and `.` or `B` for a black screen, so those work too.
 
-| Keys                    | Action                                      |
-| ----------------------- | ------------------------------------------- |
-| → Page Down Space       | Next part                                   |
-| ← Page Up Shift+Space   | Previous part                               |
-| ↓ ↑                     | Next / previous line                        |
-| Home End                | First / last part                           |
-| 1–9, two digits quickly | Jump to stanza _n_ (§5.1)                   |
-| R                       | Jump to the refrain                         |
-| B or .                  | Blank the Output / restore                  |
-| O                       | Open or focus the Output window             |
-| N                       | Swap navigator (Parts ↔ Lyrics)             |
-| L                       | Show or hide Live (with pane show/hide, 3d) |
-| / or Ctrl/⌘+K           | Command menu: hymns and actions             |
-| + −                     | Operator text size                          |
-| ?                       | Shortcut sheet                              |
-| Esc                     | Close a sheet or menu                       |
+| Keys                    | Action                          |
+| ----------------------- | ------------------------------- |
+| → Page Down Space       | Next part                       |
+| ← Page Up Shift+Space   | Previous part                   |
+| ↓ ↑                     | Next / previous line            |
+| Home End                | First / last part               |
+| 1–9, two digits quickly | Jump to stanza _n_ (§5.1)       |
+| R                       | Jump to the refrain             |
+| B or .                  | Blank the Output / restore      |
+| O                       | Open or focus the Output window |
+| N                       | Swap navigator (Parts ↔ Lyrics) |
+| L                       | Show or hide Live (§16.4)       |
+| / or Ctrl/⌘+K           | Command menu: hymns and actions |
+| + −                     | Operator text size              |
+| ?                       | Shortcut sheet                  |
+| Ctrl/⌘+,                | Settings                        |
+| Esc                     | Close a sheet or menu           |
 
 - **One table, two owners.** The table is data (`src/shell/keymap.ts`),
   rendered by the `?` sheet and read by the command menu for its key hints,
   so the three can't disagree. The shell handles the keys that work on every
-  screen (B, O, N, /, Ctrl/⌘+K, +, −, ?); the Presenter handles the ones
+  screen (B, O, N, L, /, Ctrl/⌘+K, +, −, ?); the Presenter handles the ones
   that move an engine (parts, lines, stanzas, refrain).
 - **Space is Next part**, even on a focused button: a clicker or a thumb
   on the space bar must never re-press whatever chip was last tapped (which
@@ -1204,8 +1217,8 @@ shows when every word typed starts a word of its name, so "bl" finds
 "Blank the Output". A number matches no action, so the Finder's fast path
 holds: `/`, a number, Enter. With the box empty, the actions show, each
 with its key. Actions: Blank or Restore the Output, Show Output, Swap
-navigator (with a hymn open), Switch hymnbook, Library, Settings, Text
-size up and down, Keyboard shortcuts.
+navigator (with a hymn open), Show or hide each pane, Switch hymnbook,
+Library, Settings, Text size up and down, Keyboard shortcuts.
 
 ### 16.6 Testing
 
