@@ -24,9 +24,25 @@ colors:
   surface-container-high: "#2f2819"
   inverse-surface: "#eae1d9"
   inverse-on-surface: "#362f26"
-  output-ground: "#0c0b10"
-  output-ink: "#f6f1e6"
-  output-ink-muted: "#a89e86"
+  output-ground: "#1b140c"
+  output-ink: "#f3dfb5"
+  output-ink-muted: "#9c8661"
+  output-ink-dimmed: "color-mix(in srgb, output-ink 30%, output-ground)"
+
+output-themes:
+  note: presets for the Output view only (Settings > Presentation); Warm is the default and matches colors.output-*
+  light:
+    output-ground: "#f6f1e6"
+    output-ink: "#1a1712"
+    output-ink-muted: "#8f8676"
+  contrast:
+    output-ground: "#000000"
+    output-ink: "#ffffff"
+    output-ink-muted: "#8c8c8c"
+  dark:
+    output-ground: "#0c0b10"
+    output-ink: "#f6f1e6"
+    output-ink-muted: "#a89e86"
 
 colors-light:
   primary: "#8b5a00"
@@ -99,8 +115,8 @@ typography:
     fontWeight: 500
     lineHeight: 1.35
     color: "{colors.output-ink}"
-    colorDimmed: "{colors.output-ink-muted}"
-    note: one style for every line, lit or dimmed — focus changes color only, never size or weight, which would reflow the column mid-scroll. Sized by the screen itself (cqmin — vmin on the full Output, a true scale model in the Live pane), shrunk per hymn by --fit (§ Structure), with no rem cap — the Output is the screen that lands on a 4K/8K TV at 100% scaling, where a rem cap would stop the lyrics growing at a fraction of the size they should be. The Operator keeps rem plus the user's text scale: CSS px already map through the device pixel ratio, so OS scaling handles pixel density. Built so far with hardcoded #000/#fff, 0.3 opacity for dimmed, weight 400, line-height 1.5; Board #12 part 4 moves it onto these tokens and settles weight and line-height
+    colorDimmed: "{colors.output-ink-dimmed}"
+    note: one style for every line, lit or dimmed — focus changes color only, never size or weight, which would reflow the column mid-scroll. Sized by the screen itself (cqmin — vmin on the full Output, a true scale model in the Live pane), shrunk per hymn by --fit (§ Structure), with no rem cap — the Output is the screen that lands on a 4K/8K TV at 100% scaling, where a rem cap would stop the lyrics growing at a fraction of the size they should be. The Operator keeps rem plus the user's text scale: CSS px already map through the device pixel ratio, so OS scaling handles pixel density.
 
 rounded:
   none: 0px
@@ -232,10 +248,10 @@ devotional, legible-at-distance tool.
 
 - Two screens, two grammars: the **Operator** carries full MD3 chrome
   (pills, chips, a FAB, tonal surfaces); the **Output** carries none of
-  it — fixed near-black, one scrolling column of lyrics, nothing else,
-  ever.
+  it — one scrolling column of lyrics on its own ground, and nothing
+  else unless the operator turns a cue on.
 - Dark-first. Light exists (`colors-light`) and is fully supported, but
-  the primary identity — and the Output view unconditionally — is dark.
+  the primary identity — and the Output view by default — is dark.
 - One accent color does real work across three roles (primary, secondary,
   their containers), not one hue slapped on an otherwise neutral page —
   the exact "one saturated accent on near-black" AI-generic pattern this
@@ -284,13 +300,25 @@ devotional, legible-at-distance tool.
   border.
 - **outline-variant**: quieter dividers (the top-bar hairline).
 
-### Output view (fixed, unthemed)
+### Output view (its own presets)
 
-- **output-ground** (`#0c0b10`) / **output-ink** (`#f6f1e6`) /
-  **output-ink-muted** (`#a89e86`): deliberately outside the tonal system
+- **output-ground** (`#1b140c`) / **output-ink** (`#f3dfb5`) /
+  **output-ink-muted** (`#9c8661`), Warm: deliberately outside the tonal system
   above. The Output view does not follow the Operator's light/dark
   setting — it's read from across a room, not chosen by the person
-  reading it.
+  reading it; a light Operator at the desk must not put a white screen on
+  the wall.
+- **Presets** (`output-themes`), chosen in Settings > Presentation, apart
+  from the Operator's theme: **Warm** (default, the values above: parchment
+  ink on a dark brown ground, gilt hymnal pages), **Dark**, **Light** and
+  **Contrast** (high contrast). Each sets only these three
+  tokens, so every preset keeps the same hierarchy. Chosen by sight:
+  swatch tiles showing "Aa" in each preset, not a segmented button.
+  Live and the Live strip use them too, being the Output scaled.
+- **output-ink-dimmed**: lines outside the focus, 30% ink over the ground
+  in every preset (derived, not set per preset), so the focus stands out
+  as strongly as it always has. Muted stays for small labels (the Live
+  strip's, the cue caption), which must stay readable.
 
 ## Typography
 
@@ -343,13 +371,18 @@ devotional, legible-at-distance tool.
   Output fills a separate display the operator isn't reading.
 - **The Output is a continuous scroll, teleprompter-style** (SDD-0001
   §16.1): the whole hymn in one column, the focus lit in `output-ink`
-  and centred, every other line dimmed to `output-ink-muted`. The focus
+  and centred, every other line dimmed to `output-ink-dimmed`. The focus
   mirrors the Operator's exactly — a whole part under whole-part focus,
   one line under line focus. Hierarchy is carried by color alone, never
   by size, weight or chrome.
-- **No labels in the Output view — ever.** No part name, no verse number,
-  no recurrence cue. Those are Operator aids. If it isn't a lyric line,
-  it doesn't render there.
+- **No labels in the Output view unless the operator asks.** Part name,
+  verse number and recurrence are Operator aids. Cues are opt-in, each
+  its own switch in Settings > Presentation, all off by default: hymn
+  number and title, hymnbook, part, repeat ×N. When on, they share one
+  caption line in `output-ink-muted` at the top of the safe area, fixed
+  while the lyrics scroll beneath it, e.g. `312 · Amazing Grace · Verse 2
+· ×2`, well clear of the eyeline. With every cue off, nothing but lyrics
+  renders there.
 - **Recurrence cue is a plain running ordinal** ("Repeat 2", "Repeat 3"),
   never "final repeat": a repeat only fires on an _immediately adjacent_
   recurrence of the same part (evidenced against the corpus — 0 of 1,631
@@ -446,8 +479,8 @@ unit.
     **Workspace**: Show Live, Show sidebar, Scrolling the Output moves
     the Operator (switches), and which navigator leads (Parts | Lyrics).
     **Keyboard**: opens the shortcut sheet, whose Close then reads Back
-    and returns to Settings. Part 4 adds **Presentation** (themes, cues)
-    as one more section.
+    and returns to Settings. **Presentation** (part 4): the Output theme
+    (Dark | Light | Contrast | Warm) and one switch per cue.
   - **Show/hide**: Live and the sidebar, remembered (SDD-0001 §16.4).
     The leading navigator and the dock never hide. Panes remain a
     registry, so future ones slot in without another layout rework.
@@ -505,12 +538,13 @@ or thumb mid-service. Three rules follow:
   under it.
 - **Tapping the current part's chip restarts it**, never repeats it: a
   stray tap can't queue a verse the congregation would see twice.
-  Deliberate repeats wait for part 4 (Presentation), where they arrive with
-  what makes them legible. A repeat stays on the same page with its count
-  going up (×2, ×3 …), Lyrics shows one block marked ×N instead of a
-  stack, and the Output can show that ×N as a cue. Without the cue, a
-  Repeat button looked like it did nothing, so it and the repeat-cue
-  switch aren't in the Parts pane until then.
+  Deliberate repeats arrive in part 4 (Presentation) with what makes them
+  legible. **Repeat** sits in the Parts pane beside the chips and becomes
+  **Undo repeat** while the cursor is on a repeat; it's also in the
+  command menu, and its key waits for the keymap review (PLAN Board #20).
+  A repeat stays on the same page with its count going up (×2, ×3 …):
+  the Output doesn't scroll to a copy, Lyrics shows one block marked ×N
+  instead of a stack, and the Output can show that ×N as a cue.
 - **Special parts first, then the keypad.** Refrains, bridges and tags
   (unnumbered) come first as full-row chips; numbered stanzas follow as a
   keypad in number order, whatever order the hymn stores its parts in —

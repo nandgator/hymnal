@@ -1035,9 +1035,16 @@ to their distance for free. A new hymn snaps instantly rather than
 scrolling from the previous one. **Parts are
 set apart by a gap** (about half a line), as in a printed hymnal, so the
 congregation can see where a verse ends and the refrain begins: a shape,
-not a label, so it needs no language. **No part label, no recurrence cue,
-ever** — those are Operator aids; a cue tracking the _stored_ order has no
-meaning to a congregation watching lyrics. Modes 2 (chorus in a persistent
+not a label, so it needs no language. **No part label, no recurrence cue
+unless the operator turns one on** — those are Operator aids; a cue
+tracking the _stored_ order has no meaning to a congregation watching
+lyrics. Cues (hymn number and title, hymnbook, part, repeat ×N) are
+opt-in, one switch each, all off, and share one muted caption at the top
+of the safe area (`visual/DESIGN.md`). **A repeat stays in place**: an
+ad-hoc occurrence repeating the one before it (`repeatOrdinal > 1`)
+adds no lines to the flattened column; its focus is the earlier copy's,
+so the Output doesn't scroll away to identical text and `positionOfLine`
+never lands on it. Modes 2 (chorus in a persistent
 parallel pane) and 3 (paginated, `scroll-snap` over the same scroll) are
 Board #13, built after the MD3 visual language (§16.3) exists.
 
@@ -1091,6 +1098,12 @@ Operator decides.
 - **Live never seeks.** The Operator's Live pane stays a picture that takes
   no input, so a stray swipe over the Operator can't move the audience
   screen; Lyrics is the Operator's own way to go to a line.
+
+**Presentation settings travel with the content.** The Output theme
+(Dark, Light, Contrast, Warm) and the cue switches are Operator
+preferences, sent as `{ type: "presentation", theme, cues }` whenever they
+change and held and replayed on late join like `blank`, so an Output
+window follows Settings live without reading storage itself.
 
 Cursor: shown while the mouse moves, hidden after 2s idle.
 

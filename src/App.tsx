@@ -1,10 +1,11 @@
-import { createSignal, For, Match, onCleanup, onMount, Show, Switch } from "solid-js";
+import { createEffect, createSignal, For, Match, onCleanup, onMount, Show, Switch } from "solid-js";
 import { BUNDLED_HYMNBOOK_ID } from "./config.ts";
 import type { Hymn, Hymnbook, HymnbookId, HymnNumber } from "./domain/types.ts";
 import { type Command, Finder } from "./finder/Finder.tsx";
 import { Library } from "./library/Library.tsx";
-import { setOutputBlanked, subscribeKeys } from "./output/channel.ts";
+import { setOutputBlanked, setOutputPresentation, subscribeKeys } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
+import { DEFAULT_OUTPUT_THEME } from "./persistence/user-state.ts";
 import { Presenter } from "./presenter/Presenter.tsx";
 import { ignoresShortcuts, keyHint, SHORTCUTS } from "./shell/keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
@@ -64,6 +65,12 @@ function Operator() {
   // The sheet the shortcut sheet was opened from, if any: its Close then
   // reads Back and returns there.
   const [shortcutsReturn, setShortcutsReturn] = createSignal<(open: boolean) => void>();
+
+  // The Output follows Presentation settings live, and a late Output gets
+  // them replayed (SDD-0001 §16.1).
+  createEffect(() =>
+    setOutputPresentation({ theme: preferences.preferences().outputTheme ?? DEFAULT_OUTPUT_THEME }),
+  );
 
   // Blank holds until restored, across navigation and hymn swaps, so it
   // lives here rather than in the Presenter (SDD-0001 §16.5).

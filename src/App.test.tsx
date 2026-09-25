@@ -36,7 +36,11 @@ vi.mock("./persistence/user-state.ts", () => {
     getPreferences: async () => ({ theme: "system", fontScale: 1, navigator: "parts" }),
     setPreferences: async () => {},
   };
-  return { userState, DEFAULT_PREFERENCES: { theme: "system", fontScale: 1, navigator: "parts" } };
+  return {
+    userState,
+    DEFAULT_PREFERENCES: { theme: "system", fontScale: 1, navigator: "parts" },
+    DEFAULT_OUTPUT_THEME: "warm",
+  };
 });
 
 describe("App", () => {

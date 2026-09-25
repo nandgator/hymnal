@@ -3,6 +3,7 @@ import {
   publishOutput,
   requestSeek,
   setOutputBlanked,
+  setOutputPresentation,
   subscribeOutput,
   subscribeSeek,
 } from "./channel.ts";
@@ -111,6 +112,20 @@ describe("output channel", () => {
     setOutputBlanked(false);
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(seen.at(-1)).toEqual({ type: "blank", blanked: false });
+    otherWindow.close();
+  });
+
+  it("sends the Output theme, and replays it to a late Output", async () => {
+    const otherWindow = new BroadcastChannel(CHANNEL_NAME);
+    const sent = nextMessage(otherWindow);
+    setOutputPresentation({ theme: "warm" });
+    expect(await sent).toEqual({ type: "presentation", theme: "warm" });
+
+    const seen: unknown[] = [];
+    otherWindow.onmessage = (event) => seen.push(event.data);
+    otherWindow.postMessage({ type: "hello" });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(seen).toContainEqual({ type: "presentation", theme: "warm" });
     otherWindow.close();
   });
 

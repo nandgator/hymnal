@@ -39,11 +39,6 @@
   --md-sys-color-inverse-surface: #362f26;
   --md-sys-color-inverse-on-surface: #fbeee1;
 
-  /* Output view: fixed, outside the tonal system, never themed. */
-  --output-ground: #0c0b10;
-  --output-ink: #f6f1e6;
-  --output-ink-muted: #a89e86;
-
   /* Typography. One family for UI and hymn content alike. */
   --font-family: "Hymnal Sans", Roboto, system-ui, sans-serif;
   --font-family-hymn: "Hymnal Sans", "Noto Sans Malayalam", system-ui, sans-serif;
@@ -120,6 +115,43 @@
   --md-sys-color-surface-container-high: #2f2819;
   --md-sys-color-inverse-surface: #eae1d9;
   --md-sys-color-inverse-on-surface: #362f26;
+}
+
+/* Output view: outside the tonal system, apart from the Operator's theme.
+   Presets (DESIGN.md § Output view), chosen in Settings > Presentation,
+   redefine only these three; any element can carry one, so a Settings
+   swatch previews its preset. Warm is the default (DEFAULT_OUTPUT_THEME). */
+:root,
+[data-output-theme="warm"] {
+  --output-ground: #1b140c;
+  --output-ink: #f3dfb5;
+  --output-ink-muted: #9c8661;
+}
+
+[data-output-theme="dark"] {
+  --output-ground: #0c0b10;
+  --output-ink: #f6f1e6;
+  --output-ink-muted: #a89e86;
+}
+
+/* Lines outside the focus recede to 30% ink over the ground, in every
+   preset; muted stays readable for small labels (the Live strip's). Set
+   wherever a preset is, so it mixes that preset's colors. */
+:root,
+[data-output-theme] {
+  --output-ink-dimmed: color-mix(in srgb, var(--output-ink) 30%, var(--output-ground));
+}
+
+[data-output-theme="light"] {
+  --output-ground: #f6f1e6;
+  --output-ink: #1a1712;
+  --output-ink-muted: #8f8676;
+}
+
+[data-output-theme="contrast"] {
+  --output-ground: #000000;
+  --output-ink: #ffffff;
+  --output-ink-muted: #8c8c8c;
 }
 
 *,
@@ -452,6 +484,7 @@ button:disabled {
 .settings-section {
   display: flex;
   flex-direction: column;
+  container-type: inline-size;
 }
 
 .settings-heading {
@@ -480,6 +513,34 @@ button:disabled {
   font-size: 1rem;
 }
 
+/* A switch stays beside its label, as in an MD3 list item: the label
+   wraps, the switch never drops below it. Rows with wider controls (a
+   segmented button, swatches) still wrap. */
+.settings-row:has(> .switch) {
+  flex-wrap: nowrap;
+}
+
+.settings-row:has(> .switch) .settings-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-row > .switch {
+  flex: none;
+}
+
+/* Too narrow for both (a phone at a large text size): every switch drops
+   below its label together, never some beside and some below. */
+@container (width < 18rem) {
+  .settings-row:has(> .switch) {
+    flex-wrap: wrap;
+  }
+
+  .settings-row:has(> .switch) .settings-label {
+    flex-basis: 100%;
+  }
+}
+
 .settings-supporting {
   color: var(--md-sys-color-on-surface-variant);
   font-size: 0.875rem;
@@ -499,6 +560,67 @@ button:disabled {
 
 .settings-link {
   gap: var(--space-md);
+}
+
+.theme-swatches {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 6rem));
+  gap: var(--space-sm) var(--space-xs);
+  width: 100%;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+/* Two by two, never three and one, when four won't fit their labels (a
+   phone at a large text size). */
+@container (width < 18rem) {
+  .theme-swatches {
+    grid-template-columns: repeat(2, minmax(0, 6rem));
+  }
+}
+
+.theme-swatch {
+  /* Holds its visually hidden radio, which would otherwise anchor to the
+     sheet and scroll it (header and Close away) when focused. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xxs);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.theme-swatch-sample {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--shape-md);
+  background-color: var(--output-ground);
+  color: var(--output-ink);
+  font-family: var(--font-family-hymn);
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.theme-swatch:has(:checked) {
+  color: var(--md-sys-color-on-surface);
+}
+
+.theme-swatch:has(:checked) .theme-swatch-sample {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.theme-swatch:has(:focus-visible) .theme-swatch-sample {
+  outline: 3px solid var(--md-sys-color-secondary);
+  outline-offset: 2px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1599,7 +1721,7 @@ html[data-scrolling],
   position: fixed;
   inset: 0;
   cursor: none;
-  background: #000;
+  background-color: var(--output-ground);
 }
 
 .output-view {
@@ -1607,8 +1729,8 @@ html[data-scrolling],
   container-type: size;
   overflow-y: auto;
   scrollbar-width: none;
-  background: #000;
-  color: #fff;
+  background-color: var(--output-ground);
+  color: var(--output-ink-dimmed);
   font-family: var(--font-family-hymn);
   text-align: center;
 }
@@ -1635,7 +1757,8 @@ html[data-scrolling],
   margin: 0;
   padding: 0 5cqw;
   font-size: calc(7.5cqmin * var(--fit, 1));
-  line-height: 1.5;
+  font-weight: 500;
+  line-height: 1.35;
   list-style: none;
   transition: opacity 300ms ease;
 }
@@ -1650,9 +1773,10 @@ html[data-scrolling],
   height: 100cqh;
 }
 
+/* Lit and dimmed differ by color alone, never size or weight, which would
+   reflow the column mid-scroll (DESIGN.md § Typography). */
 .output-line {
-  opacity: 0.3;
-  transition: opacity 200ms ease;
+  transition: color 200ms ease;
 }
 
 /* Parts set apart as in a printed hymnal (SDD-0001 §16.1): where a verse
@@ -1664,7 +1788,7 @@ html[data-scrolling],
 }
 
 .output-line-current {
-  opacity: 1;
+  color: var(--output-ink);
 }
 
 /* Blanked: the text fades to the bare ground, still laid out and

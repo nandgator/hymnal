@@ -7,6 +7,13 @@ export interface RecentEntry {
   viewedAt: number;
 }
 
+/** The Output's own look, apart from the Operator's theme — DESIGN.md
+ * § Output view. */
+export type OutputTheme = "dark" | "light" | "contrast" | "warm";
+
+/** The Output's preset when none is chosen. */
+export const DEFAULT_OUTPUT_THEME: OutputTheme = "warm";
+
 /** "system" defers to the OS/browser's own light/dark preference. */
 export interface Preferences {
   theme: "system" | "light" | "dark";
@@ -20,6 +27,8 @@ export interface Preferences {
   /** Whether scrolling the Output moves the Operator; absent means on —
    * SDD-0001 §16.1. */
   scrollSync?: boolean;
+  /** The Output's preset; absent means {@link DEFAULT_OUTPUT_THEME} — SDD-0001 §16.1. */
+  outputTheme?: OutputTheme;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {

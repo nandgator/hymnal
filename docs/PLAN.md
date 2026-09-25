@@ -41,10 +41,10 @@ Parts, each reviewed before the next:
    - ~~3c. Keyboard shortcuts, `?` sheet, command menu (Ctrl/⌘+K)~~ — done
    - ~~3d. Pane show/hide, persisted~~ — done
    - ~~3e. Output → Operator scroll sync (SDD §16.1)~~ — done
-4. Presentation: Output styled from tokens (ground/ink/muted), not
-   hardcoded; preset themes (Dark, Light, High contrast, Warm…); cues
-   each toggleable, all off (hymn #/title, hymnbook, part, repeat ×N);
-   Repeat returns, staying on the page with a ×N count; Undo repeat
+4. Presentation (DESIGN.md § Output view, SDD §16.1):
+   - ~~4a. Output on tokens; Output-only presets in Settings > Presentation~~ — done
+   - 4b. Repeat / Undo repeat in Parts; a repeat stays in place, ×N
+   - 4c. Cues: one muted caption, one switch each, all off
 
 ## State
 
@@ -115,6 +115,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-25 — #12 part 4a: Output on tokens; Output-only presets, Warm default
 - 2026-09-25 — #12 part 3e: Output scroll seeks via a reading band; keys forwarded
 - 2026-09-25 — #12 part 3d: Live, sidebar hideable (remembered); Settings grouped
 - 2026-09-25 — #12 part 3c: keymap, `?` sheet, Ctrl/⌘+K menu; B blanks, held — §16.5
@@ -126,4 +127,3 @@ ones only, here:
 - 2026-09-24 — Jumps skip ahead or repeat in place; Next never dead-ends — §5.1
 - 2026-09-24 — #12 part 3: Operator layout; controls never move with content
 - 2026-09-24 — Output cursor hides after 2s idle, shows on mouse move
-- 2026-09-24 — #12 part 2: MD3 components; Library and Finder restyled

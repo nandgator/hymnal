@@ -153,6 +153,14 @@ describe("Output", () => {
     expect(view).not.toHaveClass("output-blanked");
   });
 
+  it("takes the Operator's Output theme, live (SDD-0001 §16.1)", () => {
+    render(() => <Output />);
+    channel.handler?.({ type: "presentation", theme: "contrast" });
+    expect(document.documentElement.getAttribute("data-output-theme")).toBe("contrast");
+    channel.handler?.({ type: "presentation", theme: "dark" });
+    expect(document.documentElement.getAttribute("data-output-theme")).toBe("dark");
+  });
+
   it("asks to seek once a person's scroll comes to rest (SDD-0001 §16.1)", () => {
     vi.useFakeTimers();
     render(() => <Output />);

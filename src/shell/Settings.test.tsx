@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { fireEvent, render, screen, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_PREFERENCES, type UserState } from "../persistence/user-state.ts";
 import { Settings } from "./Settings.tsx";
@@ -17,6 +17,7 @@ function fakeUserState(overrides: Partial<UserState> = {}): UserState {
 
 afterEach(() => {
   document.documentElement.removeAttribute("data-theme");
+  document.documentElement.removeAttribute("data-output-theme");
   document.documentElement.style.removeProperty("--font-scale");
 });
 
@@ -30,7 +31,9 @@ describe("Settings", () => {
       />
     ));
 
-    expect(await screen.findByRole("radio", { name: "Dark" })).toBeChecked();
+    await screen.findByText("125%");
+    const display = within(screen.getByRole("region", { name: "Display" }));
+    expect(display.getByRole("radio", { name: "Dark" })).toBeChecked();
     expect(screen.getByText("125%")).toBeInTheDocument();
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
     expect(document.documentElement.style.getPropertyValue("--font-scale")).toBe("1.25");
@@ -44,11 +47,11 @@ describe("Settings", () => {
     expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
   });
 
-  it("groups Display, Workspace and Keyboard (DESIGN.md § Structure)", async () => {
+  it("groups Display, Workspace, Presentation and Keyboard (DESIGN.md § Structure)", async () => {
     const onShowShortcuts = vi.fn();
     render(() => <Settings userState={fakeUserState()} onShowShortcuts={onShowShortcuts} />);
 
-    for (const name of ["Display", "Workspace", "Keyboard"]) {
+    for (const name of ["Display", "Workspace", "Presentation", "Keyboard"]) {
       expect(screen.getByRole("region", { name })).toBeInTheDocument();
     }
     fireEvent.click(screen.getByRole("button", { name: /Keyboard shortcuts/ }));
@@ -65,7 +68,8 @@ describe("Settings", () => {
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);
     await screen.findByRole("radio", { name: "System" });
 
-    fireEvent.click(screen.getByRole("radio", { name: "Light" }));
+    const display = within(screen.getByRole("region", { name: "Display" }));
+    fireEvent.click(display.getByRole("radio", { name: "Light" }));
     expect(setPreferences).toHaveBeenLastCalledWith({
       theme: "light",
       fontScale: 1,
@@ -154,5 +158,23 @@ describe("Settings", () => {
     expect(sync).toBeChecked();
     fireEvent.click(sync);
     expect(setPreferences).toHaveBeenLastCalledWith(expect.objectContaining({ scrollSync: false }));
+  });
+
+  it("gives the Output its own theme, Warm by default (DESIGN.md § Output view)", async () => {
+    const setPreferences = vi.fn(async () => {});
+    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
+    await screen.findByText("100%");
+
+    const presentation = within(screen.getByRole("region", { name: "Presentation" }));
+    expect(presentation.getByRole("radio", { name: "Warm" })).toBeChecked();
+    expect(document.documentElement.getAttribute("data-output-theme")).toBe("warm");
+
+    fireEvent.click(presentation.getByRole("radio", { name: "Contrast" }));
+    expect(setPreferences).toHaveBeenLastCalledWith(
+      expect.objectContaining({ outputTheme: "contrast" }),
+    );
+    expect(document.documentElement.getAttribute("data-output-theme")).toBe("contrast");
+    // The Operator's own theme is untouched.
+    expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
   });
 });

@@ -23,7 +23,7 @@ const FORWARDED_KEYS = new Set([
  * is {@link OutputView}, shared with the Operator's Live pane.
  */
 export function Output() {
-  const [message, setMessage] = createSignal<Exclude<OutputMessage, { type: "blank" }>>({
+  const [message, setMessage] = createSignal<Extract<OutputMessage, { type: "content" | "idle" }>>({
     type: "idle",
   });
   const content = createMemo(() => {
@@ -33,8 +33,11 @@ export function Output() {
   // Blank holds apart from the content, which keeps arriving underneath, so
   // restoring shows wherever the operator has got to (SDD-0001 §16.5).
   const [blanked, setBlanked] = createSignal(false);
+  // The theme follows the Operator's Settings live (SDD-0001 §16.1).
   const receive = (next: OutputMessage) => {
     if (next.type === "blank") setBlanked(next.blanked);
+    else if (next.type === "presentation")
+      document.documentElement.setAttribute("data-output-theme", next.theme);
     else setMessage(next);
   };
 

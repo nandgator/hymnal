@@ -1,7 +1,9 @@
 import { createEffect, createResource, For, Show } from "solid-js";
 import {
+  DEFAULT_OUTPUT_THEME,
   DEFAULT_PREFERENCES,
   userState as defaultUserState,
+  type OutputTheme,
   type Preferences,
   type UserState,
 } from "../persistence/user-state.ts";
@@ -14,6 +16,12 @@ const THEMES: { value: Preferences["theme"]; label: string }[] = [
   { value: "system", label: "System" },
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
+];
+const OUTPUT_THEMES: { value: OutputTheme; label: string }[] = [
+  { value: "dark", label: "Dark" },
+  { value: "light", label: "Light" },
+  { value: "contrast", label: "Contrast" },
+  { value: "warm", label: "Warm" },
 ];
 const NAVIGATORS: { value: Preferences["navigator"]; label: string }[] = [
   { value: "parts", label: "Parts" },
@@ -51,6 +59,8 @@ export function createPreferences(state: UserState = defaultUserState): Preferen
     if (prefs.theme === "system") root.removeAttribute("data-theme");
     else root.setAttribute("data-theme", prefs.theme);
     root.style.setProperty("--font-scale", String(prefs.fontScale));
+    // Live and the Live strip are the Output scaled: same preset.
+    root.setAttribute("data-output-theme", prefs.outputTheme ?? DEFAULT_OUTPUT_THEME);
   });
 
   const update = (next: Preferences) => {
@@ -86,7 +96,7 @@ export interface SettingsProps {
  * Board #10's "user-controlled text scale and contrast" (arc42 §8.7), applied
  * globally as `--font-scale` and `data-theme` on the root element, grouped
  * since Board #12 part 3d (DESIGN.md § Structure): Display, Workspace,
- * Keyboard. Part 4 adds Presentation as one more section.
+ * Presentation, Keyboard.
  */
 export function Settings(props: SettingsProps) {
   const { preferences, update, adjustScale, setPane } =
@@ -219,6 +229,44 @@ export function Settings(props: SettingsProps) {
             () => preferences().navigator,
             (navigator) => update({ ...preferences(), navigator }),
           )}
+        </div>
+      </section>
+
+      <section class="settings-section" aria-labelledby={`${id}-presentation`}>
+        <h3 id={`${id}-presentation`} class="settings-heading">
+          Presentation
+        </h3>
+        <div class="settings-row">
+          <span class="settings-label">
+            Output theme
+            <span class="settings-supporting">The audience screen, apart from this one</span>
+          </span>
+          {/* Swatches, not a segmented button: a theme is chosen by sight,
+              and four fit a phone only as tiles that wrap. */}
+          <fieldset class="theme-swatches">
+            <legend class="visually-hidden">Output theme</legend>
+            <For each={OUTPUT_THEMES}>
+              {(theme) => (
+                <label class="theme-swatch">
+                  <input
+                    type="radio"
+                    name={`${id}-output-theme`}
+                    class="visually-hidden"
+                    checked={(preferences().outputTheme ?? DEFAULT_OUTPUT_THEME) === theme.value}
+                    onChange={() => update({ ...preferences(), outputTheme: theme.value })}
+                  />
+                  <span
+                    class="theme-swatch-sample"
+                    data-output-theme={theme.value}
+                    aria-hidden="true"
+                  >
+                    Aa
+                  </span>
+                  {theme.label}
+                </label>
+              )}
+            </For>
+          </fieldset>
         </div>
       </section>
 

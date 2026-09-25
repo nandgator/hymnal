@@ -1,5 +1,6 @@
 import type { FlatLine, LineRange } from "../domain/sequence-engine.ts";
 import type { HymnbookId, HymnNumber } from "../domain/types.ts";
+import type { OutputTheme } from "../persistence/user-state.ts";
 
 /**
  * Presenter → Output, one browser, two windows (Board #11, SDD-0001 §16.1).
@@ -19,7 +20,11 @@ export type OutputMessage =
   | { type: "idle" }
   /** Hides what's presented, or shows it again — distinct from `idle`,
    * which means nothing is presented (SDD-0001 §16.5). */
-  | { type: "blank"; blanked: boolean };
+  | { type: "blank"; blanked: boolean }
+  /** The Operator's Presentation settings, followed live (SDD-0001 §16.1). */
+  | PresentationMessage;
+
+export type PresentationMessage = { type: "presentation"; theme: OutputTheme };
 
 /** Output → Presenter: "I just opened — send me what's showing." */
 type HelloMessage = { type: "hello" };
@@ -49,6 +54,7 @@ const CHANNEL_NAME = "hymnal-output";
 let channel: BroadcastChannel | undefined;
 let lastPublished: OutputMessage | undefined;
 let blanked = false;
+let presentation: PresentationMessage | undefined;
 
 function getChannel(): BroadcastChannel {
   if (!channel) {
@@ -60,13 +66,14 @@ function getChannel(): BroadcastChannel {
       if (event.data.type !== "hello") return;
       if (lastPublished) channel?.postMessage(lastPublished);
       if (blanked) channel?.postMessage({ type: "blank", blanked } satisfies OutputMessage);
+      if (presentation) channel?.postMessage(presentation);
     });
   }
   return channel;
 }
 
 /** Presenter calls this on every navigation, and once more with `idle` on unmount. */
-export function publishOutput(message: Exclude<OutputMessage, { type: "blank" }>): void {
+export function publishOutput(message: Extract<OutputMessage, { type: "content" | "idle" }>): void {
   lastPublished = message;
   getChannel().postMessage(message);
 }
@@ -75,6 +82,12 @@ export function publishOutput(message: Exclude<OutputMessage, { type: "blank" }>
 export function setOutputBlanked(next: boolean): void {
   blanked = next;
   getChannel().postMessage({ type: "blank", blanked } satisfies OutputMessage);
+}
+
+/** Sends the Output's theme; held and replayed to a late Output like blank. */
+export function setOutputPresentation(settings: Omit<PresentationMessage, "type">): void {
+  presentation = { type: "presentation", ...settings };
+  getChannel().postMessage(presentation);
 }
 
 /**
@@ -86,7 +99,13 @@ export function subscribeOutput(handler: (message: OutputMessage) => void): () =
   const target = getChannel();
   const listener = (event: MessageEvent<ChannelMessage>) => {
     const { data } = event;
-    if (data.type === "content" || data.type === "idle" || data.type === "blank") handler(data);
+    if (
+      data.type === "content" ||
+      data.type === "idle" ||
+      data.type === "blank" ||
+      data.type === "presentation"
+    )
+      handler(data);
   };
   target.addEventListener("message", listener);
   target.postMessage({ type: "hello" } satisfies HelloMessage);
