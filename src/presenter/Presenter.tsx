@@ -29,14 +29,19 @@ import {
   type UserState,
 } from "../persistence/user-state.ts";
 import { ignoresShortcuts } from "../shell/keymap.ts";
+import { Menu, type MenuItem } from "../shell/Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY, SPLIT_QUERY, STAGE_QUERY } from "../shell/media.ts";
 import type { PaneId } from "../shell/panes.ts";
 import {
+  makeMain,
+  moveTab,
   nextTab as nextTabOf,
   normalizeWorkspace,
   selectTab,
+  setSplit,
   TABS,
   type TabId,
+  type VisibleGroup,
   visibleGroups,
   type Workspace,
 } from "../shell/workspace.ts";
@@ -96,6 +101,8 @@ export interface PresenterProps {
   blanked?: boolean;
   /** Restores a blanked Output — the Live pane's Blanked badge. */
   onRestore?: () => void;
+  /** Blanks or restores the Output — the button under Live. */
+  onToggleBlank?: () => void;
   /** Which supporting panes show, by id; absent means shown (SDD-0001
    * §16.4). The shell keeps it in preferences. */
   panes?: Record<string, boolean>;
@@ -380,6 +387,30 @@ export function Presenter(props: PresenterProps) {
   const groups = createMemo(() => visibleGroups(workspace(), canSplit()));
   const showTab = (tab: TabId) => setWorkspace(selectTab(workspace(), tab, groups().length === 1));
   const tabName = (tab: TabId) => TABS.find((t) => t.id === tab)?.name ?? tab;
+  // A group's heading (SDD-0001 §16.4): side by side, a pane toolbar of
+  // icons — expand or collapse, move (a ⋯ menu, for a group of several
+  // tabs), close; merged, Split — disabled, with the reason, when the
+  // window hasn't the room.
+  const split = () => groups().length === 2;
+  const swapMain = (group: VisibleGroup) =>
+    setWorkspace(makeMain(workspace(), group.main ? (group.index === 0 ? 1 : 0) : group.index));
+  // The arrow points at the group the tab goes to.
+  const moveItems = (group: VisibleGroup): MenuItem[] =>
+    group.tabs.map((tab) => ({
+      label: `Move ${tabName(tab)} to the other group`,
+      run: () => setWorkspace(moveTab(workspace(), tab)),
+      icon: group.index === 0 ? "icon-move" : "icon-move icon-mirror",
+    }));
+  const canSplitTabs = () => canSplit() && TABS.length > 1;
+  // "19 verses · refrain": the hymn's shape at a glance. Not a count of the
+  // whole sung order, which reads as confusing next to the verse count.
+  const hymnNote = (loaded: Hymn) => {
+    const verses = loaded.parts.filter((part) => part.kind === "stanza").length;
+    const refrain = loaded.parts.some((part) => part.kind === "refrain");
+    return [`${verses} ${verses === 1 ? "verse" : "verses"}`, ...(refrain ? ["refrain"] : [])].join(
+      " · ",
+    );
+  };
 
   // Under 840px, until part 4: one navigator leads, Parts or Lyrics, and
   // the switch is the one tap to the other. The shell keeps the choice.
@@ -513,17 +544,21 @@ export function Presenter(props: PresenterProps) {
     variant: "btn-filled" | "btn-tonal" | "btn-outlined",
     action: (e: SequenceEngine) => void,
     disabled?: () => boolean,
+    // On screen when shorter than the name: the line buttons read "Line",
+    // their arrows giving the direction (the mockup).
+    shortLabel?: string,
   ) => (
     <button
       type="button"
       class={`${variant} dock-button ${variant === "btn-outlined" ? "dock-line" : "dock-part"}`}
       onClick={() => mutate(action)}
       disabled={disabled?.()}
+      aria-label={shortLabel ? label : undefined}
       aria-keyshortcuts={key.aria}
       title={`${label} (${key.shown})`}
     >
       <span class={`icon ${icon}`} aria-hidden="true" />
-      <span class="dock-label">{label}</span>
+      <span class="dock-label">{shortLabel ?? label}</span>
     </button>
   );
 
@@ -600,7 +635,15 @@ export function Presenter(props: PresenterProps) {
       {/* Above the chips, so it sits in the same place for every hymn; the
           count and Undo appear after it, moving nothing. */}
       <div class="repeat-row">
-        <button type="button" class="btn-tonal repeat-button" onClick={repeat}>
+        {/* Outlined, not tonal: the tonal fill is the keypad's "selected",
+            and Repeat is an action, never a state. */}
+        <button
+          type="button"
+          class="btn-outlined repeat-button"
+          aria-label="Repeat"
+          title="Repeat this part"
+          onClick={repeat}
+        >
           <span class="icon icon-repeat" aria-hidden="true" />
           <span class="repeat-label">Repeat</span>
         </button>
@@ -714,8 +757,8 @@ export function Presenter(props: PresenterProps) {
                     onClick={() => mutate((e) => e.goTo(i()))}
                   >
                     <h3 class="seq-heading">
-                      <button type="button" class="seq-head title-medium">
-                        {partLabel(occ().part)}
+                      <button type="button" class="seq-head">
+                        {partCueLabel(occ().part)}
                       </button>
                       <Show when={showCues() && times() > 1}>
                         <span class="chip-assist">×{times()}</span>
@@ -862,6 +905,63 @@ export function Presenter(props: PresenterProps) {
                             </For>
                           </div>
                         </Show>
+                        <Show when={group.tabs.length === 1 && group.active === "hymn"}>
+                          <span class="area-note">{hymnNote(loaded())}</span>
+                        </Show>
+                        <div class="area-actions">
+                          <Show
+                            when={split()}
+                            fallback={
+                              <button
+                                type="button"
+                                class="icon-button area-icon"
+                                aria-label="Split into two groups"
+                                title={
+                                  canSplitTabs()
+                                    ? "Split into two groups"
+                                    : "Split into two groups (needs a window 1400px wide)"
+                                }
+                                disabled={!canSplitTabs()}
+                                onClick={() => setWorkspace(setSplit(workspace(), true))}
+                              >
+                                <span class="icon icon-split" aria-hidden="true" />
+                              </button>
+                            }
+                          >
+                            {/* A pane toolbar, after VS Code's and Zed's:
+                                expand or collapse, move, close. */}
+                            <button
+                              type="button"
+                              class="icon-button area-icon"
+                              aria-label={group.main ? "Collapse to the side" : "Expand to main"}
+                              title={group.main ? "Collapse to the side" : "Expand to main"}
+                              onClick={() => swapMain(group)}
+                            >
+                              <span
+                                class={`icon ${group.main ? "icon-collapse" : "icon-expand-full"}`}
+                                aria-hidden="true"
+                              />
+                            </button>
+                            {/* A lone tab's move would empty its group — what
+                                Close group already does — so Move shows only
+                                for a group of several. */}
+                            <Show when={group.tabs.length > 1}>
+                              <Menu
+                                label={`${tabName(group.active)} options`}
+                                items={moveItems(group)}
+                              />
+                            </Show>
+                            <button
+                              type="button"
+                              class="icon-button area-icon"
+                              aria-label="Close group"
+                              title="Close group — its tabs join the other"
+                              onClick={() => setWorkspace(setSplit(workspace(), false))}
+                            >
+                              <span class="icon icon-close" aria-hidden="true" />
+                            </button>
+                          </Show>
+                        </div>
                       </div>
                       <div class="area-body" role="tabpanel">
                         <Switch>
@@ -887,6 +987,21 @@ export function Presenter(props: PresenterProps) {
                     <Show when={roomy()}>
                       <div class="area-header">
                         <h3 class="area-title area-title-live">Live</h3>
+                        {/* What changes the audience screen sits in Live's
+                            own heading; Hold and the follow status join it
+                            later. */}
+                        <button
+                          type="button"
+                          class="live-control"
+                          aria-pressed={!!props.blanked}
+                          aria-keyshortcuts="B"
+                          title={props.blanked ? "Restore the Output (B)" : "Blank the Output (B)"}
+                          onClick={() => props.onToggleBlank?.()}
+                        >
+                          <span class="icon icon-blank" aria-hidden="true" />
+                          {props.blanked ? "Restore" : "Blank"}
+                          <kbd class="live-control-key">B</kbd>
+                        </button>
                       </div>
                     </Show>
                     <Show when={roomy()} fallback={<div class="stage-strip">{liveStrip()}</div>}>
@@ -899,6 +1014,7 @@ export function Presenter(props: PresenterProps) {
                   </Show>
                   <div class="area-header">
                     <h3 class="area-title">Parts</h3>
+                    <span class="area-note">Jump to any part</span>
                   </div>
                   {partsNavigator(loaded())}
                 </aside>
@@ -927,6 +1043,8 @@ export function Presenter(props: PresenterProps) {
                 "icon-arrow-up",
                 "btn-outlined",
                 (e) => e.previousLine(),
+                undefined,
+                "Line",
               )}
               {dockButton(
                 "Next line",
@@ -934,6 +1052,8 @@ export function Presenter(props: PresenterProps) {
                 "icon-arrow-down",
                 "btn-outlined",
                 (e) => e.nextLine(),
+                undefined,
+                "Line",
               )}
               {dockButton(
                 "Next part",

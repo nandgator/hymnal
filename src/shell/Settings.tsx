@@ -11,6 +11,7 @@ import {
   type UserState,
 } from "../persistence/user-state.ts";
 import { isPaneShown, PANES, type PaneId } from "./panes.ts";
+import { setSplit, workspaceOf } from "./workspace.ts";
 
 const MIN_SCALE = 0.75;
 const MAX_SCALE = 2;
@@ -225,6 +226,27 @@ export function Settings(props: SettingsProps) {
             </label>
           )}
         </For>
+        <label class="settings-row">
+          <span class="settings-label">
+            Split the tabs
+            <span class="settings-supporting">
+              Two groups side by side from 1400px wide; off, one tabbed area
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            class="switch"
+            checked={workspaceOf(preferences()).split}
+            aria-checked={workspaceOf(preferences()).split}
+            onChange={(event) =>
+              update({
+                ...preferences(),
+                workspace: setSplit(workspaceOf(preferences()), event.currentTarget.checked),
+              })
+            }
+          />
+        </label>
         <label class="settings-row">
           <span class="settings-label">
             Scrolling the Output moves the Operator

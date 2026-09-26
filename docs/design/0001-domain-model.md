@@ -950,8 +950,11 @@ under `prefers-color-scheme: dark` and again under an explicit
 three-state pattern (`system` defers to the OS; `light`/`dark` override it)
 used anywhere a user preference should coexist with a system default.
 
-**Responsive scaling is continuous, not breakpoint-driven**, for R8: the root
-font size is `clamp(1rem, 0.85rem + 0.6vw, 1.75rem)`, so a phone and a large
+**Responsive scaling is continuous, not breakpoint-driven**, for R8 — for
+content only since [ADR-0017](../decisions/0017-fix-the-interface-scale.md),
+which fixes the interface at the browser's size times `fontScale`. As
+first built, the root
+font size was `clamp(1rem, 0.85rem + 0.6vw, 1.75rem)`, so a phone and a large
 display sit on the same curve rather than jumping between fixed layouts.
 `Preferences.fontScale` multiplies that clamp directly, so the user's chosen
 size and the viewport-driven size compose rather than fight — confirmed by
@@ -1272,12 +1275,18 @@ Studio: sections, a switcher row, the workspace, the dock.
   the path isn't a deviation. Scrolling lyrics never calls the engine.
 - **Two tab groups.** This hymn, Recents and (later) Queue are **tabs** in
   at most two **groups**, side by side (split) or merged into one tabbed
-  area. Any tab moves to the other group from its menu (drag later); a
-  group left empty closes. One group is **main** and takes the room
-  (Make main), so the queue can have it while a service is planned. This
-  hymn never closes: it's the controls, like the dock. Under 1400px wide
-  the groups merge by themselves and split again when there's room.
-  What they see and the dock never move.
+  area. Each group's heading ends in a pane toolbar, after VS Code's and
+  Zed's: **Expand** to main or **Collapse** to the side, **Move** a tab to
+  the other group (a ⋯ menu, only in a group of several tabs: a lone
+  tab's move would just close its group), **Close group** (its tabs join the
+  other; nothing is lost); merged, **Split**. Drag comes later. A group
+  left empty closes; splitting with every tab in one group moves one not
+  showing across. While a menu is open the Operator's keys stand down,
+  so an arrow never moves the Output. The **main** group takes the room,
+  so the queue can have it while a service is planned. This hymn never
+  closes: it's the controls, like the dock. Under 1400px wide the groups
+  merge by themselves and split again when there's room. What they see
+  and the dock never move.
 
   ```ts
   type TabId = "hymn" | "recents"; // "queue" joins with Board #22
@@ -1391,8 +1400,8 @@ shows when every word typed starts a word of its name, so "bl" finds
 "Blank the Output". A number matches no action, so the Finder's fast path
 holds: `/`, a number, Enter. With the box empty, the actions show, each
 with its key. Actions: Blank or Restore the Output, Show Output, Next
-tab, Split or merge the tabs, Make main, Show or hide each pane, Switch hymnbook,
-Library, Settings, Text size up and down, Keyboard shortcuts.
+tab, Split or merge the tabs, Make the other tab group main, Show or hide
+each pane, Switch hymnbook, Library, Settings, Text size up and down, Keyboard shortcuts.
 
 ### 16.6 Testing
 

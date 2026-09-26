@@ -26,6 +26,7 @@ new record, never edited.
 | [0014](0014-defer-transliteration.md)                           | Defer transliteration (search and display)          | Deferred                                                             |
 | [0015](0015-use-official-sqlite-wasm-not-wa-sqlite.md)          | Use the official SQLite Wasm build, not wa-sqlite   | Accepted                                                             |
 | [0016](0016-license-under-apache-2.md)                          | License the project under Apache-2.0                | Accepted                                                             |
+| [0017](0017-fix-the-interface-scale.md)                         | Fix the interface scale; only content scales        | Accepted                                                             |
 
 ## Open questions
 

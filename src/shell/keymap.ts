@@ -81,7 +81,7 @@ export function replayForwardedKey(key: string, shiftKey: boolean): void {
 
 /**
  * Whether single-key shortcuts should ignore this keydown: typing, a sheet
- * open (its own keys, e.g. the hymn picker's arrows, win), or a Ctrl/⌘/Alt
+ * or menu open (its own keys, e.g. the hymn picker's arrows, win), or a Ctrl/⌘/Alt
  * chord the browser owns. A key forwarded from the Output is none of these.
  */
 export function ignoresShortcuts(event: KeyboardEvent): boolean {
@@ -92,6 +92,6 @@ export function ignoresShortcuts(event: KeyboardEvent): boolean {
     event.metaKey ||
     event.altKey ||
     isTyping(event) ||
-    document.querySelector("dialog[open]") !== null
+    document.querySelector('dialog[open], [role="menu"]') !== null
   );
 }

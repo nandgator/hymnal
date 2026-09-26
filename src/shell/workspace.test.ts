@@ -115,6 +115,14 @@ describe("tab actions", () => {
     expect(visibleGroups(back, true)).toHaveLength(2);
   });
 
+  it("splitting with every tab in one group moves one not showing across", () => {
+    const merged = moveTab(setSplit(DEFAULT_WORKSPACE, false), "recents");
+    expect(merged.groups).toEqual([[], ["hymn", "recents"]]);
+    const split = setSplit(merged, true);
+    expect(split.groups).toEqual([["hymn"], ["recents"]]);
+    expect(visibleGroups(split, true)).toHaveLength(2);
+  });
+
   it("makes either group main", () => {
     expect(makeMain(DEFAULT_WORKSPACE, 0).main).toBe(0);
   });

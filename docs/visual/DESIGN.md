@@ -105,10 +105,10 @@ typography:
     lineHeight: 24px
   hymn-display:
     fontFamily: "Hymnal Sans, Noto Sans Malayalam, system-ui, sans-serif"
-    fontSize: "clamp(1rem, 0.85rem + 0.6vw, 1.75rem)"
+    fontSize: "clamp(1.25rem, 1.0625rem + 0.75vw, 2.1875rem)"
     fontWeight: 400
     lineHeight: 1.7
-    note: multiplied by --font-scale (user setting), never a fixed px — see Layout
+    note: content, so it scales with the screen; its rem bounds follow --font-scale (ADR-0017)
   output-line:
     fontFamily: "Hymnal Sans, Noto Sans Malayalam, system-ui, sans-serif"
     fontSize: "calc(7.5cqmin * var(--fit))"
@@ -259,10 +259,11 @@ devotional, legible-at-distance tool.
   system instead of inventing a single ad hoc accent.
 - Elevation is tonal (a lighter `surface-container` step) plus a soft
   shadow, never a heavy drop shadow — MD3, not MD2.
-- Continuous responsive scaling (`clamp()`), not fixed breakpoints or
-  fixed px type sizes — the one deliberate departure from a typical MD3
-  token sheet, because this app runs from a phone to an arbitrary large
-  display, not a fixed set of device classes.
+- Content scales with the screen; the interface doesn't (ADR-0017). The
+  lyrics and the Output are `clamp()`s on the viewport; controls, labels
+  and icons are a fixed size times the user's text scale (A−/A+), as
+  Material 3, Apple and Figma keep theirs. Window size changes the
+  layout, never the interface's size.
 
 ## Colors
 
@@ -350,16 +351,16 @@ devotional, legible-at-distance tool.
 
 ### Hierarchy
 
-| Token           | Size                                    | Weight | Line height | Use                                     |
-| --------------- | --------------------------------------- | ------ | ----------- | --------------------------------------- |
-| `display-small` | 36px                                    | 400    | 44px        | Library's hero hymnbook title           |
-| `title-large`   | 22px                                    | 500    | 28px        | Screen headers (hymn title in Operator) |
-| `title-medium`  | 16px                                    | 500    | 24px        | Section labels (part label, "Recent")   |
-| `label-large`   | 14px                                    | 500    | 20px        | Buttons, chips                          |
-| `label-small`   | 11px                                    | 500    | 16px        | Assist chip (recurrence cue)            |
-| `body-large`    | 16px                                    | 400    | 24px        | Running UI text                         |
-| `hymn-display`  | `clamp(1rem, 0.85rem + 0.6vw, 1.75rem)` | 400    | 1.7         | Lyric lines, Operator view              |
-| `output-line`   | `clamp(2.2rem, 6.5vw, 5rem)`            | 500    | 1.35        | Output view, every line (lit or dimmed) |
+| Token           | Size                                            | Weight | Line height | Use                                     |
+| --------------- | ----------------------------------------------- | ------ | ----------- | --------------------------------------- |
+| `display-small` | 36px                                            | 400    | 44px        | Library's hero hymnbook title           |
+| `title-large`   | 22px                                            | 500    | 28px        | Screen headers (hymn title in Operator) |
+| `title-medium`  | 16px                                            | 500    | 24px        | Section labels (part label, "Recent")   |
+| `label-large`   | 14px                                            | 500    | 20px        | Buttons, chips                          |
+| `label-small`   | 11px                                            | 500    | 16px        | Assist chip (recurrence cue)            |
+| `body-large`    | 16px                                            | 400    | 24px        | Running UI text                         |
+| `hymn-display`  | `clamp(1.25rem, 1.0625rem + 0.75vw, 2.1875rem)` | 400    | 1.7         | Lyric lines, Operator view              |
+| `output-line`   | `clamp(2.2rem, 6.5vw, 5rem)`                    | 500    | 1.35        | Output view, every line (lit or dimmed) |
 
 ### Principles
 
@@ -480,7 +481,11 @@ unit.
   - **Coming up**: Recents now, the service queue later (Board #22).
   - This hymn, Recents and Queue are **tabs** in at most two **groups**:
     split side by side (the three-area look) or merged into one tabbed
-    area; any tab moves to the other group from its menu. **Make main**
+    area. Each group's heading ends in a pane toolbar of icons, after
+    VS Code's and Zed's: expand or collapse, move a tab (a ⋯ menu, only
+    in a group of several tabs; the arrow points at the group it goes to),
+    close the group (its tabs join the other); merged, split. Split and
+    merge are also a Settings switch and command-menu entries. Expanding
     gives one group the room (the queue while planning, the lyrics while
     singing). Under 1400px wide they merge by themselves. What they
     see and the dock never move. No free docking or floating panes:
@@ -492,6 +497,11 @@ unit.
     one or two icon actions. One strong accent: the current part (its
     label in `primary` on `surface-container-high`) and Next part.
     Numbers are tabular, so nothing jitters as they change.
+  - **One shape, one icon set.** Every control (buttons, keys, tabs,
+    icon buttons, the search bar) is a rounded rectangle of
+    `--button-shape`, never a pill beside a square; only MD3's switch
+    stays a pill, being its own component. A chip inside a control nests
+    concentrically. Icons are Material Symbols Rounded, all of them.
   - **Lyrics, compact repeats.** A part already seen earlier in the path
     (a refrain's second and later showings) shows compact: its label and
     first line, then "…". It's still a full tap target. The current block
@@ -527,7 +537,7 @@ unit.
     opens Undo last repeat and Reset repeats. Each repeat shows a
     snackbar with Undo. No Parts | Lyrics switch.
   - **Where a control lives follows how often it's used mid-service**:
-    frequent ones (the tabs, Make main, Repeat)
+    frequent ones (the tabs, expand and collapse, Repeat)
     stay on screen; occasional ones go into Settings.
     Nothing mid-service needs a trip into Settings: each pane toggle is
     also a key (L for Live) and a command-menu action. Letting the user

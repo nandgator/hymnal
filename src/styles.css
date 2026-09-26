@@ -171,9 +171,10 @@ ol {
 }
 
 html {
-  /* Phone through large display, continuously — arc42 R8 — layered under the
-     user's own multiplier rather than picked by a hard breakpoint. */
-  font-size: calc(clamp(1rem, 0.85rem + 0.6vw, 1.75rem) * var(--font-scale));
+  /* The interface is a fixed size times the user's text scale (A−/A+);
+     window size changes the layout, never this (ADR-0017). Content that
+     scales with the screen says so itself: .hymn-text, the Output. */
+  font-size: calc(100% * var(--font-scale));
 }
 
 body {
@@ -206,8 +207,9 @@ button:disabled {
 }
 
 /* ---------------------------------------------------------------------------
-   Icons: Material Symbols paths as CSS masks, so they take currentColor and
-   need no icon font or extra requests.
+   Icons: Material Symbols Rounded (weight 400), their paths as CSS masks,
+   so they take currentColor and need no icon font or extra requests. One
+   style throughout; a new icon comes from the same set.
    ------------------------------------------------------------------------ */
 
 .icon {
@@ -222,63 +224,96 @@ button:disabled {
 }
 
 .icon-arrow-back {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='m313-440 196 196q12 12 11.5 28T508-188q-12 11-28 11.5T452-188L188-452q-6-6-8.5-13t-2.5-15q0-8 2.5-15t8.5-13l264-264q11-11 27.5-11t28.5 11q12 12 12 28.5T508-715L313-520h447q17 0 28.5 11.5T800-480q0 17-11.5 28.5T760-440H313Z'/%3E%3C/svg%3E");
 }
 
 .icon-chevron-left {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='m432-480 156 156q11 11 11 28t-11 28q-11 11-28 11t-28-11L348-452q-6-6-8.5-13t-2.5-15q0-8 2.5-15t8.5-13l184-184q11-11 28-11t28 11q11 11 11 28t-11 28L432-480Z'/%3E%3C/svg%3E");
 }
 
 .icon-chevron-right {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M504-480 348-636q-11-11-11-28t11-28q11-11 28-11t28 11l184 184q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L404-268q-11 11-28 11t-28-11q-11-11-11-28t11-28l156-156Z'/%3E%3C/svg%3E");
 }
 
 .icon-arrow-up {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-528 324-372q-11 11-28 11t-28-11q-11-11-11-28t11-28l184-184q12-12 28-12t28 12l184 184q11 11 11 28t-11 28q-11 11-28 11t-28-11L480-528Z'/%3E%3C/svg%3E");
 }
 
 .icon-arrow-down {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-361q-8 0-15-2.5t-13-8.5L268-556q-11-11-11-28t11-28q11-11 28-11t28 11l156 156 156-156q11-11 28-11t28 11q11 11 11 28t-11 28L508-372q-6 6-13 8.5t-15 2.5Z'/%3E%3C/svg%3E");
 }
 
 .icon-queue-music {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 6H3v2h12zm0 4H3v2h12zM3 16h8v-2H3zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M640-160q-50 0-85-35t-35-85q0-50 35-85t85-35q11 0 21 1.5t19 6.5v-288q0-17 11.5-28.5T720-720h120q17 0 28.5 11.5T880-680q0 17-11.5 28.5T840-640h-80v360q0 50-35 85t-85 35ZM160-320q-17 0-28.5-11.5T120-360q0-17 11.5-28.5T160-400h240q17 0 28.5 11.5T440-360q0 17-11.5 28.5T400-320H160Zm0-160q-17 0-28.5-11.5T120-520q0-17 11.5-28.5T160-560h400q17 0 28.5 11.5T600-520q0 17-11.5 28.5T560-480H160Zm0-160q-17 0-28.5-11.5T120-680q0-17 11.5-28.5T160-720h400q17 0 28.5 11.5T600-680q0 17-11.5 28.5T560-640H160Z'/%3E%3C/svg%3E");
 }
 
 .icon-library {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 6H2v14c0 1.1.9 2 2 2h14v-2H4zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m-1 9H9V9h10zm-4 4H9v-2h6zm4-8H9V5h10z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M440-400h80q17 0 28.5-11.5T560-440q0-17-11.5-28.5T520-480h-80q-17 0-28.5 11.5T400-440q0 17 11.5 28.5T440-400Zm0-120h240q17 0 28.5-11.5T720-560q0-17-11.5-28.5T680-600H440q-17 0-28.5 11.5T400-560q0 17 11.5 28.5T440-520Zm0-120h240q17 0 28.5-11.5T720-680q0-17-11.5-28.5T680-720H440q-17 0-28.5 11.5T400-680q0 17 11.5 28.5T440-640ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-520q0-17 11.5-28.5T120-720q17 0 28.5 11.5T160-680v520h520q17 0 28.5 11.5T720-120q0 17-11.5 28.5T680-80H160Zm160-720v480-480Z'/%3E%3C/svg%3E");
 }
 
 .icon-settings {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M433-80q-27 0-46.5-18T363-142l-9-66q-13-5-24.5-12T307-235l-62 26q-25 11-50 2t-39-32l-47-82q-14-23-8-49t27-43l53-40q-1-7-1-13.5v-27q0-6.5 1-13.5l-53-40q-21-17-27-43t8-49l47-82q14-23 39-32t50 2l62 26q11-8 23-15t24-12l9-66q4-26 23.5-44t46.5-18h94q27 0 46.5 18t23.5 44l9 66q13 5 24.5 12t22.5 15l62-26q25-11 50-2t39 32l47 82q14 23 8 49t-27 43l-53 40q1 7 1 13.5v27q0 6.5-2 13.5l53 40q21 17 27 43t-8 49l-48 82q-14 23-39 32t-50-2l-60-26q-11 8-23 15t-24 12l-9 66q-4 26-23.5 44T527-80h-94Zm7-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z'/%3E%3C/svg%3E");
 }
 
 .icon-menu {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M160-240q-17 0-28.5-11.5T120-280q0-17 11.5-28.5T160-320h640q17 0 28.5 11.5T840-280q0 17-11.5 28.5T800-240H160Zm0-200q-17 0-28.5-11.5T120-480q0-17 11.5-28.5T160-520h640q17 0 28.5 11.5T840-480q0 17-11.5 28.5T800-440H160Zm0-200q-17 0-28.5-11.5T120-680q0-17 11.5-28.5T160-720h640q17 0 28.5 11.5T840-680q0 17-11.5 28.5T800-640H160Z'/%3E%3C/svg%3E");
 }
 
 .icon-expand {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-362q-8 0-15-2.5t-13-8.5L268-557q-11-11-11-28t11-28q11-11 28-11t28 11l156 156 156-156q11-11 28-11t28 11q11 11 11 28t-11 28L508-373q-6 6-13 8.5t-15 2.5Z'/%3E%3C/svg%3E");
 }
 
 .icon-repeat {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='m274-200 34 34q12 12 11.5 28T308-110q-12 12-28.5 12.5T251-109L148-212q-6-6-8.5-13t-2.5-15q0-8 2.5-15t8.5-13l103-103q12-12 28.5-11.5T308-370q11 12 11.5 28T308-314l-34 34h406v-120q0-17 11.5-28.5T720-440q17 0 28.5 11.5T760-400v120q0 33-23.5 56.5T680-200H274Zm412-480H280v120q0 17-11.5 28.5T240-520q-17 0-28.5-11.5T200-560v-120q0-33 23.5-56.5T280-760h406l-34-34q-12-12-11.5-28t11.5-28q12-12 28.5-12.5T709-851l103 103q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L709-589q-12 12-28.5 11.5T652-590q-11-12-11.5-28t11.5-28l34-34Z'/%3E%3C/svg%3E");
 }
 
 .icon-check {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='m382-354 339-339q12-12 28-12t28 12q12 12 12 28.5T777-636L410-268q-12 12-28 12t-28-12L182-440q-12-12-11.5-28.5T183-497q12-12 28.5-12t28.5 12l142 143Z'/%3E%3C/svg%3E");
 }
 
-.icon-repeat {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z'/%3E%3C/svg%3E");
+.icon-more-horiz {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M240-400q-33 0-56.5-23.5T160-480q0-33 23.5-56.5T240-560q33 0 56.5 23.5T320-480q0 33-23.5 56.5T240-400Zm240 0q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm240 0q-33 0-56.5-23.5T640-480q0-33 23.5-56.5T720-560q33 0 56.5 23.5T800-480q0 33-23.5 56.5T720-400Z'/%3E%3C/svg%3E");
+}
+
+.icon-expand-full {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M160-120q-17 0-28.5-11.5T120-160v-240q0-17 11.5-28.5T160-440q17 0 28.5 11.5T200-400v144l504-504H560q-17 0-28.5-11.5T520-800q0-17 11.5-28.5T560-840h240q17 0 28.5 11.5T840-800v240q0 17-11.5 28.5T800-520q-17 0-28.5-11.5T760-560v-144L256-200h144q17 0 28.5 11.5T440-160q0 17-11.5 28.5T400-120H160Z'/%3E%3C/svg%3E");
+}
+
+.icon-collapse {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M400-344 164-108q-11 11-28 11t-28-11q-11-11-11-28t11-28l236-236H200q-17 0-28.5-11.5T160-440q0-17 11.5-28.5T200-480h240q17 0 28.5 11.5T480-440v240q0 17-11.5 28.5T440-160q-17 0-28.5-11.5T400-200v-144Zm216-216h144q17 0 28.5 11.5T800-520q0 17-11.5 28.5T760-480H520q-17 0-28.5-11.5T480-520v-240q0-17 11.5-28.5T520-800q17 0 28.5 11.5T560-760v144l236-236q11-11 28-11t28 11q11 11 11 28t-11 28L616-560Z'/%3E%3C/svg%3E");
+}
+
+.icon-close {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-424 284-228q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536-480l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480-424Z'/%3E%3C/svg%3E");
+}
+
+.icon-move {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M806-440H360q-17 0-28.5-11.5T320-480q0-17 11.5-28.5T360-520h446l-34-34q-12-12-11.5-28t11.5-28q12-12 28.5-12.5T829-611l103 103q12 12 12 28t-12 28L829-349q-12 12-28.5 11.5T772-350q-11-12-11.5-28t11.5-28l34-34ZM600-640v-120H200v560h400v-120q0-17 11.5-28.5T640-360q17 0 28.5 11.5T680-320v120q0 33-23.5 56.5T600-120H200q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h400q33 0 56.5 23.5T680-760v120q0 17-11.5 28.5T640-600q-17 0-28.5-11.5T600-640Z'/%3E%3C/svg%3E");
+}
+
+/* Points the other way: a move into the group on the left. */
+.icon-mirror {
+  transform: scaleX(-1);
+}
+
+.icon-split {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M600-120q-33 0-56.5-23.5T520-200v-560q0-33 23.5-56.5T600-840h160q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H600Zm-400 0q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h160q33 0 56.5 23.5T440-760v560q0 33-23.5 56.5T360-120H200Zm0-640v560h160v-560H200Z'/%3E%3C/svg%3E");
+}
+
+.icon-search {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M380-320q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l224 224q11 11 11 28t-11 28q-11 11-28 11t-28-11L532-372q-30 24-69 38t-83 14Zm0-80q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z'/%3E%3C/svg%3E");
+}
+
+.icon-blank {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M607-627q29 29 42.5 66t9.5 76q0 15-11 25.5T622-449q-15 0-25.5-10.5T586-485q5-26-3-50t-25-41q-17-17-41-26t-51-4q-15 0-25.5-11T430-643q0-15 10.5-25.5T466-679q38-4 75 9.5t66 42.5Zm-127-93q-19 0-37 1.5t-36 5.5q-17 3-30.5-5T358-742q-5-16 3.5-31t24.5-18q23-5 46.5-7t47.5-2q137 0 250.5 72T904-534q4 8 6 16.5t2 17.5q0 9-1.5 17.5T905-466q-18 40-44.5 75T802-327q-12 11-28 9t-26-16q-10-14-8.5-30.5T753-392q24-23 44-50t35-58q-50-101-144.5-160.5T480-720Zm0 520q-134 0-245-72.5T60-463q-5-8-7.5-17.5T50-500q0-10 2-19t7-18q20-40 46.5-76.5T166-680l-83-84q-11-12-10.5-28.5T84-820q11-11 28-11t28 11l680 680q11 11 11.5 27.5T820-84q-11 11-28 11t-28-11L624-222q-35 11-71 16.5t-73 5.5ZM222-624q-29 26-53 57t-41 67q50 101 144.5 160.5T480-280q20 0 39-2.5t39-5.5l-36-38q-11 3-21 4.5t-21 1.5q-75 0-127.5-52.5T300-500q0-11 1.5-21t4.5-21l-84-82Zm319 93Zm-151 75Z'/%3E%3C/svg%3E");
 }
 
 .icon-grid {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 8h4V4H4zm6 12h4v-4h-4zm-6 0h4v-4H4zm0-6h4v-4H4zm6 0h4v-4h-4zm6-10v4h4V4zm-6 4h4V4h-4zm6 6h4v-4h-4zm0 6h4v-4h-4z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M240-160q-33 0-56.5-23.5T160-240q0-33 23.5-56.5T240-320q33 0 56.5 23.5T320-240q0 33-23.5 56.5T240-160Zm240 0q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm240 0q-33 0-56.5-23.5T640-240q0-33 23.5-56.5T720-320q33 0 56.5 23.5T800-240q0 33-23.5 56.5T720-160ZM240-400q-33 0-56.5-23.5T160-480q0-33 23.5-56.5T240-560q33 0 56.5 23.5T320-480q0 33-23.5 56.5T240-400Zm240 0q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm240 0q-33 0-56.5-23.5T640-480q0-33 23.5-56.5T720-560q33 0 56.5 23.5T800-480q0 33-23.5 56.5T720-400ZM240-640q-33 0-56.5-23.5T160-720q0-33 23.5-56.5T240-800q33 0 56.5 23.5T320-720q0 33-23.5 56.5T240-640Zm240 0q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Zm240 0q-33 0-56.5-23.5T640-720q0-33 23.5-56.5T720-800q33 0 56.5 23.5T800-720q0 33-23.5 56.5T720-640Z'/%3E%3C/svg%3E");
 }
 
 .icon-present {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M21 3H3c-1.11 0-2 .89-2 2v14c0 1.11.89 2 2 2h18c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2m0 16.02H3V4.98h18zM10 12H8l4-4 4 4h-2v4h-4z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M440-487v127q0 17 11.5 28.5T480-320q17 0 28.5-11.5T520-360v-126l36 35q12 11 28 11.5t28-11.5q12-12 12-28.5T612-508L508-612q-12-12-28-12t-28 12L348-508q-12 12-11.5 28t12.5 28q12 11 28 11.5t28-11.5l35-35ZM160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-480H160v480Zm0 0v-480 480Z'/%3E%3C/svg%3E");
 }
 
 /* Hidden visually, still the accessible name. display: none would drop it
@@ -818,9 +853,9 @@ button:disabled {
    the checkmark's slot in its padding, and selecting only fills it. */
 .chip-filter {
   position: relative;
-  min-height: 2rem;
+  min-height: 2.5rem;
   padding: 0 1.625rem;
-  border-radius: var(--shape-sm);
+  border-radius: var(--button-shape);
   background-color: transparent;
   color: var(--md-sys-color-on-surface-variant);
   box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
@@ -842,7 +877,7 @@ button:disabled {
   height: 1.125rem;
   background-color: currentColor;
   mask:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z'/%3E%3C/svg%3E")
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='m382-354 339-339q12-12 28-12t28 12q12 12 12 28.5T777-636L410-268q-12 12-28 12t-28-12L182-440q-12-12-11.5-28.5T183-497q12-12 28.5-12t28.5 12l142 143Z'/%3E%3C/svg%3E")
     center / contain no-repeat;
 }
 
@@ -882,7 +917,7 @@ button:disabled {
   height: 1.5rem;
   background-color: var(--md-sys-color-on-surface-variant);
   mask:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14'/%3E%3C/svg%3E")
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M380-320q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l224 224q11 11 11 28t-11 28q-11 11-28 11t-28-11L532-372q-30 24-69 38t-83 14Zm0-80q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z'/%3E%3C/svg%3E")
     center / contain no-repeat;
   pointer-events: none;
 }
@@ -1160,6 +1195,62 @@ input[type="checkbox"].switch:checked::before {
   margin-inline-start: auto;
 }
 
+/* The command menu, findable (the mockup): a search field's look, the
+   same box as Ctrl/⌘+K. A phone gets its icon. Controls share one shape
+   (--button-shape), and a chip inside one nests concentrically. */
+.switcher-find {
+  display: inline-flex;
+  flex: 0 1 18rem;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  min-height: 2.5rem;
+  margin-inline-start: auto;
+  padding: 0 var(--space-sm) 0 var(--space-md);
+  border: none;
+  border-radius: var(--button-shape);
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.switcher-find ~ .switcher-badge {
+  margin-inline-start: 0;
+}
+
+.switcher-find-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcher-find-key {
+  padding: 0.125rem var(--space-xs);
+  border-radius: 6px;
+  background-color: var(--md-sys-color-surface-container-high);
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 599px) {
+  .switcher-find {
+    flex: none;
+    width: 48px;
+    padding: 0;
+    justify-content: center;
+    background: none;
+  }
+
+  .switcher-find-text,
+  .switcher-find-key {
+    display: none;
+  }
+}
+
 .navigator {
   display: flex;
   flex: 1 1 12rem;
@@ -1217,6 +1308,12 @@ input[type="checkbox"].switch:checked::before {
     clip-path: inset(50%);
     white-space: nowrap;
   }
+
+  /* Icon-only: a square of the button's own shape, the icon centred. */
+  .repeat-row .repeat-button {
+    width: 2.5rem;
+    padding: 0;
+  }
 }
 
 @container (width < 13.75rem) {
@@ -1269,12 +1366,13 @@ input[type="checkbox"].switch:checked::before {
   min-height: 0;
 }
 
+/* Not clipped: only an area's body scrolls, and its header's menu may
+   reach past the panel's edge. */
 .area {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
   border-radius: 22px;
   background-color: var(--md-sys-color-surface-container-low);
 }
@@ -1284,7 +1382,7 @@ input[type="checkbox"].switch:checked::before {
 }
 
 .area:not(.area-main, .stage) {
-  flex: 0 0 min(320px, 24%);
+  flex: 0 0 min(360px, 26%);
 }
 
 /* Capped in px: rem grows with the viewport, so a rem cap would crowd the
@@ -1322,7 +1420,9 @@ input[type="checkbox"].switch:checked::before {
 }
 
 .area-title {
+  flex: none;
   margin: 0;
+  white-space: nowrap;
   color: var(--md-sys-color-on-surface-variant);
   font-size: 0.75rem;
   font-weight: 600;
@@ -1351,7 +1451,7 @@ input[type="checkbox"].switch:checked::before {
   min-height: 2rem;
   padding: 0 var(--space-sm);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--button-shape);
   background: none;
   color: var(--md-sys-color-on-surface-variant);
   font-size: 0.8125rem;
@@ -1363,6 +1463,146 @@ input[type="checkbox"].switch:checked::before {
   background-color: var(--md-sys-color-surface-container-high);
   color: var(--md-sys-color-on-surface);
   font-weight: 600;
+}
+
+/* A heading's actions, at its end: a pane toolbar of icon buttons, after
+   VS Code's and Zed's — expand or collapse, move, close; or Split. */
+.area-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  margin-inline-start: auto;
+  margin-inline-end: calc(-1 * var(--space-xs));
+}
+
+.area-icon,
+.menu-button {
+  border: none;
+  background: none;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+}
+
+/* Sized to the heading's small caps, not to MD3's 48px: a quiet toolbar
+   beside a 0.75rem label, as VS Code's and Zed's pane actions are. */
+.area-icon,
+.menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  min-width: 2rem;
+  height: 2rem;
+  min-height: 2rem;
+  padding: 0;
+  border-radius: var(--button-shape);
+}
+
+.area-icon .icon,
+.menu-button .icon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.area-icon:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .area-icon:enabled:hover,
+  .menu-button:hover {
+    background-color: color-mix(in srgb, currentColor 8%, transparent);
+  }
+}
+
+/* A heading's note, e.g. "19 verses · refrain", after
+   its title, taking what room is left. */
+.area-note {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage .area-note {
+  text-align: end;
+}
+
+/* Reduced noise, after VS Code's modern UI: the side group's toolbar stays
+   faint until pointed at or focused, so the main group's leads. Touch has
+   no hover, so there it stays at full strength. */
+@media (hover: hover) {
+  .area:not(.area-main, .stage) .area-actions {
+    opacity: 0.45;
+    transition: opacity 150ms ease;
+  }
+
+  .area:not(.area-main, .stage):is(:hover, :focus-within) .area-actions {
+    opacity: 1;
+  }
+}
+
+/* Only where there's room: the main group, or Parts. */
+.area:not(.area-main, .stage) .area-note {
+  display: none;
+}
+
+/* An area's menu (Menu.tsx): MD3's, a tone up and raised, anchored under
+   its button's end. */
+.menu-anchor {
+  position: relative;
+}
+
+.menu-popover {
+  position: absolute;
+  top: calc(100% + var(--space-xxs));
+  right: 0;
+  z-index: 5;
+  min-width: 15rem;
+  margin: 0;
+  padding: var(--space-xs) 0;
+  border-radius: var(--shape-md);
+  background-color: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--elevation-3);
+}
+
+.menu-popover-start {
+  right: auto;
+  left: 0;
+}
+
+.menu-popover-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  min-height: 3rem;
+  padding: var(--space-xs) var(--space-md);
+  border: none;
+  background: none;
+  color: var(--md-sys-color-on-surface);
+  font-size: 0.875rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.menu-popover-item:enabled:is(:hover, :focus-visible) {
+  background-color: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.menu-popover-item:disabled {
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor: default;
+}
+
+.menu-popover-supporting {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.75rem;
 }
 
 .area-body {
@@ -1379,6 +1619,38 @@ input[type="checkbox"].switch:checked::before {
   aspect-ratio: 16 / 9;
   min-height: 6rem;
   margin-inline: var(--space-md);
+}
+
+.live-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 2rem;
+  padding: 0 var(--space-sm);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--button-shape);
+  background: none;
+  color: var(--md-sys-color-on-surface);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.live-control[aria-pressed="true"] {
+  border-color: transparent;
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.live-control .icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.live-control-key {
+  color: var(--md-sys-color-on-surface-variant);
+  font: inherit;
+  font-size: 0.6875rem;
 }
 
 .stage-strip {
@@ -1399,10 +1671,15 @@ input[type="checkbox"].switch:checked::before {
   padding-inline: var(--space-xs);
 }
 
+/* Dense, as a side list: the title gets the room, the number is small
+   and muted. */
 .recents-row {
   display: flex;
   gap: var(--space-sm);
-  border-radius: var(--shape-md);
+  min-height: 2.75rem;
+  padding-block: var(--space-xxs);
+  border-radius: var(--button-shape);
+  font-size: 0.875rem;
 }
 
 .recents-row[aria-current="true"] {
@@ -1411,9 +1688,17 @@ input[type="checkbox"].switch:checked::before {
 
 .recents-number {
   flex: none;
-  min-width: 3rem;
+  min-width: 2.75rem;
   color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
+}
+
+.recents-when {
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.75rem;
 }
 
 .recents-title {
@@ -1670,6 +1955,16 @@ html[data-scrolling],
    that works everywhere, touch included; hover is extra, for real pointers
    only, and faint on blocks and lines alike so it never reads as a
    selection (DESIGN.md § Structure). */
+/* A part's label, small caps as an area title (the mockup): VERSE 2,
+   REFRAIN. */
+.seq-head {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .seq-block[aria-current="step"] .seq-head {
   color: var(--md-sys-color-primary);
 }
@@ -1790,6 +2085,12 @@ html[data-scrolling],
   list-style: none;
 }
 
+/* The keypad fills the stage in equal columns, its edges on Live's. */
+.stage .chip-set {
+  grid-template-columns: repeat(auto-fill, minmax(3.5rem, 1fr));
+  max-width: none;
+}
+
 .chip-set .chip-filter {
   width: 100%;
 }
@@ -1838,7 +2139,10 @@ html[data-scrolling],
   background-color: var(--md-sys-color-surface-container);
 }
 
+/* One height per role (ADR-0017): 48px in the dock, 40px in the stage,
+   56px for Show Output. */
 .dock-button {
+  min-height: 3rem;
   white-space: nowrap;
 }
 
@@ -1948,9 +2252,11 @@ html[data-scrolling],
 
 /* Lyric text, not UI chrome — typography is data-driven per hymnbook script
    (arc42 §8.3); Malayalam is the only script Phase 1 ships. */
+/* Content, so it scales with the screen (ADR-0017): 20px on a phone to
+   35px on a large display, its rem bounds moving with A−/A+. */
 .hymn-text {
   font-family: var(--font-family-hymn);
-  font-size: 1.25em;
+  font-size: clamp(1.25rem, 1.0625rem + 0.75vw, 2.1875rem);
   line-height: 1.7;
 }
 

@@ -37,7 +37,11 @@ the "Operator Layout" artifact. Parts, each reviewed before the next:
    normalised on read~~ — done
 2. ~~Wide layout: the stage (Live, Repeat row, keypad), This hymn and
    Recents tabs; areas as panels; sidebar retired~~ — done
-3. Groups: split and merge, Make main, move a tab, merge when narrow
+3. ~~Groups: a pane toolbar (expand or collapse, move, close; split),
+   merged when narrow; fixed interface scale (ADR-0017)~~ — done
+   3b. Design pass (docs/visual/PRINCIPLES.md): transport group, Present in
+   the dock, emphasis budget, one disabled style, elevation, motion,
+   centred keypad, even gaps, "Song" on screen
 4. Under 840px: Live strip, tabs merged, parts row with ×n menu, Undo
    snackbar; command menu and Settings entries
 
@@ -45,7 +49,7 @@ the "Operator Layout" artifact. Parts, each reviewed before the next:
 
 | Area    | Status                                                                   |
 | ------- | ------------------------------------------------------------------------ |
-| Docs    | arc42 + 14 ADRs + SDD-0001 complete                                      |
+| Docs    | arc42 + 17 ADRs + SDD-0001 complete; design principles noted             |
 | Tooling | bun, biome, prettier, markdownlint — `bun run check` green               |
 | App     | Vite + SolidJS + TS scaffolded; vitest chosen as test runner             |
 | Domain  | Types, Sequence Engine, validation (`src/domain/`) — pure, tested        |
@@ -110,6 +114,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-26 — #26 part 3: tab groups' toolbar; interface scale fixed — ADR-0017
 - 2026-09-26 — #26 part 2: tabs beside the stage (Live, Parts); split ≥1400px
 - 2026-09-26 — #26 designed: areas + two tab groups; part 1: workspace model
 - 2026-09-26 — Songs shared across books, rights record, regions: noted — SDD §8
@@ -121,4 +126,3 @@ ones only, here:
 - 2026-09-25 — #12 part 4a: Output on tokens; Output-only presets, Warm default
 - 2026-09-25 — #12 part 3e: Output scroll seeks via a reading band; keys forwarded
 - 2026-09-25 — #12 part 3d: Live, sidebar hideable (remembered); Settings grouped
-- 2026-09-25 — #12 part 3c: keymap, `?` sheet, Ctrl/⌘+K menu; B blanks, held — §16.5

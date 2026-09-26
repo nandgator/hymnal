@@ -480,7 +480,9 @@ redesign** (SDD-0001 §16): the label is now a plain running count
 repeat — verse-chorus-verse-chorus is the hymn's normal printed form, not
 a repeat (§2.2, §5.2).
 
-Responsive layout implemented in Board #10 (SDD-0001 §15): a continuous
+Responsive layout implemented in Board #10 (SDD-0001 §15), since
+narrowed to content by [ADR-0017](../decisions/0017-fix-the-interface-scale.md)
+(the interface is a fixed size times the user's text scale): a continuous
 `clamp()`-based type scale rather than fixed breakpoints, so phone and large
 display sit on one curve instead of jumping between layouts. User-controlled
 scale and contrast is `Settings` (`src/shell/Settings.tsx`), applied globally
@@ -529,6 +531,7 @@ and clickers actually send.
 | [0014](../decisions/0014-defer-transliteration.md)                           | Defer transliteration (search and display)                 | Deferred                                                                          |
 | [0015](../decisions/0015-use-official-sqlite-wasm-not-wa-sqlite.md)          | Use the official SQLite Wasm build, not wa-sqlite          | Accepted                                                                          |
 | [0016](../decisions/0016-license-under-apache-2.md)                          | License the project under Apache-2.0                       | Accepted                                                                          |
+| [0017](../decisions/0017-fix-the-interface-scale.md)                         | Fix the interface scale; only content scales               | Accepted                                                                          |
 
 Full index, with open questions, in
 [`docs/decisions/`](../decisions/README.md).

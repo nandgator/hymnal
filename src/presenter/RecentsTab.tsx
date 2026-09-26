@@ -15,6 +15,20 @@ export interface RecentsTabProps {
   onSelect: (number: HymnNumber) => void;
 }
 
+/** When a hymn was opened: the time today, the weekday this week, else
+ * the date — as the mockup's "9:41", "Sun". */
+export function viewedLabel(viewedAt: number, now = Date.now()): string {
+  const at = new Date(viewedAt);
+  const today = new Date(now);
+  if (at.toDateString() === today.toDateString()) {
+    return at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+  if (now - viewedAt < 6 * 24 * 60 * 60 * 1000) {
+    return at.toLocaleDateString([], { weekday: "short" });
+  }
+  return at.toLocaleDateString([], { day: "numeric", month: "short" });
+}
+
 /** The Recents tab (SDD-0001 §16.4): this book's recent hymns, newest
  * first; a tap opens one in place. */
 export function RecentsTab(props: RecentsTabProps) {
@@ -48,6 +62,7 @@ export function RecentsTab(props: RecentsTabProps) {
               >
                 <span class="recents-number">#{entry.hymnNumber}</span>
                 <span class="recents-title">{titles()?.get(entry.hymnNumber) ?? ""}</span>
+                <span class="recents-when">{viewedLabel(entry.viewedAt)}</span>
               </button>
             </li>
           )}

@@ -18,6 +18,7 @@ import { isPaneShown, PANES, type PaneId } from "./shell/panes.ts";
 import { canAdjustScale, createPreferences, OUTPUT_CUES, Settings } from "./shell/Settings.tsx";
 import { Sheet } from "./shell/Sheet.tsx";
 import { installScrollReveal } from "./shell/scrollReveal.ts";
+import { makeMain, setSplit, workspaceOf } from "./shell/workspace.ts";
 
 /** The app's top-level sections (DESIGN.md § Structure, layer 1). Feedback,
  * About and Updates are reserved here, not built (PLAN Board #16–18). */
@@ -200,6 +201,27 @@ function Operator() {
               hint: keyHint("tab"),
               run: run(() => presenterActions()?.nextTab()),
             },
+            {
+              label: workspaceOf(prefs).split ? "Merge the tabs" : "Split the tabs",
+              run: run(() => {
+                const ws = workspaceOf(prefs);
+                preferences.update({ ...prefs, workspace: setSplit(ws, !ws.split) });
+              }),
+            },
+            ...(workspaceOf(prefs).split
+              ? [
+                  {
+                    label: "Make the other tab group main",
+                    run: run(() => {
+                      const ws = workspaceOf(prefs);
+                      preferences.update({
+                        ...prefs,
+                        workspace: makeMain(ws, ws.main === 0 ? 1 : 0),
+                      });
+                    }),
+                  },
+                ]
+              : []),
           ]
         : []),
       ...PANES.map((pane) => ({
@@ -388,6 +410,21 @@ function Operator() {
               )}
             </Show>
           </nav>
+          {/* The command menu, findable (the mockup): the same box as
+              Ctrl/⌘+K and /. On a phone, its icon. */}
+          <Show when={hymnbook()}>
+            <button
+              type="button"
+              class="switcher-find"
+              aria-haspopup="dialog"
+              aria-keyshortcuts="Control+K"
+              onClick={() => openSheet(setCommandMenuOpen)}
+            >
+              <span class="icon icon-search" aria-hidden="true" />
+              <span class="switcher-find-text">Find a hymn or action</span>
+              <kbd class="switcher-find-key">Ctrl K</kbd>
+            </button>
+          </Show>
           {/* Blanked with no Live on screen (another section, or Live
               hidden): the badge sits here, in the row's empty end, so a
               blanked audience screen is never out of sight and nothing
@@ -431,6 +468,7 @@ function Operator() {
                   onBack={() => setHymnPickerOpen(true)}
                   blanked={blanked()}
                   onRestore={toggleBlank}
+                  onToggleBlank={toggleBlank}
                   panes={preferences.preferences().panes}
                   workspace={preferences.preferences().workspace}
                   onWorkspaceChange={(workspace) =>

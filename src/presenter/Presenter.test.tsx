@@ -266,13 +266,13 @@ describe("Presenter", () => {
 
     // s1, r, s2, r — every occurrence, the refrain twice.
     expect(sequence.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
-      "1",
+      "Verse 1",
       "Refrain",
-      "2",
+      "Verse 2",
       "Refrain",
     ]);
 
-    fireEvent.click(sequence.getByRole("button", { name: "2" }));
+    fireEvent.click(sequence.getByRole("button", { name: "Verse 2" }));
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("2");
 
     fireEvent.click(screen.getByRole("button", { name: "Line 1b" }));
@@ -308,6 +308,40 @@ describe("Presenter", () => {
     expect(rail.getByRole("region", { name: "Jump to part" })).toBeInTheDocument();
     // No Parts | Lyrics switch: both are on screen.
     expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+  });
+
+  it("expands, collapses, closes and splits from the group headings", async () => {
+    const onWorkspaceChange = vi.fn();
+    render(() => (
+      <Presenter
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        onWorkspaceChange={onWorkspaceChange}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+
+    // Side by side, a pane toolbar per group: expand or collapse, move, close.
+    const recents = () => within(screen.getByRole("region", { name: "Recents" }));
+    fireEvent.click(recents().getByRole("button", { name: "Expand to main" }));
+    expect(onWorkspaceChange).toHaveBeenLastCalledWith(expect.objectContaining({ main: 0 }));
+    expect(recents().getByRole("button", { name: "Collapse to the side" })).toBeInTheDocument();
+
+    // A lone tab has no Move: it would only do what Close group does.
+    expect(recents().queryByRole("button", { name: /Move/ })).not.toBeInTheDocument();
+    fireEvent.click(recents().getByRole("button", { name: "Close group" }));
+    // Its tabs join the other: one tabbed area, still showing Recents.
+    expect(screen.getByRole("tab", { name: "Recents" })).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Split into two groups" }));
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "This hymn" })).toBeInTheDocument();
+
+    const hymn = within(screen.getByRole("region", { name: "This hymn" }));
+    fireEvent.click(hymn.getByRole("button", { name: "Close group" }));
+    expect(onWorkspaceChange).toHaveBeenLastCalledWith(expect.objectContaining({ split: false }));
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
   });
 
   it("merges the groups into tabs when narrower, and N steps through them", async () => {

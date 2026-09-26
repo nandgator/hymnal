@@ -137,6 +137,19 @@ describe("Settings", () => {
     );
   });
 
+  it("splits or merges the tab groups (SDD-0001 §16.4)", async () => {
+    const setPreferences = vi.fn(async () => {});
+    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
+    await screen.findByText("100%");
+
+    const split = screen.getByRole("switch", { name: /Split the tabs/ });
+    expect(split).toBeChecked();
+    fireEvent.click(split);
+    expect(setPreferences).toHaveBeenLastCalledWith(
+      expect.objectContaining({ workspace: expect.objectContaining({ split: false }) }),
+    );
+  });
+
   it("sets which navigator leads", async () => {
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);

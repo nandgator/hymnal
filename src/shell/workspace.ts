@@ -153,7 +153,15 @@ export const makeMain = (workspace: Workspace, group: GroupIndex): Workspace => 
   main: group,
 });
 
-export const setSplit = (workspace: Workspace, split: boolean): Workspace => ({
-  ...workspace,
-  split,
-});
+/**
+ * Side by side or merged. Splitting with every tab in one group moves its
+ * last tab not showing to the other, so there are two groups to show.
+ */
+export function setSplit(workspace: Workspace, split: boolean): Workspace {
+  const next = { ...workspace, split };
+  if (!split) return next;
+  const full = workspace.groups[0].length === 0 ? 1 : workspace.groups[1].length === 0 ? 0 : null;
+  if (full === null) return next;
+  const spare = workspace.groups[full].filter((tab) => tab !== workspace.active[full]).at(-1);
+  return spare ? moveTab(next, spare) : next;
+}
