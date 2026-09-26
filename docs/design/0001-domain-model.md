@@ -1250,34 +1250,64 @@ Noto Serif Malayalam.
 ### 16.4 Operator workspace and app shell
 
 Layout and look are in `docs/visual/DESIGN.md` § Structure; this section
-covers the mechanics. Revised twice in review: a first pane layout showed
-the whole sequence, Live and Parts side by side with no hierarchy, and read
-as cluttered and redundant. The settled shape is layered, after Supabase
+covers the mechanics. Revised three times in review. A first pane layout
+showed the whole sequence, Live and Parts side by side with no hierarchy,
+and read as cluttered and redundant; the third revision is Board #26,
+below. The settled shape is layered, after Supabase
 Studio: sections, a switcher row, the workspace, the dock.
 
 - **Live is the anchor**, rendering the same `publishOutput` message the
   Output window receives, so the preview can't disagree with the audience
   screen.
-- **One navigator, two kinds**, swapped by a segmented button and kept as
-  `preferences.navigator: "parts" | "lyrics"` in `UserState` (§11),
-  default `"parts"`. Parts calls `jumpToPart` (§5.1). Lyrics renders
-  `engine.occurrenceAt(i)` for every `i`, and a tap calls `goTo(i)` or
-  `goTo(i, line)`, never `jumpToPart`: moving within the path isn't a
-  deviation from it. Scrolling Lyrics never calls the engine; only a tap
-  does.
-- **Supporting panes stay data, not layout code**: a registry
-  (`src/shell/panes.ts`) of `id`, title and key, read by Settings, the
-  command menu and the keymap, so a future pane (Finder and recents, a
-  service list) is one more entry plus where it renders. Two today:
-  **Live** (the preview, or the strip; L) and the **sidebar** (the other
-  navigator, from 840px). The leading navigator and the dock never hide:
-  they're the controls. Visibility is `preferences.panes: Record<string,
-boolean>`, read as `panes[id] ?? true`; an unknown id is ignored and a new
-  one defaults to shown, so the stored preference never needs migrating.
-  With no Live on screen (Live hidden, or another section), the Blanked
-  badge (§16.5) sits at the end of the switcher row, space nothing else
-  uses, so a blanked audience screen is never out of sight and nothing
-  shifts.
+- **Revised for Board #26: areas, not navigators.** The Parts | Lyrics
+  switch goes. The Operator has fixed areas, each answering one question:
+  **What they see** (Live, its controls and the part keypad: a rail on the
+  right from 840px), **This hymn** (the lyrics in sung order, tap to go
+  live) and **Coming up** (Recents now, the service queue with Board #22),
+  plus the dock. A future feature joins the area it belongs to rather
+  than adding a row: Hold (#21) and follow status (ADR-0010) under Live, a
+  stage output (#25) in Live's outputs and the Show Output split button,
+  Follow in the dock. Parts calls `jumpToPart` (§5.1); lyrics call
+  `goTo(i)` or `goTo(i, line)`, never `jumpToPart`, since moving within
+  the path isn't a deviation. Scrolling lyrics never calls the engine.
+- **Two tab groups.** This hymn, Recents and (later) Queue are **tabs** in
+  at most two **groups**, side by side (split) or merged into one tabbed
+  area. Any tab moves to the other group from its menu (drag later); a
+  group left empty closes. One group is **main** and takes the room
+  (Make main), so the queue can have it while a service is planned. This
+  hymn never closes: it's the controls, like the dock. Too narrow to
+  split, the groups merge by themselves and split again when there's
+  room. What they see and the dock never move.
+
+  ```ts
+  type TabId = "hymn" | "recents"; // "queue" joins with Board #22
+  interface Workspace {
+    groups: [TabId[], TabId[]]; // a tab is in exactly one group
+    active: [TabId | null, TabId | null];
+    main: 0 | 1;
+    split: boolean;
+  }
+  ```
+
+  Kept as `preferences.workspace` in `UserState` (§11); absent means the
+  default (`[["recents"], ["hymn"]]`, main 1, split). A stored layout is
+  normalised on read: an unknown tab is dropped, a missing one joins the
+  main group, This hymn is always present. `preferences.navigator` and
+  the `sidebar` pane are retired; Live stays a hideable pane (L), and
+  the pane registry (`src/shell/panes.ts`) keeps the Settings, command
+  menu and keymap entries in one place.
+
+- **Repeat sits with Parts**: under the Parts heading, one row of Repeat,
+  the count (×2), Undo and Reset, then the keypad. The row keeps its
+  height before any repeat (Undo and Reset shown disabled), so the keypad
+  never moves. On a phone the part keypad is a row above the dock; the
+  Repeat button carries the count, which opens **Undo last repeat** and
+  **Reset repeats**, and each repeat shows a snackbar with **Undo**.
+- **Supporting panes stay data, not layout code**: the registry above,
+  plus the tab list. With no Live on screen (Live hidden, or another
+  section), the Blanked badge (§16.5) sits at the end of the switcher
+  row, space nothing else uses, so a blanked audience screen is never
+  out of sight and nothing shifts.
 - **Hot-swap.** The hymnbook and hymn are the Operator's inputs, not its
   identity. Choosing another from the switcher row or the command menu
   replaces the engine in place: a new `SequenceEngine` for the new hymn, the
@@ -1315,7 +1345,7 @@ arrows, Page Up/Down, and `.` or `B` for a black screen, so those work too.
 | R                       | Jump to the refrain             |
 | B or .                  | Blank the Output / restore      |
 | O                       | Open or focus the Output window |
-| N                       | Swap navigator (Parts ↔ Lyrics) |
+| N                       | Next tab (in the main group)    |
 | L                       | Show or hide Live (§16.4)       |
 | / or Ctrl/⌘+K           | Command menu: hymns and actions |
 | + −                     | Operator text size              |
@@ -1360,8 +1390,8 @@ the Finder (§13) with actions listed ahead of the hymn results: an action
 shows when every word typed starts a word of its name, so "bl" finds
 "Blank the Output". A number matches no action, so the Finder's fast path
 holds: `/`, a number, Enter. With the box empty, the actions show, each
-with its key. Actions: Blank or Restore the Output, Show Output, Swap
-navigator (with a hymn open), Show or hide each pane, Switch hymnbook,
+with its key. Actions: Blank or Restore the Output, Show Output, Next
+tab, Split or merge the tabs, Make main, Show or hide each pane, Switch hymnbook,
 Library, Settings, Text size up and down, Keyboard shortcuts.
 
 ### 16.6 Testing

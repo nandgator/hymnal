@@ -29,8 +29,17 @@ hymnal is built.
 
 ## Now
 
-**Board #20 (keymap review) is next.** Board #13 is done. Spec: SDD-0001
-§16.5 (Keyboard shortcuts). Design it together before building.
+**Board #26 (Operator layout rethink) is in progress**, then #20: keys
+follow the layout. Spec: SDD-0001 §16.4, DESIGN.md § Structure; mockup in
+the "Operator Layout" artifact. Parts, each reviewed before the next:
+
+1. ~~Workspace model: tabs in two groups, split, main; `preferences.workspace`
+   normalised on read~~ — done
+2. Wide layout: What they see rail (Live, controls, Repeat row, keypad),
+   This hymn tab, Recents tab; areas as panels; navigator and sidebar retired
+3. Groups: split and merge, Make main, move a tab, merge when narrow
+4. Under 840px: Live strip, tabs merged, parts row with ×n menu, Undo
+   snackbar; command menu and Settings entries
 
 ## State
 
@@ -52,7 +61,8 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                               | Blocked by |
 | --- | ------------------------------------------------------------------ | ---------- |
-| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now | —          |
+| 26  | Rethink the Operator layout: Parts, Live preview and Lyrics        | —          |
+| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now | 26         |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)        | —          |
 | 15  | Transliteration: search and display across scripts (ADR-0014)      | —          |
 | 16  | Feedback and corrections from users — where collected: TBD         | —          |
@@ -64,9 +74,8 @@ Ordered. Top unblocked item is next.
 | 23  | Arrangements: mix parts of hymns into a saved mashup               | 22         |
 | 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording         | Phase 2    |
 | 25  | Stage outputs for musicians: lyrics + chords, score, notation      | content    |
-| 26  | Rethink the Operator layout: Parts, Live preview and Lyrics        | —          |
 
-20 finishes Phase 1. 14–15 sit past the scope guard below. 16–26 (20 aside)
+26 and 20 finish Phase 1. 14–15 sit past the scope guard below. 16–25
 are notes, not scheduled: the shell reserves room for them (DESIGN.md §
 Structure).
 
@@ -101,6 +110,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-26 — #26 designed: areas + two tab groups; part 1: workspace model
 - 2026-09-26 — Songs shared across books, rights record, regions: noted — SDD §8
 - 2026-09-26 — #13 done. Part 2: refrain pinned (side or band), no part marks
 - 2026-09-25 — #13 designed: refrain pinned, Mode 3 dropped; part 1: refrain band
@@ -112,4 +122,3 @@ ones only, here:
 - 2026-09-25 — #12 part 3d: Live, sidebar hideable (remembered); Settings grouped
 - 2026-09-25 — #12 part 3c: keymap, `?` sheet, Ctrl/⌘+K menu; B blanks, held — §16.5
 - 2026-09-24 — Output fits per hymn, eyeline 42%; Live = scaled Output; repeat explicit
-- 2026-09-24 — Finder searches as you type (combobox); shortcuts off while typing

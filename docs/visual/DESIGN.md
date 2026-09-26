@@ -465,16 +465,33 @@ unit.
      one box that finds a hymn by number or lyrics, or an action by name,
      each action showing its key (SDD-0001 §16.5). A `?` sheet lists every
      shortcut.
-- **Operator workspace.** **Live** is the anchor: what the congregation
-  sees now (a mirror of the Output message, SDD-0001 §16.4). Beside it,
-  one **navigator**, switched with a segmented button **Parts | Lyrics**
-  and remembered; **Parts** by default. Both control the Live: Parts by
-  the hymn's structure (the keypad, skip or repeat, §5.1), Lyrics by the
-  words (the whole sung order, ProPresenter's click-a-slide-to-go-live).
-  The navigator not chosen stays one tap away: from 840px it also shows
-  in a collapsible sidebar; on a phone the Parts | Lyrics switch itself
-  is that tap (a sheet as well would be a second control for the same
-  thing).
+- **Operator workspace (Board #26).** Fixed areas, each answering one
+  question, so a new feature joins an area instead of adding a row of
+  controls:
+  - **What they see**, a rail on the right from 840px: **Live** (the
+    anchor, a true miniature of the Output at its 16:9 shape, with the
+    part before and after dimmed), its controls underneath (follow
+    status, Blank, later Hold; the open outputs), then a divider and
+    **Parts**: the Repeat row (Repeat · ×2 · Undo · Reset, holding its
+    height) and the keypad (Refrain full width, verses in fixed-width
+    cells).
+  - **This hymn**: the lyrics in sung order, tap a part or a line to send
+    it live (ProPresenter's click-a-slide-to-go-live).
+  - **Coming up**: Recents now, the service queue later (Board #22).
+  - This hymn, Recents and Queue are **tabs** in at most two **groups**:
+    split side by side (the three-area look) or merged into one tabbed
+    area; any tab moves to the other group from its menu. **Make main**
+    gives one group the room (the queue while planning, the lyrics while
+    singing). Too narrow to split, they merge by themselves. What they
+    see and the dock never move. No free docking or floating panes:
+    mid-service, a pane dragged by mistake would move the controls.
+    Popping Live out into its own window is noted for later.
+  - **Areas are panels**: `surface-container-low` on the `surface`
+    ground, 22px corners, 12px apart, no borders. Each has a quiet
+    header, 52px tall: a small uppercase label (or its tabs) and at most
+    one or two icon actions. One strong accent: the current part (its
+    label in `primary` on `surface-container-high`) and Next part.
+    Numbers are tabular, so nothing jitters as they change.
   - **Lyrics, compact repeats.** A part already seen earlier in the path
     (a refrain's second and later showings) shows compact: its label and
     first line, then "…". It's still a full tap target. The current block
@@ -496,32 +513,34 @@ unit.
     < 480dp). WCAG's Reflow sets a width floor (320 CSS px) but no single
     height floor, so the practice is to degrade gracefully: at compact
     height (landscape phones, split screen, short windows) Live becomes
-    the strip even on a wide screen, and the navigator gets the room.
+    the strip even on a wide screen, and the tabs get the room.
     Below even that, the main column scrolls inside itself as the last
     resort; the page never does.
   - **Blanked**: while the Output is blanked (B), Live dims and carries a
     **Blanked** badge, which restores on a tap; the strip shows it too. The
     operator can keep navigating behind it (SDD-0001 §16.5). With no Live
     on screen, the badge sits at the switcher row's end instead.
-  - **Phone**: Live collapses to a thin strip showing the current line,
-    expanding on tap; the navigator fills the room below it; the dock as
-    everywhere.
+  - **Phone** (and anything under 840px): Live collapses to a thin
+    strip showing the current line, expanding on tap; the tabs fill the
+    room below it, merged; the part keypad is a row above the dock, in
+    thumb reach, with Repeat at its end carrying the count (×2), which
+    opens Undo last repeat and Reset repeats. Each repeat shows a
+    snackbar with Undo. No Parts | Lyrics switch.
   - **Where a control lives follows how often it's used mid-service**:
-    frequent ones (the navigator swap, the sidebar's Hide/Show, Repeat)
+    frequent ones (the tabs, Make main, Repeat)
     stay on screen; occasional ones go into Settings.
     Nothing mid-service needs a trip into Settings: each pane toggle is
     also a key (L for Live) and a command-menu action. Letting the user
     move a control between screen and Settings is deferred, not dropped.
   - **Settings, grouped**: one sheet, MD3 list sections. **Display**:
     theme (System | Light | Dark) and text size (A− 100% A+).
-    **Workspace**: Show Live, Show sidebar, Scrolling the Output moves
-    the Operator (switches), and which navigator leads (Parts | Lyrics).
+    **Workspace**: Show Live, Split the tab groups, and Scrolling the
+    Output moves the Operator (switches).
     **Keyboard**: opens the shortcut sheet, whose Close then reads Back
     and returns to Settings. **Presentation** (part 4): the Output theme
     (Dark | Light | Contrast | Warm) and one switch per cue.
-  - **Show/hide**: Live and the sidebar, remembered (SDD-0001 §16.4).
-    The leading navigator and the dock never hide. Panes remain a
-    registry, so future ones slot in without another layout rework.
+  - **Show/hide**: Live, remembered, and the tab layout (SDD-0001
+    §16.4). This hymn and the dock never hide.
 - **FAB and dock**: a fixed bottom dock for navigation plus the FAB. The
   FAB is **Show Output**: presenting is the operator's whole job, and it's
   the one action that must be easy to hit mid-service. It belongs to the

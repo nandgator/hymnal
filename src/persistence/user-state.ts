@@ -49,6 +49,9 @@ export interface Preferences {
   outputCues?: OutputCues;
   /** Pin the refrain where it fits; absent means off — SDD-0001 §16.1. */
   pinRefrain?: boolean;
+  /** The Operator's tab groups, as stored; read through `workspaceOf`, which
+   * makes any stored value whole — SDD-0001 §16.4. */
+  workspace?: unknown;
 }
 
 /** The cues when none are chosen: what a songbook congregation needs, the
