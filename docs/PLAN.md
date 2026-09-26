@@ -117,6 +117,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-26 — CI: deploy workflow actions moved to their Node 24 majors
 - 2026-09-26 — #26 part 3b: design pass; transport in the stage; refrains in full
 - 2026-09-26 — #26 part 3: tab groups' toolbar; interface scale fixed — ADR-0017
 - 2026-09-26 — #26 part 2: tabs beside the stage (Live, Parts); split ≥1400px
@@ -128,4 +129,3 @@ ones only, here:
 - 2026-09-25 — #12 done. Part 4c: cues (number badge, lower third), fade on change
 - 2026-09-25 — #12 part 4b: Repeat, Undo, Reset; a repeat stays in place on the Output
 - 2026-09-25 — #12 part 4a: Output on tokens; Output-only presets, Warm default
-- 2026-09-25 — #12 part 3e: Output scroll seeks via a reading band; keys forwarded
