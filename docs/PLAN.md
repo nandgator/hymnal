@@ -42,9 +42,11 @@ the "Operator Layout" artifact. Parts, each reviewed before the next:
    3b. ~~Design pass (docs/visual/PRINCIPLES.md): transport in the stage,
    Go Live / On Air, one disabled style, elevation, motion, the case
    rule, "Song" on screen~~ — done
-4. Under 840px: Live strip, tabs merged, parts row with ×n menu, Undo
-   snackbar; command menu and Settings entries; the switch between wide
-   and phone layouts animated
+4. **Next.** Under 840px: Live strip, tabs merged, parts row with ×n
+   menu, Undo snackbar; command menu and Settings entries; the switch
+   between wide and phone layouts animated. Retires the Parts | Lyrics
+   switch (tick, outline) and `preferences.navigator`; fix the keypad's
+   width and the greyed strip while blanked
 
 ## State
 
@@ -115,7 +117,7 @@ ones only, here:
 
 ## Log
 
-- 2026-09-26 — #26 part 3b: design pass — motion, states, Go Live / On Air, Search
+- 2026-09-26 — #26 part 3b: design pass; transport in the stage; refrains in full
 - 2026-09-26 — #26 part 3: tab groups' toolbar; interface scale fixed — ADR-0017
 - 2026-09-26 — #26 part 2: tabs beside the stage (Live, Parts); split ≥1400px
 - 2026-09-26 — #26 designed: areas + two tab groups; part 1: workspace model
