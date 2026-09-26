@@ -22,8 +22,8 @@ export type OutputMessage =
       hymnbookTitle?: string;
       part?: string;
       repeat?: number;
-      /** The hymn's refrain, if it has one — marked on the Output, and
-       * pinned where it fits (SDD-0001 §16.1). */
+      /** The hymn's refrain, if it has one — pinned where it fits
+       * (SDD-0001 §16.1). */
       refrain?: PartId;
     }
   | { type: "idle" }
@@ -35,7 +35,12 @@ export type OutputMessage =
   /** Show faded cues again for a while — a moment, never replayed. */
   | { type: "reveal" };
 
-export type PresentationMessage = { type: "presentation"; theme: OutputTheme; cues: OutputCues };
+export type PresentationMessage = {
+  type: "presentation";
+  theme: OutputTheme;
+  cues: OutputCues;
+  pinRefrain: boolean;
+};
 
 /** Output → Presenter: "I just opened — send me what's showing." */
 type HelloMessage = { type: "hello" };

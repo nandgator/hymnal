@@ -29,12 +29,8 @@ hymnal is built.
 
 ## Now
 
-**Board #13 (the refrain, pinned) is in progress.** Board #12 is done.
-Spec: SDD-0001 §16.1 (The refrain, pinned), DESIGN.md § Layout. Parts,
-each reviewed before the next:
-
-1. ~~The refrain on a tonal band, flowing; the message names the refrain~~ — done
-2. Pinned band: layout, fit with the 80% floor, "Pin the refrain" setting
+**Board #20 (keymap review) is next.** Board #13 is done. Spec: SDD-0001
+§16.5 (Keyboard shortcuts). Design it together before building.
 
 ## State
 
@@ -56,14 +52,13 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                               | Blocked by |
 | --- | ------------------------------------------------------------------ | ---------- |
-| 13  | The refrain, pinned in a band (SDD §16.1); Mode 3 dropped          | —          |
+| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now | —          |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)        | —          |
 | 15  | Transliteration: search and display across scripts (ADR-0014)      | —          |
 | 16  | Feedback and corrections from users — where collected: TBD         | —          |
 | 17  | About: acknowledgements, copyright, credits                        | —          |
 | 18  | Over-the-air update notices (as Supabase announces changes)        | —          |
 | 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)    | 2nd book   |
-| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now | near done  |
 | 21  | Hold: freeze the Output on what's showing, navigate, release       | —          |
 | 22  | Service queue: line up hymns for a service (a supporting pane)     | —          |
 | 23  | Arrangements: mix parts of hymns into a saved mashup               | 22         |
@@ -71,8 +66,9 @@ Ordered. Top unblocked item is next.
 | 25  | Stage outputs for musicians: lyrics + chords, score, notation      | content    |
 | 26  | Rethink the Operator layout: Parts, Live preview and Lyrics        | —          |
 
-13 is Phase 1. 14–15 sit past the scope guard below. 16–26 are notes,
-not scheduled: the shell reserves room for them (DESIGN.md § Structure).
+20 finishes Phase 1. 14–15 sit past the scope guard below. 16–26 (20 aside)
+are notes, not scheduled: the shell reserves room for them (DESIGN.md §
+Structure).
 
 ## Invariants
 
@@ -105,6 +101,8 @@ ones only, here:
 
 ## Log
 
+- 2026-09-26 — Songs shared across books, rights record, regions: noted — SDD §8
+- 2026-09-26 — #13 done. Part 2: refrain pinned (side or band), no part marks
 - 2026-09-25 — #13 designed: refrain pinned, Mode 3 dropped; part 1: refrain band
 - 2026-09-25 — Phone switcher row: hymnbook icon + hymn number, titles as names
 - 2026-09-25 — #12 done. Part 4c: cues (number badge, lower third), fade on change
@@ -115,5 +113,3 @@ ones only, here:
 - 2026-09-25 — #12 part 3c: keymap, `?` sheet, Ctrl/⌘+K menu; B blanks, held — §16.5
 - 2026-09-24 — Output fits per hymn, eyeline 42%; Live = scaled Output; repeat explicit
 - 2026-09-24 — Finder searches as you type (combobox); shortcuts off while typing
-- 2026-09-24 — Relicensed AGPL-3.0-only → Apache-2.0; resolves arc42 R3 — ADR-0016
-- 2026-09-24 — #12 part 3b: Live + navigator workspace; MD3 height classes

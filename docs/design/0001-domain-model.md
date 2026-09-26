@@ -506,13 +506,31 @@ any listing; `isbn` stays absent until the printed copy is checked.
 
 ## 8. Open questions
 
-| Question                                            | Resolve by                                  |
-| --------------------------------------------------- | ------------------------------------------- |
-| Default focus on arrival — whole part or first line | Trying it on screen                         |
-| Whether `tag` and `bridge` kinds are ever populated | A second hymnbook                           |
-| Cross-book hymn identity for parallel translations  | Deferred until a second book exists         |
-| Word-level addressing below `lineIndex`             | Phase 2, if lyric alignment proves feasible |
-| Synthetic multi-publisher `HymnbookId` (e.g. UUID7) | CMS (Board #11), if publishing is opened up |
+| Question                                              | Resolve by                                     |
+| ----------------------------------------------------- | ---------------------------------------------- |
+| Default focus on arrival — whole part or first line   | Trying it on screen                            |
+| Whether `tag` and `bridge` kinds are ever populated   | A second hymnbook                              |
+| Cross-book song identity (shared songs, translations) | Deferred until a second book exists; see below |
+| Word-level addressing below `lineIndex`               | Phase 2, if lyric alignment proves feasible    |
+| Synthetic multi-publisher `HymnbookId` (e.g. UUID7)   | CMS (Board #11), if publishing is opened up    |
+
+**Songs shared across books (2026-09-26, noted, not built).** Current
+leaning: each book keeps its own copy of a shared song, as printed, and the
+copies are linked by a song id (hymnary.org's text vs instance). The build
+suggests likely pairs by first line and title; a human confirms each one
+(ADR-0009). Duplicate copies are deliberate: permission to publish is granted
+per book, and a publisher can license only the songs it owns or that are in
+the public domain. A per-book copy keeps its provenance; a shared text would
+not.
+
+Each song will also need a rights record: the author's death year, the
+publication year and who gave permission. Copyright follows where lyrics are
+made available, not where the server is. Terms differ: life + 60 years in
+India, life + 70 in the EU, and in the US by publication date. From that
+record the build can work out where a book may be served, so a regional host
+(EU, US, India) serves only what is free or permitted there. Personal data
+is separate: none leaves the device today, but any server-side state
+(Board #18) needs a region chosen for GDPR (EU) and the DPDP Act (India).
 
 ---
 
@@ -1049,7 +1067,8 @@ not a label, so it needs no language. **No part label, no recurrence cue
 unless the operator turns one on** — those are Operator aids; a cue
 tracking the _stored_ order has no meaning to a congregation watching
 lyrics. Cues (hymn number, title, hymnbook, part, repeat ×N) are opt-in,
-one switch each, all off: the number as a badge top left (for printed
+one switch each (by default the number and hymnbook, fading after a few
+seconds): the number as a badge top left (for printed
 songbooks), the rest as a lower-third caption, each on still ground in a
 safe margin that grows while it shows (`visual/DESIGN.md`). The
 `content` message carries what they need (hymnbook title, the focused
@@ -1065,27 +1084,61 @@ never lands on it.
 (no bridge or tag), a hymn has at most one, 1,188 of 1,631 hymns have
 one, and 918 of those open on it. So:
 
-- **Pinned from the first line.** With "Pin the refrain" on (a
-  Presentation setting, on by default), the refrain sits in a band at the
-  foot of the screen, above the cue caption, dimmed until sung. Its
-  copies leave the scrolling column, which holds only the verses: the
-  Output never shows the same refrain twice. Singing it lights the band
-  in place (a repeat too, with ×N as a cue); the verse column holds
-  still, all dimmed, until the next verse. The band is there from the
-  first line because the type size is held per hymn: a band arriving
-  mid-hymn would force a resize.
-- **Big type wins.** The tallest verse and the refrain must fit together
-  at one size, which costs type (estimated over the corpus, ignoring
-  wrapping: median 94% of the flowing size, a tenth of hymns 69% or less,
-  worst 52%). A hymn whose pinned fit would fall below 80% of its
-  flowing fit flows instead. The Output measures and decides, the same
-  way the fit is measured there; the message only names the refrain.
-  Live decides at its own size, so a projector of an unusual aspect
-  could rarely disagree with it.
-- **Identifiable without a label.** A refrain sits on a faint tonal band,
-  pinned or flowing (in a hymn that flows, or with the setting off): a
-  shape, readable in any script. Not italics, as printed hymnals use:
-  Malayalam has no true italic, and a synthesized slant looks broken.
+- **Only the refrain pins.** It's the part that recurs; a bridge or a
+  tag is sung once or twice near the end, so it stays in the verse
+  column.
+- **Pinned from the first line, where the screen allows.** With "Pin
+  the refrain (chorus)" on (a Presentation setting, off by default:
+  flowing is the Output everyone knows), the refrain
+  leaves the scrolling column, which holds only the verses (the Output
+  never shows the same refrain twice), and sits in its own pane, dimmed
+  until sung, lit in place when it is (a repeat too, with ×N as a cue).
+  Two panes, chosen per hymn and screen:
+  - **Side by side**: verses in the left half, the refrain in the right,
+    centred on the eyeline. Preferred on a landscape screen: the refrain
+    stays at eye height, where a band at the foot sits behind the heads
+    in front for the back rows.
+  - **The band**: at the foot, above the cue caption, the verses above it
+    centred on their own eyeline, a line of still ground between (the
+    verses fade out across it; lit lines never enter it). Preferred on a
+    portrait screen, where half-width columns would wrap every line, and
+    the landscape fallback when side by side can't hold the floor.
+
+  While the refrain is sung, the verse column holds the verse to come at
+  its eyeline, dimmed (at the end, the last verse), so what's next is in
+  view — for the 918 hymns that open on the refrain, verse 1 waits there.
+  The pane is there from the first line because the type size is held
+  per hymn: a pane arriving mid-hymn would force a resize.
+
+- **Big type wins.** Each layout is measured on the real screen at its
+  own width: the band needs the tallest verse and the refrain together,
+  side by side each in half the width, where long lines wrap and a long
+  unbreakable word (Malayalam words don't break) must shrink until it
+  fits its column. A layout qualifies only if it truly fits (at the
+  smallest type, fits can tie without fitting) and keeps the type at 70%
+  of the full size or more, 5.25% of the screen's shorter side: an
+  absolute floor, the same for every hymn and resolution, since what the
+  back row needs is the type's share of the screen, not its share of the
+  hymn's own flowing size (a relative 80% floor pinned only 61% of
+  refrain hymns on 16:9, a third side by side; this one about 85%, two
+  thirds side by side, sampled). The preferred qualifying layout wins, else
+  the other, else the hymn flows. On 16:9, side by side costs more than
+  the band (sampled: side 67–92%, band 86–100% of the flowing size). The
+  Output measures and decides, the same way the fit is measured there;
+  the message only names the refrain. Live decides at its own size, so a
+  projector of an unusual aspect could rarely disagree with it.
+- **Every layout fits its width too.** The fit shrinks the type for the
+  widest line as well as the tallest part, so a long word never runs off
+  the screen or into the next column; on a portrait screen this applies
+  to the flowing layout too.
+- **No mark on a special part.** A refrain, bridge or tag being sung is
+  lit like any part and set apart by the part gap; a pinned refrain is
+  identified by its place. Tried and dropped: a tonal box (blockish; on
+  every refrain it pulled the eye off a short lit verse), a feathered
+  glow, centered rules above and below, an indent and a margin hairline
+  (both wrong on centered lines). Not a label (it needs a language) nor
+  italics, as printed hymnals use: Malayalam has no true italic, and a
+  synthesized slant looks broken.
 - **Scroll sync is unchanged.** Only the verse column scrolls by hand;
   lines keep their flattened indices, so seeks map back as before.
 

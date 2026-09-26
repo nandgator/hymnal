@@ -10,7 +10,7 @@ import {
   subscribeKeys,
 } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
-import { DEFAULT_OUTPUT_THEME } from "./persistence/user-state.ts";
+import { DEFAULT_OUTPUT_THEME, outputCuesOf, pinRefrainOf } from "./persistence/user-state.ts";
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { ignoresShortcuts, keyHint, replayForwardedKey, SHORTCUTS } from "./shell/keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
@@ -76,7 +76,8 @@ function Operator() {
   createEffect(() =>
     setOutputPresentation({
       theme: preferences.preferences().outputTheme ?? DEFAULT_OUTPUT_THEME,
-      cues: preferences.preferences().outputCues ?? {},
+      cues: outputCuesOf(preferences.preferences()),
+      pinRefrain: pinRefrainOf(preferences.preferences()),
     }),
   );
 
@@ -177,6 +178,7 @@ function Operator() {
   // The command menu's actions (SDD-0001 §16.5), each with its key.
   const commands = (): Command[] => {
     const prefs = preferences.preferences();
+    const cues = outputCuesOf(prefs);
     const run = (action: () => void) => () => {
       setCommandMenuOpen(false);
       action();
@@ -214,18 +216,18 @@ function Operator() {
         run: run(() => togglePane(pane.id)),
       })),
       ...OUTPUT_CUES.map((cue) => {
-        const on = !!prefs.outputCues?.[cue.id];
+        const on = !!cues[cue.id];
         return {
           label: `${on ? "Hide" : "Show"} ${cue.name.toLowerCase()} on the Output`,
           run: run(() => preferences.setCue(cue.id, !on)),
         };
       }),
-      ...(prefs.outputCues?.fade && OUTPUT_CUES.some((cue) => prefs.outputCues?.[cue.id])
+      ...(cues.fade && OUTPUT_CUES.some((cue) => cues[cue.id])
         ? [{ label: "Show cues now", run: run(showCues) }]
         : []),
       {
-        label: prefs.outputCues?.fade ? "Keep cues on the Output" : "Fade cues on the Output",
-        run: run(() => preferences.setCue("fade", !prefs.outputCues?.fade)),
+        label: cues.fade ? "Keep cues on the Output" : "Fade cues on the Output",
+        run: run(() => preferences.setCue("fade", !cues.fade)),
       },
       { label: "Switch hymnbook", run: run(() => openSheet(setBookPickerOpen)) },
       { label: "Library", run: run(() => go("library")) },
@@ -443,8 +445,9 @@ function Operator() {
                   scrollSync={preferences.preferences().scrollSync ?? true}
                   onActions={(actions) => setPresenterActions(() => actions)}
                   hymnbookTitle={hymnbook()?.title}
-                  cues={preferences.preferences().outputCues}
+                  cues={outputCuesOf(preferences.preferences())}
                   revealCues={cuesRevealed()}
+                  pinRefrain={pinRefrainOf(preferences.preferences())}
                 />
               )}
             </Match>

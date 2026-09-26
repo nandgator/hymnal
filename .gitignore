@@ -36,6 +36,10 @@ yarn-debug.log*
 yarn-error.log*
 bun-debug.log*
 
+# Local test hymns, merged into a hymnbook by build:content on this machine
+# only: never committed, never deployed (see scripts/build-content.ts).
+content-local/
+
 # Generated hymnbook packages. Built by the content pipeline, never committed.
 # The corpus itself is source and IS committed.
 *.sqlite

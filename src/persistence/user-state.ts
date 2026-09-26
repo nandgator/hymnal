@@ -44,9 +44,21 @@ export interface Preferences {
   scrollSync?: boolean;
   /** The Output's preset; absent means {@link DEFAULT_OUTPUT_THEME} — SDD-0001 §16.1. */
   outputTheme?: OutputTheme;
-  /** The Output's cues; absent or missing ones are off. */
+  /** The Output's cues; absent means {@link DEFAULT_OUTPUT_CUES}, and once
+   * set, missing ones are off. */
   outputCues?: OutputCues;
+  /** Pin the refrain where it fits; absent means off — SDD-0001 §16.1. */
+  pinRefrain?: boolean;
 }
+
+/** The cues when none are chosen: what a songbook congregation needs, the
+ * number and the book, fading after a few seconds (DESIGN.md § Typography). */
+export const DEFAULT_OUTPUT_CUES: OutputCues = { number: true, hymnbook: true, fade: true };
+
+export const outputCuesOf = (preferences: Preferences): OutputCues =>
+  preferences.outputCues ?? DEFAULT_OUTPUT_CUES;
+
+export const pinRefrainOf = (preferences: Preferences) => preferences.pinRefrain ?? false;
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",

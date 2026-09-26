@@ -178,18 +178,24 @@ describe("Settings", () => {
     expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
   });
 
-  it("has every Output cue off by default, and remembers turning one on", async () => {
+  it("defaults the Output to number and hymnbook, fading, refrain unpinned", async () => {
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);
     await screen.findByText("100%");
 
     const presentation = within(screen.getByRole("region", { name: "Presentation" }));
-    for (const name of [/hymn number/, /hymn title/, /hymnbook/, /part/, /repeat count/]) {
+    for (const name of [/hymn number/, /hymnbook/, /Fade cues/]) {
+      expect(presentation.getByRole("switch", { name })).toBeChecked();
+    }
+    for (const name of [/hymn title/, /part/, /repeat count/, /Pin the refrain/]) {
       expect(presentation.getByRole("switch", { name })).not.toBeChecked();
     }
+    // Turning one on keeps the defaults it started from.
     fireEvent.click(presentation.getByRole("switch", { name: /part/ }));
     expect(setPreferences).toHaveBeenLastCalledWith(
-      expect.objectContaining({ outputCues: { part: true } }),
+      expect.objectContaining({
+        outputCues: { number: true, hymnbook: true, fade: true, part: true },
+      }),
     );
   });
 });

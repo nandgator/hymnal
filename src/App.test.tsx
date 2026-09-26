@@ -27,7 +27,7 @@ vi.mock("./persistence/content-store.ts", () => {
   return { getContentStore: () => store };
 });
 
-vi.mock("./persistence/user-state.ts", () => {
+vi.mock("./persistence/user-state.ts", async (importOriginal) => {
   const userState: UserState = {
     getLastPosition: async () => undefined,
     setLastPosition: async () => {},
@@ -36,11 +36,7 @@ vi.mock("./persistence/user-state.ts", () => {
     getPreferences: async () => ({ theme: "system", fontScale: 1, navigator: "parts" }),
     setPreferences: async () => {},
   };
-  return {
-    userState,
-    DEFAULT_PREFERENCES: { theme: "system", fontScale: 1, navigator: "parts" },
-    DEFAULT_OUTPUT_THEME: "warm",
-  };
+  return { ...(await importOriginal<typeof import("./persistence/user-state.ts")>()), userState };
 });
 
 describe("App", () => {

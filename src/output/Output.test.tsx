@@ -155,9 +155,9 @@ describe("Output", () => {
 
   it("takes the Operator's Output theme, live (SDD-0001 §16.1)", () => {
     render(() => <Output />);
-    channel.handler?.({ type: "presentation", theme: "contrast", cues: {} });
+    channel.handler?.({ type: "presentation", theme: "contrast", cues: {}, pinRefrain: false });
     expect(document.documentElement.getAttribute("data-output-theme")).toBe("contrast");
-    channel.handler?.({ type: "presentation", theme: "dark", cues: {} });
+    channel.handler?.({ type: "presentation", theme: "dark", cues: {}, pinRefrain: false });
     expect(document.documentElement.getAttribute("data-output-theme")).toBe("dark");
   });
 
@@ -176,13 +176,19 @@ describe("Output", () => {
     });
     expect(document.querySelector(".output-caption")).not.toBeInTheDocument();
 
-    channel.handler?.({ type: "presentation", theme: "warm", cues: { title: true, repeat: true } });
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: { title: true, repeat: true },
+      pinRefrain: false,
+    });
     expect(document.querySelector(".output-caption")).toHaveTextContent("Test Hymn · ×2");
     expect(document.querySelector(".output-badge")).not.toBeInTheDocument();
     channel.handler?.({
       type: "presentation",
       theme: "warm",
       cues: { number: true, hymnbook: true, title: true, part: true, repeat: true },
+      pinRefrain: false,
     });
     expect(document.querySelector(".output-caption")).toHaveTextContent(
       "Test Book · Test Hymn · Refrain · ×2",
@@ -191,7 +197,7 @@ describe("Output", () => {
     expect(document.querySelector(".output-badge")).toHaveTextContent("7");
   });
 
-  it("marks the refrain's lines as one band, each showing its own", () => {
+  it("names the refrain's lines, unmarked while flowing", () => {
     render(() => <Output />);
     channel.handler?.({
       type: "content",
@@ -199,24 +205,80 @@ describe("Output", () => {
       number: 7,
       title: "Test Hymn",
       lines: [...LINES, { text: "Line 2a", partId: "s2", isPartStart: true }, ...LINES.slice(2)],
-      focus: { start: 0, end: 2 },
+      focus: { start: 2, end: 3 },
       refrain: "r",
     });
     const refrains = screen.getAllByText("Refrain line");
     expect(refrains).toHaveLength(2);
-    for (const line of refrains) {
-      expect(line).toHaveClass("output-refrain", "output-refrain-start", "output-refrain-end");
-    }
+    for (const line of refrains) expect(line).toHaveClass("output-refrain");
     expect(screen.getByText("Line 1a")).not.toHaveClass("output-refrain");
+    // No mark while sung: the lit lines and the part gap say where we are.
+    expect(refrains[0]).toHaveClass("output-line-current");
+    expect(refrains[0].className).not.toMatch(/special/);
   });
 
-  it("fades each cue a few seconds after it changes, when set to", () => {
+  describe("the refrain, pinned (SDD-0001 §16.1)", () => {
+    // Verse 1, refrain, verse 2, refrain again.
+    const PINNABLE = [
+      ...LINES,
+      { text: "Line 2a", partId: "s2", isPartStart: true },
+      ...LINES.slice(2),
+    ];
+    const present = (pinRefrain: boolean, focus: number) => {
+      channel.handler?.({ type: "presentation", theme: "warm", cues: {}, pinRefrain });
+      channel.handler?.({
+        type: "content",
+        hymnbookId: "book",
+        number: 7,
+        title: "Test Hymn",
+        lines: PINNABLE,
+        focus: { start: focus, end: focus + 1 },
+        refrain: "r",
+      });
+    };
+    const band = () => document.querySelector(".output-pinned");
+
+    it("shows the refrain once, in the band, its copies out of the column", () => {
+      render(() => <Output />);
+      present(true, 0);
+      expect(band()).toHaveTextContent("Refrain line");
+      const inColumn = screen
+        .getAllByText("Refrain line")
+        .filter((line) => !band()?.contains(line));
+      expect(inColumn).toHaveLength(2);
+      // Hidden by the view's pinned mode, which the stylesheet applies.
+      expect(inColumn[0].closest(".output-view")).toHaveClass("output-pinned-mode");
+    });
+
+    it("lights the band when the refrain is sung, the column otherwise", () => {
+      render(() => <Output />);
+      present(true, 0);
+      const bandLine = () => band()?.querySelector(".output-line");
+      expect(screen.getByText("Line 1a")).toHaveClass("output-line-current");
+      expect(bandLine()).not.toHaveClass("output-line-current");
+
+      present(true, 4); // the second showing of the refrain
+      expect(bandLine()).toHaveClass("output-line-current");
+    });
+
+    it("flows exactly as ever with pinning off", () => {
+      render(() => <Output />);
+      present(false, 0);
+      expect(band()).not.toBeInTheDocument();
+      expect(screen.getByText("Line 1a").closest(".output-view")).not.toHaveClass(
+        "output-pinned-mode",
+      );
+    });
+  });
+
+  it("fades the cues together, back only at a new hymn, a restore or on request", () => {
     vi.useFakeTimers();
     render(() => <Output />);
     channel.handler?.({
       type: "presentation",
       theme: "warm",
       cues: { part: true, number: true, fade: true },
+      pinRefrain: false,
     });
     const content = (focus: number, part: string) =>
       channel.handler?.({
@@ -237,8 +299,21 @@ describe("Output", () => {
     expect(caption()).toHaveClass("output-cue-faded");
     expect(badge()).toHaveClass("output-cue-faded");
 
-    content(2, "Refrain"); // the part changes: its caption returns, the number doesn't
+    content(2, "Refrain"); // a part step brings nothing back: cues move as one
+    expect(caption()).toHaveClass("output-cue-faded");
+    expect(badge()).toHaveClass("output-cue-faded");
+    expect(caption()).toHaveTextContent("Refrain"); // though its text keeps up
+
+    // Back from blank, every cue returns together, even one that changed
+    // while blanked, and an unchanged one too.
+    vi.advanceTimersByTime(8000);
+    channel.handler?.({ type: "blank", blanked: true });
+    content(0, "Verse 1");
+    channel.handler?.({ type: "blank", blanked: false });
     expect(caption()).not.toHaveClass("output-cue-faded");
+    expect(badge()).not.toHaveClass("output-cue-faded");
+    vi.advanceTimersByTime(8000);
+    expect(caption()).toHaveClass("output-cue-faded");
     expect(badge()).toHaveClass("output-cue-faded");
 
     // The operator's "Show cues now" brings them all back for a while.
@@ -250,7 +325,12 @@ describe("Output", () => {
 
   it("still scrolls smoothly between steps with cues on, refitting only when they toggle", () => {
     render(() => <Output />);
-    channel.handler?.({ type: "presentation", theme: "warm", cues: { part: true, number: true } });
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: { part: true, number: true },
+      pinRefrain: false,
+    });
     show(0);
     scrollTo.mockClear();
     show(2);

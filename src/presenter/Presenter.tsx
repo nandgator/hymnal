@@ -19,7 +19,7 @@ import {
   repeatRuns,
   type SequenceEngine,
 } from "../domain/sequence-engine.ts";
-import type { Hymn, HymnbookId, HymnNumber, Occurrence, Part } from "../domain/types.ts";
+import type { Hymn, HymnbookId, HymnNumber, Part } from "../domain/types.ts";
 import { type OutputMessage, publishOutput, subscribeSeek } from "../output/channel.ts";
 import { OutputView } from "../output/OutputView.tsx";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
@@ -99,6 +99,8 @@ export interface PresenterProps {
   cues?: OutputCues;
   /** Bumped when the operator shows faded cues again. */
   revealCues?: number;
+  /** Live pins the refrain as the Output does (SDD-0001 §16.1). */
+  pinRefrain?: boolean;
 }
 
 /**
@@ -168,6 +170,24 @@ export function Presenter(props: PresenterProps) {
     const e = engine();
     return e ? repeatRuns(e) : [];
   });
+  // Lyrics' blocks, one per run, each carrying its own occurrence: derived
+  // together from one engine, so a block can never pair one hymn's run
+  // with another's occurrences mid-swap (which read past the end).
+  const lyricBlocks = createMemo(() => {
+    version();
+    const e = engine();
+    if (!e) return [];
+    return repeatRuns(e).flatMap((run) => {
+      const occ = e.occurrenceAt(run.first);
+      if (!occ) return [];
+      // A part already seen earlier in the path shows compact — label and
+      // first line — unless it's the one being sung (DESIGN.md § Structure).
+      const seenBefore = Array.from({ length: run.first }, (_, j) => e.occurrenceAt(j)).some(
+        (earlier) => earlier?.part.id === occ.part.id,
+      );
+      return [{ ...run, occ, seenBefore }];
+    });
+  });
 
   // Repeat cues always show in Lyrics; the toggle arrives with the
   // on-screen cues (Board #12 part 4c).
@@ -213,8 +233,9 @@ export function Presenter(props: PresenterProps) {
       hymnbookTitle: props.hymnbookTitle,
       part: partCueLabel(e.current().part),
       repeat: e.current().repeatOrdinal,
-      // The corpus has one special part at most, always a refrain.
-      refrain: e.hymn.parts.find((part) => part.kind !== "stanza")?.id,
+      // Only the refrain recurs, so only it pins; bridges and tags stay in
+      // the verse column, boxed while sung like it (SDD-0001 §16.1).
+      refrain: e.hymn.parts.find((part) => part.kind === "refrain")?.id,
     };
   });
   createEffect(() => {
@@ -242,16 +263,6 @@ export function Presenter(props: PresenterProps) {
       );
     });
     onCleanup(unsubscribe);
-  });
-
-  // The whole effective path, for the Sequence pane.
-  const occurrences = createMemo((): Occurrence[] => {
-    version();
-    const e = engine();
-    if (!e) return [];
-    return Array.from({ length: e.length }, (_, i) => e.occurrenceAt(i)).filter(
-      (occ): occ is Occurrence => occ !== undefined,
-    );
   });
 
   // Stanza digits (SDD-0001 §16.5): a digit that can't start a longer
@@ -487,6 +498,7 @@ export function Presenter(props: PresenterProps) {
           variant="mini"
           cues={props.cues}
           reveal={props.revealCues}
+          pinRefrain={props.pinRefrain}
           classList={{ "live-blanked": !!props.blanked }}
         />
       )}
@@ -626,9 +638,9 @@ export function Presenter(props: PresenterProps) {
           <ol class="seq-list">
             {/* One block per run: a part and its back-to-back repeats show
                 once, marked ×N, as on the Output (DESIGN.md § Stability). */}
-            <Index each={runs()}>
+            <Index each={lyricBlocks()}>
               {(run) => {
-                const occ = () => occurrences()[run().first];
+                const occ = () => run().occ;
                 const here = () => cursor()?.occurrenceIndex ?? -1;
                 const isCurrent = () => here() >= run().first && here() <= run().last;
                 // Taps land on the showing being sung, else the run's last,
@@ -638,11 +650,7 @@ export function Presenter(props: PresenterProps) {
                 // A part already seen earlier in the path shows compact —
                 // label and first line — unless it's the one being sung
                 // (DESIGN.md § Structure).
-                const isRepeat = () =>
-                  occurrences()
-                    .slice(0, run().first)
-                    .some((earlier) => earlier.part.id === occ().part.id);
-                const compact = () => isRepeat() && !isCurrent();
+                const compact = () => run().seenBefore && !isCurrent();
                 return (
                   // biome-ignore lint/a11y/useKeyWithClickEvents: the block is a large touch target; keyboard users have its heading button and line buttons
                   <li

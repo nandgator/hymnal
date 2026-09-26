@@ -378,9 +378,11 @@ devotional, legible-at-distance tool.
 - **No labels in the Output view unless the operator asks.** Part name,
   verse number and recurrence are Operator aids. Cues are opt-in, each its
   own switch in Settings > Presentation (and the command menu, not on
-  screen: set once per service), all off by default: hymn number, hymn
-  title, hymnbook, part, repeat ×N. With every cue off, nothing but lyrics
-  renders there. The rule for all of them: **cues sit on still ground.**
+  screen: set once per service): hymn number, hymn title, hymnbook, part,
+  repeat ×N. By default the number and hymnbook show, fading after a few
+  seconds: what a congregation holding songbooks needs, then out of the
+  way. With every cue off, nothing but lyrics renders there. The rule
+  for all of them: **cues sit on still ground.**
   Nothing may scroll behind them, since movement across a fixed frame
   draws the eye, and the top of a screen reads as a notification. A filled
   island, then an outlined one, at the top both outranked the lit lyrics.
@@ -400,10 +402,12 @@ devotional, legible-at-distance tool.
     lines never enter it, and the lyrics fade out inside it: only lines
     not being sung are ever dimmed by it. Toggling a cue refits the hymn.
   - **Fade, one switch for all** ("Fade cues after a few seconds", off by
-    default): each cue, the number included, shows when it changes (a new
-    hymn, a new part, a repeat) and fades 8s later, as a broadcast lower
-    third does. Only its opacity changes; its margin stays reserved, so
-    the lyrics never resize or move. Off, cues stay: someone arriving
+    default): the cues show together, at a new hymn, on the Output coming
+    back from blank, or on Show cues now, and fade together 8s later. Part
+    steps (keys, a hand scroll) don't bring them back: the caption's part
+    changed every verse, so it kept returning alone. Fading as a
+    broadcast lower third does, only opacity changes; margins stay
+    reserved, so the lyrics never resize or move. Off, cues stay: someone arriving
     mid-hymn with a songbook still finds the number. **Show cues now**
     (command menu; its key waits for Board #20) brings them back for
     another 8s, from the Operator, since the operator is the one who
@@ -553,13 +557,16 @@ unit.
   visible without a label. Scrolled by hand, the highlight becomes a
   reading band fixed where the focus's part sat, one part tall, lighting
   whatever passes through it, until the scroll rests (SDD-0001 §16.1).
-- **The refrain, pinned** (SDD-0001 §16.1, "Pin the refrain", on): a
-  band at the foot, above the cue caption, holding the refrain, dimmed
-  until sung and lit in place when it is; the column above scrolls the
-  verses alone, its eyeline 42% down its own height. A refrain is marked
-  by a faint tonal band (as Lyrics marks the current block, quieter),
-  pinned or flowing, never by a label or italics. A hymn whose type
-  would shrink below 80% to pin it flows instead.
+- **The refrain, pinned** (SDD-0001 §16.1, "Pin the refrain (chorus)", off by
+  default): in its own pane, dimmed until sung and lit in place when it is,
+  while the verses scroll alone. **Side by side** on a landscape screen (verses
+  left, refrain right, both on the eyeline), so the back rows see it over the
+  heads in front; **a band at the foot** on portrait, or when side by side would
+  shrink the type below 70% of full size (5.25% of the screen's shorter side). A
+  hymn that neither layout can hold there flows. Only the refrain pins; a bridge
+  or tag stays in the verse column. No part carries a mark (no box, glow, rule,
+  label or italics): being sung, it's lit like any other, and the part gap sets
+  it apart.
 - **One hard breakpoint** (`~60rem`), not to change the type scale but to
   cap reading-column width on a large display — unconstrained lines on a
   big screen are exactly as illegible as too-small text on a phone.

@@ -1865,22 +1865,70 @@ html[data-scrolling],
   color: var(--output-ink);
 }
 
-/* The refrain on a faint tonal band (SDD-0001 §16.1): identifiable in
-   any script, where a label would need a language and italics don't
-   exist (Malayalam). Per line, so the band is continuous; the part gap
-   is a margin, outside it. */
-.output-refrain {
-  background-color: color-mix(in srgb, var(--output-ink) 6%, var(--output-ground));
+/* The refrain, pinned (SDD-0001 §16.1): the refrain's copies leave the
+   column (hidden in pinned mode), and it shows once, in a band sticky above the bottom margin
+   (--safe-bottom, set by OutputView). Still ground around it: the verses
+   fade out just above, and nothing shows through below. */
+/* Set by OutputView as it fits, so layout never waits on a render. */
+.output-pinned-mode > .output-list:not(.output-pinned) > .output-refrain {
+  display: none;
 }
 
-.output-refrain-start {
-  border-top-left-radius: 0.3em;
-  border-top-right-radius: 0.3em;
+/* The band: sticky above the bottom margin (--safe-bottom, set by
+   OutputView), on still ground: the verses fade out just above it, and
+   nothing shows through below. */
+.output-pin-band {
+  position: sticky;
+  bottom: var(--safe-bottom);
+  z-index: 1;
+  background-color: var(--output-ground);
 }
 
-.output-refrain-end {
-  border-bottom-left-radius: 0.3em;
-  border-bottom-right-radius: 0.3em;
+.output-pin-band::before,
+.output-pin-band::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.output-pin-band::before {
+  bottom: 100%;
+  height: 1lh;
+  font-size: calc(7.5cqmin * var(--fit, 1));
+  line-height: 1.35;
+  background: linear-gradient(transparent, var(--output-ground) 70%);
+}
+
+.output-pin-band::after {
+  top: 100%;
+  height: var(--safe-bottom);
+  background-color: var(--output-ground);
+}
+
+/* Side by side: the verses take the left half, the refrain the right, at
+   --pin-top (centred on the eyeline by OutputView). Each column keeps the
+   outer margin at its screen edge and half of it at the middle. */
+.output-side-mode > .output-list:not(.output-pinned) {
+  width: 50%;
+  padding: 0 2.5cqw 0 5cqw;
+}
+
+.output-pin-side {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 0;
+}
+
+.output-pin-side > .output-pinned {
+  position: absolute;
+  top: var(--pin-top, 0);
+  left: 50%;
+  right: 0;
+  margin: 0;
+  padding: 0 5cqw 0 2.5cqw;
 }
 
 /* Cues (DESIGN.md § Typography): a lower third, on still ground. With

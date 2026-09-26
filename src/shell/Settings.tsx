@@ -5,7 +5,9 @@ import {
   userState as defaultUserState,
   type OutputCues,
   type OutputTheme,
+  outputCuesOf,
   type Preferences,
+  pinRefrainOf,
   type UserState,
 } from "../persistence/user-state.ts";
 import { isPaneShown, PANES, type PaneId } from "./panes.ts";
@@ -24,8 +26,9 @@ const OUTPUT_THEMES: { value: OutputTheme; label: string }[] = [
   { value: "contrast", label: "Contrast" },
   { value: "warm", label: "Warm" },
 ];
-/** The Output's cues, each its own switch, all off (DESIGN.md §
- * Typography); the command menu reads the same list. */
+/** The Output's cues, each its own switch, defaulting to
+ * DEFAULT_OUTPUT_CUES (DESIGN.md § Typography); the command menu reads the
+ * same list. */
 export const OUTPUT_CUES: {
   id: Exclude<keyof OutputCues, "fade">;
   name: string;
@@ -98,7 +101,7 @@ export function createPreferences(state: UserState = defaultUserState): Preferen
     },
     setCue: (id, on) => {
       const current = preferences();
-      update({ ...current, outputCues: { ...current.outputCues, [id]: on } });
+      update({ ...current, outputCues: { ...outputCuesOf(current), [id]: on } });
     },
   };
 }
@@ -288,6 +291,25 @@ export function Settings(props: SettingsProps) {
             </For>
           </fieldset>
         </div>
+        <label class="settings-row">
+          <span class="settings-label">
+            Pin the refrain (chorus)
+            <span class="settings-supporting">
+              Beside the verses on a wide screen, below on a tall one; a hymn flows if its type
+              would get too small
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            class="switch"
+            checked={pinRefrainOf(preferences())}
+            aria-checked={pinRefrainOf(preferences())}
+            onChange={(event) =>
+              update({ ...preferences(), pinRefrain: event.currentTarget.checked })
+            }
+          />
+        </label>
         <For each={OUTPUT_CUES}>
           {(cue) => (
             <label class="settings-row">
@@ -299,8 +321,8 @@ export function Settings(props: SettingsProps) {
                 type="checkbox"
                 role="switch"
                 class="switch"
-                checked={!!preferences().outputCues?.[cue.id]}
-                aria-checked={!!preferences().outputCues?.[cue.id]}
+                checked={!!outputCuesOf(preferences())[cue.id]}
+                aria-checked={!!outputCuesOf(preferences())[cue.id]}
                 onChange={(event) => setCue(cue.id, event.currentTarget.checked)}
               />
             </label>
@@ -315,8 +337,8 @@ export function Settings(props: SettingsProps) {
             type="checkbox"
             role="switch"
             class="switch"
-            checked={!!preferences().outputCues?.fade}
-            aria-checked={!!preferences().outputCues?.fade}
+            checked={!!outputCuesOf(preferences()).fade}
+            aria-checked={!!outputCuesOf(preferences()).fade}
             onChange={(event) => setCue("fade", event.currentTarget.checked)}
           />
         </label>

@@ -65,7 +65,10 @@ class ContentStoreWorker implements ContentStore {
     const pool = await this.#poolReady;
     const filename = filenameFor(id);
 
-    if (!pool.getFileNames().includes(filename)) {
+    // The dev server re-imports on every load, so a rebuilt package (or a
+    // content-local/ test hymn) shows on reload; released builds install once.
+    const installed = pool.getFileNames().includes(filename);
+    if (!installed || (import.meta.env.DEV && !this.#dbs.has(id))) {
       // BASE_URL, not a root-absolute path — a GitHub Pages *project* page
       // serves from a subpath, not the domain root.
       const response = await fetch(`${import.meta.env.BASE_URL}content/${id}.sqlite`);

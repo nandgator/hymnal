@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from "@solidjs/testing-library";
+import { createSignal } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 import type { HymnSource } from "../domain/types.ts";
 import type { SeekMessage } from "../output/channel.ts";
@@ -688,5 +689,41 @@ describe("Presenter", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
     fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
     expect(published()).toMatchObject({ part: "Refrain", repeat: 2 });
+  });
+
+  it("swaps from a long path to a short one without reading past its end", async () => {
+    const long: HymnSource = {
+      ...HYMN,
+      number: 3,
+      title: "Long Hymn",
+      sequence: [
+        { partId: "s1" },
+        { partId: "r" },
+        { partId: "s2" },
+        { partId: "r" },
+        { partId: "s1" },
+        { partId: "r" },
+      ],
+    };
+    const short: HymnSource = {
+      number: 6,
+      title: "Short Hymn",
+      parts: [{ id: "s1", kind: "stanza", label: "1", lines: ["Only line"] }],
+      sequence: [{ partId: "s1" }],
+      meta: {},
+    };
+    const [number, setNumber] = createSignal(3);
+    render(() => (
+      <Presenter
+        hymnNumber={number()}
+        store={fakeStore({ getHymn: async (_book, n) => (n === 3 ? long : short) })}
+        userState={fakeUserState()}
+      />
+    ));
+    await screen.findByText("Long Hymn");
+    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
+    setNumber(6);
+    expect(await screen.findByText("Short Hymn")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Only line" })).toBeInTheDocument();
   });
 });

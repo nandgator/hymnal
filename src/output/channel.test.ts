@@ -118,14 +118,24 @@ describe("output channel", () => {
   it("sends the Output theme, and replays it to a late Output", async () => {
     const otherWindow = new BroadcastChannel(CHANNEL_NAME);
     const sent = nextMessage(otherWindow);
-    setOutputPresentation({ theme: "warm", cues: { part: true } });
-    expect(await sent).toEqual({ type: "presentation", theme: "warm", cues: { part: true } });
+    setOutputPresentation({ theme: "warm", cues: { part: true }, pinRefrain: true });
+    expect(await sent).toEqual({
+      type: "presentation",
+      theme: "warm",
+      cues: { part: true },
+      pinRefrain: true,
+    });
 
     const seen: unknown[] = [];
     otherWindow.onmessage = (event) => seen.push(event.data);
     otherWindow.postMessage({ type: "hello" });
     await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(seen).toContainEqual({ type: "presentation", theme: "warm", cues: { part: true } });
+    expect(seen).toContainEqual({
+      type: "presentation",
+      theme: "warm",
+      cues: { part: true },
+      pinRefrain: true,
+    });
     otherWindow.close();
   });
 
