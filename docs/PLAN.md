@@ -35,8 +35,8 @@ the "Operator Layout" artifact. Parts, each reviewed before the next:
 
 1. ~~Workspace model: tabs in two groups, split, main; `preferences.workspace`
    normalised on read~~ — done
-2. Wide layout: What they see rail (Live, controls, Repeat row, keypad),
-   This hymn tab, Recents tab; areas as panels; navigator and sidebar retired
+2. ~~Wide layout: the stage (Live, Repeat row, keypad), This hymn and
+   Recents tabs; areas as panels; sidebar retired~~ — done
 3. Groups: split and merge, Make main, move a tab, merge when narrow
 4. Under 840px: Live strip, tabs merged, parts row with ×n menu, Undo
    snackbar; command menu and Settings entries
@@ -110,6 +110,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-26 — #26 part 2: tabs beside the stage (Live, Parts); split ≥1400px
 - 2026-09-26 — #26 designed: areas + two tab groups; part 1: workspace model
 - 2026-09-26 — Songs shared across books, rights record, regions: noted — SDD §8
 - 2026-09-26 — #13 done. Part 2: refrain pinned (side or band), no part marks
@@ -121,4 +122,3 @@ ones only, here:
 - 2026-09-25 — #12 part 3e: Output scroll seeks via a reading band; keys forwarded
 - 2026-09-25 — #12 part 3d: Live, sidebar hideable (remembered); Settings grouped
 - 2026-09-25 — #12 part 3c: keymap, `?` sheet, Ctrl/⌘+K menu; B blanks, held — §16.5
-- 2026-09-24 — Output fits per hymn, eyeline 42%; Live = scaled Output; repeat explicit

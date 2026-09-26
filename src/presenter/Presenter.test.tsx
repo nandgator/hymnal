@@ -38,9 +38,7 @@ function fakeStore(overrides: Partial<ContentStore> = {}): ContentStore {
     getHymnbook: async () => {
       throw new Error("not used");
     },
-    listHymns: async () => {
-      throw new Error("not used");
-    },
+    listHymns: async () => [{ number: 7, title: "Test Hymn" }],
     getHymn: async () => HYMN,
     searchLyrics: async () => [],
     ...overrides,
@@ -57,6 +55,20 @@ function fakeUserState(overrides: Partial<UserState> = {}): UserState {
     setPreferences: async () => {},
     ...overrides,
   };
+}
+
+/** Stubs window size: `matches` decides each media query (SDD-0001 §16.4:
+ * 840px expanded, 1400px split, 640px for the full Live beside the keypad). */
+function stubMedia(matches: (query: string) => boolean) {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => ({
+      matches: matches(query),
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
 }
 
 // The Lyrics navigator marks the current occurrence's block aria-current="step".
@@ -281,25 +293,65 @@ describe("Presenter", () => {
     }
   });
 
-  it("leads with Parts, and swaps the navigator on request (SDD-0001 §16.4)", async () => {
-    const onNavigatorChange = vi.fn();
-    render(() => (
-      <Presenter
-        hymnNumber={7}
-        store={fakeStore()}
-        userState={fakeUserState()}
-        onNavigatorChange={onNavigatorChange}
-      />
-    ));
+  it("from 840px: This hymn and Recents side by side, What they see beside (SDD-0001 §16.4)", async () => {
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
     await screen.findByText("Test Hymn");
 
-    expect(screen.getByRole("radio", { name: "Parts" })).toBeChecked();
-    // Wide: the other navigator sits in the sidebar.
-    expect(screen.getByRole("complementary", { name: "Lyrics" })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("region", { name: "This hymn" })).getByRole("region", {
+        name: "Lyrics",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Recents" })).toBeInTheDocument();
+    const rail = within(screen.getByRole("complementary", { name: "What they see" }));
+    expect(rail.getByRole("region", { name: "Live" })).toBeInTheDocument();
+    expect(rail.getByRole("region", { name: "Jump to part" })).toBeInTheDocument();
+    // No Parts | Lyrics switch: both are on screen.
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByRole("radio", { name: "Lyrics" }));
-    expect(onNavigatorChange).toHaveBeenCalledWith("lyrics");
-    expect(screen.getByRole("complementary", { name: "Parts" })).toBeInTheDocument();
+  it("merges the groups into tabs when narrower, and N steps through them", async () => {
+    stubMedia((query) => !query.includes("1400px"));
+    try {
+      const onWorkspaceChange = vi.fn();
+      const onSelectHymn = vi.fn();
+      render(() => (
+        <Presenter
+          hymnNumber={7}
+          store={fakeStore()}
+          userState={fakeUserState({
+            getRecents: async () => [
+              { hymnbookId: "mal-ymef-athmeeya-geethangal-16", hymnNumber: 7, viewedAt: 2 },
+              { hymnbookId: "other-book", hymnNumber: 9, viewedAt: 1 },
+            ],
+          })}
+          onWorkspaceChange={onWorkspaceChange}
+          onSelectHymn={onSelectHymn}
+        />
+      ));
+      await screen.findByText("Test Hymn");
+
+      expect(screen.getByRole("tab", { name: "This hymn" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      fireEvent.click(screen.getByRole("tab", { name: "Recents" }));
+      expect(onWorkspaceChange).toHaveBeenLastCalledWith(expect.objectContaining({ main: 0 }));
+      // This book's recents only, the one up now marked.
+      const row = await screen.findByRole("button", { name: /#7/ });
+      expect(row).toHaveAttribute("aria-current", "true");
+      expect(screen.queryByRole("button", { name: /#9/ })).not.toBeInTheDocument();
+      fireEvent.click(row);
+      expect(onSelectHymn).toHaveBeenCalledWith(7);
+
+      fireEvent.keyDown(window, { key: "n" });
+      expect(screen.getByRole("tab", { name: "This hymn" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("on a phone: a Live strip, Parts below, Lyrics one tap away via the switch", async () => {
@@ -377,8 +429,8 @@ describe("Presenter", () => {
         "aria-expanded",
         "false",
       );
-      // Still wide: the sidebar stays.
-      expect(screen.getByRole("complementary", { name: "Lyrics" })).toBeInTheDocument();
+      // Still wide: What they see stays beside the tabs.
+      expect(screen.getByRole("complementary", { name: "What they see" })).toBeInTheDocument();
     } finally {
       vi.unstubAllGlobals();
     }
@@ -422,14 +474,20 @@ describe("Presenter", () => {
     expect(keypad.getAllByRole("button").map((b) => b.textContent)).toEqual(["Refrain", "1", "2"]);
   });
 
-  it("keeps its shortcuts when the Parts | Lyrics switch has focus", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
-    await screen.findByText("Test Hymn");
+  it("keeps its shortcuts when the Parts | Lyrics switch has focus (phone)", async () => {
+    stubMedia(() => false);
+    try {
+      render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+      await screen.findByText("Test Hymn");
 
-    const lyrics = screen.getByRole("radio", { name: "Lyrics" });
-    lyrics.focus();
-    fireEvent.keyDown(lyrics, { key: "ArrowRight" });
-    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+      const lyrics = screen.getByRole("radio", { name: "Lyrics" });
+      fireEvent.click(lyrics);
+      lyrics.focus();
+      fireEvent.keyDown(lyrics, { key: "ArrowRight" });
+      expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("restarts the current part when its chip is tapped again, adding no repeat", async () => {
@@ -543,25 +601,20 @@ describe("Presenter", () => {
     expect(onRestore).toHaveBeenCalled();
   });
 
-  it("hides the panes preferences hide, and reports the sidebar toggle", async () => {
-    const onPaneChange = vi.fn();
+  it("hides Live when preferences hide it, keeping Parts", async () => {
     render(() => (
       <Presenter
         hymnNumber={7}
         store={fakeStore()}
         userState={fakeUserState()}
         panes={{ live: false }}
-        onPaneChange={onPaneChange}
       />
     ));
     await screen.findByText("Test Hymn");
 
     expect(screen.queryByRole("region", { name: "Live" })).not.toBeInTheDocument();
-    expect(screen.getByRole("complementary", { name: "Lyrics" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Hide Lyrics" }));
-    expect(screen.queryByRole("complementary", { name: "Lyrics" })).not.toBeInTheDocument();
-    expect(onPaneChange).toHaveBeenCalledWith("sidebar", false);
+    const rail = within(screen.getByRole("complementary", { name: "What they see" }));
+    expect(rail.getByRole("region", { name: "Jump to part" })).toBeInTheDocument();
   });
 
   it("goes to the line a scroll of the Output rests on, with line focus (SDD-0001 §16.1)", async () => {
@@ -619,7 +672,9 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
     const published = () => publishOutput.mock.lastCall?.[0];
     const before = published();
-    expect(screen.queryByRole("button", { name: "Undo repeat" })).not.toBeInTheDocument();
+    // The row holds its place before any repeat: Undo and Reset disabled.
+    expect(screen.getByRole("button", { name: "Undo repeat" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reset repeat" })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
     fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
@@ -634,15 +689,15 @@ describe("Presenter", () => {
     fireEvent.click(screen.getByRole("button", { name: "Undo repeat" }));
     expect(count()).toHaveTextContent(/^×2/);
     // At ×2 Reset would only do what Undo does; it's offered from ×3.
-    expect(screen.queryByRole("button", { name: "Reset repeat" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reset repeat" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
     fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
     fireEvent.click(screen.getByRole("button", { name: "Reset repeat" }));
-    expect(count()).not.toBeInTheDocument();
+    expect(count()).toBeEmptyDOMElement();
     expect(published()).toMatchObject({ lines: before.lines, focus: before.focus });
     fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
     fireEvent.click(screen.getByRole("button", { name: "Undo repeat" }));
-    expect(screen.queryByRole("button", { name: "Undo repeat" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Undo repeat" })).toBeDisabled();
     expect(screen.queryByText(/×/)).not.toBeInTheDocument();
 
     // Next still carries on through the song.

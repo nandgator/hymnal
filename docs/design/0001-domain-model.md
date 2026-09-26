@@ -1275,9 +1275,9 @@ Studio: sections, a switcher row, the workspace, the dock.
   area. Any tab moves to the other group from its menu (drag later); a
   group left empty closes. One group is **main** and takes the room
   (Make main), so the queue can have it while a service is planned. This
-  hymn never closes: it's the controls, like the dock. Too narrow to
-  split, the groups merge by themselves and split again when there's
-  room. What they see and the dock never move.
+  hymn never closes: it's the controls, like the dock. Under 1400px wide
+  the groups merge by themselves and split again when there's room.
+  What they see and the dock never move.
 
   ```ts
   type TabId = "hymn" | "recents"; // "queue" joins with Board #22

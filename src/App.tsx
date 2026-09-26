@@ -102,14 +102,6 @@ function Operator() {
 
   const openOutput = () => window.open(OUTPUT_URL, OUTPUT_WINDOW_NAME, "popup");
   const presenting = () => section() === "present" && !!hymnNumber();
-  const swapNavigator = () => {
-    const current = preferences.preferences();
-    preferences.update({
-      ...current,
-      navigator: current.navigator === "parts" ? "lyrics" : "parts",
-    });
-  };
-
   const togglePane = (id: PaneId) =>
     preferences.setPane(id, !isPaneShown(preferences.preferences(), id));
 
@@ -204,9 +196,9 @@ function Operator() {
       ...(presenting()
         ? [
             {
-              label: `Swap navigator to ${prefs.navigator === "parts" ? "Lyrics" : "Parts"}`,
-              hint: keyHint("navigator"),
-              run: run(swapNavigator),
+              label: "Next tab",
+              hint: keyHint("tab"),
+              run: run(() => presenterActions()?.nextTab()),
             },
           ]
         : []),
@@ -272,7 +264,6 @@ function Operator() {
         b: toggleBlank,
         ".": toggleBlank,
         o: openOutput,
-        n: () => presenting() && swapNavigator(),
         l: () => togglePane("live"),
         "/": () => hymnbook() && openSheet(setCommandMenuOpen),
         "+": () => preferences.adjustScale(1),
@@ -441,7 +432,11 @@ function Operator() {
                   blanked={blanked()}
                   onRestore={toggleBlank}
                   panes={preferences.preferences().panes}
-                  onPaneChange={preferences.setPane}
+                  workspace={preferences.preferences().workspace}
+                  onWorkspaceChange={(workspace) =>
+                    preferences.update({ ...preferences.preferences(), workspace })
+                  }
+                  onSelectHymn={chooseHymn}
                   scrollSync={preferences.preferences().scrollSync ?? true}
                   onActions={(actions) => setPresenterActions(() => actions)}
                   hymnbookTitle={hymnbook()?.title}

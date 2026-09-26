@@ -29,8 +29,18 @@ import {
   type UserState,
 } from "../persistence/user-state.ts";
 import { ignoresShortcuts } from "../shell/keymap.ts";
-import { createMediaQuery, EXPANDED_QUERY, TALL_QUERY } from "../shell/media.ts";
+import { createMediaQuery, EXPANDED_QUERY, SPLIT_QUERY, STAGE_QUERY } from "../shell/media.ts";
 import type { PaneId } from "../shell/panes.ts";
+import {
+  nextTab as nextTabOf,
+  normalizeWorkspace,
+  selectTab,
+  TABS,
+  type TabId,
+  visibleGroups,
+  type Workspace,
+} from "../shell/workspace.ts";
+import { RecentsTab } from "./RecentsTab.tsx";
 
 // Most parts carry no label — it's printed only for numbered stanzas
 // (SDD-0001 §2.1). Refrains, bridges and tags fall back to their kind.
@@ -59,6 +69,8 @@ export interface PresenterActions {
   canUndoRepeat(): boolean;
   resetRepeats(): void;
   canResetRepeats(): boolean;
+  /** The next tab of the main group; on a phone, the other navigator. */
+  nextTab(): void;
 }
 
 /** Which navigator leads the workspace (SDD-0001 §16.4). */
@@ -76,7 +88,8 @@ export interface PresenterProps {
   onBack?: () => void;
   /** Called with each hymn once loaded — the shell's switcher row shows it. */
   onLoaded?: (hymn: Hymn) => void;
-  /** Which navigator leads; the shell keeps it in preferences. */
+  /** Which navigator leads under 840px, until Board #26 part 4 retires it;
+   * the shell keeps it in preferences. */
   navigator?: Navigator;
   onNavigatorChange?: (navigator: Navigator) => void;
   /** The Output is blanked (SDD-0001 §16.5); the shell holds it. */
@@ -86,7 +99,12 @@ export interface PresenterProps {
   /** Which supporting panes show, by id; absent means shown (SDD-0001
    * §16.4). The shell keeps it in preferences. */
   panes?: Record<string, boolean>;
-  onPaneChange?: (id: PaneId, shown: boolean) => void;
+  /** The tab groups from 840px, as stored (SDD-0001 §16.4); the shell keeps
+   * them in preferences. */
+  workspace?: unknown;
+  onWorkspaceChange?: (workspace: Workspace) => void;
+  /** Opens another hymn in place — the Recents tab. */
+  onSelectHymn?: (number: HymnNumber) => void;
   /** Whether a scroll of the Output moves the focus (SDD-0001 §16.1);
    * defaults to on. */
   scrollSync?: boolean;
@@ -211,7 +229,14 @@ export function Presenter(props: PresenterProps) {
   const undoRepeat = () => mutate((e) => e.undoRepeat());
   const resetRepeats = () => mutate((e) => e.resetRepeats());
   onMount(() =>
-    props.onActions?.({ repeat, undoRepeat, canUndoRepeat, resetRepeats, canResetRepeats }),
+    props.onActions?.({
+      repeat,
+      undoRepeat,
+      canUndoRepeat,
+      resetRepeats,
+      canResetRepeats,
+      nextTab: () => nextTab(),
+    }),
   );
   onCleanup(() => props.onActions?.(undefined));
 
@@ -301,6 +326,11 @@ export function Presenter(props: PresenterProps) {
     // Space is Next part even on a focused button, so a clicker never
     // re-presses the last chip tapped; radios and checkboxes keep it.
     if (event.key === " " && event.target instanceof HTMLInputElement) return;
+    if (event.key.toLowerCase() === "n" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      nextTab();
+      return;
+    }
     if (/^\d$/.test(event.key)) {
       event.preventDefault();
       typeDigit(event.key);
@@ -329,13 +359,30 @@ export function Presenter(props: PresenterProps) {
   onCleanup(() => window.removeEventListener("keydown", onKeyDown));
 
   const expanded = createMediaQuery(EXPANDED_QUERY);
-  // Compact height (landscape phones, split screen, short windows) gets the
-  // Live strip even when wide, so the navigator keeps the room.
-  const tall = createMediaQuery(TALL_QUERY);
+  // Room for two tab groups beside the stage; narrower, they merge.
+  const canSplit = createMediaQuery(SPLIT_QUERY);
+  // Height for the full Live preview above the keypad; shorter, the strip.
+  const roomy = createMediaQuery(STAGE_QUERY);
 
-  // One navigator leads, Parts or Lyrics (SDD-0001 §16.4); the shell keeps
-  // the choice in preferences. The other stays one tap away: the switch,
-  // and from 840px a collapsible sidebar too.
+  // From 840px: tabs in two groups beside What they see (SDD-0001 §16.4).
+  // Kept by the shell in preferences; local too, so the Presenter works
+  // on its own.
+  const [workspace, setWorkspaceSignal] = createSignal<Workspace>(
+    normalizeWorkspace(props.workspace),
+  );
+  createEffect(() => {
+    if (props.workspace !== undefined) setWorkspaceSignal(normalizeWorkspace(props.workspace));
+  });
+  const setWorkspace = (next: Workspace) => {
+    setWorkspaceSignal(next);
+    props.onWorkspaceChange?.(next);
+  };
+  const groups = createMemo(() => visibleGroups(workspace(), canSplit()));
+  const showTab = (tab: TabId) => setWorkspace(selectTab(workspace(), tab, groups().length === 1));
+  const tabName = (tab: TabId) => TABS.find((t) => t.id === tab)?.name ?? tab;
+
+  // Under 840px, until part 4: one navigator leads, Parts or Lyrics, and
+  // the switch is the one tap to the other. The shell keeps the choice.
   const [navigator, setNavigatorSignal] = createSignal<Navigator>(props.navigator ?? "parts");
   createEffect(() => {
     if (props.navigator) setNavigatorSignal(props.navigator);
@@ -345,18 +392,11 @@ export function Presenter(props: PresenterProps) {
     props.onNavigatorChange?.(next);
   };
   const other = (): Navigator => (navigator() === "parts" ? "lyrics" : "parts");
-  // Pane visibility, kept by the shell like the navigator (SDD-0001 §16.4);
-  // local too, so the Presenter works on its own.
-  const [panes, setPanes] = createSignal<Record<string, boolean>>(props.panes ?? {});
-  createEffect(() => {
-    if (props.panes) setPanes(props.panes);
-  });
-  const shown = (id: PaneId) => panes()[id] ?? true;
-  const setPane = (id: PaneId, next: boolean) => {
-    setPanes((current) => ({ ...current, [id]: next }));
-    props.onPaneChange?.(id, next);
-  };
-  const sidebarOpen = () => shown("sidebar");
+  const nextTab = () =>
+    expanded() ? setWorkspace(nextTabOf(workspace(), canSplit())) : setNavigator(other());
+  // Pane visibility, kept by the shell (SDD-0001 §16.4): Live, toggled by
+  // L or the command menu there.
+  const shown = (id: PaneId) => props.panes?.[id] ?? true;
   const [liveExpanded, setLiveExpanded] = createSignal(false);
 
   // Keep the current block centred in every Lyrics list on screen, like the
@@ -367,7 +407,7 @@ export function Presenter(props: PresenterProps) {
   createEffect(() => {
     version();
     navigator();
-    sidebarOpen();
+    groups();
     const lineIndex = cursor()?.lineIndex;
     for (const chip of document.querySelectorAll<HTMLElement>(
       '.chip-filter[aria-pressed="true"]',
@@ -564,24 +604,35 @@ export function Presenter(props: PresenterProps) {
           <span class="icon icon-repeat" aria-hidden="true" />
           <span class="repeat-label">Repeat</span>
         </button>
-        <Show when={repeatOrdinal() > 1}>
-          <span class="repeat-count" aria-live="polite">
+        {/* Held in place before any repeat — the count unseen, Undo and
+            Reset disabled — so nothing moves when they apply (SDD-0001
+            §16.4). Short on screen; the full names are the accessible ones. */}
+        <span class="repeat-count" aria-live="polite">
+          <Show when={repeatOrdinal() > 1}>
             ×{repeatOrdinal()}
             <span class="visually-hidden"> — sung {repeatOrdinal()} times in a row</span>
-          </span>
-        </Show>
-        <Show when={canUndoRepeat()}>
-          {/* Short on screen, beside the count, so the row never wraps and
-              moves the chips; the full name is the accessible one. */}
-          <button type="button" class="btn-text" aria-label="Undo repeat" onClick={undoRepeat}>
+          </Show>
+        </span>
+        <span class="repeat-actions">
+          <button
+            type="button"
+            class="btn-text"
+            aria-label="Undo repeat"
+            disabled={!canUndoRepeat()}
+            onClick={undoRepeat}
+          >
             Undo
           </button>
-        </Show>
-        <Show when={canResetRepeats()}>
-          <button type="button" class="btn-text" aria-label="Reset repeat" onClick={resetRepeats}>
+          <button
+            type="button"
+            class="btn-text"
+            aria-label="Reset repeat"
+            disabled={!canResetRepeats()}
+            onClick={resetRepeats}
+          >
             Reset
           </button>
-        </Show>
+        </span>
       </div>
       <section aria-label="Jump to part">
         <ul
@@ -744,72 +795,115 @@ export function Presenter(props: PresenterProps) {
               {loaded().title} <span>#{loaded().number}</span>
             </h2>
 
-            <div class="operator-body" classList={{ "with-sidebar": expanded() && sidebarOpen() }}>
-              <div class="main-column">
-                {/* Wide and tall: the full preview. Phone: the strip on its own
-                    row. Wide but short: the strip moves into the navigator's
-                    header row below, where there's width to spare. */}
-                <Show when={shown("live")}>
-                  <Show
-                    when={expanded() && tall()}
-                    fallback={<Show when={!expanded()}>{liveStrip()}</Show>}
-                  >
-                    <section class="live-pane" aria-label="Live">
-                      {livePreview()}
-                      {blankedBadge()}
+            <Show
+              when={expanded()}
+              fallback={
+                <div class="operator-body">
+                  <div class="main-column">
+                    <Show when={shown("live")}>{liveStrip()}</Show>
+                    <section class="navigator" aria-label="Navigator">
+                      <div class="navigator-header">
+                        {/* MD3 segmented button on native radios: arrow keys
+                            move between the options for free. */}
+                        <fieldset class="segmented">
+                          <legend class="visually-hidden">Navigate by</legend>
+                          <For each={["parts", "lyrics"] as Navigator[]}>
+                            {(kind) => (
+                              <label class="segment">
+                                <input
+                                  type="radio"
+                                  name="navigator"
+                                  class="segment-input"
+                                  checked={navigator() === kind}
+                                  onChange={() => setNavigator(kind)}
+                                />
+                                <span class="segment-check icon icon-check" aria-hidden="true" />
+                                {NAVIGATOR_TITLES[kind]}
+                              </label>
+                            )}
+                          </For>
+                        </fieldset>
+                      </div>
+                      <div class="navigator-body">{navigatorPane(navigator(), loaded())}</div>
                     </section>
-                  </Show>
-                </Show>
-
-                <section class="navigator" aria-label="Navigator">
-                  <div class="navigator-header">
-                    <Show when={shown("live") && expanded() && !tall()}>
-                      <div class="navigator-header-live">{liveStrip()}</div>
-                    </Show>
-                    {/* MD3 segmented button on native radios: arrow keys move
-                        between the options for free. */}
-                    <fieldset class="segmented">
-                      <legend class="visually-hidden">Navigate by</legend>
-                      <For each={["parts", "lyrics"] as Navigator[]}>
-                        {(kind) => (
-                          <label class="segment">
-                            <input
-                              type="radio"
-                              name="navigator"
-                              class="segment-input"
-                              checked={navigator() === kind}
-                              onChange={() => setNavigator(kind)}
-                            />
-                            <span class="segment-check icon icon-check" aria-hidden="true" />
-                            {NAVIGATOR_TITLES[kind]}
-                          </label>
-                        )}
-                      </For>
-                    </fieldset>
-                    {/* Wide: the other navigator also shows in the sidebar. On a
-                        phone the switch alone is the one tap to it. */}
-                    <Show when={expanded()}>
-                      <button
-                        type="button"
-                        class="btn-text"
-                        aria-expanded={sidebarOpen()}
-                        onClick={() => setPane("sidebar", !sidebarOpen())}
-                      >
-                        {sidebarOpen() ? "Hide" : "Show"} {NAVIGATOR_TITLES[other()]}
-                      </button>
-                    </Show>
                   </div>
-                  <div class="navigator-body">{navigatorPane(navigator(), loaded())}</div>
-                </section>
-              </div>
-
-              <Show when={expanded() && sidebarOpen()}>
-                <aside class="sidebar" aria-label={NAVIGATOR_TITLES[other()]}>
-                  <h3 class="title-medium on-surface-variant">{NAVIGATOR_TITLES[other()]}</h3>
-                  <div class="navigator-body">{navigatorPane(other(), loaded())}</div>
+                </div>
+              }
+            >
+              {/* From 840px (SDD-0001 §16.4): the tab groups, the main one
+                  taking the room, then What they see — Live and Parts —
+                  which never moves. */}
+              <div class="operator-areas">
+                <For each={groups()}>
+                  {(group) => (
+                    <section
+                      class="area"
+                      classList={{ "area-main": group.main }}
+                      aria-label={tabName(group.active)}
+                    >
+                      <div class="area-header">
+                        <Show
+                          when={group.tabs.length > 1}
+                          fallback={<h3 class="area-title">{tabName(group.active)}</h3>}
+                        >
+                          <div class="area-tabs" role="tablist">
+                            <For each={group.tabs}>
+                              {(tab) => (
+                                <button
+                                  type="button"
+                                  role="tab"
+                                  class="area-tab"
+                                  aria-selected={tab === group.active}
+                                  onClick={() => showTab(tab)}
+                                >
+                                  {tabName(tab)}
+                                </button>
+                              )}
+                            </For>
+                          </div>
+                        </Show>
+                      </div>
+                      <div class="area-body" role="tabpanel">
+                        <Switch>
+                          <Match when={group.active === "hymn"}>{lyricsNavigator()}</Match>
+                          <Match when={group.active === "recents"}>
+                            <RecentsTab
+                              hymnbookId={loaded().hymnbookId}
+                              current={loaded().number}
+                              store={props.store}
+                              userState={props.userState}
+                              onSelect={(number) => props.onSelectHymn?.(number)}
+                            />
+                          </Match>
+                        </Switch>
+                      </div>
+                    </section>
+                  )}
+                </For>
+                <aside class="area stage" aria-label="What they see">
+                  <Show when={shown("live")}>
+                    {/* The strip names itself; only the full preview gets
+                        the header. */}
+                    <Show when={roomy()}>
+                      <div class="area-header">
+                        <h3 class="area-title area-title-live">Live</h3>
+                      </div>
+                    </Show>
+                    <Show when={roomy()} fallback={<div class="stage-strip">{liveStrip()}</div>}>
+                      <section class="live-pane" aria-label="Live">
+                        {livePreview()}
+                        {blankedBadge()}
+                      </section>
+                    </Show>
+                    <div class="stage-divider" />
+                  </Show>
+                  <div class="area-header">
+                    <h3 class="area-title">Parts</h3>
+                  </div>
+                  {partsNavigator(loaded())}
                 </aside>
-              </Show>
-            </div>
+              </div>
+            </Show>
 
             <nav
               class="dock"

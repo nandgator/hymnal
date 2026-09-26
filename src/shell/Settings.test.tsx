@@ -130,7 +130,6 @@ describe("Settings", () => {
 
     const live = screen.getByRole("switch", { name: /Show Live/ });
     expect(live).toBeChecked();
-    expect(screen.getByRole("switch", { name: /Show sidebar/ })).toBeChecked();
 
     fireEvent.click(live);
     expect(setPreferences).toHaveBeenLastCalledWith(

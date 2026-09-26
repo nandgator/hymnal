@@ -244,7 +244,7 @@ export function Settings(props: SettingsProps) {
           />
         </label>
         <div class="settings-row">
-          <span class="settings-label">Leads with</span>
+          <span class="settings-label">On a phone, leads with</span>
           {segmented(
             "Leading navigator",
             "navigator",

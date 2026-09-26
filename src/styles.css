@@ -1100,12 +1100,6 @@ input[type="checkbox"].switch:checked::before {
   min-height: 0;
 }
 
-/* Capped as a share of the width too: rem grows with the text scale, so a
-   bare 22rem sidebar would crowd out the main column at A+. */
-.operator-body.with-sidebar {
-  grid-template-columns: minmax(0, 1fr) min(22rem, 38%);
-}
-
 /* When height is short (a small window, or A+ on a laptop), Live gives way
    first — the navigator is where the operator works. If even that isn't
    enough, the column scrolls inside itself, never the page. */
@@ -1166,18 +1160,12 @@ input[type="checkbox"].switch:checked::before {
   margin-inline-start: auto;
 }
 
-.navigator,
-.sidebar {
+.navigator {
   display: flex;
   flex: 1 1 12rem;
   flex-direction: column;
   gap: var(--space-md);
   min-height: 0;
-}
-
-.sidebar {
-  padding-inline-start: var(--space-xl);
-  border-inline-start: 1px solid var(--md-sys-color-outline-variant);
 }
 
 .navigator-header {
@@ -1186,11 +1174,6 @@ input[type="checkbox"].switch:checked::before {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-sm);
-}
-
-.navigator-header-live {
-  flex: 1 1 16rem;
-  min-width: 0;
 }
 
 .navigator-body {
@@ -1243,7 +1226,15 @@ input[type="checkbox"].switch:checked::before {
   }
 }
 
+/* Undo and Reset at the row's end, disabled until a repeat (SDD-0001
+   §16.4); the count keeps its slot, empty, so nothing shifts. */
+.repeat-actions {
+  display: flex;
+  margin-inline-start: auto;
+}
+
 .repeat-count {
+  min-width: 2ch;
   color: var(--md-sys-color-primary);
   font-size: 1rem;
   font-weight: 500;
@@ -1265,6 +1256,175 @@ input[type="checkbox"].switch:checked::before {
   left: 50%;
   box-shadow: var(--elevation-3);
   transform: translateX(-50%);
+}
+
+/* From 840px (SDD-0001 §16.4, DESIGN.md § Structure): the tab groups and
+   What they see, as panels — a tone up from the ground, rounded, apart,
+   no borders. The main group takes the room; the other and the rail are
+   capped as a share of the width too, since rem grows with text size. */
+.operator-areas {
+  display: flex;
+  flex: 1;
+  gap: var(--space-sm);
+  min-height: 0;
+}
+
+.area {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  background-color: var(--md-sys-color-surface-container-low);
+}
+
+.area-main {
+  flex: 1 1 0;
+}
+
+.area:not(.area-main, .stage) {
+  flex: 0 0 min(320px, 24%);
+}
+
+/* Capped in px: rem grows with the viewport, so a rem cap would crowd the
+   lyrics on a large screen. 40% keeps Repeat's label at a tablet's width
+   (its row needs 17.25rem). The stage never scrolls as a whole —
+   clipped, so bringing the current part's key into view can't scroll Live
+   away. Short of height, Live shrinks first (to 6rem), keeping one row of
+   the keypad, which then scrolls inside itself. */
+.stage {
+  flex: 0 0 min(440px, 40%);
+  padding-bottom: var(--space-md);
+  overflow: clip;
+}
+
+.stage .parts-navigator {
+  flex: 1 1 0;
+  min-height: 7.5rem;
+}
+
+.stage .parts-navigator > section {
+  min-height: 3.5rem;
+  overflow-y: auto;
+}
+
+/* One quiet header per area, the same height everywhere, so every area's
+   first line sits on one baseline. */
+.area-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  min-height: 3.25rem;
+  padding: 0 var(--space-md) 0 var(--space-lg);
+}
+
+.area-title {
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.area-title-live::before {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-inline-end: var(--space-xs);
+  border-radius: 50%;
+  background-color: var(--md-sys-color-primary);
+  content: "";
+  vertical-align: 0.05em;
+}
+
+.area-tabs {
+  display: flex;
+  gap: var(--space-xxs);
+  margin-inline-start: calc(-1 * var(--space-sm));
+}
+
+.area-tab {
+  min-height: 2rem;
+  padding: 0 var(--space-sm);
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.area-tab[aria-selected="true"] {
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  font-weight: 600;
+}
+
+.area-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0 var(--space-xs) var(--space-md);
+  overflow-y: auto;
+}
+
+.stage .live-pane {
+  flex: 0 1 auto;
+  aspect-ratio: 16 / 9;
+  min-height: 6rem;
+  margin-inline: var(--space-md);
+}
+
+.stage-strip {
+  padding-inline: var(--space-md);
+}
+
+.stage-divider {
+  height: 1px;
+  margin: var(--space-md) var(--space-md) 0;
+  background-color: var(--md-sys-color-outline-variant);
+}
+
+.stage .parts-navigator {
+  padding-inline: var(--space-md);
+}
+
+.recents {
+  padding-inline: var(--space-xs);
+}
+
+.recents-row {
+  display: flex;
+  gap: var(--space-sm);
+  border-radius: var(--shape-md);
+}
+
+.recents-row[aria-current="true"] {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.recents-number {
+  flex: none;
+  min-width: 3rem;
+  color: var(--md-sys-color-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+
+.recents-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recents-empty {
+  padding-inline: var(--space-md);
 }
 
 /* MD3 segmented button on native radios. Every segment reserves the
@@ -1403,6 +1563,8 @@ input[type="checkbox"].switch:checked::before {
 
 .shell-main,
 .sequence,
+.area-body,
+.stage .parts-navigator > section,
 .navigator-body,
 .main-column,
 .sheet-content {
@@ -1413,11 +1575,14 @@ input[type="checkbox"].switch:checked::before {
   transition: --scrollbar-thumb 400ms ease-out;
 }
 
-:is(.sequence, .navigator-body, .main-column, .sheet-content):is(
-  :hover,
-  :focus-within,
-  [data-scrolling]
-) {
+:is(
+  .sequence,
+  .area-body,
+  .stage .parts-navigator > section,
+  .navigator-body,
+  .main-column,
+  .sheet-content
+):is(:hover, :focus-within, [data-scrolling]) {
   --scrollbar-thumb: var(--md-sys-color-outline-variant);
   transition-duration: 150ms;
   transition-timing-function: ease-in;
@@ -1465,18 +1630,18 @@ html[data-scrolling],
 
 .seq-block {
   padding: var(--space-md) var(--space-lg);
-  border-inline-start: 4px solid transparent;
-  border-radius: var(--shape-md);
+  border-radius: 18px;
   color: var(--md-sys-color-on-surface-variant);
   transition:
     background-color 150ms ease,
     color 150ms ease;
 }
 
+/* The current part: a tone up, its label the one accent (DESIGN.md §
+   Structure, areas are panels). No box or edge stripe. */
 .seq-block[aria-current="step"] {
-  border-inline-start-color: var(--md-sys-color-primary);
-  background-color: var(--md-sys-color-secondary-container);
-  color: var(--md-sys-color-on-secondary-container);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
 }
 
 .seq-heading {
@@ -1505,6 +1670,10 @@ html[data-scrolling],
    that works everywhere, touch included; hover is extra, for real pointers
    only, and faint on blocks and lines alike so it never reads as a
    selection (DESIGN.md § Structure). */
+.seq-block[aria-current="step"] .seq-head {
+  color: var(--md-sys-color-primary);
+}
+
 .seq-block {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -1825,6 +1994,11 @@ html[data-scrolling],
 .live-pane .output-view-mini {
   height: 100%;
   max-width: 100%;
+}
+
+.stage .live-pane .output-view-mini {
+  width: auto;
+  height: 100%;
 }
 
 .output-list {

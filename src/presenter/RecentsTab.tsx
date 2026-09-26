@@ -1,0 +1,58 @@
+import { createResource, For, Show } from "solid-js";
+import type { HymnbookId, HymnNumber } from "../domain/types.ts";
+import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
+import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
+
+export interface RecentsTabProps {
+  hymnbookId: HymnbookId;
+  /** The hymn up now, marked; its change also refreshes the list, since
+   * opening a hymn records it as recent (SDD-0001 §14). */
+  current: HymnNumber;
+  /** Defaults to {@link getContentStore}; overridable for tests. */
+  store?: ContentStore;
+  /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
+  userState?: UserState;
+  onSelect: (number: HymnNumber) => void;
+}
+
+/** The Recents tab (SDD-0001 §16.4): this book's recent hymns, newest
+ * first; a tap opens one in place. */
+export function RecentsTab(props: RecentsTabProps) {
+  const store = () => props.store ?? getContentStore();
+  const [titles] = createResource(
+    () => props.hymnbookId,
+    async (id) => new Map((await store().listHymns(id)).map((hymn) => [hymn.number, hymn.title])),
+  );
+  const [recents] = createResource(
+    () => ({ id: props.hymnbookId, current: props.current }),
+    async ({ id }) =>
+      (await (props.userState ?? defaultUserState).getRecents()).filter(
+        (entry) => entry.hymnbookId === id,
+      ),
+  );
+
+  return (
+    <Show
+      when={recents()?.length}
+      fallback={<p class="body-large on-surface-variant recents-empty">No recent hymns yet.</p>}
+    >
+      <ul class="list recents">
+        <For each={recents()}>
+          {(entry) => (
+            <li>
+              <button
+                type="button"
+                class="list-row recents-row"
+                aria-current={entry.hymnNumber === props.current ? "true" : undefined}
+                onClick={() => props.onSelect(entry.hymnNumber)}
+              >
+                <span class="recents-number">#{entry.hymnNumber}</span>
+                <span class="recents-title">{titles()?.get(entry.hymnNumber) ?? ""}</span>
+              </button>
+            </li>
+          )}
+        </For>
+      </ul>
+    </Show>
+  );
+}

@@ -482,7 +482,7 @@ unit.
     split side by side (the three-area look) or merged into one tabbed
     area; any tab moves to the other group from its menu. **Make main**
     gives one group the room (the queue while planning, the lyrics while
-    singing). Too narrow to split, they merge by themselves. What they
+    singing). Under 1400px wide they merge by themselves. What they
     see and the dock never move. No free docking or floating panes:
     mid-service, a pane dragged by mistake would move the controls.
     Popping Live out into its own window is noted for later.
@@ -509,13 +509,13 @@ unit.
     away from the current block, a "Back to current" chip appears (chat
     apps' "jump to latest"). The current block stays highlighted and,
     while you haven't scrolled away, centred.
-  - **Height matters too** (MD3/Android window height classes: compact
-    < 480dp). WCAG's Reflow sets a width floor (320 CSS px) but no single
-    height floor, so the practice is to degrade gracefully: at compact
-    height (landscape phones, split screen, short windows) Live becomes
-    the strip even on a wide screen, and the tabs get the room.
-    Below even that, the main column scrolls inside itself as the last
-    resort; the page never does.
+  - **Height matters too.** WCAG's Reflow sets a width floor (320 CSS
+    px) but no single height floor, so the practice is to degrade
+    gracefully. The stage needs Live and at least a row of the keypad:
+    under 640px of height (a laptop's short window, split screen) Live
+    becomes the strip there, and above that Live shrinks before the
+    keypad does. The stage never scrolls as a whole; the keypad and the
+    tabs scroll inside themselves, and the page never does.
   - **Blanked**: while the Output is blanked (B), Live dims and carries a
     **Blanked** badge, which restores on a tap; the strip shows it too. The
     operator can keep navigating behind it (SDD-0001 §16.5). With no Live

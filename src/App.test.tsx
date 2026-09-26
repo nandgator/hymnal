@@ -208,7 +208,7 @@ describe("App", () => {
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     menu = await screen.findByRole("dialog", { name: "Command menu" });
     fireEvent.mouseDown(within(menu).getByRole("option", { name: /Undo repeat/ }));
-    expect(document.querySelector(".repeat-count")).not.toBeInTheDocument();
+    expect(document.querySelector(".repeat-count")).toBeEmptyDOMElement();
   });
 
   it("blanks the Output with B and restores it with a second press (.)", async () => {

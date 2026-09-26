@@ -1,7 +1,7 @@
 import type { Preferences } from "../persistence/user-state.ts";
 
 /** A supporting pane the operator may hide (SDD-0001 §16.4). */
-export type PaneId = "live" | "sidebar";
+export type PaneId = "live";
 
 export interface Pane {
   id: PaneId;
@@ -15,16 +15,11 @@ export interface Pane {
 
 /**
  * The registry: Settings, the command menu and the keymap read it, so a
- * future pane is one more entry plus where it renders. The leading
- * navigator and the dock aren't here: they're the controls, never hidden.
+ * future pane is one more entry plus where it renders. This hymn, the
+ * part keypad and the dock aren't here: they're the controls, never hidden.
  */
 export const PANES: Pane[] = [
   { id: "live", name: "Live", description: "What the Output shows now", key: "L" },
-  {
-    id: "sidebar",
-    name: "sidebar",
-    description: "The other navigator, beside the leading one on wide screens",
-  },
 ];
 
 /** Absent means shown: an unknown id is ignored, a new one starts visible. */

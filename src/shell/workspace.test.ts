@@ -69,7 +69,7 @@ describe("visibleGroups", () => {
     ]);
   });
 
-  it("merges when too narrow, main group first, showing its tab", () => {
+  it("merges when too narrow, in a fixed order, showing the main group's tab", () => {
     expect(visibleGroups(DEFAULT_WORKSPACE, false)).toEqual([
       { index: 1, tabs: ["hymn", "recents"], active: "hymn", main: true },
     ]);
@@ -85,7 +85,10 @@ describe("tab actions", () => {
   it("selecting a tab in a merged group makes its group main", () => {
     const ws = selectTab(DEFAULT_WORKSPACE, "recents", true);
     expect(ws.main).toBe(0);
-    expect(visibleGroups(ws, false)[0].active).toBe("recents");
+    expect(visibleGroups(ws, false)[0]).toMatchObject({
+      active: "recents",
+      tabs: ["hymn", "recents"],
+    });
   });
 
   it("selecting a tab side by side leaves main alone", () => {

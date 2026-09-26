@@ -91,8 +91,9 @@ const groupOf = (workspace: Workspace, tab: TabId): GroupIndex =>
 
 /**
  * What renders. Two groups only when split, there's room and neither is
- * empty; otherwise one, the main group's tabs first, showing the main
- * group's active tab.
+ * empty; otherwise one, showing the main group's active tab. Merged, the
+ * tabs keep one fixed order (This hymn first), so choosing one never moves
+ * the others (DESIGN.md § Stability).
  */
 export function visibleGroups(workspace: Workspace, canSplit: boolean): VisibleGroup[] {
   const { groups, active, main } = workspace;
@@ -104,7 +105,9 @@ export function visibleGroups(workspace: Workspace, canSplit: boolean): VisibleG
       main: index === main,
     }));
   }
-  const tabs = [...groups[main], ...groups[other(main)]];
+  const tabs = TABS.map((tab) => tab.id).filter(
+    (id) => groups[0].includes(id) || groups[1].includes(id),
+  );
   return [{ index: main, tabs, active: active[main] ?? tabs[0], main: true }];
 }
 

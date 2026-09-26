@@ -20,7 +20,7 @@ export type ShortcutId =
   | "refrain"
   | "blank"
   | "output"
-  | "navigator"
+  | "tab"
   | "live"
   | "command-menu"
   | "text-size"
@@ -37,7 +37,7 @@ export const SHORTCUTS: Shortcut[] = [
   { id: "refrain", keys: ["R"], label: "Refrain" },
   { id: "blank", keys: ["B", "."], label: "Blank the Output / restore" },
   { id: "output", keys: ["O"], label: "Show Output" },
-  { id: "navigator", keys: ["N"], label: "Swap navigator (Parts ↔ Lyrics)" },
+  { id: "tab", keys: ["N"], label: "Next tab" },
   { id: "live", keys: ["L"], label: "Show or hide Live" },
   { id: "command-menu", keys: ["/", "Ctrl+K"], label: "Command menu" },
   { id: "text-size", keys: ["+", "−"], label: "Text size" },
