@@ -118,7 +118,7 @@ describe("Presenter", () => {
       />
     ));
 
-    expect(await screen.findByText("No hymn numbered 9999.")).toBeInTheDocument();
+    expect(await screen.findByText("No song numbered 9999.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Back to search" }));
     expect(onBack).toHaveBeenCalled();
   });
@@ -293,12 +293,12 @@ describe("Presenter", () => {
     }
   });
 
-  it("from 840px: This hymn and Recents side by side, What they see beside (SDD-0001 §16.4)", async () => {
+  it("from 840px: This song and Recents side by side, What they see beside (SDD-0001 §16.4)", async () => {
     render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
     await screen.findByText("Test Hymn");
 
     expect(
-      within(screen.getByRole("region", { name: "This hymn" })).getByRole("region", {
+      within(screen.getByRole("region", { name: "This Song" })).getByRole("region", {
         name: "Lyrics",
       }),
     ).toBeInTheDocument();
@@ -336,9 +336,9 @@ describe("Presenter", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Split into two groups" }));
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "This hymn" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "This Song" })).toBeInTheDocument();
 
-    const hymn = within(screen.getByRole("region", { name: "This hymn" }));
+    const hymn = within(screen.getByRole("region", { name: "This Song" }));
     fireEvent.click(hymn.getByRole("button", { name: "Close group" }));
     expect(onWorkspaceChange).toHaveBeenLastCalledWith(expect.objectContaining({ split: false }));
     expect(screen.getAllByRole("tab")).toHaveLength(2);
@@ -365,7 +365,7 @@ describe("Presenter", () => {
       ));
       await screen.findByText("Test Hymn");
 
-      expect(screen.getByRole("tab", { name: "This hymn" })).toHaveAttribute(
+      expect(screen.getByRole("tab", { name: "This Song" })).toHaveAttribute(
         "aria-selected",
         "true",
       );
@@ -379,7 +379,7 @@ describe("Presenter", () => {
       expect(onSelectHymn).toHaveBeenCalledWith(7);
 
       fireEvent.keyDown(window, { key: "n" });
-      expect(screen.getByRole("tab", { name: "This hymn" })).toHaveAttribute(
+      expect(screen.getByRole("tab", { name: "This Song" })).toHaveAttribute(
         "aria-selected",
         "true",
       );
@@ -418,7 +418,7 @@ describe("Presenter", () => {
     }
   });
 
-  it("shows a part already seen as compact in Lyrics, full again while it's current", async () => {
+  it("shows every part in full in Lyrics, a repeated refrain too, so a step never reshapes it", async () => {
     const hymn: HymnSource = {
       ...HYMN,
       parts: [
@@ -437,10 +437,8 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
     const lyrics = within(screen.getByRole("region", { name: "Lyrics" }));
 
-    // s1, r, s2, r: the second refrain is a repeat — first line only.
-    expect(lyrics.getAllByRole("button", { name: "Refrain two" })).toHaveLength(1);
-    expect(lyrics.getAllByRole("button", { name: "Refrain one" })).toHaveLength(2);
-
+    // s1, r, s2, r: both refrains in full, before and after stepping.
+    expect(lyrics.getAllByRole("button", { name: "Refrain two" })).toHaveLength(2);
     for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: "Next part" }));
     expect(lyrics.getAllByRole("button", { name: "Refrain two" })).toHaveLength(2);
   });
@@ -617,22 +615,24 @@ describe("Presenter", () => {
     }
   });
 
-  it("dims Live while the Output is blanked, with a badge that restores it", async () => {
-    const onRestore = vi.fn();
+  it("dims Live while the Output is blanked, with Restore in its heading", async () => {
+    const onToggleBlank = vi.fn();
     render(() => (
       <Presenter
         hymnNumber={7}
         store={fakeStore()}
         userState={fakeUserState()}
         blanked
-        onRestore={onRestore}
+        onToggleBlank={onToggleBlank}
       />
     ));
     await screen.findByText("Test Hymn");
 
     expect(screen.getByRole("img", { name: "Live output preview" })).toHaveClass("live-blanked");
-    fireEvent.click(screen.getByRole("button", { name: /Blanked/ }));
-    expect(onRestore).toHaveBeenCalled();
+    const restore = screen.getByRole("button", { name: /Restore/ });
+    expect(restore).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(restore);
+    expect(onToggleBlank).toHaveBeenCalled();
   });
 
   it("hides Live when preferences hide it, keeping Parts", async () => {
@@ -716,7 +716,10 @@ describe("Presenter", () => {
     expect(count()).toHaveTextContent(/^×3/);
     expect(published()).toMatchObject({ lines: before.lines, focus: before.focus });
     // Lyrics: one block for stanza 1, marked ×3, current.
-    expect(currentPart().getByText("×3")).toBeInTheDocument();
+    // The count rolls (RollingNumber), so its text spans two nodes.
+    expect(
+      currentPart().getByText((_, el) => !!el?.classList.contains("repeat-chip")),
+    ).toHaveTextContent("×3");
     const lyrics = within(screen.getByRole("region", { name: "Lyrics" }));
     expect(lyrics.getAllByRole("button", { name: "Line 1a" })).toHaveLength(1);
 

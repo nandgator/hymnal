@@ -5,6 +5,7 @@ import {
   setOutputBlanked,
   setOutputPresentation,
   subscribeOutput,
+  subscribePresence,
   subscribeSeek,
 } from "./channel.ts";
 
@@ -87,7 +88,7 @@ describe("output channel", () => {
     const seen: unknown[] = [];
     const unsubscribe = subscribeOutput((message) => seen.push(message));
 
-    expect(await pending).toEqual({ type: "hello" });
+    expect(await pending).toEqual({ type: "hello", id: expect.any(String) });
 
     presenterWindow.postMessage({ type: "hello" });
     await new Promise((resolve) => setTimeout(resolve, 10));
@@ -95,6 +96,25 @@ describe("output channel", () => {
 
     unsubscribe();
     presenterWindow.close();
+  });
+
+  it("tracks whether an Output is open: pinged hello, hello, bye (On air)", async () => {
+    const outputWindow = new BroadcastChannel(CHANNEL_NAME);
+    const ping = nextMessage(outputWindow);
+    const seen: boolean[] = [];
+    const unsubscribe = subscribePresence((open) => seen.push(open));
+    // A reloaded Operator asks who's open.
+    expect(await ping).toEqual({ type: "ping" });
+
+    outputWindow.postMessage({ type: "hello", id: "a" });
+    outputWindow.postMessage({ type: "hello", id: "b" });
+    outputWindow.postMessage({ type: "bye", id: "a" });
+    outputWindow.postMessage({ type: "bye", id: "b" });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(seen).toEqual([true, true, true, false]);
+
+    unsubscribe();
+    outputWindow.close();
   });
 
   it("sends blank and restore, and replays a held blank to a late Output", async () => {

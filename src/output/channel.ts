@@ -42,8 +42,15 @@ export type PresentationMessage = {
   pinRefrain: boolean;
 };
 
-/** Output → Presenter: "I just opened — send me what's showing." */
-type HelloMessage = { type: "hello" };
+/** Output → Operator: "I'm open — send me what's showing." Sent on
+ * opening and in answer to a ping; each Output window has its own id. */
+type HelloMessage = { type: "hello"; id: string };
+
+/** Output → Operator: the window is closing (SDD-0001 §16.4, On air). */
+type ByeMessage = { type: "bye"; id: string };
+
+/** Operator → Output: "who's open?" — a reloaded Operator asking. */
+type PingMessage = { type: "ping" };
 
 /**
  * Output → Presenter, scroll sync (SDD-0001 §16.1): a person's scroll came
@@ -63,7 +70,13 @@ export type SeekMessage = {
  * through the Operator's keymap (SDD-0001 §16.1). */
 export type KeyMessage = { type: "key"; key: string; shiftKey: boolean };
 
-type ChannelMessage = OutputMessage | HelloMessage | SeekMessage | KeyMessage;
+type ChannelMessage =
+  | OutputMessage
+  | HelloMessage
+  | ByeMessage
+  | PingMessage
+  | SeekMessage
+  | KeyMessage;
 
 const CHANNEL_NAME = "hymnal-output";
 
@@ -119,8 +132,15 @@ export function setOutputPresentation(settings: Omit<PresentationMessage, "type"
  */
 export function subscribeOutput(handler: (message: OutputMessage) => void): () => void {
   const target = getChannel();
+  const id = crypto.randomUUID();
+  const hello = () => target.postMessage({ type: "hello", id } satisfies HelloMessage);
+  const bye = () => target.postMessage({ type: "bye", id } satisfies ByeMessage);
   const listener = (event: MessageEvent<ChannelMessage>) => {
     const { data } = event;
+    if (data.type === "ping") {
+      hello();
+      return;
+    }
     if (
       data.type === "content" ||
       data.type === "idle" ||
@@ -131,8 +151,13 @@ export function subscribeOutput(handler: (message: OutputMessage) => void): () =
       handler(data);
   };
   target.addEventListener("message", listener);
-  target.postMessage({ type: "hello" } satisfies HelloMessage);
-  return () => target.removeEventListener("message", listener);
+  window.addEventListener("pagehide", bye);
+  hello();
+  return () => {
+    bye();
+    window.removeEventListener("pagehide", bye);
+    target.removeEventListener("message", listener);
+  };
 }
 
 /** Output calls this when a person's scroll comes to rest (SDD-0001 §16.1). */
@@ -162,5 +187,26 @@ export function subscribeKeys(handler: (key: KeyMessage) => void): () => void {
     if (event.data.type === "key") handler(event.data);
   };
   target.addEventListener("message", listener);
+  return () => target.removeEventListener("message", listener);
+}
+
+/**
+ * Operator: whether any Output window is open, for "On air" and the
+ * Live dot (SDD-0001 §16.4). Tracks each window's hello and bye by id, and
+ * pings once so an Operator opened (or reloaded) after its Output still
+ * finds it. Returns an unsubscribe function.
+ */
+export function subscribePresence(handler: (open: boolean) => void): () => void {
+  const target = getChannel();
+  const open = new Set<string>();
+  const listener = (event: MessageEvent<ChannelMessage>) => {
+    const { data } = event;
+    if (data.type === "hello") open.add(data.id);
+    else if (data.type === "bye") open.delete(data.id);
+    else return;
+    handler(open.size > 0);
+  };
+  target.addEventListener("message", listener);
+  target.postMessage({ type: "ping" } satisfies PingMessage);
   return () => target.removeEventListener("message", listener);
 }

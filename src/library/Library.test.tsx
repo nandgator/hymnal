@@ -39,7 +39,7 @@ describe("Library", () => {
   it("shows the hymnbook once ready", async () => {
     render(() => <Library store={fakeStore()} />);
     expect(await screen.findByText("Athmeeya Geethangal")).toBeInTheDocument();
-    expect(screen.getByText("1631 hymns · 16th")).toBeInTheDocument();
+    expect(screen.getByText("1631 songs · 16th")).toBeInTheDocument();
   });
 
   it.each([
@@ -62,7 +62,7 @@ describe("Library", () => {
       />
     ));
     expect(
-      await screen.findByText("This hymnbook needs an app update (found schema 1, need 2)."),
+      await screen.findByText("This songbook needs an app update (found schema 1, need 2)."),
     ).toBeInTheDocument();
   });
 

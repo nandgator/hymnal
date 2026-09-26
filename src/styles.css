@@ -38,6 +38,11 @@
   --md-sys-color-surface-container-high: #f0e6d9;
   --md-sys-color-inverse-surface: #362f26;
   --md-sys-color-inverse-on-surface: #fbeee1;
+  /* On air: a custom colour, Material's way — red harmonised to the amber
+     seed, so it belongs to the palette (live = tone 40, container 90). */
+  --hymnal-live: #a83900;
+  --hymnal-live-container: #ffdbcf;
+  --hymnal-on-live-container: #380d00;
 
   /* Typography. One family for UI and hymn content alike. */
   --font-family: "Hymnal Sans", Roboto, system-ui, sans-serif;
@@ -55,7 +60,10 @@
 
   /* Elevation: tonal step plus a soft shadow, two levels only. */
   --elevation-1: 0 1px 2px rgb(0 0 0 / 30%), 0 1px 3px 1px rgb(0 0 0 / 15%);
-  --elevation-3: 0 1px 3px rgb(0 0 0 / 30%), 0 4px 8px 3px rgb(0 0 0 / 15%);
+  /* Floating only (PRINCIPLES.md): soft and diffuse, layered so the edge
+     stays faint — a lift, not an outline. */
+  --elevation-3:
+    0 1px 2px rgb(0 0 0 / 6%), 0 8px 24px -4px rgb(0 0 0 / 14%), 0 24px 56px -8px rgb(0 0 0 / 12%);
 
   /* Spacing, 4px base (DESIGN.md `spacing`). */
   --space-xxs: 4px;
@@ -89,6 +97,9 @@
     --md-sys-color-surface-container-high: #2f2819;
     --md-sys-color-inverse-surface: #eae1d9;
     --md-sys-color-inverse-on-surface: #362f26;
+    --hymnal-live: #ff8c5f;
+    --hymnal-live-container: #7b2e0d;
+    --hymnal-on-live-container: #ffdbcf;
   }
 }
 
@@ -115,6 +126,9 @@
   --md-sys-color-surface-container-high: #2f2819;
   --md-sys-color-inverse-surface: #eae1d9;
   --md-sys-color-inverse-on-surface: #362f26;
+  --hymnal-live: #ff8c5f;
+  --hymnal-live-container: #7b2e0d;
+  --hymnal-on-live-container: #ffdbcf;
 }
 
 /* Output view: outside the tonal system, apart from the Operator's theme.
@@ -196,7 +210,7 @@ button {
 }
 
 button:disabled {
-  cursor: not-allowed;
+  cursor: default;
 }
 
 /* Keyboard focus is always findable — the Operator is keyboard- and
@@ -308,6 +322,10 @@ button:disabled {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M607-627q29 29 42.5 66t9.5 76q0 15-11 25.5T622-449q-15 0-25.5-10.5T586-485q5-26-3-50t-25-41q-17-17-41-26t-51-4q-15 0-25.5-11T430-643q0-15 10.5-25.5T466-679q38-4 75 9.5t66 42.5Zm-127-93q-19 0-37 1.5t-36 5.5q-17 3-30.5-5T358-742q-5-16 3.5-31t24.5-18q23-5 46.5-7t47.5-2q137 0 250.5 72T904-534q4 8 6 16.5t2 17.5q0 9-1.5 17.5T905-466q-18 40-44.5 75T802-327q-12 11-28 9t-26-16q-10-14-8.5-30.5T753-392q24-23 44-50t35-58q-50-101-144.5-160.5T480-720Zm0 520q-134 0-245-72.5T60-463q-5-8-7.5-17.5T50-500q0-10 2-19t7-18q20-40 46.5-76.5T166-680l-83-84q-11-12-10.5-28.5T84-820q11-11 28-11t28 11l680 680q11 11 11.5 27.5T820-84q-11 11-28 11t-28-11L624-222q-35 11-71 16.5t-73 5.5ZM222-624q-29 26-53 57t-41 67q50 101 144.5 160.5T480-280q20 0 39-2.5t39-5.5l-36-38q-11 3-21 4.5t-21 1.5q-75 0-127.5-52.5T300-500q0-11 1.5-21t4.5-21l-84-82Zm319 93Zm-151 75Z'/%3E%3C/svg%3E");
 }
 
+.icon-restore {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-134 0-244.5-72T61-462q-5-9-7.5-18.5T51-500q0-10 2.5-19.5T61-538q64-118 174.5-190T480-800q134 0 244.5 72T899-538q5 9 7.5 18.5T909-500q0 10-2.5 19.5T899-462q-64 118-174.5 190T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z'/%3E%3C/svg%3E");
+}
+
 .icon-grid {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M240-160q-33 0-56.5-23.5T160-240q0-33 23.5-56.5T240-320q33 0 56.5 23.5T320-240q0 33-23.5 56.5T240-160Zm240 0q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm240 0q-33 0-56.5-23.5T640-240q0-33 23.5-56.5T720-320q33 0 56.5 23.5T800-240q0 33-23.5 56.5T720-160ZM240-400q-33 0-56.5-23.5T160-480q0-33 23.5-56.5T240-560q33 0 56.5 23.5T320-480q0 33-23.5 56.5T240-400Zm240 0q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm240 0q-33 0-56.5-23.5T640-480q0-33 23.5-56.5T720-560q33 0 56.5 23.5T800-480q0 33-23.5 56.5T720-400ZM240-640q-33 0-56.5-23.5T160-720q0-33 23.5-56.5T240-800q33 0 56.5 23.5T320-720q0 33-23.5 56.5T240-640Zm240 0q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Zm240 0q-33 0-56.5-23.5T640-720q0-33 23.5-56.5T720-800q33 0 56.5 23.5T800-720q0 33-23.5 56.5T720-640Z'/%3E%3C/svg%3E");
 }
@@ -384,48 +402,50 @@ button:disabled {
   margin-top: auto;
 }
 
+/* A rail item is one tile, icon over label, and its highlight wraps both,
+   like every other button's (not MD3's icon-only pill). */
 .rail-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: var(--space-xxs);
-  width: 72px;
-  padding: 0;
+  width: 64px;
+  min-height: 56px;
+  padding: var(--space-xs) 0;
   border: none;
+  border-radius: var(--button-shape);
   background: none;
   color: var(--md-sys-color-on-surface-variant);
+  transition:
+    background-color var(--motion-short) var(--motion-emphasized),
+    color var(--motion-short) var(--motion-emphasized);
 }
 
 .rail-indicator {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 32px;
-  border-radius: var(--shape-sm);
-  transition: background-color 150ms ease;
 }
 
 .rail-item .icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
 .rail-label {
   font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
 }
 
-.rail-item:hover .rail-indicator {
-  background-color: color-mix(in srgb, currentColor 8%, transparent);
+@media (hover: hover) {
+  .rail-item:not([aria-current="page"]):hover {
+    background-color: color-mix(in srgb, currentColor 8%, transparent);
+  }
 }
 
 .rail-item[aria-current="page"] {
-  color: var(--md-sys-color-on-surface);
-}
-
-.rail-item[aria-current="page"] .rail-indicator {
   background-color: var(--md-sys-color-secondary-container);
   color: var(--md-sys-color-on-secondary-container);
 }
@@ -459,6 +479,7 @@ button:disabled {
 
 .crumb,
 .crumb-static {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-xxs);
@@ -522,6 +543,16 @@ button:disabled {
   .crumbs > .crumb-book:first-child {
     flex-shrink: 0;
   }
+
+  /* Five things share 320px: tighter gaps, never an overlap. */
+  .switcher-row {
+    gap: var(--space-xxs);
+    padding-inline: var(--space-xs);
+  }
+
+  .crumbs .crumb {
+    padding-inline: var(--space-xxs);
+  }
 }
 
 /* Width by content, not by page (Supabase): lists and forms read at a
@@ -534,9 +565,16 @@ button:disabled {
   padding: var(--space-lg) var(--space-md);
 }
 
+/* A rail section eases in, the Library as the Operator (DESIGN.md §
+   Motion). The Operator eases in through its areas instead: a transform
+   on its wrapper would re-anchor the fixed dock while it ran. */
+.workspace > :not(.operator) {
+  animation: tab-in var(--motion-medium) var(--motion-emphasized);
+}
+
 .workspace-full {
   max-width: none;
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-sm) var(--space-sm) 0;
 }
 
 /* Settings, grouped (DESIGN.md § Structure): an MD3 list with section
@@ -740,7 +778,6 @@ button:disabled {
 .btn-tonal,
 .btn-outlined,
 .btn-text,
-.fab-extended,
 .chip-filter,
 .chip-assist,
 .list-row {
@@ -762,7 +799,6 @@ button:disabled {
   .btn-tonal,
   .btn-outlined,
   .btn-text,
-  .fab-extended,
   .chip-filter,
   .chip-assist,
   .list-row
@@ -770,16 +806,10 @@ button:disabled {
   --state: color-mix(in srgb, currentColor 8%, transparent);
 }
 
-:is(
-  .btn-filled,
-  .btn-tonal,
-  .btn-outlined,
-  .btn-text,
-  .fab-extended,
-  .chip-filter,
-  .chip-assist,
-  .list-row
-):is(:focus-visible, :active):not(:disabled) {
+:is(.btn-filled, .btn-tonal, .btn-outlined, .btn-text, .chip-filter, .chip-assist, .list-row):is(
+  :focus-visible,
+  :active
+):not(:disabled) {
   --state: color-mix(in srgb, currentColor 10%, transparent);
 }
 
@@ -822,63 +852,56 @@ button:disabled {
   color: var(--md-sys-color-primary);
 }
 
-/* Disabled: 38% content, on a 12% container where there is one. */
-:is(.btn-filled, .btn-tonal):disabled {
-  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
-  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+/* Selected keeps its tone under the pointer and the finger: a state layer
+   over the tonal fill greys it toward the neutral "action" colour, which
+   reads as losing the selection. The press still answers, by the squeeze
+   below (DESIGN.md § States). */
+:is(.chip-filter[aria-pressed="true"], .list-row[aria-current="true"]):is(:hover, :active):not(
+  :disabled
+) {
+  --state: transparent;
 }
 
-:is(.btn-outlined, .btn-text, .chip-filter, .chip-assist, .list-row):disabled {
-  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
-}
-
-.btn-outlined:disabled {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
-}
-
-.fab-extended {
-  min-height: 3.5rem;
-  padding: 0 1.5rem 0 1.25rem;
-  border-radius: var(--shape-lg);
-  background-color: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
-  box-shadow: var(--elevation-3);
-  font-size: 0.875rem;
-  font-weight: 500;
+/* Disabled, one rule for every control (PRINCIPLES.md; Apple and Figma):
+   the control keeps its own shape and style, faded whole to 38%, so a
+   filled and a text button read as the same state. */
+:is(
+  .btn-filled,
+  .btn-tonal,
+  .btn-outlined,
+  .btn-text,
+  .chip-filter,
+  .chip-assist,
+  .list-row,
+  .area-icon,
+  .menu-button,
+  .live-control,
+  .menu-popover-item
+):disabled {
+  opacity: 0.38;
 }
 
 /* Filter chip: selection is aria-pressed, so the state is in the
    accessibility tree, not only in a class. */
-/* Selection never changes width (DESIGN.md § Stability): every chip carries
-   the checkmark's slot in its padding, and selecting only fills it. */
+/* A keypad key: selection is the fill alone, no tick, so a key's label
+   stays centred and never shifts (PRINCIPLES.md, states are uniform). */
 .chip-filter {
   position: relative;
   min-height: 2.5rem;
-  padding: 0 1.625rem;
+  padding: 0 var(--space-sm);
   border-radius: var(--button-shape);
-  background-color: transparent;
-  color: var(--md-sys-color-on-surface-variant);
-  box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
   font-size: 0.875rem;
   font-weight: 500;
 }
 
+/* Selected by tone alone: neutral is an action, tonal is "selected" — no
+   outlines anywhere in the keypad or the transport. */
 .chip-filter[aria-pressed="true"] {
   background-color: var(--md-sys-color-secondary-container);
   color: var(--md-sys-color-on-secondary-container);
   box-shadow: none;
-}
-
-.chip-filter[aria-pressed="true"]::before {
-  content: "";
-  position: absolute;
-  left: 0.375rem;
-  width: 1.125rem;
-  height: 1.125rem;
-  background-color: currentColor;
-  mask:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='m382-354 339-339q12-12 28-12t28 12q12 12 12 28.5T777-636L410-268q-12 12-28 12t-28-12L182-440q-12-12-11.5-28.5T183-497q12-12 28.5-12t28.5 12l142 143Z'/%3E%3C/svg%3E")
-    center / contain no-repeat;
 }
 
 .chip-assist {
@@ -894,11 +917,12 @@ button:disabled {
   text-transform: uppercase;
 }
 
+/* Resting surfaces are flat and tonal; only what floats (menus, sheets,
+   the snackbar, "Back to current") casts a shadow (PRINCIPLES.md). */
 .card-elevated {
   padding: 1.625rem 1.5rem;
-  border-radius: var(--shape-md);
+  border-radius: 22px;
   background-color: var(--md-sys-color-surface-container-low);
-  box-shadow: var(--elevation-1);
 }
 
 /* Outlined text field with a leading search icon. */
@@ -927,7 +951,7 @@ button:disabled {
   min-height: 3.5rem;
   padding: 0 1rem 0 2.75rem;
   border: 1px solid var(--md-sys-color-outline);
-  border-radius: var(--shape-sm);
+  border-radius: var(--button-shape);
   background: transparent;
   color: var(--md-sys-color-on-surface);
   font-size: 1rem;
@@ -1031,17 +1055,47 @@ input[type="checkbox"].switch:checked::before {
 }
 
 /* A key hint: the command menu's rows and the shortcut sheet. */
+/* A key cap: one height, one shape (6px, nested inside a 12px control),
+   the tone above whatever it sits on. Its character is the cap's lower
+   edge, drawn as part of the key's form rather than as elevation, so it
+   still reads as a key and not as a chip (PRINCIPLES.md). A combination
+   is caps side by side ("Shift" "Space"), as on the keyboard. */
 .key-hint {
-  min-width: 1.75rem;
-  padding: 0.125rem 0.5rem;
-  border-radius: var(--shape-xs);
-  background-color: var(--md-sys-color-surface-container-high);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.375rem;
+  border-radius: 6px;
+  background-color: var(--md-sys-color-surface-container-highest);
   color: var(--md-sys-color-on-surface-variant);
-  box-shadow: inset 0 -1px 0 var(--md-sys-color-outline-variant);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--md-sys-color-outline) 35%, transparent);
   font-family: var(--font-family);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* A label that changes without resizing its control (SwapLabel): every
+   label in one cell, the control as wide as the longest. */
+.swap-label {
+  display: inline-grid;
+}
+
+.swap-label-item {
+  grid-area: 1 / 1;
   text-align: center;
+}
+
+.swap-label-item:not(.swap-label-current) {
+  visibility: hidden;
+}
+
+.key-combo {
+  display: inline-flex;
+  gap: 2px;
 }
 
 .finder-option .key-hint,
@@ -1060,10 +1114,11 @@ input[type="checkbox"].switch:checked::before {
   vertical-align: baseline;
 }
 
+/* Alternatives stand apart; a combination's caps sit close. */
 .shortcut-keys {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xxs);
+  gap: var(--space-xxs) var(--space-xs);
   font-weight: 400;
 }
 
@@ -1155,44 +1210,24 @@ input[type="checkbox"].switch:checked::before {
 }
 
 /* Blanked (SDD-0001 §16.5): the Output shows bare ground; Live stays
-   readable, dimmed, so the operator can prepare behind it. */
+   readable, dimmed, so the operator can prepare behind it. The preview
+   fades its contents into the Output's own ground (its background), never
+   to a grey slab over a light Operator; the strip just fades. */
 .live-blanked {
   opacity: 0.4;
 }
 
-.live-badge {
-  position: absolute;
-  top: var(--space-sm);
-  left: 50%;
-  min-height: 2rem;
-  padding: 0 var(--space-sm);
-  border: none;
-  border-radius: var(--shape-sm);
-  background-color: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transform: translateX(-50%);
-  cursor: pointer;
+.output-view-mini.live-blanked {
+  opacity: 1;
+}
+
+.output-view-mini.live-blanked > * {
+  opacity: 0.25;
 }
 
 .live-strip-row {
   display: flex;
   gap: var(--space-xs);
-}
-
-.switcher-row .live-badge,
-.live-strip-row .live-badge {
-  position: static;
-  flex: none;
-  min-height: 3rem;
-  transform: none;
-}
-
-.switcher-badge {
-  margin-inline-start: auto;
 }
 
 /* The command menu, findable (the mockup): a search field's look, the
@@ -1215,10 +1250,6 @@ input[type="checkbox"].switch:checked::before {
   cursor: pointer;
 }
 
-.switcher-find ~ .switcher-badge {
-  margin-inline-start: 0;
-}
-
 .switcher-find-text {
   flex: 1;
   min-width: 0;
@@ -1229,11 +1260,48 @@ input[type="checkbox"].switch:checked::before {
 }
 
 .switcher-find-key {
-  padding: 0.125rem var(--space-xs);
-  border-radius: 6px;
-  background-color: var(--md-sys-color-surface-container-high);
-  font: inherit;
-  font-size: 0.75rem;
+  flex: none;
+}
+
+/* Go live: tonal, not filled — the screen's one filled button is Next
+   part. Once an Output is open it becomes the On air status. */
+.present-button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 2.5rem;
+  padding: 0 var(--space-md) 0 var(--space-sm);
+  border: none;
+  border-radius: var(--button-shape);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.present-button.presenting {
+  background-color: var(--hymnal-live-container);
+  color: var(--hymnal-on-live-container);
+}
+
+.on-air {
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-inline: 0.375rem;
+  border-radius: 50%;
+  background-color: var(--hymnal-live);
+  transition:
+    background-color var(--motion-short) var(--motion-emphasized),
+    box-shadow var(--motion-short) var(--motion-emphasized);
+}
+
+/* Blanked: still on air, but nothing shows — the dot empties to a ring
+   (DESIGN.md § Go Live). */
+.present-blanked .on-air {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--hymnal-live);
 }
 
 @media (max-width: 599px) {
@@ -1248,6 +1316,15 @@ input[type="checkbox"].switch:checked::before {
   .switcher-find-text,
   .switcher-find-key {
     display: none;
+  }
+
+  /* Go Live, On Air and Blanked keep their icon or dot on a phone; the
+     word is the accessible name and the tooltip, so the crumbs keep room. */
+  .present-button {
+    justify-content: center;
+    width: 3rem;
+    padding: 0;
+    font-size: 0;
   }
 }
 
@@ -1330,12 +1407,93 @@ input[type="checkbox"].switch:checked::before {
   margin-inline-start: auto;
 }
 
+/* Room for ×10 from the start, so a second digit moves nothing. A count,
+   not a control: the text colour, since primary-coloured text means
+   "press me" (Repeat beside it). */
 .repeat-count {
-  min-width: 2ch;
-  color: var(--md-sys-color-primary);
+  min-width: 3ch;
+  color: var(--md-sys-color-on-surface);
   font-size: 1rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+}
+
+/* A rolling number (RollingNumber): the old value rolls out as the new one
+   rolls in, up as the count grows and down as it shrinks — quick, at the
+   emphasised easing, clipped to one line, a slight blur on the move, as a
+   wheel turning (DESIGN.md § Motion). */
+.rolling-number {
+  display: inline-grid;
+  justify-items: start;
+  min-width: 2ch;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  vertical-align: bottom;
+}
+
+/* A Lyrics block's ×N: as wide for ×9 as for ×10, so the chip never
+   resizes as the count changes; "×9" centred as one in the room. */
+.repeat-chip {
+  gap: 0;
+  min-width: calc(3ch + 1.25rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.repeat-chip .rolling-number {
+  min-width: 0;
+}
+
+.rolling-face {
+  grid-area: 1 / 1;
+  animation: roll-in-up var(--motion-medium) var(--motion-emphasized);
+}
+
+.rolling-number[data-direction="down"] .rolling-face {
+  animation-name: roll-in-down;
+}
+
+.rolling-number .rolling-face-leaving {
+  animation: roll-out-up var(--motion-short) var(--motion-exit) forwards;
+}
+
+.rolling-number[data-direction="down"] .rolling-face-leaving {
+  animation-name: roll-out-down;
+}
+
+.rolling-face-leaving::before {
+  content: attr(data-value);
+}
+
+@keyframes roll-in-up {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    translate: 0 100%;
+  }
+}
+
+@keyframes roll-in-down {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    translate: 0 -100%;
+  }
+}
+
+@keyframes roll-out-up {
+  to {
+    opacity: 0;
+    filter: blur(2px);
+    translate: 0 -100%;
+  }
+}
+
+@keyframes roll-out-down {
+  to {
+    opacity: 0;
+    filter: blur(2px);
+    translate: 0 100%;
+  }
 }
 
 /* Lyrics scrolls inside itself; "Back to current" floats over its foot. */
@@ -1347,12 +1505,17 @@ input[type="checkbox"].switch:checked::before {
   min-height: 0;
 }
 
-.back-to-current {
+/* An action, not a selection, so neutral — not the tonal "selected"
+   colour; it floats, so its shadow, not its tone, sets it apart from the
+   lyrics (Material's surface FAB: surface-container-high at elevation 3). */
+.back-to-current.btn-tonal {
   position: absolute;
   bottom: var(--space-md);
   left: 50%;
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
   box-shadow: var(--elevation-3);
-  transform: translateX(-50%);
+  translate: -50% 0;
 }
 
 /* From 840px (SDD-0001 §16.4, DESIGN.md § Structure): the tab groups and
@@ -1392,6 +1555,7 @@ input[type="checkbox"].switch:checked::before {
    away. Short of height, Live shrinks first (to 6rem), keeping one row of
    the keypad, which then scrolls inside itself. */
 .stage {
+  container: stage / inline-size;
   flex: 0 0 min(440px, 40%);
   padding-bottom: var(--space-md);
   overflow: clip;
@@ -1436,9 +1600,13 @@ input[type="checkbox"].switch:checked::before {
   height: 0.5rem;
   margin-inline-end: var(--space-xs);
   border-radius: 50%;
-  background-color: var(--md-sys-color-primary);
+  background-color: var(--md-sys-color-outline);
   content: "";
   vertical-align: 0.05em;
+}
+
+.on-air-title::before {
+  background-color: var(--hymnal-live);
 }
 
 .area-tabs {
@@ -1459,10 +1627,50 @@ input[type="checkbox"].switch:checked::before {
   cursor: pointer;
 }
 
+.area-tab {
+  position: relative;
+  z-index: 1;
+}
+
 .area-tab[aria-selected="true"] {
-  background-color: var(--md-sys-color-surface-container-high);
   color: var(--md-sys-color-on-surface);
   font-weight: 600;
+}
+
+/* The tab bar's one pill, behind the tabs, gliding to the selected one:
+   its position and width ease (set by Presenter from the tab's box). It
+   fades in the first time, rather than gliding in from the bar's start. */
+.area-tabs {
+  position: relative;
+}
+
+.area-tab-pill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  border-radius: var(--button-shape);
+  background-color: var(--md-sys-color-surface-container-high);
+  opacity: 0;
+  transition:
+    transform var(--motion-medium) var(--motion-emphasized),
+    width var(--motion-medium) var(--motion-emphasized),
+    opacity var(--motion-short) var(--motion-emphasized);
+}
+
+.area-tab-pill-shown {
+  opacity: 1;
+}
+
+/* A tab's content, mounted afresh on a switch: a soft zoom in, from
+   slightly smaller and faded — calm, and no direction implied. */
+.area-tab-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  animation: tab-in var(--motion-medium) var(--motion-emphasized);
 }
 
 /* A heading's actions, at its end: a pane toolbar of icon buttons, after
@@ -1505,32 +1713,11 @@ input[type="checkbox"].switch:checked::before {
   height: 0.875rem;
 }
 
-.area-icon:disabled {
-  opacity: 0.38;
-  cursor: default;
-}
-
 @media (hover: hover) {
   .area-icon:enabled:hover,
   .menu-button:hover {
     background-color: color-mix(in srgb, currentColor 8%, transparent);
   }
-}
-
-/* A heading's note, e.g. "19 verses · refrain", after
-   its title, taking what room is left. */
-.area-note {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: 0.8125rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.stage .area-note {
-  text-align: end;
 }
 
 /* Reduced noise, after VS Code's modern UI: the side group's toolbar stays
@@ -1545,11 +1732,6 @@ input[type="checkbox"].switch:checked::before {
   .area:not(.area-main, .stage):is(:hover, :focus-within) .area-actions {
     opacity: 1;
   }
-}
-
-/* Only where there's room: the main group, or Parts. */
-.area:not(.area-main, .stage) .area-note {
-  display: none;
 }
 
 /* An area's menu (Menu.tsx): MD3's, a tone up and raised, anchored under
@@ -1569,11 +1751,14 @@ input[type="checkbox"].switch:checked::before {
   border-radius: var(--shape-md);
   background-color: var(--md-sys-color-surface-container-high);
   box-shadow: var(--elevation-3);
+  transform-origin: top right;
+  animation: menu-in var(--motion-short) var(--motion-emphasized);
 }
 
 .menu-popover-start {
   right: auto;
   left: 0;
+  transform-origin: top left;
 }
 
 .menu-popover-item {
@@ -1593,11 +1778,6 @@ input[type="checkbox"].switch:checked::before {
 
 .menu-popover-item:enabled:is(:hover, :focus-visible) {
   background-color: color-mix(in srgb, currentColor 8%, transparent);
-}
-
-.menu-popover-item:disabled {
-  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
-  cursor: default;
 }
 
 .menu-popover-supporting {
@@ -1621,36 +1801,55 @@ input[type="checkbox"].switch:checked::before {
   margin-inline: var(--space-md);
 }
 
+/* In Live's heading, like the headings' other actions: a quiet text
+   button, its icon sized to the label, the key in its tooltip only (the
+   search bar alone shows its key). Blanked, it wears the tonal fill that
+   means "on" everywhere else. */
 .live-control {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-xxs);
   min-height: 2rem;
-  padding: 0 var(--space-sm);
-  border: 1px solid var(--md-sys-color-outline-variant);
+  padding: 0 var(--space-sm) 0 var(--space-xs);
+  border: none;
   border-radius: var(--button-shape);
   background: none;
-  color: var(--md-sys-color-on-surface);
+  color: var(--md-sys-color-on-surface-variant);
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
 }
 
 .live-control[aria-pressed="true"] {
-  border-color: transparent;
-  background-color: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
 }
 
 .live-control .icon {
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1rem;
+  height: 1rem;
 }
 
-.live-control-key {
-  color: var(--md-sys-color-on-surface-variant);
-  font: inherit;
-  font-size: 0.6875rem;
+/* Beside the strip, Blank/Restore is its icon alone, a square as tall as
+   the strip; its name stays for screen readers and the tooltip. */
+.live-strip-row .live-control {
+  flex: none;
+  justify-content: center;
+  width: 3rem;
+  min-height: 3rem;
+  padding: 0;
+  font-size: 0;
+}
+
+.live-strip-row .live-control .icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+@media (hover: hover) {
+  .live-control:not([aria-pressed="true"]):hover {
+    background-color: color-mix(in srgb, currentColor 8%, transparent);
+  }
 }
 
 .stage-strip {
@@ -1682,8 +1881,11 @@ input[type="checkbox"].switch:checked::before {
   font-size: 0.875rem;
 }
 
+/* The song that's up is "selected": the tonal colour, as the current part
+   and the selected key wear it. */
 .recents-row[aria-current="true"] {
-  background-color: var(--md-sys-color-surface-container-high);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
 }
 
 .recents-number {
@@ -1789,11 +1991,14 @@ input[type="checkbox"].switch:checked::before {
   gap: var(--space-xs);
 }
 
+/* The strip takes the row's width whatever its line, never the line's
+   own width; the line truncates inside it. */
 .live-strip-toggle {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: var(--space-sm);
-  width: 100%;
+  min-width: 0;
   min-height: 3rem;
   padding: 0 var(--space-md);
   border: none;
@@ -1899,9 +2104,196 @@ html[data-scrolling],
   transition-timing-function: ease-in;
 }
 
+/* Motion (PRINCIPLES.md): Material's emphasised easing, quick, and only
+   to explain a change — areas gliding to new places (View Transitions),
+   a menu growing from its button, a sheet rising over a blurred page. */
+:root {
+  --motion-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --motion-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --motion-short: 150ms;
+  --motion-medium: 250ms;
+  /* A slight overshoot, for what springs back (a released press). */
+  --motion-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+::view-transition-group(*) {
+  animation-duration: var(--motion-medium);
+  animation-timing-function: var(--motion-emphasized);
+}
+
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: var(--motion-medium);
+}
+
+/* A control's change of state — hover, press, selected, disabled, a
+   shape — eases rather than snaps. */
+:is(
+  .btn-filled,
+  .btn-tonal,
+  .btn-outlined,
+  .btn-text,
+  .chip-filter,
+  .list-row,
+  .area-tab,
+  .area-icon,
+  .menu-button,
+  .live-control,
+  .present-button,
+  .switcher-find,
+  .menu-popover-item,
+  .seq-block,
+  .seq-line,
+  .recents-row
+) {
+  transition:
+    background-color var(--motion-short) var(--motion-emphasized),
+    color var(--motion-short) var(--motion-emphasized),
+    border-radius var(--motion-short) var(--motion-emphasized),
+    box-shadow var(--motion-short) var(--motion-emphasized),
+    opacity var(--motion-short) var(--motion-emphasized);
+}
+
+/* Press: the control gives a little under the finger and springs back
+   on release — Material 3 Expressive's press, kept small. It uses scale,
+   not transform, so it composes with a control's own positioning. */
+:is(
+  .btn-filled,
+  .btn-tonal,
+  .btn-outlined,
+  .btn-text,
+  .chip-filter,
+  .area-tab,
+  .area-icon,
+  .icon-button,
+  .menu-button,
+  .live-control,
+  .present-button,
+  .rail-item,
+  .segment
+) {
+  scale: 1;
+  transition-property: background-color, color, border-radius, box-shadow, opacity, scale;
+  transition-duration: var(--motion-short);
+  transition-timing-function:
+    var(--motion-emphasized), var(--motion-emphasized), var(--motion-emphasized),
+    var(--motion-emphasized), var(--motion-emphasized), var(--motion-spring);
+}
+
+:is(
+  .btn-filled,
+  .btn-tonal,
+  .btn-outlined,
+  .btn-text,
+  .chip-filter,
+  .area-tab,
+  .area-icon,
+  .icon-button,
+  .menu-button,
+  .live-control,
+  .present-button,
+  .rail-item,
+  .segment
+):active:not(:disabled) {
+  scale: 0.96;
+  /* Gives at once; the release springs back over --motion-short. */
+  transition-duration: 80ms;
+  transition-timing-function: var(--motion-emphasized);
+}
+
+/* An icon that changes meaning (Blank to Restore) turns in rather than
+   blinking over. */
+.icon-swap {
+  animation: icon-swap var(--motion-medium) var(--motion-spring);
+}
+
+@keyframes icon-swap {
+  from {
+    opacity: 0;
+    transform: rotate(-45deg) scale(0.6);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes tab-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(-4px);
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  :is(html, .shell-main, .sequence, .navigator-body, .main-column, .sheet-content) {
+  .rolling-face-leaving {
+    display: none;
+  }
+
+  :is(html, .shell-main, .sequence, .navigator-body, .main-column, .sheet-content, .area-tab-pill) {
     transition: none;
+  }
+
+  :is(
+    .btn-filled,
+    .btn-tonal,
+    .btn-outlined,
+    .btn-text,
+    .chip-filter,
+    .area-tab,
+    .area-icon,
+    .icon-button,
+    .menu-button,
+    .live-control,
+    .present-button,
+    .rail-item,
+    .segment
+  ):active:not(:disabled) {
+    scale: 1;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  .menu-popover,
+  .area-tab-content,
+  .workspace > :not(.operator),
+  .icon-swap,
+  .rolling-face,
+  .sheet[open],
+  .sheet::backdrop,
+  .sheet[data-closing],
+  .sheet[data-closing]::backdrop {
+    animation: none;
   }
 }
 
@@ -1922,10 +2314,16 @@ html[data-scrolling],
     color 150ms ease;
 }
 
-/* The current part: a tone up, its label the one accent (DESIGN.md §
-   Structure, areas are panels). No box or edge stripe. */
+/* The current part is "selected", so it wears the tonal colour that means
+   selected everywhere (the selected key), softened for a block this size —
+   never a neutral tone, which is what fields and resting buttons use. No
+   box or edge stripe. */
 .seq-block[aria-current="step"] {
-  background-color: var(--md-sys-color-surface-container-high);
+  background-color: color-mix(
+    in srgb,
+    var(--md-sys-color-secondary-container) 60%,
+    var(--md-sys-color-surface-container-low)
+  );
   color: var(--md-sys-color-on-surface);
 }
 
@@ -1990,11 +2388,6 @@ html[data-scrolling],
   background-color: color-mix(in srgb, currentColor 10%, transparent);
 }
 
-.seq-more {
-  color: color-mix(in srgb, currentColor 60%, transparent);
-  line-height: 1;
-}
-
 .seq-lines {
   padding: 0;
   list-style: none;
@@ -2040,8 +2433,31 @@ html[data-scrolling],
   border-radius: var(--shape-lg);
 }
 
+/* The command menu and pickers open over a blurred page, so what's behind
+   recedes without vanishing. */
 .sheet::backdrop {
   background: rgb(0 0 0 / 32%);
+  backdrop-filter: blur(6px);
+  animation: fade-in var(--motion-medium) var(--motion-emphasized);
+}
+
+.sheet[open] {
+  animation: sheet-in var(--motion-medium) var(--motion-emphasized);
+}
+
+/* The dialog itself takes focus on opening (so Escape and Tab work); the
+   ring belongs on what's inside it, never around the whole card. */
+.sheet:focus-visible {
+  outline: none;
+}
+
+/* Leaving: quicker, accelerating away (Material's emphasised exit). */
+.sheet[data-closing] {
+  animation: sheet-out var(--motion-short) var(--motion-exit) forwards;
+}
+
+.sheet[data-closing]::backdrop {
+  animation: fade-out var(--motion-short) var(--motion-exit) forwards;
 }
 
 .sheet[open] {
@@ -2055,10 +2471,18 @@ html[data-scrolling],
   overflow-y: auto;
 }
 
+/* The title and Close stay pinned to the card's top while its content
+   scrolls beneath them. */
 .sheet-header {
+  position: sticky;
+  top: calc(-1 * var(--space-md));
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-lg)) var(--space-xs);
+  padding: var(--space-md) var(--space-lg) var(--space-xs);
+  background-color: var(--md-sys-color-surface-container-low);
 }
 
 .menu-item {
@@ -2085,18 +2509,30 @@ html[data-scrolling],
   list-style: none;
 }
 
-/* The keypad fills the stage in equal columns, its edges on Live's. */
-.stage .chip-set {
-  grid-template-columns: repeat(auto-fill, minmax(3.5rem, 1fr));
-  max-width: none;
-}
-
 .chip-set .chip-filter {
   width: 100%;
 }
 
 .chip-set li:has(.chip-wide) {
   grid-column: 1 / -1;
+}
+
+/* In the stage: six equal columns across its width, edges on Live's, and a
+   short last row centred, never left in a corner (PRINCIPLES.md, rhythm). */
+.stage .chip-set {
+  --cols: 6;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: none;
+}
+
+.stage .chip-set li {
+  flex: 0 0 calc((100% - (var(--cols) - 1) * var(--space-xs)) / var(--cols));
+}
+
+.stage .chip-set li:has(.chip-wide) {
+  flex-basis: 100%;
 }
 
 .repeat-button {
@@ -2110,15 +2546,19 @@ html[data-scrolling],
   cursor: pointer;
 }
 
-/* A fixed bottom app bar (DESIGN.md § Stability): the same place whatever
-   the card's height, so the buttons never move under the operator's hand.
-   The Operator reserves its height, and the bar leaves its end clear for
-   the FAB, which sits vertically centred in it. */
-/* Reserve exactly the dock's measured height (set by Presenter), not a rem
-   guess: rem grows with the text scale, the dock's icon targets don't. */
-.operator {
-  /* Clear of the dock and of the FAB floating above it. */
-  padding-bottom: calc(max(var(--dock-height, 5rem), var(--fab-top, 0px)) + var(--space-sm));
+/* The dock (DESIGN.md § Stability): fixed at the bottom so the transport
+   never moves under the operator's hand, on the page's own ground rather
+   than a band, the group centred like media controls. One gap, 12px, runs
+   above, between and below the areas (PRINCIPLES.md, rhythm): the Operator
+   reserves the dock's measured height, and the dock's own top padding is
+   that gap. */
+.operator:has(.dock) {
+  padding-bottom: var(--dock-height, 4.5rem);
+}
+
+/* No dock from 840px: the areas keep the same gap below as around them. */
+.operator:not(:has(.dock)) {
+  padding-bottom: var(--space-sm);
 }
 
 .dock {
@@ -2128,54 +2568,70 @@ html[data-scrolling],
   left: 0;
   z-index: 1;
   display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: var(--space-xs);
-  /* Height: its buttons plus padding, or the FAB's, whichever is taller —
-     measured by Presenter into --dock-height. Left edge lines up with the
-     full-width workspace; the right end stays clear for the FAB. */
-  min-height: var(--dock-height, 72px);
-  padding: var(--space-sm) var(--fab-clearance, 13rem) var(--space-sm) var(--space-lg);
-  background-color: var(--md-sys-color-surface-container);
-}
-
-/* One height per role (ADR-0017): 48px in the dock, 40px in the stage,
-   56px for Show Output. */
-.dock-button {
-  min-height: 3rem;
-  white-space: nowrap;
-}
-
-/* Measured by Presenter: each pair as wide as its wider member. */
-.dock-part {
-  min-width: var(--dock-part-width, auto);
-}
-
-.dock-line {
-  min-width: var(--dock-line-width, auto);
+  justify-content: center;
+  padding: var(--space-sm) var(--space-sm) var(--space-sm);
+  background-color: var(--md-sys-color-surface);
 }
 
 .shell:has(.nav-rail) .dock {
   left: 80px;
 }
 
-.fab-fixed {
-  position: fixed;
-  right: var(--space-md);
-  /* Centred in the dock (both measured by Presenter). */
-  bottom: var(--fab-bottom, 0.75rem);
-  z-index: 2;
+/* The transport's other three are neutral, not tonal: the tonal fill is
+   the keypad's "selected", and these are actions, never states. */
+.dock-button.btn-tonal {
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
 }
 
-/* Collapse to icon-only in reverse priority (lines, then the FAB, then
-   parts). Presenter sets the level by measuring whether the labelled row
-   fits (DESIGN.md § Stability); nothing here is a width breakpoint. Labels
-   stay in the accessibility tree: visually hidden, never display: none. */
-:root:is([data-dock-collapse="1"], [data-dock-collapse="2"], [data-dock-collapse="3"])
-  .dock-line
-  .dock-label,
-:root:is([data-dock-collapse="2"], [data-dock-collapse="3"]) .fab-label,
-:root[data-dock-collapse="3"] .dock-part .dock-label {
+/* Four equal buttons: equal columns, each as wide as the widest. */
+.transport {
+  display: inline-grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  gap: var(--space-xs);
+}
+
+.dock-button {
+  min-width: 7.5rem;
+  min-height: 3rem;
+  white-space: nowrap;
+}
+
+/* From 840px the transport sits at the stage's foot, under Parts, its
+   four columns on the keypad's edges; it never moves with the areas. A
+   narrow stage takes it icon-only, by the stage's own width (rem, so the
+   user's text size counts). */
+.stage-transport {
+  flex: none;
+  padding: var(--space-sm) var(--space-md) 0;
+}
+
+.stage-transport .transport {
+  display: grid;
+  width: 100%;
+}
+
+.stage-transport .dock-button {
+  min-width: 0;
+  padding-inline: var(--space-sm);
+}
+
+@container stage (max-width: 24rem) {
+  .stage-transport .dock-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* Collapsed: all four icon-only squares, labels kept for screen readers
+   (visually hidden, never display: none). Icon-only targets keep MD3's
+   fixed 48px, not the text scale. */
+:root[data-dock-collapse="1"] .dock .dock-label {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -2184,30 +2640,14 @@ html[data-scrolling],
   white-space: nowrap;
 }
 
-/* Icon-only controls have no text for the text scale to enlarge, so they
-   keep MD3's fixed touch targets (48px buttons, 56px FAB, 24px icons)
-   rather than growing with it — otherwise at 2x text a phone can't fit
-   even a fully collapsed dock. */
-:root:is([data-dock-collapse="1"], [data-dock-collapse="2"], [data-dock-collapse="3"]) .dock-line,
-:root[data-dock-collapse="3"] .dock-part {
+:root[data-dock-collapse="1"] .dock .dock-button {
   width: 48px;
   min-width: 48px;
   min-height: 48px;
   padding: 0;
 }
 
-:root:is([data-dock-collapse="2"], [data-dock-collapse="3"]) .fab-extended.fab-fixed {
-  width: 56px;
-  min-width: 56px;
-  min-height: 56px;
-  padding: 0;
-}
-
-:root:is([data-dock-collapse="1"], [data-dock-collapse="2"], [data-dock-collapse="3"])
-  .dock-line
-  .icon,
-:root[data-dock-collapse="3"] .dock-part .icon,
-:root:is([data-dock-collapse="2"], [data-dock-collapse="3"]) .fab-fixed .icon {
+:root[data-dock-collapse="1"] .dock .dock-button .icon {
   width: 24px;
   height: 24px;
 }
@@ -2241,8 +2681,9 @@ html[data-scrolling],
   background-color: var(--md-sys-color-surface);
 }
 
+/* In a sheet: just under its pinned header (height measured by Sheet). */
 .sheet .finder-form {
-  top: calc(-1 * var(--space-md));
+  top: calc(var(--sheet-header-height, 3.5rem) - var(--space-md) - var(--space-xs));
   background-color: var(--md-sys-color-surface-container-low);
 }
 

@@ -461,7 +461,8 @@ unit.
   3. **Workspace**, full width (Supabase's `full`, for dense tools):
      the Operator below. Library and Finder use the default width, and
      Settings and About the small one.
-  4. **Dock and FAB**, pinned to the bottom (below).
+  4. **Dock**, the transport pinned to the bottom (below); **Go live**
+     top right.
      A command menu (Ctrl/⌘+K or `/`) reaches everything from anywhere:
      one box that finds a hymn by number or lyrics, or an action by name,
      each action showing its key (SDD-0001 §16.5). A `?` sheet lists every
@@ -494,19 +495,21 @@ unit.
   - **Areas are panels**: `surface-container-low` on the `surface`
     ground, 22px corners, 12px apart, no borders. Each has a quiet
     header, 52px tall: a small uppercase label (or its tabs) and at most
-    one or two icon actions. One strong accent: the current part (its
-    label in `primary` on `surface-container-high`) and Next part.
-    Numbers are tabular, so nothing jitters as they change.
+    one or two icon actions. One lead on screen: the current part, in
+    the tonal "selected" colour (softened for its size), its label in
+    `primary`. Tonal always means selected — the current part, the
+    selected key, the song that's up in Recents — and neutral always means
+    an action at rest. Numbers are tabular, so nothing jitters as they change.
   - **One shape, one icon set.** Every control (buttons, keys, tabs,
     icon buttons, the search bar) is a rounded rectangle of
     `--button-shape`, never a pill beside a square; only MD3's switch
     stays a pill, being its own component. A chip inside a control nests
     concentrically. Icons are Material Symbols Rounded, all of them.
-  - **Lyrics, compact repeats.** A part already seen earlier in the path
-    (a refrain's second and later showings) shows compact: its label and
-    first line, then "…". It's still a full tap target. The current block
-    always shows in full, so the operator never loses the words being
-    sung; the list stays short enough to scan.
+  - **Lyrics, every part in full.** A refrain's later showings show all
+    their lines too. Folding them to a first line and "…" kept the list
+    short, but made each step reshape the blocks (the leaving one folding,
+    the arriving one opening), so the list jolted back and forth as it
+    glided (§ Stability: nothing moves as state changes).
   - **Feedback without hover.** Touch has no hover, so the state that
     matters is **pressed**: a block or line darkens while a finger (or
     mouse button) is down, on every device, and the tap's result — the
@@ -516,9 +519,12 @@ unit.
     hunting for a small "1" or "Refrain"); tapping a line sends that
     line live. **Scrolling only browses** and never changes what's live,
     so a stray swipe can't move the Output; only a tap does. Scrolled
-    away from the current block, a "Back to current" chip appears (chat
-    apps' "jump to latest"). The current block stays highlighted and,
-    while you haven't scrolled away, centred.
+    away from the current block, a "Back to Current" button floats up
+    (chat apps' "jump to latest"): an action, so neutral, set apart by its
+    shadow rather than by the tonal "selected" colour. The current block
+    stays highlighted and, while you haven't scrolled away, centred. Only
+    a step glides there; a list shown anew (a tab, a split, expand or
+    collapse) lands on the current part at once.
   - **Height matters too.** WCAG's Reflow sets a width floor (320 CSS
     px) but no single height floor, so the practice is to degrade
     gracefully. The stage needs Live and at least a row of the keypad:
@@ -526,10 +532,12 @@ unit.
     becomes the strip there, and above that Live shrinks before the
     keypad does. The stage never scrolls as a whole; the keypad and the
     tabs scroll inside themselves, and the page never does.
-  - **Blanked**: while the Output is blanked (B), Live dims and carries a
-    **Blanked** badge, which restores on a tap; the strip shows it too. The
-    operator can keep navigating behind it (SDD-0001 §16.5). With no Live
-    on screen, the badge sits at the switcher row's end instead.
+  - **Blanked**: while the Output is blanked (B), Live dims and its
+    heading's **Blank** control is pressed, reading **Restore** (the phone
+    strip carries the same control). The operator can keep navigating
+    behind it (SDD-0001 §16.5). The On Air status reads **Blanked**, its
+    dot emptied to a ring, so it shows on every screen, Live on screen or
+    not.
   - **Phone** (and anything under 840px): Live collapses to a thin
     strip showing the current line, expanding on tap; the tabs fill the
     room below it, merged; the part keypad is a row above the dock, in
@@ -551,24 +559,67 @@ unit.
     (Dark | Light | Contrast | Warm) and one switch per cue.
   - **Show/hide**: Live, remembered, and the tab layout (SDD-0001
     §16.4). This hymn and the dock never hide.
-- **FAB and dock**: a fixed bottom dock for navigation plus the FAB. The
-  FAB is **Show Output**: presenting is the operator's whole job, and it's
-  the one action that must be easy to hit mid-service. It belongs to the
-  whole Operator, not the Presenter screen alone: fixed bottom-right on
-  every view, since the Output is opened once per service, often before
-  the first hymn (SDD-0001 §16.1). The dock leaves room for it.
-- **Operator detail**: the header carries a back (to search) text button,
-  the hymn title (`title-large`) and its number (`on-surface-variant`).
-  Lines carry no list numbering. The dock's four buttons carry an icon
-  matching their key (left/right chevrons for parts, up/down arrows for
-  lines, as the keyboard does). **Parts outrank lines**, and emphasis says
-  so: Next part is the filled button (the most frequent action in a
-  service), Previous part tonal, the two line buttons outlined. Each pair
-  shares one width (both part buttons as wide as the wider, likewise the
-  line buttons), so the row is symmetric and the part pair stays visibly
-  the larger control. As width runs out, labels collapse to icon-only in
-  reverse priority: lines first, then the FAB, then parts. Labels stay
-  the accessible names throughout.
+- **One transport** (Board #26, PRINCIPLES.md). From 840px it sits at
+  the stage's foot, under Parts, beside what it drives, on the keypad's
+  edges: it never moves as the areas change (centred on the window, it
+  lined up with nothing once the areas were unequal; following the main
+  area, it slid). On a phone it is the dock, fixed at the bottom. Four
+  equal buttons, **‹ Part · ∧ Line · ∨ Line · Part ›**, the arrows giving
+  direction and the full names the accessible ones. All four are equal
+  peers in one neutral fill, none filled: nothing competes with the
+  current part's highlight, which is what should lead during a song; and
+  never tonal, which is the keypad's "selected". As width runs out all
+  four go icon-only together (the stage's own width, or the dock's).
+- **Go live → On air.** Opening the Output is a one-off, so it sits top
+  right on every screen (where Slides and Keynote put theirs) as a tonal
+  **Go live**, and once an Output window is open becomes the **On air**
+  status, which brings that window forward. Live's dot is the same on-air
+  light: grey until then. On air is a custom colour, red harmonised to the
+  amber seed (Material's method), with its own roles in both themes.
+  Blanked is On Air's other state: **Blanked**, the dot a ring.
+- **Rhythm and states.** One 12px gap above, between and below the areas.
+  Disabled is the whole control at 38%, whatever its style. Only floating
+  things cast a shadow (menus, sheets, the snackbar, Back to Current);
+  cards and panels are flat and tonal. Keypad keys show selection by fill
+  alone, no tick, and a short last row is centred. A selected control
+  keeps its tone under hover and press: a state layer would grey it
+  toward the neutral action colour and read as losing the selection.
+  **Key caps** (shortcuts, the command menu, Ctrl K) share one height and
+  a 6px corner nested in the 12px controls, a tone above what they sit
+  on, with a lower edge that keeps them reading as keys; a combination
+  is caps side by side. A control whose label changes (Blank and
+  Restore; Go Live, On Air and Blanked) is as wide as its longest label,
+  so the swap never resizes it. Repeat, Undo and Reset
+  are text buttons: occasional, so quiet.
+- **Motion** explains change, at Material's emphasised easing: areas glide
+  to their places on expand, collapse, close and split (View Transitions);
+  a tab change is not a layout change, so the tab bar's one pill glides to
+  the selected tab and the new content softly zooms in, in the page itself
+  (a View Transition there cross-faded snapshots of the tab labels, which
+  flickered). A menu grows from its button; a sheet rises over a blurred
+  page and sinks away on close; every control's change of state eases.
+  **Press**: a control gives a little under the finger (96%) at once and springs
+  back with a slight overshoot, Material 3 Expressive's press kept small;
+  an icon that changes meaning (Blank to Restore) turns in. The Repeat
+  count is a rolling number (an odometer): the old count rolls out as the
+  new one rolls in, up as it grows and down on Undo. It is in the text
+  colour, not Repeat's primary: coloured text means a control. Each rail
+  section eases in on arrival, the Library as the Operator. In the
+  command menu the highlight follows a moving pointer and leaves with
+  it; Enter then takes the top match. Reduced motion shows the end
+  state.
+- **Sheets** keep their title and Close pinned to the card's top. The
+  command menu is called **Search**; Settings has its own search, which
+  hides rows (and empty sections) that don't match.
+- **Words**: "song" on screen (This Song, Find a Song, 1,632 songs); the
+  code and domain keep "hymn". **Case, after Apple:** Title Case (Chicago:
+  a, an, the, and, or, to, of, on, in stay lower unless first or after a
+  colon) for what's pressed or navigated — buttons, tabs, menu and command
+  names, sheet titles, statuses (Go Live, On Air, Bring the Output
+  Forward); sentence case for what reads as a sentence — switch labels and
+  their descriptions, field names, placeholders, tooltips, empty states
+  (Find a song or action, No recent songs yet). `titleCase()` titles the
+  command menu. Small-caps area titles stay uppercase.
 - **Output: nothing ever bleeds off the screen.** The type is sized
   **per hymn** so its longest part fits inside a 10% safe margin, then
   held for the whole hymn, so the text never changes size between parts.
@@ -606,13 +657,9 @@ Parts differ in line count and the selection moves every few seconds, so
 anything positioned by content would drift under the operator's pointer
 or thumb mid-service. Three rules follow:
 
-- **The FAB floats.** The dock is as tall as its own buttons; the FAB
-  rides about 20px above its top edge, a floating action button rather
-  than a docked one.
-- **The dock is a fixed bottom app bar** (MD3), full width, pinned to the
-  viewport bottom whatever the content's height, with the FAB at its end.
-  The page reserves the bar's height at the bottom so nothing hides
-  under it.
+- **The dock is fixed at the bottom** whatever the content's height, the
+  transport centred in it. The page reserves the dock's height, so
+  nothing hides under it and the gap above it is the areas' 12px.
 - **Tapping the current part's chip restarts it**, never repeats it: a
   stray tap can't queue a verse the congregation would see twice.
   Deliberate repeats arrive in part 4 (Presentation) with what makes them
@@ -647,13 +694,11 @@ or thumb mid-service. Three rules follow:
   Across the corpus the longest part is 4 lines at the median and 12 at
   p99, but a few run to 21–29 (#924, #1274, #890, #930), and #908 has 20
   parts, so any layout that sized itself to content broke somewhere.
-- **The dock aligns to the content column**, not the centre of the bar:
-  centring it in the full width is what let it collide with the FAB.
-- **The dock never wraps.** Its labels collapse to icon-only before the
-  row runs out of room, not after it has broken onto two lines. That's
-  decided by measuring whether the row fits, not by breakpoints: type
-  scales with the viewport and with the user's text size, so a button's
-  width isn't a fixed number a breakpoint could be tuned to.
+- **The dock never wraps.** All four labels go icon-only together before
+  the transport runs out of room, not after it has broken onto two lines.
+  That's decided by measuring whether it fits, not by breakpoints: type
+  follows the user's text size, so a button's width isn't a fixed number
+  a breakpoint could be tuned to.
 
 ### Register: composed, not cozy
 
@@ -662,11 +707,10 @@ bubbles. Supabase is the opposite, dense and technical, for developers.
 A hymnal operator sits between them: calm, composed and legible, the tone
 of a well-set printed hymnal rather than a chat app or a console. So:
 
-- **Shapes step down one notch.** Buttons use M3 Expressive's square
-  shape (12px), not the default pill. Chips use 8px, which is M3's own
-  chip shape (the earlier pills were a mistake). Cards and blocks use
-  12px. The FAB keeps 16px and the switch stays round: those shapes carry
-  meaning.
+- **Shapes step down one notch.** Every control uses M3 Expressive's
+  square shape (12px, `--button-shape`), not the default pill: buttons,
+  keys, tabs, icon buttons, the search bar. Panels use 22px. Only the
+  switch stays round: that shape carries meaning.
 - **Room, not padding.** Breathing room comes from space between groups
   (Supabase's rhythm), not from inflating each control. Controls stay
   compact; gutters and section gaps stay generous.
@@ -688,7 +732,7 @@ of a well-set printed hymnal rather than a chat app or a console. So:
   without the fade.
 - **Flat before raised.** Hairline `outline-variant` borders separate
   layers (switcher row, rail, dock); shadow is reserved for things that
-  float (FAB, sheets).
+  float (menus, sheets, the snackbar, Back to Current).
 
 All of it lives in shape and spacing tokens, so the register can be
 tuned without touching components.
@@ -704,11 +748,12 @@ compact, since it's UI the operator glances at, not reads.
 
 MD3's standard state layers, not invented here. A state is an overlay of
 the element's own content color over its container: **hover 8%**, **focus
-and pressed 10%**. Disabled is 38% content on a 12% container for filled
-components, 38% content alone otherwise. Keyboard focus also gets a 3px
-`secondary` ring, offset 2px, visible only via `:focus-visible` — the
-Operator is keyboard- and remote-driven (arc42 §8.8), so focus must always
-be findable.
+and pressed 10%**, except on a selected control, which keeps its tone
+(its press shows as the squeeze in § Structure, Motion). Disabled is 38%
+content on a 12% container for filled components, 38% content alone
+otherwise. Keyboard focus also gets a 3px `secondary` ring, offset 2px,
+visible only via `:focus-visible` — the Operator is keyboard- and
+remote-driven (arc42 §8.8), so focus must always be findable.
 
 `list-row` covers what the component list above otherwise lacks: a
 Finder search result or recent hymn is one full-width, tappable row, the
@@ -717,13 +762,14 @@ button styled as a button.
 
 ## Elevation & Depth
 
-| Level             | Treatment                                                                       | Use                             |
-| ----------------- | ------------------------------------------------------------------------------- | ------------------------------- |
-| Flat              | No shadow                                                                       | Top bar, chips, buttons at rest |
-| Tonal (level 0→1) | Shift to `surface-container-low` + soft shadow (`0 1px 2px …, 0 1px 3px 1px …`) | The lyrics card                 |
-| Tonal (level 3)   | Stronger soft shadow (`0 1px 3px …, 0 4px 8px 3px …`)                           | The extended FAB only           |
+| Level             | Treatment                                    | Use                                      |
+| ----------------- | -------------------------------------------- | ---------------------------------------- |
+| Flat              | No shadow                                    | Top bar, keys, buttons at rest           |
+| Tonal (level 0→1) | Shift to `surface-container-low`, no shadow  | Panels, cards                            |
+| Floating          | Soft shadow (`0 1px 3px …, 0 4px 8px 3px …`) | Menus, sheets, snackbar, Back to Current |
 
-**Shadow philosophy.** Two elevation levels exist in the whole system, and
+**Shadow philosophy.** Only what floats above the page casts a shadow, one
+level of it; resting surfaces are tonal and flat, and
 nothing else gets one. A heavy drop shadow anywhere reads as Material 2,
 not 3 — elevation here means "which tonal step," with shadow only
 confirming it.

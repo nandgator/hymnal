@@ -140,10 +140,15 @@ export function Finder(props: FinderProps) {
     ...options().map((option) => ({ kind: "hymn" as const, option })),
   ]);
 
-  const [active, setActive] = createSignal(0);
+  // The highlight is Enter's target: the top match as you type, a row the
+  // arrows reach, or the row under a moving pointer. A pointer leaving
+  // takes its highlight with it, rather than it staying behind or jumping
+  // elsewhere; Enter then takes the top match (DESIGN.md § States).
+  const [active, setActiveIndex] = createSignal<number>();
+  const setActive = (step: (index: number) => number) => setActiveIndex(step(active() ?? -1));
   createEffect(() => {
     rows();
-    setActive(0);
+    setActiveIndex(trimmed() ? 0 : undefined);
   });
 
   const pick = (row: Row) =>
@@ -153,7 +158,7 @@ export function Finder(props: FinderProps) {
     !isNumber() && !!lyricQuery() && lyricResults.state === "ready" && lyricResults().length === 0;
 
   const choose = () => {
-    const row = rows()[active()];
+    const row = rows()[active() ?? 0];
     if (row) return pick(row);
     // A number with no suggestion still opens — Presenter reports it if no
     // such hymn exists.
@@ -168,7 +173,7 @@ export function Finder(props: FinderProps) {
       setActive((i) => (i + 1) % count);
     } else if (event.key === "ArrowUp" && count) {
       event.preventDefault();
-      setActive((i) => (i - 1 + count) % count);
+      setActive((i) => (i < 0 ? count - 1 : (i - 1 + count) % count));
     } else if (event.key === "Escape" && query()) {
       // Clear first; a second Escape reaches the sheet and closes it.
       event.preventDefault();
@@ -201,15 +206,15 @@ export function Finder(props: FinderProps) {
             aria-autocomplete="list"
             aria-expanded={rows().length > 0}
             aria-controls={listId}
-            aria-activedescendant={rows().length ? optionId(active()) : undefined}
+            aria-activedescendant={active() == null ? undefined : optionId(active() ?? 0)}
             value={query()}
             onInput={(event) => setQuery(event.currentTarget.value)}
             onKeyDown={onKeyDown}
             // In a sheet (the hymn picker, the command menu) the box takes
             // focus on open, not the sheet's Close button.
             autofocus
-            placeholder={props.commands ? "Hymn number, lyrics or action" : "Hymn number or lyrics"}
-            aria-label={props.commands ? "Find a hymn or action" : "Find a hymn"}
+            placeholder={props.commands ? "Song number, lyrics or action" : "Song number or lyrics"}
+            aria-label={props.commands ? "Find a song or action" : "Find a song"}
           />
         </div>
         <button type="submit" class="btn-filled">
@@ -227,7 +232,8 @@ export function Finder(props: FinderProps) {
         id={listId}
         class="list"
         role="listbox"
-        aria-label={props.commands ? "Matching hymns and actions" : "Matching hymns"}
+        aria-label={props.commands ? "Matching songs and actions" : "Matching songs"}
+        onMouseLeave={() => setActiveIndex(undefined)}
       >
         <For each={rows()}>
           {(row, index) => (
@@ -241,7 +247,7 @@ export function Finder(props: FinderProps) {
               // pointer fires mouseenter without the pointer moving, and must
               // not steal the highlight from the top match — typing "121" then
               // Enter must open 121, not the row that landed under the mouse.
-              onMouseMove={() => setActive(index())}
+              onMouseMove={() => setActiveIndex(index())}
               // mousedown, not click: keeps focus in the box while choosing.
               onMouseDown={(event) => {
                 event.preventDefault();
@@ -276,7 +282,7 @@ export function Finder(props: FinderProps) {
           <h2 class="title-medium on-surface-variant">Recent</h2>
           <Show
             when={recents()?.length}
-            fallback={<p class="body-large on-surface-variant">No recent hymns yet.</p>}
+            fallback={<p class="body-large on-surface-variant">No recent songs yet.</p>}
           >
             <ul class="list">
               <For each={recents()}>

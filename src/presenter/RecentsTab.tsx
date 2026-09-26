@@ -48,7 +48,7 @@ export function RecentsTab(props: RecentsTabProps) {
   return (
     <Show
       when={recents()?.length}
-      fallback={<p class="body-large on-surface-variant recents-empty">No recent hymns yet.</p>}
+      fallback={<p class="body-large on-surface-variant recents-empty">No recent songs yet.</p>}
     >
       <ul class="list recents">
         <For each={recents()}>

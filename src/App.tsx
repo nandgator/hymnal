@@ -8,15 +8,18 @@ import {
   setOutputBlanked,
   setOutputPresentation,
   subscribeKeys,
+  subscribePresence,
 } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
 import { DEFAULT_OUTPUT_THEME, outputCuesOf, pinRefrainOf } from "./persistence/user-state.ts";
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
+import { titleCase } from "./shell/case.ts";
 import { ignoresShortcuts, keyHint, replayForwardedKey, SHORTCUTS } from "./shell/keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { isPaneShown, PANES, type PaneId } from "./shell/panes.ts";
 import { canAdjustScale, createPreferences, OUTPUT_CUES, Settings } from "./shell/Settings.tsx";
 import { Sheet } from "./shell/Sheet.tsx";
+import { SwapLabel } from "./shell/SwapLabel.tsx";
 import { installScrollReveal } from "./shell/scrollReveal.ts";
 import { makeMain, setSplit, workspaceOf } from "./shell/workspace.ts";
 
@@ -101,7 +104,16 @@ function Operator() {
     setOutputBlanked(next);
   };
 
-  const openOutput = () => window.open(OUTPUT_URL, OUTPUT_WINDOW_NAME, "popup");
+  // Whether an Output window is open (SDD-0001 §16.4): Go live becomes the
+  // On air status, and Live's dot the on-air light.
+  const [presentingOutput, setPresentingOutput] = createSignal(false);
+  onMount(() => onCleanup(subscribePresence(setPresentingOutput)));
+  // Opening once, then bringing it forward: an empty URL targets the named
+  // window without reloading it.
+  const openOutput = () => {
+    if (presentingOutput()) window.open("", OUTPUT_WINDOW_NAME)?.focus();
+    else window.open(OUTPUT_URL, OUTPUT_WINDOW_NAME, "popup");
+  };
   const presenting = () => section() === "present" && !!hymnNumber();
   const togglePane = (id: PaneId) =>
     preferences.setPane(id, !isPaneShown(preferences.preferences(), id));
@@ -134,7 +146,7 @@ function Operator() {
     setSection("present");
   };
 
-  // "Find a hymn", from anywhere: Present, plus the picker over the current
+  // "Find a song", from anywhere: Present, plus the picker over the current
   // hymn if one is up. With none, Present already is the Finder, and a
   // picker on top would only duplicate it.
   const findHymn = () => {
@@ -182,7 +194,11 @@ function Operator() {
         hint: keyHint("blank"),
         run: run(toggleBlank),
       },
-      { label: "Show Output", hint: keyHint("output"), run: run(openOutput) },
+      {
+        label: presentingOutput() ? "Bring the Output forward" : "Go live: open the Output",
+        hint: keyHint("output"),
+        run: run(openOutput),
+      },
       ...(presenting() && presenterActions()
         ? [
             { label: "Repeat this part", run: run(() => presenterActions()?.repeat()) },
@@ -373,7 +389,7 @@ function Operator() {
               <span class="visually-hidden">Menu</span>
             </button>
           </Show>
-          <nav class="crumbs" aria-label="Hymnbook and hymn">
+          <nav class="crumbs" aria-label="Hymnbook and song">
             <Show when={hymnbook()} fallback={<span class="crumb-static">Hymnal</span>}>
               {(book) => (
                 <button
@@ -421,27 +437,48 @@ function Operator() {
               onClick={() => openSheet(setCommandMenuOpen)}
             >
               <span class="icon icon-search" aria-hidden="true" />
-              <span class="switcher-find-text">Find a hymn or action</span>
-              <kbd class="switcher-find-key">Ctrl K</kbd>
+              <span class="switcher-find-text">Find a song or action</span>
+              <span class="key-combo switcher-find-key" aria-hidden="true">
+                <kbd class="key-hint">Ctrl</kbd>
+                <kbd class="key-hint">K</kbd>
+              </span>
             </button>
           </Show>
-          {/* Blanked with no Live on screen (another section, or Live
-              hidden): the badge sits here, in the row's empty end, so a
-              blanked audience screen is never out of sight and nothing
-              shifts (SDD-0001 §16.4). */}
-          <Show
-            when={blanked() && !(presenting() && isPaneShown(preferences.preferences(), "live"))}
+          {/* Go live (PRINCIPLES.md: emphasis follows the task): a one-off
+              action, so it becomes a status once the Output is open — On
+              air — and then brings that window forward. Top right on every
+              screen, where Slides and Keynote put theirs. Blanked is the
+              Output's other status, so it shows here too — on every
+              screen, whether Live is on screen or not (SDD-0001 §16.5);
+              B, Live's Restore or the command menu restore it. */}
+          <button
+            type="button"
+            class="present-button"
+            classList={{
+              presenting: presentingOutput(),
+              "present-blanked": presentingOutput() && blanked(),
+            }}
+            aria-keyshortcuts="O"
+            title={
+              !presentingOutput()
+                ? "Open the Output (O)"
+                : blanked()
+                  ? "The Output is blanked; B restores it. Bring it forward (O)"
+                  : "Bring the Output forward (O)"
+            }
+            onClick={openOutput}
           >
-            <button
-              type="button"
-              class="live-badge switcher-badge"
-              title="Restore the Output"
-              onClick={toggleBlank}
+            <Show
+              when={presentingOutput()}
+              fallback={<span class="icon icon-present" aria-hidden="true" />}
             >
-              Blanked
-              <span class="visually-hidden"> — restore the Output</span>
-            </button>
-          </Show>
+              <span class="on-air" aria-hidden="true" />
+            </Show>
+            <SwapLabel
+              labels={["Go Live", "On Air", "Blanked"]}
+              current={!presentingOutput() ? "Go Live" : blanked() ? "Blanked" : "On Air"}
+            />
+          </button>
         </header>
 
         <main
@@ -467,8 +504,8 @@ function Operator() {
                   }
                   onBack={() => setHymnPickerOpen(true)}
                   blanked={blanked()}
-                  onRestore={toggleBlank}
                   onToggleBlank={toggleBlank}
+                  presenting={presentingOutput()}
                   panes={preferences.preferences().panes}
                   workspace={preferences.preferences().workspace}
                   onWorkspaceChange={(workspace) =>
@@ -488,23 +525,10 @@ function Operator() {
         </main>
       </div>
 
-      {/* The FAB belongs to the whole Operator, not one screen: the Output is
-          opened once per service, often before the first hymn (§16.1). */}
-      <button
-        type="button"
-        class="fab-extended fab-fixed"
-        aria-keyshortcuts="O"
-        title="Show Output (O)"
-        onClick={openOutput}
-      >
-        <span class="icon icon-present" aria-hidden="true" />
-        <span class="fab-label">Show Output</span>
-      </button>
-
       <Sheet
         open={hymnPickerOpen()}
         onClose={() => setHymnPickerOpen(false)}
-        title="Go to a hymn"
+        title="Go to a Song"
         placement={expanded() ? "center" : "bottom"}
       >
         <Finder hymnbookId={hymnbookId()} onSelect={chooseHymn} />
@@ -513,7 +537,7 @@ function Operator() {
       <Sheet
         open={commandMenuOpen()}
         onClose={() => setCommandMenuOpen(false)}
-        title="Command menu"
+        title="Search"
         placement={expanded() ? "center" : "bottom"}
       >
         <Finder
@@ -522,7 +546,7 @@ function Operator() {
             setCommandMenuOpen(false);
             chooseHymn(number);
           }}
-          commands={commands()}
+          commands={commands().map((command) => ({ ...command, label: titleCase(command.label) }))}
         />
       </Sheet>
 
@@ -530,7 +554,7 @@ function Operator() {
         open={shortcutsOpen()}
         onClose={closeShortcuts}
         closeLabel={shortcutsReturn() ? "Back" : undefined}
-        title="Keyboard shortcuts"
+        title="Keyboard Shortcuts"
         placement="center"
       >
         <table class="shortcut-table">
@@ -539,7 +563,16 @@ function Operator() {
               {(shortcut) => (
                 <tr>
                   <th scope="row" class="shortcut-keys">
-                    <For each={shortcut.keys}>{(key) => <kbd class="key-hint">{key}</kbd>}</For>
+                    <For each={shortcut.keys}>
+                      {(key) => (
+                        <span class="key-combo">
+                          {/* "Ctrl+K" is two caps; a lone "+" stays one. */}
+                          <For each={key.split(/\+(?=.)/)}>
+                            {(cap) => <kbd class="key-hint">{cap}</kbd>}
+                          </For>
+                        </span>
+                      )}
+                    </For>
                   </th>
                   <td class="body-large">{shortcut.label}</td>
                 </tr>
@@ -566,7 +599,7 @@ function Operator() {
                   onClick={() => chooseHymnbook(book.id)}
                 >
                   {book.title}
-                  <span class="list-row-supporting"> — {book.hymnCount} hymns</span>
+                  <span class="list-row-supporting"> — {book.hymnCount} songs</span>
                 </button>
               </li>
             )}

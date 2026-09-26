@@ -41,7 +41,7 @@ function fakeUserState(overrides: Partial<UserState> = {}): UserState {
   };
 }
 
-const find = () => screen.getByRole("combobox", { name: "Find a hymn" });
+const find = () => screen.getByRole("combobox", { name: "Find a song" });
 const submit = (value: string) => {
   fireEvent.input(find(), { target: { value } });
   fireEvent.click(screen.getByRole("button", { name: "Find" }));
@@ -50,7 +50,7 @@ const submit = (value: string) => {
 describe("Finder", () => {
   it("shows an empty recents message when there are none", async () => {
     render(() => <Finder store={fakeStore()} userState={fakeUserState()} onSelect={vi.fn()} />);
-    expect(await screen.findByText("No recent hymns yet.")).toBeInTheDocument();
+    expect(await screen.findByText("No recent songs yet.")).toBeInTheDocument();
   });
 
   it("shows recents by title, resolved from listHymns", async () => {
@@ -68,7 +68,7 @@ describe("Finder", () => {
   it("hands an exact hymn number straight to onSelect", async () => {
     const onSelect = vi.fn();
     render(() => <Finder store={fakeStore()} userState={fakeUserState()} onSelect={onSelect} />);
-    await screen.findByText("No recent hymns yet.");
+    await screen.findByText("No recent songs yet.");
 
     submit("42");
 
@@ -85,7 +85,7 @@ describe("Finder", () => {
     render(() => (
       <Finder store={fakeStore({ searchLyrics })} userState={fakeUserState()} onSelect={onSelect} />
     ));
-    await screen.findByText("No recent hymns yet.");
+    await screen.findByText("No recent songs yet.");
 
     submit("grace");
 
@@ -104,7 +104,7 @@ describe("Finder", () => {
     render(() => (
       <Finder store={fakeStore({ searchLyrics })} userState={fakeUserState()} onSelect={vi.fn()} />
     ));
-    await screen.findByText("No recent hymns yet.");
+    await screen.findByText("No recent songs yet.");
 
     submit("line");
 
@@ -116,7 +116,7 @@ describe("Finder", () => {
 
   it("reports no matches for a lyric search with no results", async () => {
     render(() => <Finder store={fakeStore()} userState={fakeUserState()} onSelect={vi.fn()} />);
-    await screen.findByText("No recent hymns yet.");
+    await screen.findByText("No recent songs yet.");
 
     submit("nothing like this");
 
@@ -164,7 +164,7 @@ describe("Finder", () => {
         onSelect={onSelect}
       />
     ));
-    await screen.findByText("No recent hymns yet.");
+    await screen.findByText("No recent songs yet.");
 
     fireEvent.input(find(), { target: { value: "4" } });
     const options = await screen.findAllByRole("option");
@@ -188,7 +188,7 @@ describe("Finder", () => {
     render(() => (
       <Finder store={fakeStore({ searchLyrics })} userState={fakeUserState()} onSelect={vi.fn()} />
     ));
-    await screen.findByText("No recent hymns yet.");
+    await screen.findByText("No recent songs yet.");
 
     fireEvent.input(find(), { target: { value: "grace" } });
     expect(await screen.findByRole("option", { name: /Forty-Second Hymn/ })).toBeInTheDocument();
@@ -197,7 +197,7 @@ describe("Finder", () => {
 
   it("clears the query on Escape", async () => {
     render(() => <Finder store={fakeStore()} userState={fakeUserState()} onSelect={vi.fn()} />);
-    await screen.findByText("No recent hymns yet.");
+    await screen.findByText("No recent songs yet.");
     fireEvent.input(find(), { target: { value: "42" } });
     fireEvent.keyDown(find(), { key: "Escape" });
     expect(find()).toHaveValue("");
@@ -217,7 +217,7 @@ describe("Finder", () => {
         onSelect={onSelect}
       />
     ));
-    await screen.findByText("No recent hymns yet.");
+    await screen.findByText("No recent songs yet.");
 
     fireEvent.input(find(), { target: { value: "121" } });
     const [, second] = await screen.findAllByRole("option");
@@ -229,6 +229,12 @@ describe("Finder", () => {
     // Moving the pointer does move the highlight.
     fireEvent.mouseMove(second);
     expect(second).toHaveAttribute("aria-selected", "true");
+    // Leaving the list takes the highlight with it; Enter still takes the
+    // top match.
+    fireEvent.mouseLeave(screen.getByRole("listbox"));
+    expect(screen.queryByRole("option", { selected: true })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    expect(onSelect).toHaveBeenLastCalledWith(121);
   });
 
   it("as the command menu, lists actions ahead of hymns, matched by word starts (SDD-0001 §16.5)", async () => {
@@ -245,7 +251,7 @@ describe("Finder", () => {
         ]}
       />
     ));
-    const box = screen.getByRole("combobox", { name: "Find a hymn or action" });
+    const box = screen.getByRole("combobox", { name: "Find a song or action" });
 
     // Empty: every action, with its key.
     expect(screen.getAllByRole("option")).toHaveLength(2);

@@ -15,7 +15,7 @@ export interface Pane {
 
 /**
  * The registry: Settings, the command menu and the keymap read it, so a
- * future pane is one more entry plus where it renders. This hymn, the
+ * future pane is one more entry plus where it renders. This song, the
  * part keypad and the dock aren't here: they're the controls, never hidden.
  */
 export const PANES: Pane[] = [

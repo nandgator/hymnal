@@ -54,7 +54,7 @@ describe("Settings", () => {
     for (const name of ["Display", "Workspace", "Presentation", "Keyboard"]) {
       expect(screen.getByRole("region", { name })).toBeInTheDocument();
     }
-    fireEvent.click(screen.getByRole("button", { name: /Keyboard shortcuts/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Keyboard Shortcuts/ }));
     expect(onShowShortcuts).toHaveBeenCalled();
   });
 
@@ -137,6 +137,23 @@ describe("Settings", () => {
     );
   });
 
+  it("searches its settings, hiding what doesn't match and empty sections", async () => {
+    render(() => <Settings userState={fakeUserState()} />);
+    await screen.findByText("100%");
+
+    fireEvent.input(screen.getByRole("searchbox", { name: "Search settings" }), {
+      target: { value: "split" },
+    });
+    expect(screen.getByRole("switch", { name: /Split the tabs/ })).toBeVisible();
+    expect(screen.getByText(/^Show Live/).closest(".settings-row")).not.toBeVisible();
+    expect(screen.getByText("Presentation").closest("section")).not.toBeVisible();
+
+    fireEvent.input(screen.getByRole("searchbox", { name: "Search settings" }), {
+      target: { value: "zzz" },
+    });
+    expect(screen.getByText(/No settings match/)).toBeInTheDocument();
+  });
+
   it("splits or merges the tab groups (SDD-0001 §16.4)", async () => {
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);
@@ -196,10 +213,10 @@ describe("Settings", () => {
     await screen.findByText("100%");
 
     const presentation = within(screen.getByRole("region", { name: "Presentation" }));
-    for (const name of [/hymn number/, /hymnbook/, /Fade cues/]) {
+    for (const name of [/song number/, /hymnbook/, /Fade cues/]) {
       expect(presentation.getByRole("switch", { name })).toBeChecked();
     }
-    for (const name of [/hymn title/, /part/, /repeat count/, /Pin the refrain/]) {
+    for (const name of [/song title/, /part/, /repeat count/, /Pin the refrain/]) {
       expect(presentation.getByRole("switch", { name })).not.toBeChecked();
     }
     // Turning one on keeps the defaults it started from.

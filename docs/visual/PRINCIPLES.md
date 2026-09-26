@@ -42,7 +42,9 @@ has usually broken one of these, not lacked a feature. Sources at the end.
 3. **Rhythm.** Gaps between areas, above them and below them are the same
    number. Edges line up across areas.
 4. **Words match the user's world.** "Song" where a worship leader would
-   say song; no internal terms on screen.
+   say song; no internal terms on screen. One case rule, applied
+   everywhere: Title Case for what's pressed, sentence case for what's
+   read (DESIGN.md § Words).
 5. **Push a little further.** A design that works is where refinement
    starts: ask "would someone just know to press this?" and keep going
    (Martin Keary, on MuseScore 4 and Audacity 4). Keep what users already

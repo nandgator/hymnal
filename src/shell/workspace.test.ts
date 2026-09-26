@@ -44,7 +44,7 @@ describe("normalizeWorkspace", () => {
     expect(ws.active).toEqual(["recents", "hymn"]);
   });
 
-  it("adds a missing tab to the main group, so This hymn is always there", () => {
+  it("adds a missing tab to the main group, so This song is always there", () => {
     const ws = normalizeWorkspace({ groups: [["recents"], []], active: [], main: 1, split: true });
     expect(ws.groups).toEqual([["recents"], ["hymn"]]);
     expect(ws.active).toEqual(["recents", "hymn"]);

@@ -532,6 +532,16 @@ record the build can work out where a book may be served, so a regional host
 is separate: none leaves the device today, but any server-side state
 (Board #18) needs a region chosen for GDPR (EU) and the DPDP Act (India).
 
+**Song, arrangement, singing (2026-09-26, noted, not built).** Three layers,
+each owning its own order. The **song** keeps only its printed sequence,
+never mutated (§5.1). An **arrangement** (Board #23) is a saved way of
+singing it ("v1, v2, refrain ×2, v4"), chosen per service; a service queue
+item (#22) is a song plus an optional arrangement. A **singing** is one
+occasion: the path actually sung, live repeats and jumps included, and its
+timestamps when recorded (#24). Today a live repeat lives only in the
+engine for that sitting and is lost on a swap; it belongs to a singing,
+as timestamps do.
+
 ---
 
 ## 9. Content pipeline
@@ -1269,7 +1279,7 @@ Studio: sections, a switcher row, the workspace, the dock.
   live) and **Coming up** (Recents now, the service queue with Board #22),
   plus the dock. A future feature joins the area it belongs to rather
   than adding a row: Hold (#21) and follow status (ADR-0010) under Live, a
-  stage output (#25) in Live's outputs and the Show Output split button,
+  stage output (#25) in Live's outputs and the Go live button,
   Follow in the dock. Parts calls `jumpToPart` (§5.1); lyrics call
   `goTo(i)` or `goTo(i, line)`, never `jumpToPart`, since moving within
   the path isn't a deviation. Scrolling lyrics never calls the engine.
@@ -1317,6 +1327,13 @@ Studio: sections, a switcher row, the workspace, the dock.
   section), the Blanked badge (§16.5) sits at the end of the switcher
   row, space nothing else uses, so a blanked audience screen is never
   out of sight and nothing shifts.
+- **Go live → On air** (Board #26 part 3b). Whether an Output window is
+  open is known, not guessed: each Output sends `hello` with its own id on
+  opening (and in answer to the Operator's `ping`, so a reloaded Operator
+  finds it) and `bye` on `pagehide`; the Operator keeps the set of ids
+  (`subscribePresence`). While it's non-empty, Go live reads On air and
+  brings the window forward (`window.open("", name)`, which never reloads
+  it), and Live's dot is the on-air light.
 - **Hot-swap.** The hymnbook and hymn are the Operator's inputs, not its
   identity. Choosing another from the switcher row or the command menu
   replaces the engine in place: a new `SequenceEngine` for the new hymn, the
@@ -1399,7 +1416,7 @@ the Finder (§13) with actions listed ahead of the hymn results: an action
 shows when every word typed starts a word of its name, so "bl" finds
 "Blank the Output". A number matches no action, so the Finder's fast path
 holds: `/`, a number, Enter. With the box empty, the actions show, each
-with its key. Actions: Blank or Restore the Output, Show Output, Next
+with its key. Actions: Blank or Restore the Output, Go live, Next
 tab, Split or merge the tabs, Make the other tab group main, Show or hide
 each pane, Switch hymnbook, Library, Settings, Text size up and down, Keyboard shortcuts.
 

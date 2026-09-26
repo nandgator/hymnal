@@ -1,4 +1,4 @@
-import { createEffect, createResource, For, Show } from "solid-js";
+import { createEffect, createResource, createSignal, For, Show } from "solid-js";
 import {
   DEFAULT_OUTPUT_THEME,
   DEFAULT_PREFERENCES,
@@ -35,8 +35,8 @@ export const OUTPUT_CUES: {
   name: string;
   example: string;
 }[] = [
-  { id: "number", name: "Hymn number", example: "312, top left, for songbooks" },
-  { id: "title", name: "Hymn title", example: "Amazing Grace" },
+  { id: "number", name: "Song number", example: "312, top left, for songbooks" },
+  { id: "title", name: "Song title", example: "Amazing Grace" },
   { id: "hymnbook", name: "Hymnbook", example: "the book's title" },
   { id: "part", name: "Part", example: "Verse 2, Refrain" },
   { id: "repeat", name: "Repeat count", example: "×2, on a repeat" },
@@ -155,8 +155,46 @@ export function Settings(props: SettingsProps) {
     </fieldset>
   );
 
+  // Search (a Settings sheet grows): rows whose text holds every word typed
+  // stay, the rest hide, and a section left empty hides its heading too.
+  // It reads what's on screen, so a new row is searchable with no list to
+  // keep in step.
+  const [query, setQuery] = createSignal("");
+  const [noMatch, setNoMatch] = createSignal(false);
+  let settingsRef: HTMLDivElement | undefined;
+  createEffect(() => {
+    const words = query().toLowerCase().split(/\s+/).filter(Boolean);
+    const root = settingsRef;
+    if (!root) return;
+    let any = false;
+    for (const section of root.querySelectorAll<HTMLElement>(".settings-section")) {
+      let shown = false;
+      for (const row of section.querySelectorAll<HTMLElement>(".settings-row, .settings-link")) {
+        const text = row.textContent?.toLowerCase() ?? "";
+        const match = words.every((word) => text.includes(word));
+        row.hidden = !match;
+        shown ||= match;
+      }
+      section.hidden = !shown;
+      any ||= shown;
+    }
+    setNoMatch(!any);
+  });
+
   return (
-    <div class="settings">
+    <div class="settings" ref={settingsRef}>
+      <label class="text-field settings-search">
+        <input
+          type="search"
+          placeholder="Search settings"
+          aria-label="Search settings"
+          value={query()}
+          onInput={(event) => setQuery(event.currentTarget.value)}
+        />
+      </label>
+      <Show when={noMatch()}>
+        <p class="body-large on-surface-variant">No settings match “{query().trim()}”.</p>
+      </Show>
       <section class="settings-section" aria-labelledby={`${id}-display`}>
         <h3 id={`${id}-display`} class="settings-heading">
           Display
@@ -373,7 +411,7 @@ export function Settings(props: SettingsProps) {
               Keyboard
             </h3>
             <button type="button" class="list-row settings-link" onClick={() => show()()}>
-              Keyboard shortcuts
+              Keyboard Shortcuts
               <kbd class="key-hint">?</kbd>
             </button>
           </section>

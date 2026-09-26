@@ -24,7 +24,7 @@ function describeError(error: unknown): string {
       case "corrupt":
         return "The hymnbook file is damaged. Try reinstalling.";
       case "schema-mismatch":
-        return `This hymnbook needs an app update (found schema ${error.status.found}, need ${error.status.expected}).`;
+        return `This songbook needs an app update (found schema ${error.status.found}, need ${error.status.expected}).`;
     }
   }
   return "Something went wrong loading the hymnbook.";
@@ -75,12 +75,12 @@ export function Library(props: LibraryProps) {
           <div class="card-elevated library">
             <h1 class="display-small">{book().title}</h1>
             <p class="body-large on-surface-variant">
-              {book().hymnCount} hymns
+              {book().hymnCount} songs
               {book().edition ? ` · ${book().edition}` : ""}
             </p>
             <Show when={props.onReady}>
               <button type="button" class="btn-filled" onClick={() => props.onReady?.()}>
-                Find a hymn
+                Find a Song
               </button>
             </Show>
           </div>

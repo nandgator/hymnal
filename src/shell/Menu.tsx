@@ -11,7 +11,7 @@ export interface MenuItem {
 }
 
 export interface MenuProps {
-  /** The button's accessible name, e.g. "This hymn options". */
+  /** The button's accessible name, e.g. "This song options". */
   label: string;
   items: MenuItem[];
 }

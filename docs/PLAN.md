@@ -39,11 +39,12 @@ the "Operator Layout" artifact. Parts, each reviewed before the next:
    Recents tabs; areas as panels; sidebar retired~~ — done
 3. ~~Groups: a pane toolbar (expand or collapse, move, close; split),
    merged when narrow; fixed interface scale (ADR-0017)~~ — done
-   3b. Design pass (docs/visual/PRINCIPLES.md): transport group, Present in
-   the dock, emphasis budget, one disabled style, elevation, motion,
-   centred keypad, even gaps, "Song" on screen
+   3b. ~~Design pass (docs/visual/PRINCIPLES.md): transport in the stage,
+   Go Live / On Air, one disabled style, elevation, motion, the case
+   rule, "Song" on screen~~ — done
 4. Under 840px: Live strip, tabs merged, parts row with ×n menu, Undo
-   snackbar; command menu and Settings entries
+   snackbar; command menu and Settings entries; the switch between wide
+   and phone layouts animated
 
 ## State
 
@@ -114,6 +115,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-26 — #26 part 3b: design pass — motion, states, Go Live / On Air, Search
 - 2026-09-26 — #26 part 3: tab groups' toolbar; interface scale fixed — ADR-0017
 - 2026-09-26 — #26 part 2: tabs beside the stage (Live, Parts); split ≥1400px
 - 2026-09-26 — #26 designed: areas + two tab groups; part 1: workspace model
@@ -125,4 +127,3 @@ ones only, here:
 - 2026-09-25 — #12 part 4b: Repeat, Undo, Reset; a repeat stays in place on the Output
 - 2026-09-25 — #12 part 4a: Output on tokens; Output-only presets, Warm default
 - 2026-09-25 — #12 part 3e: Output scroll seeks via a reading band; keys forwarded
-- 2026-09-25 — #12 part 3d: Live, sidebar hideable (remembered); Settings grouped

@@ -32,6 +32,8 @@ import { ignoresShortcuts } from "../shell/keymap.ts";
 import { Menu, type MenuItem } from "../shell/Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY, SPLIT_QUERY, STAGE_QUERY } from "../shell/media.ts";
 import type { PaneId } from "../shell/panes.ts";
+import { RollingNumber } from "../shell/RollingNumber.tsx";
+import { SwapLabel } from "../shell/SwapLabel.tsx";
 import {
   makeMain,
   moveTab,
@@ -60,11 +62,7 @@ export function partCueLabel(part: Part): string {
   return part.label ? `Verse ${part.label}` : partLabel(part);
 }
 
-const DOCK_COLLAPSE_MAX = 3;
 const MIN_CHIP_COLUMNS = 3;
-const FAB_GAP_PX = 16;
-const DOCK_PADDING_PX = 12;
-const FAB_RISE_PX = 20;
 /** How long a stanza digit waits for a second one (SDD-0001 §16.5). */
 const STANZA_DIGIT_MS = 500;
 /** What the shell's command menu can do to the hymn being presented. */
@@ -99,10 +97,10 @@ export interface PresenterProps {
   onNavigatorChange?: (navigator: Navigator) => void;
   /** The Output is blanked (SDD-0001 §16.5); the shell holds it. */
   blanked?: boolean;
-  /** Restores a blanked Output — the Live pane's Blanked badge. */
-  onRestore?: () => void;
-  /** Blanks or restores the Output — the button under Live. */
+  /** Blanks or restores the Output — the button in Live's heading. */
   onToggleBlank?: () => void;
+  /** An Output window is open: Live's dot is the on-air light. */
+  presenting?: boolean;
   /** Which supporting panes show, by id; absent means shown (SDD-0001
    * §16.4). The shell keeps it in preferences. */
   panes?: Record<string, boolean>;
@@ -204,13 +202,7 @@ export function Presenter(props: PresenterProps) {
     if (!e) return [];
     return repeatRuns(e).flatMap((run) => {
       const occ = e.occurrenceAt(run.first);
-      if (!occ) return [];
-      // A part already seen earlier in the path shows compact — label and
-      // first line — unless it's the one being sung (DESIGN.md § Structure).
-      const seenBefore = Array.from({ length: run.first }, (_, j) => e.occurrenceAt(j)).some(
-        (earlier) => earlier?.part.id === occ.part.id,
-      );
-      return [{ ...run, occ, seenBefore }];
+      return occ ? [{ ...run, occ }] : [];
     });
   });
 
@@ -380,12 +372,31 @@ export function Presenter(props: PresenterProps) {
   createEffect(() => {
     if (props.workspace !== undefined) setWorkspaceSignal(normalizeWorkspace(props.workspace));
   });
+  // Motion explains the change (PRINCIPLES.md): expanding, collapsing,
+  // closing, splitting or switching tabs glides each area to its new place
+  // (a View Transition; styles.css sets the timing). Reduced motion, or no
+  // support, applies it at once.
   const setWorkspace = (next: Workspace) => {
+    const apply = () => {
+      setWorkspaceSignal(next);
+      props.onWorkspaceChange?.(next);
+    };
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (typeof document.startViewTransition === "function" && !reduced) {
+      document.startViewTransition(apply);
+    } else {
+      apply();
+    }
+  };
+  const groups = createMemo(() => visibleGroups(workspace(), canSplit()));
+  // A tab switch isn't a layout change: no View Transition (which would
+  // snapshot and cross-fade the tab bar), just the pill's glide and the
+  // content's zoom-in, both in the DOM.
+  const showTab = (tab: TabId) => {
+    const next = selectTab(workspace(), tab, groups().length === 1);
     setWorkspaceSignal(next);
     props.onWorkspaceChange?.(next);
   };
-  const groups = createMemo(() => visibleGroups(workspace(), canSplit()));
-  const showTab = (tab: TabId) => setWorkspace(selectTab(workspace(), tab, groups().length === 1));
   const tabName = (tab: TabId) => TABS.find((t) => t.id === tab)?.name ?? tab;
   // A group's heading (SDD-0001 §16.4): side by side, a pane toolbar of
   // icons — expand or collapse, move (a ⋯ menu, for a group of several
@@ -397,20 +408,11 @@ export function Presenter(props: PresenterProps) {
   // The arrow points at the group the tab goes to.
   const moveItems = (group: VisibleGroup): MenuItem[] =>
     group.tabs.map((tab) => ({
-      label: `Move ${tabName(tab)} to the other group`,
+      label: `Move ${tabName(tab)} to the Other Group`,
       run: () => setWorkspace(moveTab(workspace(), tab)),
       icon: group.index === 0 ? "icon-move" : "icon-move icon-mirror",
     }));
   const canSplitTabs = () => canSplit() && TABS.length > 1;
-  // "19 verses · refrain": the hymn's shape at a glance. Not a count of the
-  // whole sung order, which reads as confusing next to the verse count.
-  const hymnNote = (loaded: Hymn) => {
-    const verses = loaded.parts.filter((part) => part.kind === "stanza").length;
-    const refrain = loaded.parts.some((part) => part.kind === "refrain");
-    return [`${verses} ${verses === 1 ? "verse" : "verses"}`, ...(refrain ? ["refrain"] : [])].join(
-      " · ",
-    );
-  };
 
   // Under 840px, until part 4: one navigator leads, Parts or Lyrics, and
   // the switch is the one tap to the other. The shell keeps the choice.
@@ -434,12 +436,19 @@ export function Presenter(props: PresenterProps) {
   // Output: the focused line under line focus, the whole block otherwise —
   // or its top, when the block is taller than the list. Each list scrolls
   // inside itself, never the page (DESIGN.md § Stability). Scrolling by
-  // hand only browses; the next step re-centres.
+  // hand only browses; the next step re-centres. Only a step glides: a
+  // list shown anew (a tab, a split, expand or collapse) lands on the
+  // current part at once, since gliding a whole song's lyrics every time
+  // is motion without meaning (PRINCIPLES.md, motion explains change).
+  let lastStep: string | undefined;
   createEffect(() => {
     version();
     navigator();
     groups();
     const lineIndex = cursor()?.lineIndex;
+    const step = `${props.hymnNumber}:${cursor()?.occurrenceIndex}:${lineIndex}`;
+    const behavior: ScrollBehavior = step === lastStep ? "instant" : "smooth";
+    lastStep = step;
     for (const chip of document.querySelectorAll<HTMLElement>(
       '.chip-filter[aria-pressed="true"]',
     )) {
@@ -455,7 +464,7 @@ export function Presenter(props: PresenterProps) {
       const fits = block.offsetHeight <= list.clientHeight;
       (line ?? block).scrollIntoView?.({
         block: line || fits ? "center" : "start",
-        behavior: "smooth",
+        behavior,
       });
     }
   });
@@ -467,49 +476,17 @@ export function Presenter(props: PresenterProps) {
   // Stability). The level lives on the root element because the FAB is
   // App's, not Presenter's.
   let dockRef: HTMLElement | undefined;
+  // The transport's labels, or all four icon-only when the group doesn't
+  // fit — measured, not a breakpoint, since type follows the user's text
+  // size (DESIGN.md § Stability). The Operator reserves the dock's height.
   const fitDock = () => {
     const dock = dockRef;
-    if (!dock) return;
+    if (!dock?.isConnected) return;
     const root = document.documentElement;
-    const fab = document.querySelector<HTMLElement>(".fab-fixed");
-    // Geometry, not scrollWidth: an overflowing flex row's scrollWidth leaves
-    // out its trailing padding, so it can't see the FAB's clearance.
-    const limit = () =>
-      fab ? fab.getBoundingClientRect().left - FAB_GAP_PX : dock.getBoundingClientRect().right;
-    // Each pair (parts, lines) shares one width, the wider of the two at
-    // this collapse level (DESIGN.md § Structure).
-    const equalizePair = (selector: string, property: string) => {
-      dock.style.removeProperty(property);
-      const widths = [...dock.querySelectorAll<HTMLElement>(selector)].map(
-        (button) => button.getBoundingClientRect().width,
-      );
-      dock.style.setProperty(property, `${Math.ceil(Math.max(0, ...widths))}px`);
-    };
-    for (let level = 0; level <= DOCK_COLLAPSE_MAX; level++) {
-      root.dataset.dockCollapse = String(level);
-      equalizePair(".dock-part", "--dock-part-width");
-      equalizePair(".dock-line", "--dock-line-width");
-      const clearance = fab ? fab.offsetWidth + 2 * FAB_GAP_PX : 0;
-      dock.style.setProperty("--fab-clearance", `${clearance}px`);
-      const last = dock.lastElementChild?.getBoundingClientRect();
-      if (!last || last.right <= limit()) break;
-    }
-    // The dock is as tall as its buttons or the FAB, whichever is taller, and
-    // the Operator reserves exactly that — not a rem guess, which would grow
-    // with the text scale while icon-only targets don't. Published on the
-    // shell: the root's style attribute is watched for text scale, and
-    // writing there would re-trigger this.
+    root.dataset.dockCollapse = "0";
+    if (dock.scrollWidth > dock.clientWidth) root.dataset.dockCollapse = "1";
     const shell = dock.closest<HTMLElement>(".shell") ?? dock.parentElement;
-    if (!shell) return;
-    shell.style.removeProperty("--dock-height");
-    const fabHeight = fab?.offsetHeight ?? 0;
-    // The dock is as tall as its own buttons; the FAB floats a steady
-    // FAB_RISE_PX above its top edge (DESIGN.md § Stability).
-    const height = dock.offsetHeight;
-    const fabBottom = Math.max(DOCK_PADDING_PX, height - fabHeight + FAB_RISE_PX);
-    shell.style.setProperty("--dock-height", `${height}px`);
-    shell.style.setProperty("--fab-bottom", `${fabBottom}px`);
-    shell.style.setProperty("--fab-top", `${fabBottom + fabHeight}px`);
+    shell?.style.setProperty("--dock-height", `${dock.offsetHeight}px`);
   };
   onMount(() => {
     window.addEventListener("resize", fitDock);
@@ -537,29 +514,66 @@ export function Presenter(props: PresenterProps) {
   // for parts (left/right), arrows for lines (up/down). Parts outrank lines
   // (DESIGN.md § Structure): emphasis follows, and line labels are the
   // first to collapse to icon-only. Labels stay the accessible name.
+  // The transport (PRINCIPLES.md): one group of four equal peers, one
+  // neutral style — no filled button, so nothing competes with the current
+  // part's highlight, the one thing that should lead during a song. Short
+  // labels ("Part", "Line"), the arrows giving direction; each icon matches
+  // its key (arc42 §8.8), and the full name stays the accessible one.
   const dockButton = (
+    name: string,
     label: string,
     key: { aria: string; shown: string },
     icon: string,
-    variant: "btn-filled" | "btn-tonal" | "btn-outlined",
     action: (e: SequenceEngine) => void,
-    disabled?: () => boolean,
-    // On screen when shorter than the name: the line buttons read "Line",
-    // their arrows giving the direction (the mockup).
-    shortLabel?: string,
+    options: { filled?: boolean; iconEnd?: boolean; disabled?: () => boolean } = {},
   ) => (
     <button
       type="button"
-      class={`${variant} dock-button ${variant === "btn-outlined" ? "dock-line" : "dock-part"}`}
+      class={`${options.filled ? "btn-filled" : "btn-tonal"} dock-button`}
       onClick={() => mutate(action)}
-      disabled={disabled?.()}
-      aria-label={shortLabel ? label : undefined}
+      disabled={options.disabled?.()}
+      aria-label={name}
       aria-keyshortcuts={key.aria}
-      title={`${label} (${key.shown})`}
+      title={`${name} (${key.shown})`}
     >
-      <span class={`icon ${icon}`} aria-hidden="true" />
-      <span class="dock-label">{shortLabel ?? label}</span>
+      <Show when={!options.iconEnd}>
+        <span class={`icon ${icon}`} aria-hidden="true" />
+      </Show>
+      <span class="dock-label">{label}</span>
+      <Show when={options.iconEnd}>
+        <span class={`icon ${icon}`} aria-hidden="true" />
+      </Show>
     </button>
+  );
+
+  // The transport: four equal peers, ‹ Part · ∧ Line · ∨ Line · Part ›
+  // (DESIGN.md § Structure). From 840px it sits at the stage's foot, under
+  // Parts, beside what it drives, and never moves; a phone's is the dock.
+  const transport = () => (
+    <div class="transport">
+      {dockButton(
+        "Previous part",
+        "Part",
+        { aria: "ArrowLeft", shown: "←" },
+        "icon-chevron-left",
+        (e) => e.previous(),
+        { disabled: () => !canPrevious() },
+      )}
+      {dockButton("Previous line", "Line", { aria: "ArrowUp", shown: "↑" }, "icon-arrow-up", (e) =>
+        e.previousLine(),
+      )}
+      {dockButton("Next line", "Line", { aria: "ArrowDown", shown: "↓" }, "icon-arrow-down", (e) =>
+        e.nextLine(),
+      )}
+      {dockButton(
+        "Next part",
+        "Part",
+        { aria: "ArrowRight", shown: "→" },
+        "icon-chevron-right",
+        (e) => e.next(),
+        { iconEnd: true, disabled: () => !canNext() },
+      )}
+    </div>
   );
 
   // Live is the Output itself, scaled to its box — the same component, so
@@ -580,21 +594,26 @@ export function Presenter(props: PresenterProps) {
     </Show>
   );
 
-  // Blanked (SDD-0001 §16.5): Live stays readable, dimmed, so the operator
-  // can prepare behind it; the badge is the restore.
-  const blankedBadge = () => (
-    <Show when={props.blanked}>
-      <button
-        type="button"
-        class="live-badge"
-        aria-keyshortcuts="B"
-        title="Restore the Output (B)"
-        onClick={() => props.onRestore?.()}
-      >
-        Blanked
-        <span class="visually-hidden"> — restore the Output</span>
-      </button>
-    </Show>
+  // Blank and Restore (SDD-0001 §16.5), in Live's heading and its phone
+  // strip alike: pressed (tonal) while the Output is blanked. Live stays
+  // readable, dimmed, so the operator can prepare behind it. The icon shows
+  // what a press does, and swaps with a small turn (DESIGN.md § Motion).
+  const blankControl = () => (
+    <button
+      type="button"
+      class="live-control"
+      aria-pressed={!!props.blanked}
+      aria-keyshortcuts="B"
+      title={props.blanked ? "Restore the Output (B)" : "Blank the Output (B)"}
+      onClick={() => props.onToggleBlank?.()}
+    >
+      {props.blanked ? (
+        <span class="icon icon-restore icon-swap" aria-hidden="true" />
+      ) : (
+        <span class="icon icon-blank icon-swap" aria-hidden="true" />
+      )}
+      <SwapLabel labels={["Blank", "Restore"]} current={props.blanked ? "Restore" : "Blank"} />
+    </button>
   );
 
   // Phone: Live collapses to a strip showing the current line; a tap
@@ -615,7 +634,7 @@ export function Presenter(props: PresenterProps) {
           </span>
           <span class="icon icon-expand" aria-hidden="true" />
         </button>
-        {blankedBadge()}
+        {blankControl()}
       </div>
       <Show when={liveExpanded()}>{livePreview()}</Show>
     </div>
@@ -635,11 +654,11 @@ export function Presenter(props: PresenterProps) {
       {/* Above the chips, so it sits in the same place for every hymn; the
           count and Undo appear after it, moving nothing. */}
       <div class="repeat-row">
-        {/* Outlined, not tonal: the tonal fill is the keypad's "selected",
-            and Repeat is an action, never a state. */}
+        {/* A text button: occasional, so low emphasis, like Undo and Reset
+            beside it (PRINCIPLES.md, hierarchy). */}
         <button
           type="button"
-          class="btn-outlined repeat-button"
+          class="btn-text repeat-button"
           aria-label="Repeat"
           title="Repeat this part"
           onClick={repeat}
@@ -652,7 +671,7 @@ export function Presenter(props: PresenterProps) {
             §16.4). Short on screen; the full names are the accessible ones. */}
         <span class="repeat-count" aria-live="polite">
           <Show when={repeatOrdinal() > 1}>
-            ×{repeatOrdinal()}
+            ×<RollingNumber value={repeatOrdinal()} />
             <span class="visually-hidden"> — sung {repeatOrdinal()} times in a row</span>
           </Show>
         </span>
@@ -741,17 +760,12 @@ export function Presenter(props: PresenterProps) {
                 // so Next carries on past the repeats.
                 const i = () => (isCurrent() ? here() : run().last);
                 const times = () => run().last - run().first + 1;
-                // A part already seen earlier in the path shows compact —
-                // label and first line — unless it's the one being sung
-                // (DESIGN.md § Structure).
-                const compact = () => run().seenBefore && !isCurrent();
                 return (
                   // biome-ignore lint/a11y/useKeyWithClickEvents: the block is a large touch target; keyboard users have its heading button and line buttons
                   <li
                     class="seq-block"
                     classList={{
                       "seq-line-focus": isCurrent() && cursor()?.lineIndex != null,
-                      "seq-compact": compact(),
                     }}
                     aria-current={isCurrent() ? "step" : undefined}
                     onClick={() => mutate((e) => e.goTo(i()))}
@@ -761,11 +775,13 @@ export function Presenter(props: PresenterProps) {
                         {partCueLabel(occ().part)}
                       </button>
                       <Show when={showCues() && times() > 1}>
-                        <span class="chip-assist">×{times()}</span>
+                        <span class="chip-assist repeat-chip">
+                          ×<RollingNumber value={times()} />
+                        </span>
                       </Show>
                     </h3>
                     <ol class="hymn-text seq-lines">
-                      <Index each={compact() ? occ().part.lines.slice(0, 1) : occ().part.lines}>
+                      <Index each={occ().part.lines}>
                         {(line, lineIndex) => (
                           <li>
                             <button
@@ -786,11 +802,6 @@ export function Presenter(props: PresenterProps) {
                           </li>
                         )}
                       </Index>
-                      <Show when={compact() && occ().part.lines.length > 1}>
-                        <li class="seq-more" aria-hidden="true">
-                          …
-                        </li>
-                      </Show>
                     </ol>
                   </li>
                 );
@@ -808,7 +819,7 @@ export function Presenter(props: PresenterProps) {
                 ?.scrollIntoView?.({ block: "center", behavior: "smooth" })
             }
           >
-            Back to current
+            Back to Current
           </button>
         </Show>
       </div>
@@ -823,7 +834,7 @@ export function Presenter(props: PresenterProps) {
     <Switch fallback={<p class="body-large on-surface-variant">Loading…</p>}>
       <Match when={hymn.error}>
         <div class="card-elevated library">
-          <p class="body-large">No hymn numbered {props.hymnNumber}.</p>
+          <p class="body-large">No song numbered {props.hymnNumber}.</p>
           {backButton()}
         </div>
       </Match>
@@ -877,193 +888,201 @@ export function Presenter(props: PresenterProps) {
                   taking the room, then What they see — Live and Parts —
                   which never moves. */}
               <div class="operator-areas">
-                <For each={groups()}>
-                  {(group) => (
-                    <section
-                      class="area"
-                      classList={{ "area-main": group.main }}
-                      aria-label={tabName(group.active)}
-                    >
-                      <div class="area-header">
-                        <Show
-                          when={group.tabs.length > 1}
-                          fallback={<h3 class="area-title">{tabName(group.active)}</h3>}
-                        >
-                          <div class="area-tabs" role="tablist">
-                            <For each={group.tabs}>
-                              {(tab) => (
+                <Index each={groups()}>
+                  {(group) => {
+                    // The pill: one element per tab bar, gliding to the selected
+                    // tab (styles.css eases its position and width). Measured,
+                    // since a tab's width follows its label and the text size.
+                    let tablist: HTMLDivElement | undefined;
+                    const [pill, setPill] = createSignal<{ x: number; w: number }>();
+                    const measurePill = () => {
+                      const tab = tablist?.querySelector<HTMLElement>('[aria-selected="true"]');
+                      if (tab) setPill({ x: tab.offsetLeft, w: tab.offsetWidth });
+                    };
+                    createEffect(() => {
+                      group().active;
+                      group().tabs.length;
+                      queueMicrotask(measurePill);
+                    });
+                    onMount(() => {
+                      if (typeof ResizeObserver !== "function") return;
+                      const observer = new ResizeObserver(measurePill);
+                      queueMicrotask(() => tablist && observer.observe(tablist));
+                      onCleanup(() => observer.disconnect());
+                    });
+                    return (
+                      <section
+                        class="area"
+                        classList={{ "area-main": group().main }}
+                        style={{ "view-transition-name": `area-${group().index}` }}
+                        aria-label={tabName(group().active)}
+                      >
+                        <div class="area-header">
+                          <Show
+                            when={group().tabs.length > 1}
+                            fallback={<h3 class="area-title">{tabName(group().active)}</h3>}
+                          >
+                            <div class="area-tabs" role="tablist" ref={tablist}>
+                              <span
+                                class="area-tab-pill"
+                                classList={{ "area-tab-pill-shown": !!pill() }}
+                                style={{
+                                  transform: `translateX(${pill()?.x ?? 0}px)`,
+                                  width: `${pill()?.w ?? 0}px`,
+                                }}
+                              />
+                              <For each={group().tabs}>
+                                {(tab) => (
+                                  <button
+                                    type="button"
+                                    role="tab"
+                                    class="area-tab"
+                                    aria-selected={tab === group().active}
+                                    onClick={() => showTab(tab)}
+                                  >
+                                    {tabName(tab)}
+                                  </button>
+                                )}
+                              </For>
+                            </div>
+                          </Show>
+                          <div class="area-actions">
+                            <Show
+                              when={split()}
+                              fallback={
                                 <button
                                   type="button"
-                                  role="tab"
-                                  class="area-tab"
-                                  aria-selected={tab === group.active}
-                                  onClick={() => showTab(tab)}
+                                  class="icon-button area-icon"
+                                  aria-label="Split into two groups"
+                                  title={
+                                    canSplitTabs()
+                                      ? "Split into two groups"
+                                      : "Split into two groups (needs a window 1400px wide)"
+                                  }
+                                  disabled={!canSplitTabs()}
+                                  onClick={() => setWorkspace(setSplit(workspace(), true))}
                                 >
-                                  {tabName(tab)}
+                                  <span class="icon icon-split" aria-hidden="true" />
                                 </button>
-                              )}
-                            </For>
-                          </div>
-                        </Show>
-                        <Show when={group.tabs.length === 1 && group.active === "hymn"}>
-                          <span class="area-note">{hymnNote(loaded())}</span>
-                        </Show>
-                        <div class="area-actions">
-                          <Show
-                            when={split()}
-                            fallback={
+                              }
+                            >
+                              {/* A pane toolbar, after VS Code's and Zed's:
+                                expand or collapse, move, close. */}
                               <button
                                 type="button"
                                 class="icon-button area-icon"
-                                aria-label="Split into two groups"
-                                title={
-                                  canSplitTabs()
-                                    ? "Split into two groups"
-                                    : "Split into two groups (needs a window 1400px wide)"
+                                aria-label={
+                                  group().main ? "Collapse to the side" : "Expand to main"
                                 }
-                                disabled={!canSplitTabs()}
-                                onClick={() => setWorkspace(setSplit(workspace(), true))}
+                                title={group().main ? "Collapse to the side" : "Expand to main"}
+                                onClick={() => swapMain(group())}
                               >
-                                <span class="icon icon-split" aria-hidden="true" />
+                                <span
+                                  class={`icon ${group().main ? "icon-collapse" : "icon-expand-full"}`}
+                                  aria-hidden="true"
+                                />
                               </button>
-                            }
-                          >
-                            {/* A pane toolbar, after VS Code's and Zed's:
-                                expand or collapse, move, close. */}
-                            <button
-                              type="button"
-                              class="icon-button area-icon"
-                              aria-label={group.main ? "Collapse to the side" : "Expand to main"}
-                              title={group.main ? "Collapse to the side" : "Expand to main"}
-                              onClick={() => swapMain(group)}
-                            >
-                              <span
-                                class={`icon ${group.main ? "icon-collapse" : "icon-expand-full"}`}
-                                aria-hidden="true"
-                              />
-                            </button>
-                            {/* A lone tab's move would empty its group — what
+                              {/* A lone tab's move would empty its group — what
                                 Close group already does — so Move shows only
                                 for a group of several. */}
-                            <Show when={group.tabs.length > 1}>
-                              <Menu
-                                label={`${tabName(group.active)} options`}
-                                items={moveItems(group)}
-                              />
+                              <Show when={group().tabs.length > 1}>
+                                <Menu
+                                  label={`${tabName(group().active)} options`}
+                                  items={moveItems(group())}
+                                />
+                              </Show>
+                              <button
+                                type="button"
+                                class="icon-button area-icon"
+                                aria-label="Close group"
+                                title="Close group — its tabs join the other"
+                                onClick={() => setWorkspace(setSplit(workspace(), false))}
+                              >
+                                <span class="icon icon-close" aria-hidden="true" />
+                              </button>
                             </Show>
-                            <button
-                              type="button"
-                              class="icon-button area-icon"
-                              aria-label="Close group"
-                              title="Close group — its tabs join the other"
-                              onClick={() => setWorkspace(setSplit(workspace(), false))}
-                            >
-                              <span class="icon icon-close" aria-hidden="true" />
-                            </button>
-                          </Show>
+                          </div>
                         </div>
-                      </div>
-                      <div class="area-body" role="tabpanel">
-                        <Switch>
-                          <Match when={group.active === "hymn"}>{lyricsNavigator()}</Match>
-                          <Match when={group.active === "recents"}>
-                            <RecentsTab
-                              hymnbookId={loaded().hymnbookId}
-                              current={loaded().number}
-                              store={props.store}
-                              userState={props.userState}
-                              onSelect={(number) => props.onSelectHymn?.(number)}
-                            />
-                          </Match>
-                        </Switch>
-                      </div>
-                    </section>
-                  )}
-                </For>
-                <aside class="area stage" aria-label="What they see">
+                        <div class="area-body" role="tabpanel">
+                          <Switch>
+                            {/* A tab's content mounts afresh on a switch, and its
+                              wrapper softly zooms in (styles.css). */}
+                            <Match when={group().active === "hymn"}>
+                              <div class="area-tab-content">{lyricsNavigator()}</div>
+                            </Match>
+                            <Match when={group().active === "recents"}>
+                              <div class="area-tab-content">
+                                <RecentsTab
+                                  hymnbookId={loaded().hymnbookId}
+                                  current={loaded().number}
+                                  store={props.store}
+                                  userState={props.userState}
+                                  onSelect={(number) => props.onSelectHymn?.(number)}
+                                />
+                              </div>
+                            </Match>
+                          </Switch>
+                        </div>
+                      </section>
+                    );
+                  }}
+                </Index>
+                <aside
+                  class="area stage"
+                  style={{ "view-transition-name": "stage" }}
+                  aria-label="What they see"
+                >
                   <Show when={shown("live")}>
                     {/* The strip names itself; only the full preview gets
                         the header. */}
                     <Show when={roomy()}>
                       <div class="area-header">
-                        <h3 class="area-title area-title-live">Live</h3>
+                        <h3
+                          class="area-title area-title-live"
+                          classList={{ "on-air-title": !!props.presenting }}
+                        >
+                          Live
+                        </h3>
                         {/* What changes the audience screen sits in Live's
                             own heading; Hold and the follow status join it
                             later. */}
-                        <button
-                          type="button"
-                          class="live-control"
-                          aria-pressed={!!props.blanked}
-                          aria-keyshortcuts="B"
-                          title={props.blanked ? "Restore the Output (B)" : "Blank the Output (B)"}
-                          onClick={() => props.onToggleBlank?.()}
-                        >
-                          <span class="icon icon-blank" aria-hidden="true" />
-                          {props.blanked ? "Restore" : "Blank"}
-                          <kbd class="live-control-key">B</kbd>
-                        </button>
+                        {blankControl()}
                       </div>
                     </Show>
                     <Show when={roomy()} fallback={<div class="stage-strip">{liveStrip()}</div>}>
+                      {/* Blanked shows in the heading's Restore; the preview
+                          dims to the Output's own ground. */}
                       <section class="live-pane" aria-label="Live">
                         {livePreview()}
-                        {blankedBadge()}
                       </section>
                     </Show>
                     <div class="stage-divider" />
                   </Show>
                   <div class="area-header">
                     <h3 class="area-title">Parts</h3>
-                    <span class="area-note">Jump to any part</span>
                   </div>
                   {partsNavigator(loaded())}
+                  <nav class="stage-transport" aria-label="Navigate">
+                    {transport()}
+                  </nav>
                 </aside>
               </div>
             </Show>
 
-            <nav
-              class="dock"
-              aria-label="Navigate"
-              ref={(el) => {
-                dockRef = el;
-                queueMicrotask(fitDock);
-              }}
-            >
-              {dockButton(
-                "Previous part",
-                { aria: "ArrowLeft", shown: "←" },
-                "icon-chevron-left",
-                "btn-tonal",
-                (e) => e.previous(),
-                () => !canPrevious(),
-              )}
-              {dockButton(
-                "Previous line",
-                { aria: "ArrowUp", shown: "↑" },
-                "icon-arrow-up",
-                "btn-outlined",
-                (e) => e.previousLine(),
-                undefined,
-                "Line",
-              )}
-              {dockButton(
-                "Next line",
-                { aria: "ArrowDown", shown: "↓" },
-                "icon-arrow-down",
-                "btn-outlined",
-                (e) => e.nextLine(),
-                undefined,
-                "Line",
-              )}
-              {dockButton(
-                "Next part",
-                { aria: "ArrowRight", shown: "→" },
-                "icon-chevron-right",
-                "btn-filled",
-                (e) => e.next(),
-                () => !canNext(),
-              )}
-            </nav>
+            {/* A phone's dock; from 840px the transport sits in the stage,
+                under Parts. */}
+            <Show when={!expanded()}>
+              <nav
+                class="dock"
+                aria-label="Navigate"
+                ref={(el) => {
+                  dockRef = el;
+                  queueMicrotask(fitDock);
+                }}
+              >
+                {transport()}
+              </nav>
+            </Show>
           </article>
         )}
       </Match>

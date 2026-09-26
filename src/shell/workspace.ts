@@ -13,7 +13,7 @@ export interface Tab {
 
 /** Every tab, in the order a merged group lists them when nothing says otherwise. */
 export const TABS: Tab[] = [
-  { id: "hymn", name: "This hymn" },
+  { id: "hymn", name: "This Song" },
   { id: "recents", name: "Recents" },
 ];
 
@@ -92,7 +92,7 @@ const groupOf = (workspace: Workspace, tab: TabId): GroupIndex =>
 /**
  * What renders. Two groups only when split, there's room and neither is
  * empty; otherwise one, showing the main group's active tab. Merged, the
- * tabs keep one fixed order (This hymn first), so choosing one never moves
+ * tabs keep one fixed order (This song first), so choosing one never moves
  * the others (DESIGN.md § Stability).
  */
 export function visibleGroups(workspace: Workspace, canSplit: boolean): VisibleGroup[] {
