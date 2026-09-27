@@ -18,8 +18,6 @@ export interface HymnFile {
 /** The content format this reader accepts, and the only one (SDD-0002 §5). */
 export const CONTENT_FORMAT = 1;
 
-const PART_KINDS: readonly PartKind[] = ["stanza", "refrain", "bridge", "tag"];
-
 /**
  * Every field of format 1, by level, read from its JSON Schema: the schema is
  * the one definition of which fields exist (ADR-0022). Anything else is a
@@ -31,6 +29,8 @@ const HYMN_FIELDS = fields(hymnSchema);
 const PART_FIELDS = fields(hymnSchema.$defs.part);
 const ENTRY_FIELDS = fields(hymnSchema.$defs.entry);
 const META_FIELDS = fields(hymnSchema.$defs.meta);
+/** Also the schema's; schema.test.ts checks it against `PartKind`. */
+export const PART_KINDS = hymnSchema.$defs.part.properties.kind.enum as readonly PartKind[];
 
 export const hymnFileName = (number: number) => `${String(number).padStart(4, "0")}.json`;
 

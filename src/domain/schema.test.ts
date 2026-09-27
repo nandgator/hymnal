@@ -4,7 +4,8 @@ import { describe, expect, it } from "vitest";
 import containerSchema from "../../public/schema/1/container.schema.json" with { type: "json" };
 import hymnSchema from "../../public/schema/1/hymn.schema.json" with { type: "json" };
 import hymnbookSchema from "../../public/schema/1/hymnbook.schema.json" with { type: "json" };
-import { validateCorpus, validateHymn } from "./validate.ts";
+import type { PartKind } from "./types.ts";
+import { PART_KINDS, validateCorpus, validateHymn } from "./validate.ts";
 
 /**
  * The published schema and validate.ts must agree (ADR-0022): on every file
@@ -112,6 +113,29 @@ describe("rules only validate.ts can check", () => {
   ])("%s: the schema accepts it, validate.ts doesn't", (_, h) => {
     expect(schemaAccepts.hymn(h)).toBe(true);
     expect(validAccepts.hymn(h)).toBe(false);
+  });
+});
+
+describe("part kinds", () => {
+  it("are the schema's, each one a PartKind", () => {
+    // A Record makes the compiler demand every PartKind here, and no other.
+    const kinds: Record<PartKind, true> = {
+      intro: true,
+      stanza: true,
+      "pre-chorus": true,
+      refrain: true,
+      "post-chorus": true,
+      bridge: true,
+      outro: true,
+      tag: true,
+    };
+    expect([...PART_KINDS].sort()).toEqual(Object.keys(kinds).sort());
+  });
+
+  it.each(PART_KINDS)("%s is accepted by both", (kind) => {
+    const h = withPart({ kind });
+    expect(schemaAccepts.hymn(h)).toBe(true);
+    expect(validAccepts.hymn(h)).toBe(true);
   });
 });
 

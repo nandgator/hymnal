@@ -10,7 +10,20 @@ export type HymnNumber = number;
 /** Unique within one hymn, e.g. "s1", "s2", "r". */
 export type PartId = string;
 
-export type PartKind = "stanza" | "refrain" | "bridge" | "tag";
+/**
+ * A part's role in the song, in the usual order of one. A refrain is also
+ * called a chorus. An instrumental solo, an ad lib or an elision has no
+ * lyrics of its own, so none is a part.
+ */
+export type PartKind =
+  | "intro"
+  | "stanza"
+  | "pre-chorus"
+  | "refrain"
+  | "post-chorus"
+  | "bridge"
+  | "outro"
+  | "tag";
 
 export interface Hymnbook {
   id: HymnbookId;

@@ -50,7 +50,7 @@ import {
 import { RecentsTab } from "./RecentsTab.tsx";
 
 // Most parts carry no label — it's printed only for numbered stanzas
-// (SDD-0001 §2.1). Refrains, bridges and tags fall back to their kind.
+// (SDD-0001 §2.1). Every other part falls back to its kind: "Pre-chorus".
 function partLabel(part: Part): string {
   if (part.label) return part.label;
   return part.kind[0].toUpperCase() + part.kind.slice(1);

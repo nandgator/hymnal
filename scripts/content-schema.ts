@@ -32,7 +32,7 @@ CREATE TABLE hymn (
 CREATE TABLE part (
   hymn_number INTEGER NOT NULL REFERENCES hymn(number),
   id          TEXT NOT NULL,
-  kind        TEXT NOT NULL CHECK (kind IN ('stanza','refrain','bridge','tag')),
+  kind        TEXT NOT NULL CHECK (kind IN ('intro','stanza','pre-chorus','refrain','post-chorus','bridge','outro','tag')),
   label       TEXT,
   PRIMARY KEY (hymn_number, id)
 ) STRICT;

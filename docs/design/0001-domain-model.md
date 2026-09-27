@@ -54,7 +54,20 @@ type HymnNumber = number;
 /** Unique within one hymn, e.g. "s1", "s2", "r". */
 type PartId = string;
 
-type PartKind = "stanza" | "refrain" | "bridge" | "tag";
+/**
+ * A part's role in the song, in the usual order of one. A refrain is also
+ * called a chorus. An instrumental solo, an ad lib or an elision has no
+ * lyrics of its own, so none is a part.
+ */
+type PartKind =
+  | "intro"
+  | "stanza"
+  | "pre-chorus"
+  | "refrain"
+  | "post-chorus"
+  | "bridge"
+  | "outro"
+  | "tag";
 
 interface Hymnbook {
   id: HymnbookId;
@@ -362,7 +375,7 @@ CREATE TABLE hymn (
 CREATE TABLE part (
   hymn_number INTEGER NOT NULL REFERENCES hymn(number),
   id          TEXT NOT NULL,
-  kind        TEXT NOT NULL CHECK (kind IN ('stanza','refrain','bridge','tag')),
+  kind        TEXT NOT NULL CHECK (kind IN ('intro','stanza','pre-chorus','refrain','post-chorus','bridge','outro','tag')),
   label       TEXT,
   PRIMARY KEY (hymn_number, id)
 ) STRICT;
@@ -509,7 +522,7 @@ any listing; `isbn` stays absent until the printed copy is checked.
 | Question                                                | Resolve by                                                                             |
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Default focus on arrival — whole part or first line     | Trying it on screen                                                                    |
-| Whether `tag` and `bridge` kinds are ever populated     | A second hymnbook                                                                      |
+| Which kinds besides stanza and refrain books really use | Hymns of Fellowship, the second hymnbook (Board #27)                                   |
 | Cross-book song identity (shared songs, translations)   | Deferred until a second book exists; see below                                         |
 | Word-level addressing below `lineIndex`                 | Phase 2, if lyric alignment proves feasible                                            |
 | ~~Synthetic multi-publisher `HymnbookId` (e.g. UUID7)~~ | Resolved: [ADR-0021](../decisions/0021-identify-books-by-the-store-that-holds-them.md) |
