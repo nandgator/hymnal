@@ -44,7 +44,7 @@ function fakeUserState(overrides: Partial<UserState> = {}): UserState {
 const find = () => screen.getByRole("combobox", { name: "Find a song" });
 const submit = (value: string) => {
   fireEvent.input(find(), { target: { value } });
-  fireEvent.click(screen.getByRole("button", { name: "Find" }));
+  fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
 };
 
 describe("Finder", () => {
@@ -194,7 +194,7 @@ describe("Finder", () => {
     // ↓ then Enter takes the highlighted one.
     fireEvent.keyDown(find(), { key: "ArrowDown" });
     expect(options[1]).toHaveAttribute("aria-selected", "true");
-    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
     expect(onSelect).toHaveBeenCalledWith(42);
   });
 
@@ -242,7 +242,7 @@ describe("Finder", () => {
     const [, second] = await screen.findAllByRole("option");
     // The row lands under a still pointer: enter fires, move doesn't.
     fireEvent.mouseEnter(second);
-    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
     expect(onSelect).toHaveBeenCalledWith(121);
 
     // Moving the pointer does move the highlight.
@@ -252,7 +252,7 @@ describe("Finder", () => {
     // top match.
     fireEvent.mouseLeave(screen.getByRole("listbox"));
     expect(screen.queryByRole("option", { selected: true })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
     expect(onSelect).toHaveBeenLastCalledWith(121);
   });
 

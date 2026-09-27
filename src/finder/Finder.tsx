@@ -211,13 +211,13 @@ export function Finder(props: FinderProps) {
             // In a sheet (the hymn picker, the command menu) the box takes
             // focus on open, not the sheet's Close button.
             autofocus
+            // No Find button: results show as you type, and Enter (or a
+            // phone keyboard's Search key) submits (DESIGN.md § Structure).
+            enterkeyhint="search"
             placeholder={props.commands ? "Song number, lyrics or action" : "Song number or lyrics"}
             aria-label={props.commands ? "Find a song or action" : "Find a song"}
           />
         </div>
-        <button type="submit" class="btn-filled">
-          Find
-        </button>
       </form>
 
       <Show when={noMatch()}>

@@ -740,8 +740,11 @@ of a well-set printed hymnal rather than a chat app or a console. So:
   icon doesn't look inset. The rail's selection indicator takes the
   square register too (8px), not M3's default pill.
 - **Pickers keep their bearings.** The switcher row and the search bar
-  stay put; results and Recent scroll beneath them. The search field and
-  its Find button share one height.
+  stay put; results and Recent scroll beneath them.
+- **Search looks one way everywhere**: the switcher row's bar, filled
+  tonal, no outline, a leading search icon, a 2px primary ring on focus.
+  Only the switcher row's shows its key cap. No Find button: results come
+  as you type, and Enter (a phone's Search key) opens the first.
 - **Scrollbars keep their own lane.** Every scrolling pane reserves a
   stable gutter, so a scrollbar never overlaps content, and pads its
   content inside on both sides. Scrollbars are thin and in the outline

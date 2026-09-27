@@ -71,7 +71,7 @@ describe("App", () => {
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
 
     expect(await screen.findByRole("button", { name: /#1\s*Mocked Hymn/ })).toBeInTheDocument();
   });
@@ -82,14 +82,14 @@ describe("App", () => {
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
 
     fireEvent.click(await screen.findByRole("button", { name: /#1\s*Mocked Hymn/ }));
     const picker = within(await screen.findByRole("dialog", { name: "Go to a Song" }));
     fireEvent.input(picker.getByRole("combobox", { name: "Find a song" }), {
       target: { value: "2" },
     });
-    fireEvent.click(picker.getByRole("button", { name: "Find" }));
+    fireEvent.submit(picker.getByRole("combobox").closest("form") as HTMLFormElement);
 
     expect(await screen.findByRole("button", { name: /#2\s*Mocked Hymn 2/ })).toBeInTheDocument();
     // Still presenting: the dock never left the screen.
@@ -112,7 +112,7 @@ describe("App", () => {
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
     await screen.findByRole("button", { name: /#1\s*Mocked Hymn/ });
 
     const sections = within(screen.getByRole("navigation", { name: "Sections" }));
@@ -171,7 +171,7 @@ describe("App", () => {
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
     await screen.findByRole("img", { name: "Live output preview" });
     // The mock hymn has one line: Down gives it line focus.
     const focused = () =>
@@ -196,7 +196,7 @@ describe("App", () => {
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
     await screen.findByRole("img", { name: "Live output preview" });
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
@@ -217,7 +217,7 @@ describe("App", () => {
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
     await screen.findByRole("img", { name: "Live output preview" });
 
     fireEvent.keyDown(window, { key: "b" });
@@ -258,7 +258,7 @@ describe("App", () => {
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Find" }));
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
     await screen.findByRole("img", { name: "Live output preview" });
 
     fireEvent.keyDown(window, { key: "l" });
