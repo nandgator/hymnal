@@ -3,8 +3,8 @@
   "title": "ആർ പോയിടും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ആകാശം ഭൂമിയിവയെൻ",
         "ആജ്ഞയ്ക്കധീനമാകയാൽ",
@@ -77,31 +77,31 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

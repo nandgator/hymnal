@@ -3,8 +3,8 @@
   "title": "എന്നെ സ്നേഹിക്കും പൊന്നേശുവേ!",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എന്നെ സ്നേഹിക്കും പൊന്നേശുവേ!",
         "എന്നും പാലിക്കും എൻ നാഥനേ!",
@@ -48,25 +48,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

@@ -3,8 +3,8 @@
   "title": "എക്കാലത്തിലും ക്രിസ്തു മാറുകില്ല",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എക്കാലത്തിലും ക്രിസ്തു മാറുകില്ല",
         "എക്കാരണത്താലും എന്നെ കൈവിടില്ല"
@@ -57,31 +57,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

@@ -3,8 +3,8 @@
   "title": "വാനിൽ വന്നു വേഗം നമ്മെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "വാനിൽ വന്നു വേഗം നമ്മെ",
         "ചേർത്തിടും പ്രിയൻ",
@@ -59,31 +59,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

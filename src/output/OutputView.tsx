@@ -30,15 +30,15 @@ const CUE_FADE_MS = 8000;
 const EYELINE = 0.42;
 /** The smallest the type may shrink to make a hymn's longest part fit. */
 const FIT_FLOOR = 0.45;
-/** The refrain pins only if the type stays at least this fit — 70% of the
+/** The chorus pins only if the type stays at least this fit — 70% of the
  * full size, 5.25% of the screen's shorter side — the same for every hymn
  * and resolution: what the back row needs is the type's share of the
  * screen, not its share of a hymn's own flowing size (SDD-0001 §16.1). */
 const PIN_MIN_FIT = 0.7;
-/** Where the focus centres within the verse column above a pinned refrain,
+/** Where the focus centres within the verse column above a pinned chorus,
  * as a share of the column: the flowing eyeline's place within its margins. */
 const PINNED_EYELINE = (EYELINE - SAFE) / (1 - 2 * SAFE);
-/** The space between the verse column and a pinned refrain, in lines: a
+/** The space between the verse column and a pinned chorus, in lines: a
  * fade to still ground that lit lines never enter. */
 const PIN_GAP_LINES = 1;
 /** How long after a manual scroll stops before the view returns to the
@@ -69,9 +69,9 @@ export interface OutputViewProps {
   cues?: OutputCues;
   /** Bumped to show faded cues again for their fade time. */
   reveal?: number;
-  /** Pin the refrain in a band at the foot, where it fits (SDD-0001
+  /** Pin the chorus in a band at the foot, where it fits (SDD-0001
    * §16.1). Off, or where it doesn't fit, the Output flows as ever. */
-  pinRefrain?: boolean;
+  pinChorus?: boolean;
 }
 
 /** The cue caption, e.g. "Hymnbook · Amazing Grace · Verse 2 · ×2": only
@@ -111,13 +111,13 @@ export function cueCaption(message: ContentMessage, cues: OutputCues = {}): stri
 export function OutputView(props: OutputViewProps) {
   let view: HTMLDivElement | undefined;
   /** How this hymn lays out, decided at each fit (SDD-0001 §16.1): flowing,
-   * or its refrain pinned in a band at the foot or beside the verses. Layout
+   * or its chorus pinned in a band at the foot or beside the verses. Layout
    * reads the plain variable, applied to the DOM at once (classes on the
    * view): the fit measures and positions within one effect, before a signal
-   * would reach the DOM. The signal only renders the refrain's pane. */
+   * would reach the DOM. The signal only renders the chorus's pane. */
   let layoutNow: Layout = "flow";
-  /** The pinned refrain's height, px, measured at its layout's width. */
-  let refrainPx = 0;
+  /** The pinned chorus's height, px, measured at its layout's width. */
+  let chorusPx = 0;
   const [layout, setLayout] = createSignal<Layout>("flow");
   const setLayoutNow = (next: Layout) => {
     layoutNow = next;
@@ -164,29 +164,29 @@ export function OutputView(props: OutputViewProps) {
   /** The lines lit by the band; null means the focus is lit. */
   const [bandLit, setBandLit] = createSignal<LineRange | null>(null);
   const lit = () => bandLit() ?? props.message.focus;
-  // Whether line i is the refrain's — the one part that pins.
-  const isRefrain = (i: number) => {
+  // Whether line i is the chorus's — the one part that pins.
+  const isChorus = (i: number) => {
     const line = props.message.lines[i];
-    return !!line && !!props.message.refrain && line.partId === props.message.refrain;
+    return !!line && !!props.message.chorus && line.partId === props.message.chorus;
   };
-  // The refrain's first showing: the lines a pinned band holds.
-  const refrainBlock = createMemo(() => blocks().find((block) => isRefrain(block.start)));
-  const verseBlocks = createMemo(() => blocks().filter((block) => !isRefrain(block.start)));
+  // The chorus's first showing: the lines a pinned band holds.
+  const chorusBlock = createMemo(() => blocks().find((block) => isChorus(block.start)));
+  const verseBlocks = createMemo(() => blocks().filter((block) => !isChorus(block.start)));
   // Hidden from the column while pinned: shown once, in the band.
-  const pinnedAway = (i: number) => pinnedNow() && isRefrain(i);
-  const focusInRefrain = () => isRefrain(props.message.focus.start);
-  // While the refrain is sung, the column holds the verse that comes next
+  const pinnedAway = (i: number) => pinnedNow() && isChorus(i);
+  const focusInChorus = () => isChorus(props.message.focus.start);
+  // While the chorus is sung, the column holds the verse that comes next
   // (or, at the end, the last one), dimmed: what's coming is in view.
   const anchor = (): { start: number; end: number } => {
     const { focus } = props.message;
-    if (!(pinnedNow() && focusInRefrain())) return focus;
+    if (!(pinnedNow() && focusInChorus())) return focus;
     const verses = verseBlocks();
     return verses.find((block) => block.start >= focus.end) ?? verses.at(-1) ?? focus;
   };
   // A pinned band's lines light where the focus lights its showing.
   const bandLineLit = (k: number) => {
     const { focus } = props.message;
-    if (layout() === "flow" || !focusInRefrain() || bandLit()) return false;
+    if (layout() === "flow" || !focusInChorus() || bandLit()) return false;
     const showing = blocks().find((block) => focus.start >= block.start && focus.start < block.end);
     const i = (showing?.start ?? 0) + k;
     return i >= focus.start && i < focus.end;
@@ -280,10 +280,10 @@ export function OutputView(props: OutputViewProps) {
   };
 
   /** Where the scrolling lyrics end, in px from the top of the view: above
-   * a refrain pinned in the band, else the bottom safe margin. */
+   * a chorus pinned in the band, else the bottom safe margin. */
   const columnBottom = () => {
     const bottom = (view?.clientHeight ?? 0) * (1 - safeBottom());
-    return layoutNow === "band" ? bottom - refrainPx - gapPx() : bottom;
+    return layoutNow === "band" ? bottom - chorusPx - gapPx() : bottom;
   };
   const gapPx = () => (lineRefs.find(Boolean)?.offsetHeight ?? 0) * PIN_GAP_LINES;
 
@@ -314,8 +314,8 @@ export function OutputView(props: OutputViewProps) {
   };
 
   // Pinned: the verse column is the space above the band, or the left half
-  // beside it. The focus (or, while the refrain is sung, the verse to come)
-  // centres on the column's eyeline, clamped inside it; the refrain's pane
+  // beside it. The focus (or, while the chorus is sung, the verse to come)
+  // centres on the column's eyeline, clamped inside it; the chorus's pane
   // never scrolls. Beside the verses, it centres on the same eyeline.
   const positionPinned = (behavior: ScrollBehavior) => {
     const { start, end } = anchor();
@@ -327,7 +327,7 @@ export function OutputView(props: OutputViewProps) {
     if (layoutNow === "side") {
       const top = Math.max(
         areaTop,
-        Math.min(height * EYELINE - refrainPx / 2, areaBottom - refrainPx),
+        Math.min(height * EYELINE - chorusPx / 2, areaBottom - chorusPx),
       );
       view.style.setProperty("--pin-top", `${top}px`);
     }
@@ -372,11 +372,11 @@ export function OutputView(props: OutputViewProps) {
   // The flowing fit: the hymn's tallest part fits the safe area, and its
   // longest word its width. Then, with pinning on, each pinned layout's fit,
   // measured at its own width: the band (the tallest verse over the
-  // refrain, with the gap between) and side by side (each in half the
+  // chorus, with the gap between) and side by side (each in half the
   // width). A layout qualifies if it truly fits (at the floor, fits can tie
   // without fitting) and keeps the type at PIN_MIN_FIT or more (SDD-0001
   // §16.1). A landscape screen takes side by side if it
-  // qualifies, keeping the refrain at eye height where the band sits low,
+  // qualifies, keeping the chorus at eye height where the band sits low,
   // behind the heads in front for the back rows; a portrait one the band.
   // Else the hymn flows exactly as it would with pinning off.
   const refit = () => {
@@ -384,12 +384,12 @@ export function OutputView(props: OutputViewProps) {
     setLayoutNow("flow");
     const room = view.clientHeight * (1 - safeTop() - safeBottom());
     const flowing = fitTo(room, () => tallestOf(blocks()), true);
-    const refrain = refrainBlock();
-    if (!(props.pinRefrain && refrain && verseBlocks().length > 0)) {
+    const chorus = chorusBlock();
+    if (!(props.pinChorus && chorus && verseBlocks().length > 0)) {
       position("instant");
       return;
     }
-    const refrainHeight = () => heightOf(refrain.start, refrain.end);
+    const chorusHeight = () => heightOf(chorus.start, chorus.end);
     const candidate = (kind: Exclude<Layout, "flow">, need: () => number) => {
       const side = kind === "side";
       view?.classList.toggle("output-side-mode", side);
@@ -398,8 +398,8 @@ export function OutputView(props: OutputViewProps) {
       view?.classList.remove("output-side-mode");
       return { kind, fit, ok };
     };
-    const band = candidate("band", () => tallestOf(verseBlocks()) + refrainHeight() + gapPx());
-    const side = candidate("side", () => Math.max(tallestOf(verseBlocks()), refrainHeight()));
+    const band = candidate("band", () => tallestOf(verseBlocks()) + chorusHeight() + gapPx());
+    const side = candidate("side", () => Math.max(tallestOf(verseBlocks()), chorusHeight()));
     // A landscape screen prefers side by side, a portrait one the band
     // (half-width columns there would wrap every line); either only if it
     // holds the floor, else the other, else the hymn flows.
@@ -411,16 +411,16 @@ export function OutputView(props: OutputViewProps) {
       return;
     }
     view.style.setProperty("--fit", String(best.fit));
-    // Measure the refrain at the chosen layout's width, then take it.
+    // Measure the chorus at the chosen layout's width, then take it.
     view.classList.toggle("output-side-mode", best.kind === "side");
-    refrainPx = refrainHeight();
+    chorusPx = chorusHeight();
     setLayoutNow(best.kind);
     position("instant");
   };
 
   // Cues turning on or off change the room, and pinning the layout: fit
   // again.
-  createEffect(on([hasCaption, badge, () => !!props.pinRefrain], refit, { defer: true }));
+  createEffect(on([hasCaption, badge, () => !!props.pinChorus], refit, { defer: true }));
 
   createEffect(() => {
     const { hymnbookId, number } = props.message;
@@ -476,15 +476,15 @@ export function OutputView(props: OutputViewProps) {
     onCleanup(() => observer.disconnect());
   });
 
-  // The refrain's own pane, pinned in the band or beside the verses.
-  const refrainPane = () => (
-    <Show when={refrainBlock()}>
-      {(refrain) => (
+  // The chorus's own pane, pinned in the band or beside the verses.
+  const chorusPane = () => (
+    <Show when={chorusBlock()}>
+      {(chorus) => (
         <ul class="output-list output-pinned">
-          <Index each={props.message.lines.slice(refrain().start, refrain().end)}>
+          <Index each={props.message.lines.slice(chorus().start, chorus().end)}>
             {(line, k) => (
               <li
-                class="output-line output-refrain"
+                class="output-line output-chorus"
                 classList={{ "output-line-current": bandLineLit(k) }}
               >
                 {line().text}
@@ -516,7 +516,7 @@ export function OutputView(props: OutputViewProps) {
           zero-height like the badge, its pane placed beside the verses at
           --pin-top. */}
       <Show when={layout() === "side"}>
-        <div class="output-pin-side">{refrainPane()}</div>
+        <div class="output-pin-side">{chorusPane()}</div>
       </Show>
       <ul class="output-list">
         <li class="output-spacer" aria-hidden="true" />
@@ -531,8 +531,8 @@ export function OutputView(props: OutputViewProps) {
                 "output-line-current": i >= lit().start && i < lit().end,
                 // Parts are set apart by a gap, as in a printed hymnal.
                 "output-part-start": line().isPartStart && i > 0,
-                // The refrain pins; no other mark (SDD-0001 §16.1).
-                "output-refrain": isRefrain(i),
+                // The chorus pins; no other mark (SDD-0001 §16.1).
+                "output-chorus": isChorus(i),
               }}
             >
               {line().text}
@@ -541,11 +541,11 @@ export function OutputView(props: OutputViewProps) {
         </Index>
         <li class="output-spacer" aria-hidden="true" />
       </ul>
-      {/* The pinned refrain (SDD-0001 §16.1), in the band: sticky above the
+      {/* The pinned chorus (SDD-0001 §16.1), in the band: sticky above the
           bottom margin, still while the verses scroll above it; lit in place
           when sung. */}
       <Show when={layout() === "band"}>
-        <div class="output-pin-band">{refrainPane()}</div>
+        <div class="output-pin-band">{chorusPane()}</div>
       </Show>
       {/* Last, sticky to the bottom and zero-height: it rides the bottom
           safe margin, taking no room from the lyrics (DESIGN.md §

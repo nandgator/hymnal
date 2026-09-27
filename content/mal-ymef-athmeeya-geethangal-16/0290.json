@@ -3,8 +3,8 @@
   "title": "ദൈവസ്നേഹമേ ദൈവസ്നേഹമേ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ദൈവസ്നേഹമേ ദൈവസ്നേഹമേ",
         "അതിനുള്ളകലമുയരമാഴമപ്രമേയമേ"
@@ -79,43 +79,43 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s6"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

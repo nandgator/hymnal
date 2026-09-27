@@ -3,8 +3,8 @@
   "title": "പാപികളെ രക്ഷചെയ്ത",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പാപികളെ രക്ഷചെയ്ത",
         "ദൈവസുതന്നൊരു നാമം",
@@ -75,31 +75,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

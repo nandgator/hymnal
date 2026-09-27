@@ -3,8 +3,8 @@
   "title": "തട്ടിത്തട്ടി നില്‍ക്കുന്നേശു ജീവനാഥന്‍",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "തട്ടിത്തട്ടി നില്‍ക്കുന്നേശു ജീവനാഥന്‍",
         "പെട്ടെന്നു നീ വന്നു",
@@ -57,31 +57,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

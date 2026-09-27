@@ -3,8 +3,8 @@
   "title": "കർത്താവേ! നിൻ പാദത്തിൽ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കർത്താവേ! നിൻ പാദത്തിൽ",
         "ഞാനിതാ വന്നിടുന്നു",
@@ -48,25 +48,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

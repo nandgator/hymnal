@@ -3,8 +3,8 @@
   "title": "വാഴ്ത്തുവിൻ യഹോവയെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നിത്യം തന്റെ കാരുണ്യം",
         "സത്യം തന്റെ വാഗ്ദത്തം"
@@ -115,67 +115,67 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s6"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s7"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s8"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s9"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s10"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s11"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

@@ -3,8 +3,8 @@
   "title": "കാലമിനി ഏറെയില്ല",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കാലമിനി ഏറെയില്ല",
         "കാന്തനവൻ വന്നിടുവാൻ"
@@ -46,25 +46,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

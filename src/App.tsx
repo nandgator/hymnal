@@ -11,7 +11,7 @@ import {
   subscribePresence,
 } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
-import { DEFAULT_OUTPUT_THEME, outputCuesOf, pinRefrainOf } from "./persistence/user-state.ts";
+import { DEFAULT_OUTPUT_THEME, outputCuesOf, pinChorusOf } from "./persistence/user-state.ts";
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { titleCase } from "./shell/case.ts";
 import { ignoresShortcuts, keyHint, replayForwardedKey, SHORTCUTS } from "./shell/keymap.ts";
@@ -81,7 +81,7 @@ function Operator() {
     setOutputPresentation({
       theme: preferences.preferences().outputTheme ?? DEFAULT_OUTPUT_THEME,
       cues: outputCuesOf(preferences.preferences()),
-      pinRefrain: pinRefrainOf(preferences.preferences()),
+      pinChorus: pinChorusOf(preferences.preferences()),
     }),
   );
 
@@ -513,7 +513,7 @@ function Operator() {
                   hymnbookTitle={hymnbook()?.title}
                   cues={outputCuesOf(preferences.preferences())}
                   revealCues={cuesRevealed()}
-                  pinRefrain={pinRefrainOf(preferences.preferences())}
+                  pinChorus={pinChorusOf(preferences.preferences())}
                 />
               )}
             </Match>

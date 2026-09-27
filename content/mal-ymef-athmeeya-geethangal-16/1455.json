@@ -3,8 +3,8 @@
   "title": "Give me oil in my lamp keep me burning",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "Sing Hosanna, sing Hosanna",
         "Sing Hosanna, to the King of Kings",
@@ -28,7 +28,7 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

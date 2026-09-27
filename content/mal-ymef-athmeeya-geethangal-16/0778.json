@@ -3,8 +3,8 @@
   "title": "എന്റെ യേശു വാക്കു മാറാത്തോൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എന്റെ യേശു വാക്കു മാറാത്തോൻ",
         "ഈ മൺമാറും വിൺമാറും",
@@ -45,25 +45,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

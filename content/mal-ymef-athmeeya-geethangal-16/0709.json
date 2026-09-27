@@ -3,8 +3,8 @@
   "title": "ഹാ! എത്ര ഭാഗ്യം ഉണ്ടെനിക്കു",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഹാ എന്റെ ഭാഗ്യം അനന്തമേ!",
         "ഇതു സൗഭാഗ്യ ജീവിതമേ!"
@@ -82,37 +82,37 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s6"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

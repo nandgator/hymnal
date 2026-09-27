@@ -3,8 +3,8 @@
   "title": "യേശു രാജാ നിൻകൃപ മതിയെനിക്കു",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "യേശു രാജാ നിൻകൃപ മതിയെനിക്കു",
         "നാൾതോറും നടത്തുവാൻ നീ മതിയേ",
@@ -48,25 +48,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

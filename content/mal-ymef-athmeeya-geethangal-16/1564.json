@@ -3,8 +3,8 @@
   "title": "നീയാണാരംഭം ദേവാധിദേവാ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നീയാണാരംഭം ദേവാധിദേവാ",
         "നീയാണാലംബം ശ്രീയേശുനാഥാ",
@@ -49,19 +49,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

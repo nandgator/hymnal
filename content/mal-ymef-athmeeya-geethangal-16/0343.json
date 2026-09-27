@@ -3,8 +3,8 @@
   "title": "കാൽവറിക്കുരിശതിൽ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കാൽവറിക്കുരിശതിൽ",
         "യാഗമായ് തീർന്നൊരു",
@@ -41,19 +41,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

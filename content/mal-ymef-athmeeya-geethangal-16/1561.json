@@ -3,8 +3,8 @@
   "title": "മന്നവനേശു വാനിൽ വന്നിടും നാളിൽ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "മന്നവനേശു വാനിൽ വന്നിടും നാളിൽ",
         "മന്നിതിൻ ക്ലേശങ്ങൾ തീർന്നിടുമേ",
@@ -51,25 +51,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

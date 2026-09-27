@@ -34,6 +34,7 @@ new record, never edited.
 | [0022](0022-publish-a-json-schema-for-the-format.md)            | Publish a JSON Schema for the content format            | Accepted                                                             |
 | [0023](0023-recognise-the-document-and-infer-its-layout.md)     | Recognise what a document holds; infer its layout       | Superseded by [0024](0024-import-case-by-case.md)                    |
 | [0024](0024-import-case-by-case.md)                             | Import case by case; the app loads only format 1        | Accepted                                                             |
+| [0025](0025-call-it-the-chorus.md)                              | Call it the chorus: screen, key, code and format        | Accepted                                                             |
 
 ## Open questions
 

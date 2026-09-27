@@ -3,8 +3,8 @@
   "title": "ശോഭയുളെളാരു നാടുണ്ടതു",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "വേഗം നാം... ചേർന്നിടും",
         "ഭംഗിയേറിയ ആ തീരത്തു"
@@ -49,19 +49,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

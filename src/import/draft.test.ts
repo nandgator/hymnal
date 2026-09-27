@@ -7,7 +7,7 @@ import type { SourceLine, SourcePage } from "./source.ts";
 
 /**
  * A made-up two-column songbook, set the way a real one is (SDD-0003 §6):
- * bold numbered headings, refrains in italic, stanzas parted by a wider gap,
+ * bold numbered headings, choruses in italic, stanzas parted by a wider gap,
  * lines that wrap, labels, a folio. 10pt type, 5pt a character, 14pt pitch.
  */
 const ROMAN = "Serif";
@@ -142,8 +142,8 @@ const profile: Profile = parseProfile({
   index: { pages: { from: 1, to: 1 } },
   furniture: { pageNumber: true },
   title: { pattern: "^\\(?(?<number>\\d+)\\)\\s*(?<title>.+)$", font: BOLD },
-  refrain: { font: ITALIC },
-  labels: { chorus: "refrain", bridge: "bridge" },
+  chorus: { font: ITALIC },
+  labels: { chorus: "chorus", bridge: "bridge" },
   stanzaGap: 1.3,
 });
 
@@ -161,8 +161,8 @@ describe("parseProfile", () => {
         pages: { from: 5, to: 2 },
         furniture: { pageNumber: true },
         title: { pattern: "^(\\d+) (.+)$" },
-        refrain: { font: "I" },
-        labels: { Chorus: "chorus" },
+        chorus: { font: "I" },
+        labels: { Chorus: "verse" },
         stanzaGap: 1.5,
         columns: 2,
       }),
@@ -174,7 +174,7 @@ describe("parseProfile", () => {
         "- pages must run from page ≥ 1 to a later one",
         "- title.pattern must name two groups, (?<number>…) and (?<title>…)",
         '- labels: "Chorus" must be lower case',
-        '- labels.Chorus: "chorus" is not a part kind',
+        '- labels.Chorus: "verse" is not a part kind',
       ].join("\n"),
     );
   });
@@ -231,14 +231,10 @@ describe("draftBook", () => {
     expect(notes("invalid")).toEqual([]);
   });
 
-  it("takes an italic block as the refrain, sung first when printed first", () => {
+  it("takes an italic block as the chorus, sung first when printed first", () => {
     const h = hymn(1);
-    expect(h.parts.map((p) => `${p.id} ${p.kind}`)).toEqual([
-      "r refrain",
-      "s1 stanza",
-      "s2 stanza",
-    ]);
-    expect(sequence(h)).toBe("r s1 r s2 r");
+    expect(h.parts.map((p) => `${p.id} ${p.kind}`)).toEqual(["c chorus", "s1 stanza", "s2 stanza"]);
+    expect(sequence(h)).toBe("c s1 c s2 c");
   });
 
   it("joins a printer's wrap, and only where the next word couldn't fit", () => {
@@ -255,11 +251,11 @@ describe("draftBook", () => {
     const h = hymn(2);
     expect(h.parts.map((p) => `${p.id} ${p.kind} ${p.lines[0]}`)).toEqual([
       "s1 stanza Down goes the sun",
-      "r refrain Rest now, rest now",
+      "c chorus Rest now, rest now",
       "s2 stanza Up comes the moon",
       "b bridge Quiet, quiet",
     ]);
-    expect(sequence(h)).toBe("s1 r s2 r b");
+    expect(sequence(h)).toBe("s1 c s2 c b");
   });
 
   it("joins a stanza split by a column break when that makes it as long as the rest", () => {

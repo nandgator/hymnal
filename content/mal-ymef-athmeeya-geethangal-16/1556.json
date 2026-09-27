@@ -3,8 +3,8 @@
   "title": "ഹാ എത്ര അത്ഭുതം അത്ഭുതമേ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "സ്വർഗ്ഗം താണിറങ്ങി എന്നുള്ളിൽ വന്നിതാ",
         "തൻ ക്രൂശിനാൽ ഞാൻ പൂർണ്ണനായ നാൾ",
@@ -64,19 +64,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

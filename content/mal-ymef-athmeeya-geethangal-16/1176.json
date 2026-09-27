@@ -3,8 +3,8 @@
   "title": "ആശ്വാസത്തിനുറവിടമാം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ആശ്വാസത്തിനുറവിടമാം",
         "ക്രിസ്തു നിന്നെ വിളിച്ചിടുന്നു"
@@ -46,25 +46,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

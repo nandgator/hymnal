@@ -3,8 +3,8 @@
   "title": "ശ്രീയേശുനാഥാ! സ്വർഗ്ഗീയ രാജാ!",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ശ്രീയേശുനാഥാ! സ്വർഗ്ഗീയ രാജാ!",
         "നിൻകൃപ ഞങ്ങൾക്കു മതിയാം",
@@ -46,19 +46,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

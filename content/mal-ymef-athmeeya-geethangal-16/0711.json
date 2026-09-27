@@ -3,8 +3,8 @@
   "title": "യേശുവിൻ മധുരനാമം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "മാധുര്യ നാമമേ",
         "പാരിന്നാശ സ്വർമോദം"
@@ -82,37 +82,37 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s6"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

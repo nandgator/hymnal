@@ -3,8 +3,8 @@
   "title": "പുല്ലിനെപ്പോലും ചമയിച്ച ദൈവമേ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പുല്ലിനെപ്പോലും ചമയിച്ച ദൈവമേ",
         "പാവന തൃക്കരം എത്ര മോഹനം",
@@ -40,19 +40,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

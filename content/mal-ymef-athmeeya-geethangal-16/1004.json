@@ -3,8 +3,8 @@
   "title": "മരണമേ വിഷമെങ്ങു? നിന്റെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "മരണമേ വിഷമെങ്ങു? നിന്റെ",
         "വിജയവുമെവിടെ? എന്നേശു",
@@ -76,43 +76,43 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s6"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

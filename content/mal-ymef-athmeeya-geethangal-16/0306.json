@@ -3,8 +3,8 @@
   "title": "കാൽവറിയിൽ കാണും സ്നേഹമത്ഭുതം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കാൽവറിയിൽ കാണും സ്നേഹമത്ഭുതം",
         "വർണ്ണ്യമല്ലഹോ അതെന്റെ നാവിനാൽ"
@@ -66,31 +66,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

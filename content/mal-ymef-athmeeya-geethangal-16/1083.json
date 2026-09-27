@@ -3,8 +3,8 @@
   "title": "യേശുവിൻനാമം വിജയിക്കട്ടെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പോകുകു നാം പോർവീരരായ്",
         "രക്ഷകനേശുവിൻ പ്രിയജനമേ!",
@@ -52,19 +52,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

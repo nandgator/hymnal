@@ -3,8 +3,8 @@
   "title": "അക്കരയ്ക്കു യാത്ര ചെയ്യും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "അക്കരയ്ക്കു യാത്ര ചെയ്യും",
         "സീയോൻ സഞ്ചാരീ!",
@@ -49,25 +49,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

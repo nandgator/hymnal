@@ -3,8 +3,8 @@
   "title": "ആനന്ദം പരമാനന്ദം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "വന്നു തന്നു തന്നാനന്ദം",
         "എന്നും സമാധാനം"
@@ -37,13 +37,13 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

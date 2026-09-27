@@ -3,8 +3,8 @@
   "title": "നീയെൻ സ്വന്തമേ എന്താനന്ദമേ!",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നീയെൻ സ്വന്തമേ എന്താനന്ദമേ!",
         "ജീവൻ തന്നൊരു നാഥാ എന്നുമേ!",
@@ -63,31 +63,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

@@ -3,8 +3,8 @@
   "title": "കൊടിപിടിച്ച് കൊടിപിടിച്ച് പോയിടാം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കൊടിപിടിച്ച് കൊടിപിടിച്ച് പോയിടാം",
         "സ്നേഹക്കൊടി പിടിച്ച്",
@@ -36,19 +36,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

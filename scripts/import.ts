@@ -34,7 +34,7 @@ export interface FontUse {
   sample: string;
 }
 
-/** Every font, most lines first. A profile names its title and refrain fonts from this. */
+/** Every font, most lines first. A profile names its title and chorus fonts from this. */
 export function fontSummary(pages: SourcePage[]): FontUse[] {
   const fonts = new Map<string, FontUse>();
   for (const page of pages) {

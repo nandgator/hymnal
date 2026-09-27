@@ -3,8 +3,8 @@
   "title": "എന്റെ ദൈവം എത്ര നല്ലവൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എന്റെ ദൈവം എത്ര നല്ലവൻ",
         "ഏറ്റമെന്നെ അറിയുന്നവൻ",
@@ -48,25 +48,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

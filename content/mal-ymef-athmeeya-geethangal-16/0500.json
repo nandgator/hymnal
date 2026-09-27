@@ -3,8 +3,8 @@
   "title": "ശ്രീയേശു എന്നെ സ്നേഹിച്ചല്ലോ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "യേശു നല്ലവൻ യേശു വല്ലഭൻ",
         "ഏതു നേരത്തിലും എന്തോരാപത്തിലും",
@@ -72,31 +72,31 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

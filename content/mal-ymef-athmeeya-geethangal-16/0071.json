@@ -3,8 +3,8 @@
   "title": "നീ വീണ്ടെടുത്തതാം എൻ പ്രാണനും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ക്രൂശിൽ ഞാൻ കാണും നിത്യസ്നേഹം",
         "പാപിയെത്തേടും ദിവ്യസ്നേഹം",
@@ -64,25 +64,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

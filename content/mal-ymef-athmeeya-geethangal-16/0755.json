@@ -3,8 +3,8 @@
   "title": "കുരിശിൻ നിഴലതിലിരുന്നു",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പാടും ഞാൻ നിത്യജീവനെ",
         "തന്നെന്നെ രക്ഷിച്ച",
@@ -73,31 +73,31 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

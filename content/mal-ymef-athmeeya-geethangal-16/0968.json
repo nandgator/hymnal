@@ -3,8 +3,8 @@
   "title": "കർത്താവു മേഘേ വന്നിടുമേ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഉണർന്നിടാം നാമുണർന്നിടാം",
         "നമ്മുടെ നാഥൻ വന്നിടാറായ്"
@@ -60,25 +60,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

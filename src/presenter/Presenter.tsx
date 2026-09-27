@@ -59,7 +59,7 @@ function partLabel(part: Part): string {
 }
 
 /** A part as the Output's cue names it for a congregation (DESIGN.md §
- * Typography): "Verse 2" for a stanza, else its kind — "Refrain". */
+ * Typography): "Verse 2" for a stanza, else its kind — "Chorus". */
 export function partCueLabel(part: Part): string {
   return part.label ? `Verse ${part.label}` : partLabel(part);
 }
@@ -120,8 +120,8 @@ export interface PresenterProps {
   cues?: OutputCues;
   /** Bumped when the operator shows faded cues again. */
   revealCues?: number;
-  /** Live pins the refrain as the Output does (SDD-0001 §16.1). */
-  pinRefrain?: boolean;
+  /** Live pins the chorus as the Output does (SDD-0001 §16.1). */
+  pinChorus?: boolean;
 }
 
 /**
@@ -255,9 +255,9 @@ export function Presenter(props: PresenterProps) {
       hymnbookTitle: props.hymnbookTitle,
       part: partCueLabel(e.current().part),
       repeat: e.current().repeatOrdinal,
-      // Only the refrain recurs, so only it pins; bridges and tags stay in
+      // Only the chorus recurs, so only it pins; bridges and tags stay in
       // the verse column, boxed while sung like it (SDD-0001 §16.1).
-      refrain: e.hymn.parts.find((part) => part.kind === "refrain")?.id,
+      chorus: e.hymn.parts.find((part) => part.kind === "chorus")?.id,
     };
   });
   createEffect(() => {
@@ -343,9 +343,9 @@ export function Presenter(props: PresenterProps) {
       ArrowUp: (e: SequenceEngine) => e.previousLine(),
       Home: (e: SequenceEngine) => e.goTo(0),
       End: (e: SequenceEngine) => e.goTo(e.length - 1),
-      r: (e: SequenceEngine) => {
-        const refrain = e.hymn.parts.find((part) => part.kind === "refrain");
-        if (refrain) e.jumpToPart(refrain.id);
+      c: (e: SequenceEngine) => {
+        const chorus = e.hymn.parts.find((part) => part.kind === "chorus");
+        if (chorus) e.jumpToPart(chorus.id);
       },
     }[event.key.length === 1 ? event.key.toLowerCase() : event.key];
     if (!action) return;
@@ -589,7 +589,7 @@ export function Presenter(props: PresenterProps) {
           variant="mini"
           cues={props.cues}
           reveal={props.revealCues}
-          pinRefrain={props.pinRefrain}
+          pinChorus={props.pinChorus}
           classList={{ "live-blanked": !!props.blanked }}
         />
       )}
@@ -642,9 +642,9 @@ export function Presenter(props: PresenterProps) {
     </div>
   );
 
-  // Special parts (refrain, bridge, tag) first, then numbered stanzas as a
+  // Special parts (chorus, bridge, tag) first, then numbered stanzas as a
   // keypad in number order — whatever order the hymn stores them in, so a
-  // hymn storing verse 1 before its refrain doesn't split the keypad
+  // hymn storing verse 1 before its chorus doesn't split the keypad
   // (DESIGN.md § Stability).
   const keypadOrder = (parts: Part[]) => [
     ...parts.filter((part) => !part.label),

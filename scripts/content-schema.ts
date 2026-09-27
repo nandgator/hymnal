@@ -1,4 +1,5 @@
-export const SCHEMA_VERSION = 1;
+/** 2: the chorus, once the refrain (ADR-0025). */
+export const SCHEMA_VERSION = 2;
 
 /**
  * Malayalam dependent vowel signs (U+0D3E-U+0D4C), virama (U+0D4D) and ZWJ/ZWNJ.
@@ -32,7 +33,7 @@ CREATE TABLE hymn (
 CREATE TABLE part (
   hymn_number INTEGER NOT NULL REFERENCES hymn(number),
   id          TEXT NOT NULL,
-  kind        TEXT NOT NULL CHECK (kind IN ('intro','stanza','pre-chorus','refrain','post-chorus','bridge','outro','tag')),
+  kind        TEXT NOT NULL CHECK (kind IN ('intro','stanza','pre-chorus','chorus','post-chorus','bridge','outro','tag')),
   label       TEXT,
   PRIMARY KEY (hymn_number, id)
 ) STRICT;

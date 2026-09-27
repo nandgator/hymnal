@@ -3,8 +3,8 @@
   "title": "ആരുമില്ലെൻ പ്രിയാ, നീയൊഴികെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ആരുമില്ലെൻ പ്രിയാ, നീയൊഴികെ",
         "ചാരുവനീഭൂവിൽ നിൻ ദാസന്",
@@ -48,25 +48,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

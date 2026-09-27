@@ -3,8 +3,8 @@
   "title": "നന്മയിൻ ഭാവമായ് നാം ദിനവും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നന്മയിൻ ഭാവമായ് നാം ദിനവും",
         "തിന്മയെ ചെയ്കയല്ലോ",
@@ -145,67 +145,67 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s6"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s7"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s8"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s9"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s10"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

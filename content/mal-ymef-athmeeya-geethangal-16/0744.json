@@ -3,8 +3,8 @@
   "title": "എൻ രക്ഷകനേശു നാഥനെന്നും ജീവിക്കുന്നു",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എൻ രക്ഷകനേശു നാഥനെന്നും ജീവിക്കുന്നു",
         "എന്നെ കൈവിടാതെ കാത്തു നിത്യം പാലിക്കുന്നു",
@@ -61,31 +61,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

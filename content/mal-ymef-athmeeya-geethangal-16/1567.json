@@ -3,8 +3,8 @@
   "title": "അനുഗ്രഹത്തിനാത്മനാഥനെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "അനുഗ്രഹത്തിനാത്മനാഥനെ",
         "അനാദിയായും ശാശ്വതവാനേ",
@@ -55,25 +55,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

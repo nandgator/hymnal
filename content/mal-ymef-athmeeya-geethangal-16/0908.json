@@ -3,8 +3,8 @@
   "title": "എന്മനസ്സുയരുന്നഹോ!",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എന്മനസ്സുയരുന്നഹോ!",
         "നന്മയേറും വചനത്താൽ",
@@ -239,121 +239,121 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s6"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s7"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s8"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s9"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s10"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s11"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s12"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s13"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s14"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s15"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s16"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s17"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s18"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s19"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

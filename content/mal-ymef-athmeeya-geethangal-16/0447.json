@@ -3,8 +3,8 @@
   "title": "ക്രൂശിന്റെ വചനം ദൈവശക്തിയും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ക്രൂശിന്റെ വചനം ദൈവശക്തിയും",
         "ദൈവജ്ഞാനം പ്രാപിപ്പാൻ കാമ്യവും",
@@ -49,25 +49,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

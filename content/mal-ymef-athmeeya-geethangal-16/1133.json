@@ -3,8 +3,8 @@
   "title": "പുത്രനിൽ വിശ്വസിക്കുന്നെല്ലാവനും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പുത്രനിൽ വിശ്വസിക്കുന്നെല്ലാവനും",
         "നിത്യജീവനുണ്ട്",
@@ -60,25 +60,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

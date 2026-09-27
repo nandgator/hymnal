@@ -3,8 +3,8 @@
   "title": "ദൈവമക്കളേ! നമ്മൾ ഭാഗ്യശാലികൾ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ദൈവമക്കളേ! നമ്മൾ ഭാഗ്യശാലികൾ",
         "ദിവ്യജീവനുളളിലേകി ക്രിസ്തു നായകൻ"
@@ -57,31 +57,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

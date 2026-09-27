@@ -31,10 +31,10 @@ const hymn = (overrides: Record<string, unknown> = {}) => ({
   number: 1,
   title: "First line",
   parts: [
-    { id: "r", kind: "refrain", lines: ["refrain"] },
+    { id: "c", kind: "chorus", lines: ["chorus"] },
     { id: "s1", kind: "stanza", label: "1", lines: ["stanza"] },
   ],
-  sequence: [{ partId: "s1" }, { partId: "r" }],
+  sequence: [{ partId: "s1" }, { partId: "c" }],
   meta: { author: "KVS" },
   ...overrides,
 });
@@ -67,7 +67,7 @@ describe("the schema and validate.ts agree", () => {
     ["an unknown part field", withPart({ chords: [] })],
     [
       "an unknown sequence field",
-      hymn({ sequence: [{ partId: "s1", times: 2 }, { partId: "r" }] }),
+      hymn({ sequence: [{ partId: "s1", times: 2 }, { partId: "c" }] }),
     ],
     ["unknown metadata", hymn({ meta: { topics: ["x"] } })],
     ["a non-string $schema", hymn({ $schema: 1 })],
@@ -123,7 +123,7 @@ describe("part kinds", () => {
       intro: true,
       stanza: true,
       "pre-chorus": true,
-      refrain: true,
+      chorus: true,
       "post-chorus": true,
       bridge: true,
       outro: true,

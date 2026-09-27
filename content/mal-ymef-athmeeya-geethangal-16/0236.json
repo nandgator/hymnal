@@ -3,8 +3,8 @@
   "title": "സ്തോത്രം സ്തുതി ഞാൻ അർപ്പിക്കുന്നു",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "സ്തോത്രം സ്തുതി ഞാൻ അർപ്പിക്കുന്നു",
         "നിൻ മുറിവിൽ ഞാൻ ചുംബിക്കുന്നു",
@@ -48,25 +48,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

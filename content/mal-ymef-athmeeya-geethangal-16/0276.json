@@ -3,8 +3,8 @@
   "title": "ഹാ! എത്ര മോദം എൻ സ്വർഗ്ഗതാതൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എത്രമോദം താൻ സ്നേഹിക്കുന്നു",
         "സ്നേഹിക്കുന്നു സ്നേഹിക്കുന്നു",
@@ -73,31 +73,31 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

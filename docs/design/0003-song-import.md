@@ -25,7 +25,7 @@ flowchart LR
 | Reader | One per source format. Bytes → pages of positioned, styled lines         | `src/import/read/`  |
 | Flow   | Lines → reading order: page, column, top to bottom; drops page furniture | `src/import/`       |
 | Songs  | Starts a song at each title; a song runs on across columns and pages     | `src/import/`       |
-| Parts  | Blocks → stanzas and refrains; printer's line wraps joined               | `src/import/`       |
+| Parts  | Blocks → stanzas and choruses; printer's line wraps joined               | `src/import/`       |
 | Draft  | Numbers, titles, sequence, `hymnbook.json`; checked by `validate.ts`     | `src/import/`       |
 | CLI    | Arguments, file I/O, writing the draft and report                        | `scripts/import.ts` |
 
@@ -98,8 +98,8 @@ shared stages (ADR-0024); nothing is inferred.
     "pattern": "^\\(?(?<number>\\d+)\\)\\s*(?<title>.+)$",
     "font": "TimesNewRomanPS-BoldMT"
   },
-  "refrain": { "font": "TimesNewRomanPS-ItalicMT" },
-  "labels": { "chorus": "refrain", "bridge": "bridge", "end": "outro" },
+  "chorus": { "font": "TimesNewRomanPS-ItalicMT" },
+  "labels": { "chorus": "chorus", "bridge": "bridge", "end": "outro" },
   "stanzaGap": 1.3
 }
 ```
@@ -119,16 +119,16 @@ The rules the stages apply with it:
 - **Labels** in `labels`, however punctuated ("Chorus:", "(chorus)",
   "Chorus…"): heading lines, they give them their kind; alone or closing a
   block, they stand for that part sung again.
-- **Kind**, unlabelled: a block wholly in `refrain.font` is a refrain,
+- **Kind**, unlabelled: a block wholly in `chorus.font` is a chorus,
   else a stanza. A block printed again word for word is the same part.
 - **Wraps** are joined where the next line's first word would not have fitted
   on this one, against the column's widest line. Before a lowercase word
   that is sure; before a capital, only a short remainder after unpunctuated
   text is joined, as a guess.
 - **Sequence** is as printed when the page spells it out: a label, or
-  refrains printed more than once. Otherwise
+  choruses printed more than once. Otherwise
   [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)'s rule: the
-  refrain, printed once (several blocks in a row count as one), is sung
+  chorus, printed once (several blocks in a row count as one), is sung
   first if printed first, and after every stanza.
 - **Title**: the index's, where it names the same song as the heading
   (indexes are set in the book's case, headings often in capitals); else
@@ -146,8 +146,8 @@ the draft, by hymn:
 - the index disagreeing with the page: title, page number, or a song not
   found
 - a block split by a column break, joined or kept apart, when not certain
-- a block in mixed fonts, so neither clearly stanza nor refrain
-- a sequence taken from a rule beside a bridge or ending, or refrains that
+- a block in mixed fonts, so neither clearly stanza nor chorus
+- a sequence taken from a rule beside a bridge or ending, or choruses that
   differ
 - a line wrap joined (both halves quoted; guesses marked)
 - a repeat mark kept as printed
@@ -155,7 +155,7 @@ the draft, by hymn:
 ### 4.1 The judge: an optional second opinion
 
 Most report items are small typed questions about a little evidence:
-"refrain or stanza?", "does this line continue the one above?", "is this
+"chorus or stanza?", "does this line continue the one above?", "is this
 line a title?", "does this column continue the song before it?". Decision
 models such as Laya answer exactly that shape: a state plus typed questions
 in (`choice`, `score`, `noul` for yes/no), calibrated probabilities out.
@@ -269,7 +269,7 @@ be the app's second hymnbook. No Malayalam PDF is available, so Malayalam
 import is untested.
 
 First draft (2026-09-27), in 4 s: 275 songs, numbered 1–275 without a gap,
-each in the index on its page; 178 with a refrain, 26 with a bridge; valid
+each in the index on its page; 178 with a chorus, 26 with a bridge; valid
 content. 1,017 notes, 786 of them wraps: its columns are 157 pt wide. Two
 PDFs of it exist; their drafts are identical, and the reports differ in one
 line, the older index listing #165 on the wrong page.

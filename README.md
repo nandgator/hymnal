@@ -18,7 +18,7 @@ and documented; the previous implementation has been archived.
 
 ## What makes this different
 
-A refrain printed once is sung after every stanza. Most hymn software stores
+A chorus printed once is sung after every stanza. Most hymn software stores
 lyrics flat and infers repetition at render time, which means repetition lives
 in template branches rather than in data.
 

@@ -3,8 +3,8 @@
   "title": "എന്നാളും ആശ്രയമാം കർത്താവിനെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എന്നാളും ആശ്രയമാം കർത്താവിനെ",
         "എന്നും ഞാൻ വാഴ്ത്തിപ്പാടും കർത്താവിനെ",
@@ -58,31 +58,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

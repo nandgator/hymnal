@@ -3,8 +3,8 @@
   "title": "യേശു മഹേശൻ ആശ്രിതർക്കെല്ലാം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "യേശു മഹേശൻ ആശ്രിതർക്കെല്ലാം",
         "ആശ്വാസമരുളാൻ വല്ലഭനല്ലോ",
@@ -49,25 +49,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

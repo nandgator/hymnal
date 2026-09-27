@@ -3,8 +3,8 @@
   "title": "പരമസുതനാം മശിഹ ഭൂവനേ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പരമസുതനാം മശിഹ ഭൂവനേ",
         "മനുജാ!നിന്നെ",
@@ -41,19 +41,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

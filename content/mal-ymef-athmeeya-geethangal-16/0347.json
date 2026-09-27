@@ -3,8 +3,8 @@
   "title": "കൃപയേറും കർത്താവിലെൻ വിശ്വാസം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കൃപ കൃപയൊന്നെന്നാശ്രയമായ് ഹല്ലെലുയ്യാ!",
         "കൃപ കൃപയൊന്നെന്നാനന്ദമായ്",
@@ -62,25 +62,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

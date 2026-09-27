@@ -3,8 +3,8 @@
   "title": "എനിക്കായൊരുത്തമ സമ്പത്ത്",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എന്റെ ആയുസ്സിൻ ദിനമൊക്കെയും",
         "നിന്നെമാത്രം ഞാനിനി സേവിക്കും",
@@ -62,25 +62,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

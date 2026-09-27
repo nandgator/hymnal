@@ -3,8 +3,8 @@
   "title": "ഏതൊരു കാലത്തും ഏതൊരു നേരത്തും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഏതൊരു കാലത്തും ഏതൊരു നേരത്തും",
         "യേശവെ നിന്നെ ഞാൻ സ്തുതിക്കും",
@@ -51,31 +51,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

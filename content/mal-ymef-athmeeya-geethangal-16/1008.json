@@ -3,8 +3,8 @@
   "title": "കർത്തൃകാഹളം യുഗാന്ത്യ -",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പേർ വിളിക്കും നേരം കാണും",
         "പേർ വിളിക്കും നേരം കാണും",
@@ -63,19 +63,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

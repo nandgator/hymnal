@@ -193,7 +193,7 @@ describe("Settings", () => {
     expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
   });
 
-  it("defaults the Output to number and hymnbook, fading, refrain unpinned", async () => {
+  it("defaults the Output to number and hymnbook, fading, chorus unpinned", async () => {
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);
     await screen.findByText("100%");
@@ -202,7 +202,7 @@ describe("Settings", () => {
     for (const name of [/song number/, /hymnbook/, /Fade cues/]) {
       expect(presentation.getByRole("switch", { name })).toBeChecked();
     }
-    for (const name of [/song title/, /part/, /repeat count/, /Pin the refrain/]) {
+    for (const name of [/song title/, /part/, /repeat count/, /Pin the chorus/]) {
       expect(presentation.getByRole("switch", { name })).not.toBeChecked();
     }
     // Turning one on keeps the defaults it started from.

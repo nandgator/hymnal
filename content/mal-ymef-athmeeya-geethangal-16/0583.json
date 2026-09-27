@@ -3,8 +3,8 @@
   "title": "ദിവ്യജനേശ്വര! ഭവ്യഗുണാത്മക!",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ദിവ്യജനേശ്വര! ഭവ്യഗുണാത്മക!",
         "ഭാഗ്യാമൃതദായക!",
@@ -55,25 +55,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

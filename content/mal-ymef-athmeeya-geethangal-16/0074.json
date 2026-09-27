@@ -3,8 +3,8 @@
   "title": "സർവ്വസൃഷ്ടികളുമൊന്നായ് പുകഴ്ത്തിടുന്ന",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "യേശു മാറാത്തവൻ യേശു മാറാത്തവൻ",
         "യേശു മാറാത്തവൻ ഹാ എത്ര നല്ലവൻ!",
@@ -72,31 +72,31 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

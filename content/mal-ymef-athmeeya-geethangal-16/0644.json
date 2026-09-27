@@ -3,8 +3,8 @@
   "title": "ക്രൂശുമെടുത്തു ഞാൻ യേശു രക്ഷകനെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ക്രൂശുമെടുത്തു ഞാൻ യേശു രക്ഷകനെ",
         "ക്ലേശങ്ങൾ വന്നാലും പിൻചെല്ലുമേ",
@@ -72,37 +72,37 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

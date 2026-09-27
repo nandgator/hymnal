@@ -3,8 +3,8 @@
   "title": "പ്രിയനേ എന്നെക്കരുതും വഴിയിൽ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പ്രിയനേ എന്നെക്കരുതും വഴിയിൽ",
         "എനിക്കൊരു കുറവുമില്ല",
@@ -53,25 +53,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

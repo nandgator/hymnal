@@ -3,8 +3,8 @@
   "title": "വെളളത്തിൽ വെറുമൊരു കുമിളപോലെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "വെളളത്തിൽ വെറുമൊരു കുമിളപോലെ",
         "വെളുക്കുമ്പം വിരിഞ്ഞൊരു മലരുപോലെ",
@@ -51,25 +51,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

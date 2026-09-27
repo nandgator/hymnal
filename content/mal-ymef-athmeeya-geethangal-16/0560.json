@@ -3,8 +3,8 @@
   "title": "അത്യുന്നതൻ തൻ മറവിൽ വസിക്കും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഇത്രഭാഗ്യം വേറില്ല ചൊല്ലുവാൻ",
         "ഇദ്ധരയിൽ നിശ്ചയമായ്"
@@ -60,25 +60,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

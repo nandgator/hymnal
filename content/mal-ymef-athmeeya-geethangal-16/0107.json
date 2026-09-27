@@ -3,8 +3,8 @@
   "title": "യേശു നല്ലവൻ അവൻ വല്ലഭൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഹാലേലുയ്യ, ഹാലേലുയ്യ",
         "മഹത്വവും ജ്ഞാനവും",
@@ -63,25 +63,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

@@ -3,8 +3,8 @@
   "title": "നന്ദിയാലെൻ മനം പാടിടും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നന്ദിയാലെൻ മനം പാടിടും",
         "മന്നവൻ യേശുവെ വാഴ്ത്തിടും",
@@ -51,25 +51,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

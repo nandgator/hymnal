@@ -3,8 +3,8 @@
   "title": "എന്റെ ജീവിതം യേശുവിനായി",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എന്റെ ജീവിതം യേശുവിനായി",
         "ഏകുന്നു ഏകുന്നു ഏകുന്നു ഞാൻ"
@@ -46,25 +46,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

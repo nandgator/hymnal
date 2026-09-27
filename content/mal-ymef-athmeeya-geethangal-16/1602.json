@@ -3,8 +3,8 @@
   "title": "എല്ലാ പാപങ്ങളും എല്ലാ ശാപങ്ങളും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എല്ലാ പാപങ്ങളും എല്ലാ ശാപങ്ങളും",
         "ചുമന്നവനാം എന്നേശുവേ",
@@ -48,25 +48,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

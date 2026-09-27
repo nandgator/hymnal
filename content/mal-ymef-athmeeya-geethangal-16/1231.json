@@ -3,8 +3,8 @@
   "title": "പ്രഭാതകാലം വന്നടിയൻ നിൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പ്രഭാതകാലം വന്നടിയൻ നിൻ",
         "പ്രഭാവത്തിൻ മുന്നിൽ വണങ്ങിടുന്നേ",
@@ -50,25 +50,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

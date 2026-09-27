@@ -3,8 +3,8 @@
   "title": "ഹോഗീ ആശിഷോം കീ ബാരിശ്",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ബാരിശ് ആശിഷ് കീ",
         "ബാരിശ് ആശിഷോം കീ ഭേജ്",
@@ -51,19 +51,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

@@ -6,10 +6,10 @@ function hymn(overrides: Record<string, unknown> = {}) {
     number: 7,
     title: "First line",
     parts: [
-      { id: "r", kind: "refrain", lines: ["refrain"] },
+      { id: "c", kind: "chorus", lines: ["chorus"] },
       { id: "s1", kind: "stanza", label: "1", lines: ["stanza"] },
     ],
-    sequence: [{ partId: "r" }, { partId: "s1" }, { partId: "r" }],
+    sequence: [{ partId: "c" }, { partId: "s1" }, { partId: "c" }],
     meta: {},
     ...overrides,
   };
@@ -36,7 +36,7 @@ describe("validateHymn", () => {
 
   it("I2: dangling sequence reference", () => {
     const v = validateHymn(
-      hymn({ sequence: [{ partId: "r" }, { partId: "s1" }, { partId: "x" }] }),
+      hymn({ sequence: [{ partId: "c" }, { partId: "s1" }, { partId: "x" }] }),
     );
     expect(v).toEqual([
       { rule: "I2", where: "hymn 7", message: "sequence[2] references unknown part x" },

@@ -3,8 +3,8 @@
   "title": "ഞാനെന്നും സ്തുതിച്ചിടുമേ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഞാനെന്നും സ്തുതിച്ചിടുമേ",
         "കരുണ നിറഞ്ഞവനേശുവിനെ",
@@ -42,25 +42,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

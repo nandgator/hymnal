@@ -3,8 +3,8 @@
   "title": "സബ് കോ ജാന്നാ ചാഹിയേ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "വഹ് സബ് സേ ഖൂബ് സൂരത്",
         "ഫൂൽ ഹേ വഹ് ചമ്കീലാ സിതാരാ",
@@ -36,13 +36,13 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

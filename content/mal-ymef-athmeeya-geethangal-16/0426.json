@@ -3,8 +3,8 @@
   "title": "സ്തോത്രം, സ്തോത്രം, സ്തോത്രം പരാ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "സ്തോത്രം, സ്തോത്രം, സ്തോത്രം പരാ",
         "സ്തോത്രം സ്തുതി നിനക്കേ സ്തുതിച്ചിടുന്നു",
@@ -61,31 +61,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

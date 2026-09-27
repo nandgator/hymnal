@@ -3,8 +3,8 @@
   "title": "എണ്ണി എണ്ണി സ്തുതിച്ചിടും ഞാൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എണ്ണി എണ്ണി സ്തുതിച്ചിടും ഞാൻ",
         "നിന്റെ നന്മകളോർത്തുകൊണ്ട്",
@@ -48,25 +48,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

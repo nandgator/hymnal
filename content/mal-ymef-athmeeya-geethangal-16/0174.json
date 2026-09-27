@@ -3,8 +3,8 @@
   "title": "നന്ദിയോടെന്നും പാടിടും ഞാൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നന്ദിയോടെന്നും പാടിടും ഞാൻ",
         "വല്ലഭനാമെൻ യേശുവിന്നായ്",
@@ -37,19 +37,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

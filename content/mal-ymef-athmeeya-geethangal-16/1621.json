@@ -3,8 +3,8 @@
   "title": "എത്ര നിസാരമാം കാര്യമാണെങ്കിലും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എത്ര നിസാരമാം കാര്യമാണെങ്കിലും",
         "എന്നെക്കൊണ്ടാവില്ല കർത്താവെ",
@@ -40,19 +40,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

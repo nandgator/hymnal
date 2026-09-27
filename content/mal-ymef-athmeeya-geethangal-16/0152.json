@@ -3,8 +3,8 @@
   "title": "നന്ദിയാലെന്നുള്ളം പൊങ്ങുന്നേ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നന്ദിയാലെന്നുള്ളം പൊങ്ങുന്നേ",
         "വല്ലഭാ നിൻ കൃപയോർക്കുമ്പോൾ",
@@ -49,25 +49,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

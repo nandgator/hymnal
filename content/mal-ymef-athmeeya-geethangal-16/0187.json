@@ -3,8 +3,8 @@
   "title": "കരുണയുള്ള കർത്താവിനെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കരുണയുള്ള കർത്താവിനെ",
         "കീർത്തിച്ചിടും ഞാനെന്നായുസ്സെല്ലാം"
@@ -46,25 +46,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

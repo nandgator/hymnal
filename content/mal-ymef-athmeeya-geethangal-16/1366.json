@@ -3,8 +3,8 @@
   "title": "യീശു കോ മേം സബ് കുഛ് ദേർ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "സബ് മേം ദേവതാ ഹും",
         "സബ് മേം ദേതാ ഹും",
@@ -51,19 +51,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

@@ -3,8 +3,8 @@
   "title": "ഇമ്മാനുവേലിൻ മുറിവുകളിൽ നിന്നും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കാണുന്നു ഞാൻ കാണുന്നു ഞാൻ",
         "കാണുന്നു ഞാനെന്നിൽ",
@@ -63,25 +63,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

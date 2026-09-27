@@ -3,8 +3,8 @@
   "title": "പാടിടാം പാടിടാം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പാടിടാം പാടിടാം",
         "സ്തോത്രഗീതങ്ങള്‍ പാടിടാം",
@@ -37,19 +37,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

@@ -3,8 +3,8 @@
   "title": "സ്തുതി സ്തുതി എൻ മനമേ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "സ്തുതി സ്തുതി എൻ മനമേ",
         "സ്തുതികളിലുന്നതനെ - നാഥൻ",
@@ -37,19 +37,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

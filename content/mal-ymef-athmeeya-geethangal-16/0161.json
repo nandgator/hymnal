@@ -3,8 +3,8 @@
   "title": "ഭൂവാസികളെ യഹോവയ്ക്കാർപ്പിടുവിൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഭൂവാസികളെ യഹോവയ്ക്കാർപ്പിടുവിൻ",
         "സന്തോഷത്തോടെ വന്നു കൂടുവിൻ",
@@ -38,19 +38,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

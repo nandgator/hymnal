@@ -22,7 +22,7 @@ export type NoteKind =
   | "wrap"
   /** A block split by a column or page break, joined or not. */
   | "break"
-  /** A block in mixed fonts, so neither clearly stanza nor refrain. */
+  /** A block in mixed fonts, so neither clearly stanza nor chorus. */
   | "fonts"
   /** A sequence taken from a rule, not from the page. */
   | "sequence"

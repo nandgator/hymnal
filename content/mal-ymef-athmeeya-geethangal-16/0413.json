@@ -3,8 +3,8 @@
   "title": "എനിക്കല്ല ഞാൻ ക്രിസ്തുവിന്നത്രേ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എനിക്കല്ല ഞാൻ ക്രിസ്തുവിന്നത്രേ",
         "അവനായിതാ സമർപ്പിക്കുന്നേ",
@@ -52,25 +52,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

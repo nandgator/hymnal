@@ -65,20 +65,20 @@ export function convertLegacyHymn(legacy: LegacyHymn): Conversion {
     label: String(i + 1),
     lines: v.kept,
   }));
-  const refrain: Part = { id: "r", kind: "refrain", lines: chorus.kept };
+  const chorusPart: Part = { id: "c", kind: "chorus", lines: chorus.kept };
 
   let parts: Part[];
   let order: string[];
   let shape: LegacyShape;
 
   if (hasChorus && hasVerses) {
-    parts = [refrain, ...stanzas];
+    parts = [chorusPart, ...stanzas];
     if (legacy.starts === "chorus") {
       shape = "chorus-first";
-      order = ["r", ...stanzas.flatMap((s) => [s.id, "r"])];
+      order = ["c", ...stanzas.flatMap((s) => [s.id, "c"])];
     } else {
       shape = "verse-first";
-      order = stanzas.flatMap((s) => [s.id, "r"]);
+      order = stanzas.flatMap((s) => [s.id, "c"]);
     }
   } else if (hasVerses) {
     if (legacy.starts !== "verse-1") fail(`starts "chorus" but there is no chorus`);

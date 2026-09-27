@@ -3,8 +3,8 @@
   "title": "വരുമൊരുനാൾ പ്രാണപ്രിയൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "വരുമൊരുനാൾ പ്രാണപ്രിയൻ",
         "ദുരിതങ്ങളഖിലം തീർത്തിടുവാൻ"
@@ -51,25 +51,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

@@ -3,8 +3,8 @@
   "title": "ഇമ്പമോടേശുവിൽ തേറും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "തേറും തേറും തേറും അന്ത്യത്തോളം",
         "ചന്തമായോർ കിരീടമുണ്ടന്ത്യം",
@@ -77,25 +77,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

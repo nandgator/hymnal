@@ -3,8 +3,8 @@
   "title": "നീലവാനിൽ ജീവനാഥൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നീലവാനിൽ ജീവനാഥൻ",
         "മേഘത്തേരിൽ വരും വിരവിൽ",
@@ -38,19 +38,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

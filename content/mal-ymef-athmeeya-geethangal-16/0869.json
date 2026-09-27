@@ -3,8 +3,8 @@
   "title": "എന്റെ വില്ലിൽ ഞാൻ ആശ്രയിക്കില്ല",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എന്നോടു കൂടെയുളള ദൈവം",
         "എന്നെ കൈവെടിയാത്ത ദൈവം",
@@ -52,19 +52,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

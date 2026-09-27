@@ -3,8 +3,8 @@
   "title": "എല്ലാം അങ്ങേ മഹത്വത്തിനായ്",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എല്ലാം അങ്ങേ മഹത്വത്തിനായ്",
         "എല്ലാം അങ്ങേ പുകഴ്ചയ്ക്കുമായ്",
@@ -60,31 +60,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

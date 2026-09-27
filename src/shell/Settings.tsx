@@ -7,7 +7,7 @@ import {
   type OutputTheme,
   outputCuesOf,
   type Preferences,
-  pinRefrainOf,
+  pinChorusOf,
   type UserState,
 } from "../persistence/user-state.ts";
 import { isPaneShown, PANES, type PaneId } from "./panes.ts";
@@ -38,7 +38,7 @@ export const OUTPUT_CUES: {
   { id: "number", name: "Song number", example: "312, top left, for songbooks" },
   { id: "title", name: "Song title", example: "Amazing Grace" },
   { id: "hymnbook", name: "Hymnbook", example: "the book's title" },
-  { id: "part", name: "Part", example: "Verse 2, Refrain" },
+  { id: "part", name: "Part", example: "Verse 2, Chorus" },
   { id: "repeat", name: "Repeat count", example: "×2, on a repeat" },
 ];
 
@@ -339,7 +339,7 @@ export function Settings(props: SettingsProps) {
         </div>
         <label class="settings-row">
           <span class="settings-label">
-            Pin the refrain (chorus)
+            Pin the chorus
             <span class="settings-supporting">
               Beside the verses on a wide screen, below on a tall one; a hymn flows if its type
               would get too small
@@ -349,10 +349,10 @@ export function Settings(props: SettingsProps) {
             type="checkbox"
             role="switch"
             class="switch"
-            checked={pinRefrainOf(preferences())}
-            aria-checked={pinRefrainOf(preferences())}
+            checked={pinChorusOf(preferences())}
+            aria-checked={pinChorusOf(preferences())}
             onChange={(event) =>
-              update({ ...preferences(), pinRefrain: event.currentTarget.checked })
+              update({ ...preferences(), pinChorus: event.currentTarget.checked })
             }
           />
         </label>

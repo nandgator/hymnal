@@ -33,12 +33,12 @@ describe("fontSummary", () => {
   it("counts lines per font, most used first, with where each first appears", () => {
     const pages = [
       page(1, [line("(1) TITLE", "Bold"), line("verse", "Roman")]),
-      page(2, [line("refrain", "Italic"), line("more", "Roman")]),
+      page(2, [line("chorus", "Italic"), line("more", "Roman")]),
     ];
     expect(fontSummary(pages)).toEqual([
       { font: "Roman", lines: 2, page: 1, sample: "verse" },
       { font: "Bold", lines: 1, page: 1, sample: "(1) TITLE" },
-      { font: "Italic", lines: 1, page: 2, sample: "refrain" },
+      { font: "Italic", lines: 1, page: 2, sample: "chorus" },
     ]);
   });
 });

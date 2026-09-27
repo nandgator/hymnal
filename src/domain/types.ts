@@ -7,11 +7,11 @@ export type HymnbookId = string;
 /** Hymn number as printed. Unique within a hymnbook, not globally. */
 export type HymnNumber = number;
 
-/** Unique within one hymn, e.g. "s1", "s2", "r". */
+/** Unique within one hymn, e.g. "s1", "s2", "c". */
 export type PartId = string;
 
 /**
- * A part's role in the song, in the usual order of one. A refrain is also
+ * A part's role in the song, in the usual order of one. A chorus is also
  * called a chorus. An instrumental solo, an ad lib or an elision has no
  * lyrics of its own, so none is a part.
  */
@@ -19,7 +19,7 @@ export type PartKind =
   | "intro"
   | "stanza"
   | "pre-chorus"
-  | "refrain"
+  | "chorus"
   | "post-chorus"
   | "bridge"
   | "outro"
@@ -41,7 +41,7 @@ export interface Part {
   id: PartId;
   kind: PartKind;
   lines: string[];
-  /** Display label, e.g. "1". Absent for refrains. */
+  /** Display label, e.g. "1". Absent for choruses. */
   label?: string;
 }
 

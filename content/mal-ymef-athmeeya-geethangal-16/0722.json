@@ -3,8 +3,8 @@
   "title": "ഞാനൊരിക്കൽ ഞാനൊരിക്കൽ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഞാനൊരിക്കൽ ഞാനൊരിക്കൽ",
         "എത്തുമെന്റെ നാട്ടിൽ",
@@ -59,25 +59,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

@@ -74,11 +74,11 @@ A part:
 | ------- | -------- | -------- | -------------------------------------------------- |
 | `id`    | string   | yes      | Unique in the hymn, e.g. `s1`, `r`                 |
 | `kind`  | string   | yes      | Its role; one of the kinds below                   |
-| `label` | string   | no       | Shown with the part, e.g. `1`; absent for refrains |
+| `label` | string   | no       | Shown with the part, e.g. `1`; absent for choruses |
 | `lines` | string[] | yes      | One entry per displayed line                       |
 
 The kinds, in the usual order of a song: `intro`, `stanza` (a verse),
-`pre-chorus`, `refrain` (a chorus), `post-chorus`, `bridge`, `outro`, `tag`
+`pre-chorus`, `chorus`, `post-chorus`, `bridge`, `outro`, `tag`
 (a closing line or two, repeated). An instrumental solo, an ad lib or an
 elision has no lyrics of its own, so none is a part.
 
@@ -104,7 +104,7 @@ A reader accepts exactly the versions it was written for. There are no minor
 versions: an old reader skipping a new field would be a silent drop (ADR-0019).
 
 Format 1 was amended twice before anything outside this repository read it:
-`$schema` (ADR-0022), and the kinds beyond `stanza`, `refrain`, `bridge` and
+`$schema` (ADR-0022), and the kinds beyond `stanza`, `chorus`, `bridge` and
 `tag` (2026-09-27). Once a file leaves the repository, amending stops.
 
 `format` versions this source. The SQLite package's `schema_version`

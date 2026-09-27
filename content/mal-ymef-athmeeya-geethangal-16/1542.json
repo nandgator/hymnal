@@ -3,8 +3,8 @@
   "title": "അവനിവിടെയില്ലവൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "അവനിവിടെയില്ലവൻ",
         "ഉയിർത്തെഴുന്നേറ്റു",
@@ -43,19 +43,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

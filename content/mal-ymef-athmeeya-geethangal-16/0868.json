@@ -3,8 +3,8 @@
   "title": "എന്നും എന്നെ സ്നേഹിക്കും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എന്നും എന്നെ സ്നേഹിക്കും",
         "എൻ യേശുവേ ഞാൻ നിന്നടിമ"
@@ -35,19 +35,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

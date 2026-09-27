@@ -3,8 +3,8 @@
   "title": "ഹാ! ഞാനിതറിയുന്നു ജീവപേർ മാത്രം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഹാ! ഞാനിതറിയുന്നു ജീവപേർ മാത്രം",
         "നീ താൻ ധരിക്കുന്നിന്നു",
@@ -53,25 +53,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

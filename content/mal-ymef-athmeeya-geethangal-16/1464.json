@@ -3,8 +3,8 @@
   "title": "He is the same unchanging Jesus",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "Hallelujah, Hallelujah, Hallelujah",
         "Hallelujah, Hallelujah, Hallelujah"
@@ -27,7 +27,7 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

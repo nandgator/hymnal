@@ -3,8 +3,8 @@
   "title": "എൻ യേശുവെ പാടി പുകഴ്ത്തിടുവിൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എൻ യേശുവെ പാടി പുകഴ്ത്തിടുവിൻ",
         "എന്നുമവൻ അനന്യനാകയാൽ - എൻ"
@@ -46,25 +46,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

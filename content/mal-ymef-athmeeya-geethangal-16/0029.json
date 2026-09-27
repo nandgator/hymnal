@@ -3,8 +3,8 @@
   "title": "അനുഗമിക്കും ഞാനേശുവിനെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഹല്ലേലുയ്യാ ഗീതം പാടാം",
         "തുല്യമില്ലാനാമം പാടാം"
@@ -49,19 +49,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

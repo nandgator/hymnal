@@ -3,8 +3,8 @@
   "title": "എന്നന്തരംഗവും എൻ ജീവനും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എന്നന്തരംഗവും എൻ ജീവനും",
         "ജീവനുളള ദേവനെ സ്തുതിച്ചിടുന്നിതാ",
@@ -41,19 +41,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

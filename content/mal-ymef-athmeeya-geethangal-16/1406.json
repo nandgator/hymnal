@@ -3,8 +3,8 @@
   "title": "I heard an old, old story, how a Saviour came from glory",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "O victory in Jesus, my Saviour, forever!",
         "He sought me and brought with His redeeming blood",
@@ -52,19 +52,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

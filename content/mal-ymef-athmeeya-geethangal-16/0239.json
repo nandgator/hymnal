@@ -3,8 +3,8 @@
   "title": "വന്ദനം പൊന്നേശുനാഥാ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "വന്ദനം പൊന്നേശുനാഥാ",
         "നന്ദിയാൽ വാഴ്ത്തിടുന്ന ദേവാ",
@@ -52,25 +52,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

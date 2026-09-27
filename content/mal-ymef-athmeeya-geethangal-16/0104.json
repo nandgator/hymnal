@@ -3,8 +3,8 @@
   "title": "സ്തുതിപ്പിൻ സ്തുതിപ്പിൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ആ - ആനന്ദമായ് സ്തുതി പാടിടുവിൻ",
         "ജീവനാഥനെ പുകഴ്ത്തിടുവിൻ",
@@ -74,31 +74,31 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

@@ -16,23 +16,23 @@ function legacy(overrides: Partial<LegacyHymn> = {}): LegacyHymn {
 const order = (h: LegacyHymn) => convertLegacyHymn(h).hymn.sequence.map((e) => e.partId);
 
 describe("convertLegacyHymn shapes", () => {
-  it("chorus first: r, s1, r, s2, r", () => {
+  it("chorus first: c, s1, c, s2, c", () => {
     const { hymn, shape } = convertLegacyHymn(legacy());
     expect(shape).toBe("chorus-first");
-    expect(hymn.sequence.map((e) => e.partId)).toEqual(["r", "s1", "r", "s2", "r"]);
+    expect(hymn.sequence.map((e) => e.partId)).toEqual(["c", "s1", "c", "s2", "c"]);
     expect(hymn.parts.map((p) => [p.id, p.kind, p.label])).toEqual([
-      ["r", "refrain", undefined],
+      ["c", "chorus", undefined],
       ["s1", "stanza", "1"],
       ["s2", "stanza", "2"],
     ]);
     expect(hymn.title).toBe("c1");
   });
 
-  it("verse first with a chorus: s1, r, s2, r", () => {
+  it("verse first with a chorus: s1, c, s2, c", () => {
     const h = legacy({ starts: "verse-1" });
     const { hymn, shape } = convertLegacyHymn(h);
     expect(shape).toBe("verse-first");
-    expect(order(h)).toEqual(["s1", "r", "s2", "r"]);
+    expect(order(h)).toEqual(["s1", "c", "s2", "c"]);
     expect(hymn.title).toBe("a1");
   });
 
@@ -44,7 +44,7 @@ describe("convertLegacyHymn shapes", () => {
     expect(order(h)).toEqual(["s1", "s2"]);
   });
 
-  it("chorus only becomes one stanza, not a refrain", () => {
+  it("chorus only becomes one stanza, not a chorus", () => {
     const h = legacy({ verses: [] });
     const { hymn, shape } = convertLegacyHymn(h);
     expect(shape).toBe("chorus-only");

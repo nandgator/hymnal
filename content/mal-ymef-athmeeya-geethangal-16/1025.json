@@ -3,8 +3,8 @@
   "title": "എനിക്കുണ്ടൊരു പുത്തൻ പാട്ടുപാടാൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എനിക്കുണ്ടൊരു പുത്തൻ പാട്ടുപാടാൻ",
         "എനിക്കുണ്ടൊരു മിത്രം കൂട്ടുകൂടാൻ",
@@ -48,25 +48,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

@@ -22,7 +22,7 @@ vi.mock("./channel.ts", () => ({
 const LINES: FlatLine[] = [
   { text: "Line 1a", partId: "s1", isPartStart: true },
   { text: "Line 1b", partId: "s1", isPartStart: false },
-  { text: "Refrain line", partId: "r", isPartStart: true },
+  { text: "Chorus line", partId: "c", isPartStart: true },
 ];
 
 function show(start: number, end = start + 1, number = 7): void {
@@ -72,7 +72,7 @@ describe("Output", () => {
 
     expect(screen.getByText("Line 1a")).toHaveClass("output-line-current");
     expect(screen.getByText("Line 1b")).toHaveClass("output-line-current");
-    expect(screen.getByText("Refrain line")).not.toHaveClass("output-line-current");
+    expect(screen.getByText("Chorus line")).not.toHaveClass("output-line-current");
   });
 
   it("snaps to a new hymn, then scrolls smoothly within it", () => {
@@ -147,7 +147,7 @@ describe("Output", () => {
     const view = screen.getByText("Line 1a").closest(".output-view");
     expect(view).toHaveClass("output-blanked");
     show(2);
-    expect(screen.getByText("Refrain line")).toHaveClass("output-line-current");
+    expect(screen.getByText("Chorus line")).toHaveClass("output-line-current");
 
     channel.handler?.({ type: "blank", blanked: false });
     expect(view).not.toHaveClass("output-blanked");
@@ -155,9 +155,9 @@ describe("Output", () => {
 
   it("takes the Operator's Output theme, live (SDD-0001 §16.1)", () => {
     render(() => <Output />);
-    channel.handler?.({ type: "presentation", theme: "contrast", cues: {}, pinRefrain: false });
+    channel.handler?.({ type: "presentation", theme: "contrast", cues: {}, pinChorus: false });
     expect(document.documentElement.getAttribute("data-output-theme")).toBe("contrast");
-    channel.handler?.({ type: "presentation", theme: "dark", cues: {}, pinRefrain: false });
+    channel.handler?.({ type: "presentation", theme: "dark", cues: {}, pinChorus: false });
     expect(document.documentElement.getAttribute("data-output-theme")).toBe("dark");
   });
 
@@ -171,7 +171,7 @@ describe("Output", () => {
       lines: LINES,
       focus: { start: 2, end: 3 },
       hymnbookTitle: "Test Book",
-      part: "Refrain",
+      part: "Chorus",
       repeat: 2,
     });
     expect(document.querySelector(".output-caption")).not.toBeInTheDocument();
@@ -180,7 +180,7 @@ describe("Output", () => {
       type: "presentation",
       theme: "warm",
       cues: { title: true, repeat: true },
-      pinRefrain: false,
+      pinChorus: false,
     });
     expect(document.querySelector(".output-caption")).toHaveTextContent("Test Hymn · ×2");
     expect(document.querySelector(".output-badge")).not.toBeInTheDocument();
@@ -188,16 +188,16 @@ describe("Output", () => {
       type: "presentation",
       theme: "warm",
       cues: { number: true, hymnbook: true, title: true, part: true, repeat: true },
-      pinRefrain: false,
+      pinChorus: false,
     });
     expect(document.querySelector(".output-caption")).toHaveTextContent(
-      "Test Book · Test Hymn · Refrain · ×2",
+      "Test Book · Test Hymn · Chorus · ×2",
     );
     // The number is its own badge, for songbooks.
     expect(document.querySelector(".output-badge")).toHaveTextContent("7");
   });
 
-  it("names the refrain's lines, unmarked while flowing", () => {
+  it("names the chorus's lines, unmarked while flowing", () => {
     render(() => <Output />);
     channel.handler?.({
       type: "content",
@@ -206,26 +206,26 @@ describe("Output", () => {
       title: "Test Hymn",
       lines: [...LINES, { text: "Line 2a", partId: "s2", isPartStart: true }, ...LINES.slice(2)],
       focus: { start: 2, end: 3 },
-      refrain: "r",
+      chorus: "c",
     });
-    const refrains = screen.getAllByText("Refrain line");
-    expect(refrains).toHaveLength(2);
-    for (const line of refrains) expect(line).toHaveClass("output-refrain");
-    expect(screen.getByText("Line 1a")).not.toHaveClass("output-refrain");
+    const choruses = screen.getAllByText("Chorus line");
+    expect(choruses).toHaveLength(2);
+    for (const line of choruses) expect(line).toHaveClass("output-chorus");
+    expect(screen.getByText("Line 1a")).not.toHaveClass("output-chorus");
     // No mark while sung: the lit lines and the part gap say where we are.
-    expect(refrains[0]).toHaveClass("output-line-current");
-    expect(refrains[0].className).not.toMatch(/special/);
+    expect(choruses[0]).toHaveClass("output-line-current");
+    expect(choruses[0].className).not.toMatch(/special/);
   });
 
-  describe("the refrain, pinned (SDD-0001 §16.1)", () => {
-    // Verse 1, refrain, verse 2, refrain again.
+  describe("the chorus, pinned (SDD-0001 §16.1)", () => {
+    // Verse 1, chorus, verse 2, chorus again.
     const PINNABLE = [
       ...LINES,
       { text: "Line 2a", partId: "s2", isPartStart: true },
       ...LINES.slice(2),
     ];
-    const present = (pinRefrain: boolean, focus: number) => {
-      channel.handler?.({ type: "presentation", theme: "warm", cues: {}, pinRefrain });
+    const present = (pinChorus: boolean, focus: number) => {
+      channel.handler?.({ type: "presentation", theme: "warm", cues: {}, pinChorus });
       channel.handler?.({
         type: "content",
         hymnbookId: "book",
@@ -233,31 +233,29 @@ describe("Output", () => {
         title: "Test Hymn",
         lines: PINNABLE,
         focus: { start: focus, end: focus + 1 },
-        refrain: "r",
+        chorus: "c",
       });
     };
     const band = () => document.querySelector(".output-pinned");
 
-    it("shows the refrain once, in the band, its copies out of the column", () => {
+    it("shows the chorus once, in the band, its copies out of the column", () => {
       render(() => <Output />);
       present(true, 0);
-      expect(band()).toHaveTextContent("Refrain line");
-      const inColumn = screen
-        .getAllByText("Refrain line")
-        .filter((line) => !band()?.contains(line));
+      expect(band()).toHaveTextContent("Chorus line");
+      const inColumn = screen.getAllByText("Chorus line").filter((line) => !band()?.contains(line));
       expect(inColumn).toHaveLength(2);
       // Hidden by the view's pinned mode, which the stylesheet applies.
       expect(inColumn[0].closest(".output-view")).toHaveClass("output-pinned-mode");
     });
 
-    it("lights the band when the refrain is sung, the column otherwise", () => {
+    it("lights the band when the chorus is sung, the column otherwise", () => {
       render(() => <Output />);
       present(true, 0);
       const bandLine = () => band()?.querySelector(".output-line");
       expect(screen.getByText("Line 1a")).toHaveClass("output-line-current");
       expect(bandLine()).not.toHaveClass("output-line-current");
 
-      present(true, 4); // the second showing of the refrain
+      present(true, 4); // the second showing of the chorus
       expect(bandLine()).toHaveClass("output-line-current");
     });
 
@@ -278,7 +276,7 @@ describe("Output", () => {
       type: "presentation",
       theme: "warm",
       cues: { part: true, number: true, fade: true },
-      pinRefrain: false,
+      pinChorus: false,
     });
     const content = (focus: number, part: string) =>
       channel.handler?.({
@@ -299,10 +297,10 @@ describe("Output", () => {
     expect(caption()).toHaveClass("output-cue-faded");
     expect(badge()).toHaveClass("output-cue-faded");
 
-    content(2, "Refrain"); // a part step brings nothing back: cues move as one
+    content(2, "Chorus"); // a part step brings nothing back: cues move as one
     expect(caption()).toHaveClass("output-cue-faded");
     expect(badge()).toHaveClass("output-cue-faded");
-    expect(caption()).toHaveTextContent("Refrain"); // though its text keeps up
+    expect(caption()).toHaveTextContent("Chorus"); // though its text keeps up
 
     // Back from blank, every cue returns together, even one that changed
     // while blanked, and an unchanged one too.
@@ -329,7 +327,7 @@ describe("Output", () => {
       type: "presentation",
       theme: "warm",
       cues: { part: true, number: true },
-      pinRefrain: false,
+      pinChorus: false,
     });
     show(0);
     scrollTo.mockClear();
@@ -406,6 +404,6 @@ describe("Output", () => {
 
     expect(screen.getByText("Line 1a")).not.toHaveClass("output-part-start");
     expect(screen.getByText("Line 1b")).not.toHaveClass("output-part-start");
-    expect(screen.getByText("Refrain line")).toHaveClass("output-part-start");
+    expect(screen.getByText("Chorus line")).toHaveClass("output-part-start");
   });
 });

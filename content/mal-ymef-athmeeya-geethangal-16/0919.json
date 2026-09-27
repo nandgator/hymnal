@@ -3,8 +3,8 @@
   "title": "ക്രിസ്തുവിലില്ല ന്യായപ്രമാണം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഏകയാഗത്താൽ വന്നു രക്ഷ",
         "ഏകയാഗത്താൽ തീർന്നു ശിക്ഷ",
@@ -95,43 +95,43 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s6"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s7"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

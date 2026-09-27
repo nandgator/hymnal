@@ -3,8 +3,8 @@
   "title": "നിന്നെക്കാൾ സ്നേഹിപ്പാ -",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നിന്നെക്കാൾ സ്നേഹിപ്പാ -",
         "നെന്നുടെയായുസ്സിൽ",
@@ -55,25 +55,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

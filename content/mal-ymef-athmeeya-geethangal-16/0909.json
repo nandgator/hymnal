@@ -3,8 +3,8 @@
   "title": "ക്രിസ്തൻ ഭക്തരായുളേളാരേ!",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നാമന്യോന്യം സ്നേഹിക്കുക",
         "ക്രിസ്തൻ ശിഷ്യരായോരേ!",
@@ -117,55 +117,55 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s6"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s7"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s8"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s9"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

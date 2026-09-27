@@ -17,7 +17,7 @@ export type ShortcutId =
   | "lines"
   | "first-last"
   | "stanza"
-  | "refrain"
+  | "chorus"
   | "blank"
   | "output"
   | "tab"
@@ -34,7 +34,7 @@ export const SHORTCUTS: Shortcut[] = [
   { id: "lines", keys: ["↓", "↑"], label: "Next / previous line" },
   { id: "first-last", keys: ["Home", "End"], label: "First / last part" },
   { id: "stanza", keys: ["1–9"], label: "Stanza n (two digits: type both quickly)" },
-  { id: "refrain", keys: ["R"], label: "Refrain" },
+  { id: "chorus", keys: ["C"], label: "Chorus" },
   { id: "blank", keys: ["B", "."], label: "Blank the Output / restore" },
   { id: "output", keys: ["O"], label: "Go live: open the Output, or bring it forward" },
   { id: "tab", keys: ["N"], label: "Next tab" },

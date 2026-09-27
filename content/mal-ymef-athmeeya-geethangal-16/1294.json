@@ -3,8 +3,8 @@
   "title": "ചിൽ ചിൽ ചിഞ്ചിലു ചിലു ചിഞ്ചിലം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "യേശുവിന്റെ സ്നേഹം",
         "ജീവനേകും സ്നേഹം",
@@ -70,25 +70,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

@@ -161,7 +161,7 @@ Five decisions carry the design. Each links its ADR.
 **1. Separate a hymn's _structure_ from its _performance_.**
 The central modelling insight, and the thing the old implementation could not
 express. A hymn owns a set of **parts**; it separately owns a **sequence** of
-references to those parts. A part may be referenced many times, so a refrain is
+references to those parts. A part may be referenced many times, so a chorus is
 stored once and sung repeatedly.
 
 This makes an **occurrence** — a specific position in the sequence — a distinct
@@ -543,6 +543,7 @@ and clickers actually send.
 | [0022](../decisions/0022-publish-a-json-schema-for-the-format.md)            | Publish a JSON Schema for the content format               | Accepted                                                                          |
 | [0023](../decisions/0023-recognise-the-document-and-infer-its-layout.md)     | Recognise what a document holds; infer its layout          | Superseded by [0024](../decisions/0024-import-case-by-case.md)                    |
 | [0024](../decisions/0024-import-case-by-case.md)                             | Import case by case; the app loads only format 1           | Accepted                                                                          |
+| [0025](../decisions/0025-call-it-the-chorus.md)                              | Call it the chorus: screen, key, code and format           | Accepted                                                                          |
 
 Full index, with open questions, in
 [`docs/decisions/`](../decisions/README.md).
@@ -600,16 +601,16 @@ verification against the printed source; recurrence visual language unresolved
 
 ## 12. Glossary
 
-| Term                  | Meaning                                                                                                                                 |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Hymnbook**          | A published collection — language, edition, publisher, and its own numbering                                                            |
-| **Hymn**              | One entry in a hymnbook, identified within it by number                                                                                 |
-| **Part**              | A unit of lyric text with a kind (stanza, refrain, bridge, tag) and lines. Stored once regardless of how often it is sung               |
-| **Sequence**          | The ordered list of part references that constitutes the hymn's sung order                                                              |
-| **Occurrence**        | A single position in the sequence. Distinct from the part it shows — the same refrain sung three times is three occurrences of one part |
-| **Recurrence index**  | How many times a part has already been shown at a given occurrence. `0` is the first showing                                            |
-| **Ad-hoc occurrence** | An occurrence appended by live navigation rather than drawn from the stored sequence                                                    |
-| **Focus**             | The currently active occurrence, and the active line within it                                                                          |
-| **Follow source**     | A producer of "what is live now". Phase 1 has exactly one: local navigation                                                             |
-| **Package**           | A prebuilt, distributable SQLite database containing one hymnbook                                                                       |
-| **Corpus**            | The source-of-truth hymn data, before packaging                                                                                         |
+| Term                  | Meaning                                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hymnbook**          | A published collection — language, edition, publisher, and its own numbering                                                           |
+| **Hymn**              | One entry in a hymnbook, identified within it by number                                                                                |
+| **Part**              | A unit of lyric text with a kind (stanza, chorus, bridge, tag) and lines. Stored once regardless of how often it is sung               |
+| **Sequence**          | The ordered list of part references that constitutes the hymn's sung order                                                             |
+| **Occurrence**        | A single position in the sequence. Distinct from the part it shows — the same chorus sung three times is three occurrences of one part |
+| **Recurrence index**  | How many times a part has already been shown at a given occurrence. `0` is the first showing                                           |
+| **Ad-hoc occurrence** | An occurrence appended by live navigation rather than drawn from the stored sequence                                                   |
+| **Focus**             | The currently active occurrence, and the active line within it                                                                         |
+| **Follow source**     | A producer of "what is live now". Phase 1 has exactly one: local navigation                                                            |
+| **Package**           | A prebuilt, distributable SQLite database containing one hymnbook                                                                      |
+| **Corpus**            | The source-of-truth hymn data, before packaging                                                                                        |

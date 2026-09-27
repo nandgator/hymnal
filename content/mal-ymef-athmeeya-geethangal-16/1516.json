@@ -3,8 +3,8 @@
   "title": "ആത്മനാഥൻ യേശുവിനെ ആരാധിക്കാം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ആത്മനാഥൻ യേശുവിനെ ആരാധിക്കാം",
         "അവൻ കൃപകളിലെന്നും ആശ്രയിക്കാം",
@@ -54,25 +54,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

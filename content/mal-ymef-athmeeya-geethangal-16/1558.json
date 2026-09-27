@@ -3,8 +3,8 @@
   "title": "കർത്താവു ഭവനം പണിയാതെ വന്നാൽ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കർത്താവു ഭവനം പണിയാതെ വന്നാൽ",
         "നിഷ്ഫലമാകും പ്രയത്നമെല്ലാം",
@@ -38,19 +38,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

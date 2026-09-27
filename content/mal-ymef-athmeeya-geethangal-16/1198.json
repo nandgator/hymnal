@@ -3,8 +3,8 @@
   "title": "പോകല്ലേ കടന്നെന്നെ നീ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "യേശു നാഥാ! എന്നപേക്ഷ കേൾ",
         "മറ്റുളേളാരെ ദർശിക്കുമ്പോൾ",
@@ -61,25 +61,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

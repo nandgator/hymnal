@@ -3,8 +3,8 @@
   "title": "സർവ്വശക്തനാണല്ലോ എന്റെ ദൈവം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "സർവ്വശക്തനാണല്ലോ എന്റെ ദൈവം",
         "ഇല്ലില്ലസാദ്ധ്യമായൊന്നുമില്ല",
@@ -55,31 +55,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

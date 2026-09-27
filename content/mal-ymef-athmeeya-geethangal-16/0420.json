@@ -3,8 +3,8 @@
   "title": "യേശുവിലെൻ തോഴനെ കണ്ടേൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "തുമ്പം ദുഃഖങ്ങളതിൽ",
         "ആശ്വാസം നൽകുന്നോൻ",
@@ -56,19 +56,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

@@ -3,8 +3,8 @@
   "title": "യേശുക്രിസ്തു ഉയിർത്തു ജീവിക്കുന്നു",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഹാ! ഹല്ലേലുയ്യാ ജയം ഹല്ലേലുയ്യാ",
         "യേശുകർത്താവു ജീവിക്കുന്നു"
@@ -60,25 +60,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

@@ -25,10 +25,10 @@ const HYMN: HymnSource = {
   title: "Test Hymn",
   parts: [
     { id: "s1", kind: "stanza", label: "1", lines: ["Line 1a", "Line 1b"] },
-    { id: "r", kind: "refrain", lines: ["Refrain line"] },
+    { id: "c", kind: "chorus", lines: ["Chorus line"] },
     { id: "s2", kind: "stanza", label: "2", lines: ["Line 2a"] },
   ],
-  sequence: [{ partId: "s1" }, { partId: "r" }, { partId: "s2" }, { partId: "r" }],
+  sequence: [{ partId: "s1" }, { partId: "c" }, { partId: "s2" }, { partId: "c" }],
   meta: {},
 };
 
@@ -137,7 +137,7 @@ describe("Presenter", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
-    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Chorus");
     expect(screen.queryByText(/×/)).not.toBeInTheDocument();
   });
 
@@ -161,9 +161,9 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
 
     const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
-    fireEvent.click(jumpList.getByRole("button", { name: "Refrain" }));
+    fireEvent.click(jumpList.getByRole("button", { name: "Chorus" }));
 
-    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Chorus");
   });
 
   it("disables Previous part on the first occurrence and Next part on the last", async () => {
@@ -191,12 +191,12 @@ describe("Presenter", () => {
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
     expect(screen.getByRole("button", { name: "Previous part" })).toBeDisabled();
 
-    fireEvent.keyDown(window, { key: "End" }); // the closing refrain, whole
+    fireEvent.keyDown(window, { key: "End" }); // the closing chorus, whole
     fireEvent.keyDown(window, { key: "ArrowDown" }); // its only line
-    const refrainLine = () => currentPart().getByRole("button", { name: "Refrain line" });
-    expect(refrainLine()).toHaveAttribute("aria-current", "true");
+    const chorusLine = () => currentPart().getByRole("button", { name: "Chorus line" });
+    expect(chorusLine()).toHaveAttribute("aria-current", "true");
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
-    expect(refrainLine()).not.toHaveAttribute("aria-current");
+    expect(chorusLine()).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("button", { name: "Next part" })).toBeDisabled();
   });
 
@@ -205,7 +205,7 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
 
     fireEvent.keyDown(window, { key: "ArrowRight" });
-    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Chorus");
 
     fireEvent.keyDown(window, { key: "PageDown" });
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("2");
@@ -235,9 +235,9 @@ describe("Presenter", () => {
         lines: [
           text("Line 1a"),
           text("Line 1b"),
-          text("Refrain line"),
+          text("Chorus line"),
           text("Line 2a"),
-          text("Refrain line"),
+          text("Chorus line"),
         ],
       }),
     );
@@ -261,9 +261,9 @@ describe("Presenter", () => {
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("2");
     expect(screen.getByRole("button", { name: "Next part" })).toBeEnabled();
 
-    // Previous follows the song — the refrain before 2 — not the tap.
+    // Previous follows the song — the chorus before 2 — not the tap.
     fireEvent.click(screen.getByRole("button", { name: "Previous part" }));
-    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Chorus");
   });
 
   it("shows the whole sung order and goes to a block, or a line, when tapped (SDD-0001 §16.4)", async () => {
@@ -271,12 +271,12 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
     const sequence = within(screen.getByRole("region", { name: "Lyrics" }));
 
-    // s1, r, s2, r — every occurrence, the refrain twice.
+    // s1, r, s2, r — every occurrence, the chorus twice.
     expect(sequence.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
       "Verse 1",
-      "Refrain",
+      "Chorus",
       "Verse 2",
-      "Refrain",
+      "Chorus",
     ]);
 
     fireEvent.click(sequence.getByRole("button", { name: "Verse 2" }));
@@ -295,8 +295,8 @@ describe("Presenter", () => {
     // The same view as the Output, scaled: every line, the focus lit.
     expect(live.getByText("Line 1a")).toHaveClass("output-line-current");
     expect(live.getByText("Line 1b")).toHaveClass("output-line-current");
-    for (const refrain of live.getAllByText("Refrain line")) {
-      expect(refrain).not.toHaveClass("output-line-current");
+    for (const chorus of live.getAllByText("Chorus line")) {
+      expect(chorus).not.toHaveClass("output-line-current");
     }
   });
 
@@ -448,12 +448,12 @@ describe("Presenter", () => {
     }
   });
 
-  it("shows every part in full in Lyrics, a repeated refrain too, so a step never reshapes it", async () => {
+  it("shows every part in full in Lyrics, a repeated chorus too, so a step never reshapes it", async () => {
     const hymn: HymnSource = {
       ...HYMN,
       parts: [
         { id: "s1", kind: "stanza", label: "1", lines: ["Line 1a"] },
-        { id: "r", kind: "refrain", lines: ["Refrain one", "Refrain two"] },
+        { id: "c", kind: "chorus", lines: ["Chorus one", "Chorus two"] },
         { id: "s2", kind: "stanza", label: "2", lines: ["Line 2a"] },
       ],
     };
@@ -467,10 +467,10 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
     const lyrics = within(screen.getByRole("region", { name: "Lyrics" }));
 
-    // s1, r, s2, r: both refrains in full, before and after stepping.
-    expect(lyrics.getAllByRole("button", { name: "Refrain two" })).toHaveLength(2);
+    // s1, r, s2, r: both choruses in full, before and after stepping.
+    expect(lyrics.getAllByRole("button", { name: "Chorus two" })).toHaveLength(2);
     for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: "Next part" }));
-    expect(lyrics.getAllByRole("button", { name: "Refrain two" })).toHaveLength(2);
+    expect(lyrics.getAllByRole("button", { name: "Chorus two" })).toHaveLength(2);
   });
 
   it("uses the Live strip at compact height, even on a wide screen (MD3 height class)", async () => {
@@ -511,7 +511,7 @@ describe("Presenter", () => {
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
 
     fireEvent.keyDown(window, { key: "ArrowRight" });
-    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Chorus");
   });
 
   it("orders the keypad special parts first, then stanzas by number", async () => {
@@ -520,9 +520,9 @@ describe("Presenter", () => {
       parts: [
         { id: "s2", kind: "stanza", label: "2", lines: ["Line 2a"] },
         { id: "s1", kind: "stanza", label: "1", lines: ["Line 1a"] },
-        { id: "r", kind: "refrain", lines: ["Refrain line"] },
+        { id: "c", kind: "chorus", lines: ["Chorus line"] },
       ],
-      sequence: [{ partId: "s1" }, { partId: "r" }, { partId: "s2" }],
+      sequence: [{ partId: "s1" }, { partId: "c" }, { partId: "s2" }],
     };
     render(() => (
       <Presenter
@@ -533,7 +533,7 @@ describe("Presenter", () => {
     ));
     await screen.findByText("Test Hymn");
     const keypad = within(screen.getByRole("region", { name: "Jump to part" }));
-    expect(keypad.getAllByRole("button").map((b) => b.textContent)).toEqual(["Refrain", "1", "2"]);
+    expect(keypad.getAllByRole("button").map((b) => b.textContent)).toEqual(["Chorus", "1", "2"]);
   });
 
   it("keeps its shortcuts when a phone's tab has focus", async () => {
@@ -546,7 +546,7 @@ describe("Presenter", () => {
       fireEvent.click(tab);
       tab.focus();
       fireEvent.keyDown(tab, { key: "ArrowRight" });
-      expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+      expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Chorus");
     } finally {
       vi.unstubAllGlobals();
     }
@@ -568,13 +568,13 @@ describe("Presenter", () => {
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
   });
 
-  it("takes the rest of the keymap: Space, Home/End, stanza digits, R (SDD-0001 §16.5)", async () => {
+  it("takes the rest of the keymap: Space, Home/End, stanza digits, C (SDD-0001 §16.5)", async () => {
     render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
     await screen.findByText("Test Hymn");
     const heading = () => currentPart().getByRole("heading", { level: 3 });
 
     fireEvent.keyDown(window, { key: " " });
-    expect(heading()).toHaveTextContent("Refrain");
+    expect(heading()).toHaveTextContent("Chorus");
     fireEvent.keyDown(window, { key: " ", shiftKey: true });
     expect(heading()).toHaveTextContent("1");
 
@@ -585,11 +585,11 @@ describe("Presenter", () => {
 
     fireEvent.keyDown(window, { key: "2" });
     expect(heading()).toHaveTextContent("2");
-    fireEvent.keyDown(window, { key: "R" });
-    expect(heading()).toHaveTextContent("Refrain");
+    fireEvent.keyDown(window, { key: "C" });
+    expect(heading()).toHaveTextContent("Chorus");
     // Not a stanza: nothing happens.
     fireEvent.keyDown(window, { key: "9" });
-    expect(heading()).toHaveTextContent("Refrain");
+    expect(heading()).toHaveTextContent("Chorus");
   });
 
   it("makes Space Next part even on a focused chip, never re-pressing it", async () => {
@@ -604,7 +604,7 @@ describe("Presenter", () => {
     chip.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(true);
-    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Chorus");
   });
 
   it("waits briefly for a second stanza digit only when one could follow", async () => {
@@ -687,13 +687,13 @@ describe("Presenter", () => {
     ));
     await screen.findByText("Test Hymn");
 
-    // Flattened: 1a 1b | Refrain | 2a | Refrain — line 3 is "Line 2a".
+    // Flattened: 1a 1b | Chorus | 2a | Chorus — line 3 is "Line 2a".
     seek.handler?.({ type: "seek", hymnbookId: "book", number: 7, line: 3, whole: false });
     expect(screen.getByRole("button", { name: "Line 2a" })).toHaveAttribute("aria-current", "true");
 
     // Next part carries on from there.
     fireEvent.keyDown(window, { key: "ArrowRight" });
-    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Chorus");
   });
 
   it("lands on the whole part when the scroll began from whole-part focus", async () => {
@@ -770,7 +770,7 @@ describe("Presenter", () => {
     // Next still carries on through the song.
     fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
-    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Chorus");
   });
 
   it("hands the shell its Repeat and Undo repeat while mounted", async () => {
@@ -810,7 +810,7 @@ describe("Presenter", () => {
     expect(published()).toMatchObject({ hymnbookTitle: "Test Book", part: "Verse 1", repeat: 1 });
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
     fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
-    expect(published()).toMatchObject({ part: "Refrain", repeat: 2 });
+    expect(published()).toMatchObject({ part: "Chorus", repeat: 2 });
   });
 
   it("swaps from a long path to a short one without reading past its end", async () => {
@@ -820,11 +820,11 @@ describe("Presenter", () => {
       title: "Long Hymn",
       sequence: [
         { partId: "s1" },
-        { partId: "r" },
+        { partId: "c" },
         { partId: "s2" },
-        { partId: "r" },
+        { partId: "c" },
         { partId: "s1" },
-        { partId: "r" },
+        { partId: "c" },
       ],
     };
     const short: HymnSource = {

@@ -3,8 +3,8 @@
   "title": "\"ഹവ്വാമ്മച്ചീ - പഴം തിന്ന്",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "അവനിന്നും നമ്മളെ പറഞ്ഞുപറ്റിക്കാന്‍",
         "അരികില്‍വരുമല്ലോ - പിന്നെ",
@@ -62,19 +62,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

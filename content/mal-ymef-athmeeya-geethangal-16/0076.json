@@ -3,8 +3,8 @@
   "title": "കാൽവറിയിൽ വൻ ക്രൂശതിൽ കാരി -",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കാരുണ്യനാഥനെ",
         "സ്നേഹസ്വരൂപനെ",
@@ -51,19 +51,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

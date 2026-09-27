@@ -390,7 +390,7 @@ devotional, legible-at-distance tool.
   - **The caption, a lower third**: hymnbook · title · part · ×N (e.g.
     `Hymnbook · Amazing Grace · Verse 2 · ×2`) as plain `output-ink-dimmed`
     text centred in the bottom margin, no container. A stanza reads
-    **Verse n**, other parts by kind (Refrain, Bridge, Tag); ×N shows only
+    **Verse n**, other parts by kind (Chorus, Bridge, Tag); ×N shows only
     on a repeat.
   - **The number badge**, for those following in a printed songbook: the
     hymn's number in a FAB-like tonal tile (9% ink over the ground,
@@ -475,7 +475,7 @@ unit.
     part before and after dimmed), its controls underneath (follow
     status, Blank, later Hold; the open outputs), then a divider and
     **Parts**: the Repeat row (Repeat · ×2 · Undo · Reset, holding its
-    height) and the keypad (Refrain full width, verses in fixed-width
+    height) and the keypad (Chorus full width, verses in fixed-width
     cells).
   - **This hymn**: the lyrics in sung order, tap a part or a line to send
     it live (ProPresenter's click-a-slide-to-go-live).
@@ -508,7 +508,7 @@ unit.
     `--button-shape`, never a pill beside a square; only MD3's switch
     stays a pill, being its own component. A chip inside a control nests
     concentrically. Icons are Material Symbols Rounded, all of them.
-  - **Lyrics, every part in full.** A refrain's later showings show all
+  - **Lyrics, every part in full.** A chorus's later showings show all
     their lines too. Folding them to a first line and "…" kept the list
     short, but made each step reshape the blocks (the leaving one folding,
     the arriving one opening), so the list jolted back and forth as it
@@ -519,7 +519,7 @@ unit.
     block becoming current — is the confirmation. Hover shading is extra,
     for pointer devices only, and faint on both blocks and lines.
   - **Lyrics, touch-first.** The whole block is the tap target (no
-    hunting for a small "1" or "Refrain"); tapping a line sends that
+    hunting for a small "1" or "Chorus"); tapping a line sends that
     line live. **Scrolling only browses** and never changes what's live,
     so a stray swipe can't move the Output; only a tap does. Scrolled
     away from the current block, a "Back to Current" button floats up
@@ -547,7 +547,7 @@ unit.
     a phone one thing is worked at a time, the lyrics or the parts, so the
     keypad gets a tab's room rather than a strip of it. Parts holds what
     the stage holds from 840px: the Repeat row (Repeat · ×2 · Undo ·
-    Reset, holding its height) and the keypad (Refrain full width, verses
+    Reset, holding its height) and the keypad (Chorus full width, verses
     in equal columns), scrolling inside like any tab. It opens on Parts.
     The transport is the dock. No snackbar: Undo stays in the Repeat row.
   - **Where a control lives follows how often it's used mid-service**:
@@ -654,17 +654,17 @@ unit.
 - **Output**: full-bleed, one centred column scrolling vertically, the
   focus held at the eyeline, the safe-area margin around it and nothing
   else on screen. Parts are separated by a gap of about half a line, as
-  in a printed hymnal: where a verse ends and the refrain begins is
+  in a printed hymnal: where a verse ends and the chorus begins is
   visible without a label. Scrolled by hand, the highlight becomes a
   reading band fixed where the focus's part sat, one part tall, lighting
   whatever passes through it, until the scroll rests (SDD-0001 §16.1).
-- **The refrain, pinned** (SDD-0001 §16.1, "Pin the refrain (chorus)", off by
+- **The chorus, pinned** (SDD-0001 §16.1, "Pin the chorus", off by
   default): in its own pane, dimmed until sung and lit in place when it is,
   while the verses scroll alone. **Side by side** on a landscape screen (verses
-  left, refrain right, both on the eyeline), so the back rows see it over the
+  left, chorus right, both on the eyeline), so the back rows see it over the
   heads in front; **a band at the foot** on portrait, or when side by side would
   shrink the type below 70% of full size (5.25% of the screen's shorter side). A
-  hymn that neither layout can hold there flows. Only the refrain pins; a bridge
+  hymn that neither layout can hold there flows. Only the chorus pins; a bridge
   or tag stays in the verse column. No part carries a mark (no box, glow, rule,
   label or italics): being sung, it's lit like any other, and the part gap sets
   it apart.
@@ -694,14 +694,14 @@ or thumb mid-service. Three rules follow:
   A repeat stays on the same page with its count going up (×2, ×3 …):
   the Output doesn't scroll to a copy, Lyrics shows one block marked ×N
   instead of a stack, and the Output can show that ×N as a cue.
-- **Special parts first, then the keypad.** Refrains, bridges and tags
+- **Special parts first, then the keypad.** Choruses, bridges and tags
   (unnumbered) come first as full-row chips; numbered stanzas follow as a
   keypad in number order, whatever order the hymn stores its parts in —
-  a hymn that stores verse 1 before its refrain must not split the
+  a hymn that stores verse 1 before its chorus must not split the
   keypad around it.
 - **Part chips sit in a grid of equal cells**, in the hymn's part order:
   numbered stanzas one cell each, so 1, 2, 3… always land in the same
-  places; refrains, bridges and tags (unnumbered, longer labels) span a
+  places; choruses, bridges and tags (unnumbered, longer labels) span a
   full row. The rail reads as a keypad, not a word-wrapped sentence.
   Cells are a fixed size, never stretched, and the grid is at most as
   many cells wide as the hymn has stanzas (three minimum), so a full-row

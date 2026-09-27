@@ -3,8 +3,8 @@
   "title": "നിൻ അന്തികേ ഞാൻ നാഥാ! വരുന്നു",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നിൻ അന്തികേ ഞാൻ നാഥാ! വരുന്നു",
         "എന്നെ തിരുക്കരത്തിൽ തരുന്നു",
@@ -45,25 +45,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

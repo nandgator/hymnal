@@ -3,8 +3,8 @@
   "title": "വാഴ്ത്തിടുക ദിനം വാഴ്ത്തിടുക",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "വാഴ്ത്തിടുക ദിനം വാഴ്ത്തിടുക",
         "യേശുനാഥനെ വാഴ്ത്തിടുക",
@@ -48,25 +48,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

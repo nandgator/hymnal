@@ -3,8 +3,8 @@
   "title": "സ്വർഗ്ഗപിതാവെ അങ്ങയെ ഞാൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "സ്വർഗ്ഗപിതാവെ അങ്ങയെ ഞാൻ",
         "ആരാധിക്കുന്നു സ്തുതിക്കുന്നു",
@@ -31,19 +31,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

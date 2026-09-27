@@ -3,8 +3,8 @@
   "title": "ദൈവമങ്ങൊരുക്കിടും ഭവനമുണ്ടതിൽ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ദൈവമങ്ങൊരുക്കിടും ഭവനമുണ്ടതിൽ",
         "താമസംകൂടാതെ ഞാനും ചേർന്നിടുമേ",
@@ -59,25 +59,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

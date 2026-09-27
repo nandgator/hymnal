@@ -3,8 +3,8 @@
   "title": "ആശയോടെയെന്നും കാത്തിടുന്നു നാഥാ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ആശയോടെയെന്നും കാത്തിടുന്നു നാഥാ",
         "വീടൊരുക്കാൻ പോയ എന്റെ പ്രിയ നാഥാ",
@@ -37,19 +37,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

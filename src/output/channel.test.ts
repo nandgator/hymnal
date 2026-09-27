@@ -138,12 +138,12 @@ describe("output channel", () => {
   it("sends the Output theme, and replays it to a late Output", async () => {
     const otherWindow = new BroadcastChannel(CHANNEL_NAME);
     const sent = nextMessage(otherWindow);
-    setOutputPresentation({ theme: "warm", cues: { part: true }, pinRefrain: true });
+    setOutputPresentation({ theme: "warm", cues: { part: true }, pinChorus: true });
     expect(await sent).toEqual({
       type: "presentation",
       theme: "warm",
       cues: { part: true },
-      pinRefrain: true,
+      pinChorus: true,
     });
 
     const seen: unknown[] = [];
@@ -154,7 +154,7 @@ describe("output channel", () => {
       type: "presentation",
       theme: "warm",
       cues: { part: true },
-      pinRefrain: true,
+      pinChorus: true,
     });
     otherWindow.close();
   });

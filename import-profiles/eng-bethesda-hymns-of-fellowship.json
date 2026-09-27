@@ -23,12 +23,12 @@
     "pattern": "^\\(?(?<number>\\d+)\\)\\s*(?<title>.+)$",
     "font": "TimesNewRomanPS-BoldMT"
   },
-  "refrain": {
+  "chorus": {
     "font": "TimesNewRomanPS-ItalicMT"
   },
   "labels": {
-    "chorus": "refrain",
-    "cho": "refrain",
+    "chorus": "chorus",
+    "cho": "chorus",
     "bridge": "bridge",
     "end": "outro"
   },

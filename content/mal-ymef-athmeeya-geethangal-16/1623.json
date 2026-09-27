@@ -3,8 +3,8 @@
   "title": "പോ സാത്താനെ ദുരെ പോകൂ സാത്താനെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പോ സാത്താനെ ദുരെ പോകൂ സാത്താനെ",
         "കുട്ടികൾ ഞങ്ങൾ കുടും നേരം പിത്തന കാട്ടാൻ നിൽക്കണ്ടാ",
@@ -37,19 +37,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

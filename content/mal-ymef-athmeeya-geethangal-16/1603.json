@@ -3,8 +3,8 @@
   "title": "നിന്റെ മഹത്വമാണേക ലക്ഷ്യം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നിന്റെ മഹത്വമാണേക ലക്ഷ്യം",
         "എൻെറ ജീവിതത്തിൽ യേശുവേ",
@@ -43,19 +43,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

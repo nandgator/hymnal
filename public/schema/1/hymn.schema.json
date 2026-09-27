@@ -38,13 +38,13 @@
             "intro",
             "stanza",
             "pre-chorus",
-            "refrain",
+            "chorus",
             "post-chorus",
             "bridge",
             "outro",
             "tag"
           ],
-          "description": "The part's role in the song. A refrain is also called a chorus."
+          "description": "The part's role in the song. A chorus is also called a chorus."
         },
         "label": { "type": "string", "description": "Shown with the part, e.g. \"1\"." },
         "lines": {

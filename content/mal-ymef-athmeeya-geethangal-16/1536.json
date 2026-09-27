@@ -3,8 +3,8 @@
   "title": "ഏഴു വിളക്കിൻ നടുവിൽ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ആദ്യനും അന്ത്യനും നീ മാത്രമേശുവേ",
         "സ്തുതികൾക്കും പുകഴ്ചയ്ക്കും",
@@ -51,19 +51,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

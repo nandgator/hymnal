@@ -75,7 +75,7 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 | Area    | Status                                                                   |
 | ------- | ------------------------------------------------------------------------ |
-| Docs    | arc42 + 24 ADRs + SDD-0001–0003; design principles noted                 |
+| Docs    | arc42 + 25 ADRs + SDD-0001–0003; design principles noted                 |
 | Tooling | bun, biome, prettier, markdownlint — `bun run check` green               |
 | App     | Vite + SolidJS + TS scaffolded; vitest chosen as test runner             |
 | Domain  | Types, Sequence Engine, validation (`src/domain/`) — pure, tested        |
@@ -145,6 +145,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-27 — The refrain is the chorus: screen, key C, code, format (ADR-0025)
 - 2026-09-27 — #26 part 4b: loading in place, install progress; Recents
 - 2026-09-27 — #26 part 4a: phone layout, Parts a tab; one Recents list
 - 2026-09-27 — Triage and inference dropped; import case by case (ADR-0024)
@@ -156,4 +157,3 @@ ones only, here:
 - 2026-09-27 — #27 part 2: PDF reader; columns split at gutters; `bun run import`
 - 2026-09-27 — #27 part 1: format v1; unknown fields fail at every level
 - 2026-09-27 — Song import designed: ADR-0018/0019; SDD-0002 format v1, SDD-0003
-- 2026-09-26 — CI: deploy workflow actions moved to their Node 24 majors

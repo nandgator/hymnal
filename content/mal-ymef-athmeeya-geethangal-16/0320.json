@@ -3,8 +3,8 @@
   "title": "എത്രയോ ശ്രേഷ്ഠനായവൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എത്രയോ ശ്രേഷ്ഠനായവൻ",
         "ക്രിസ്തുതാനെന്നുറച്ചു പാടുവിൻ",
@@ -56,25 +56,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

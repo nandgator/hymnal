@@ -3,8 +3,8 @@
   "title": "ദൈവമേ നിൻ മഹാ കരുണയിൻ കരുതൽ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ആരാധന... സ്തുതി ആരാധന",
         "ആരാധന... സ്തുതി ആരാധ്യന്"
@@ -55,19 +55,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

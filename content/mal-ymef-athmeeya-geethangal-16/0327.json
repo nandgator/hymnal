@@ -3,8 +3,8 @@
   "title": "യേശുവെപ്പോലൊരു സഖിയായെന്നു",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എൻഖേദമെല്ലാം താനറിഞ്ഞിടും",
         "എൻകാലമെല്ലാം താൻ നയിച്ചിടും",
@@ -63,25 +63,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

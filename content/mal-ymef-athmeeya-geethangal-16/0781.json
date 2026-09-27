@@ -3,8 +3,8 @@
   "title": "മതി മതി യേശുവിൻ കൃപ മതിയേ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "മതി മതി യേശുവിൻ കൃപ മതിയേ",
         "മതിമറന്നനുദിനം സ്തുതിച്ചിടുവാൻ",
@@ -37,19 +37,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

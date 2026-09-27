@@ -3,8 +3,8 @@
   "title": "ഈ ലോകം നൽകുകില്ല",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഈ ലോകം നൽകുകില്ല",
         "സന്തോഷം സമാധാനം",
@@ -36,19 +36,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

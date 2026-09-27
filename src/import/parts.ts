@@ -20,7 +20,7 @@ const ID_PREFIX: Record<PartKind, string> = {
   intro: "i",
   stanza: "s",
   "pre-chorus": "p",
-  refrain: "r",
+  chorus: "c",
   "post-chorus": "q",
   bridge: "b",
   outro: "o",
@@ -225,11 +225,11 @@ function joinBreaks(
   return out;
 }
 
-/** "refrain" or "stanza" when one font sets the whole block, else undefined. */
+/** "chorus" or "stanza" when one font sets the whole block, else undefined. */
 function fontKind(block: Block, profile: Profile): PartKind | undefined {
-  const refrain = block.lines.filter((line) => line.font === profile.refrain.font).length;
-  if (refrain === block.lines.length) return "refrain";
-  if (refrain === 0) return "stanza";
+  const chorus = block.lines.filter((line) => line.font === profile.chorus.font).length;
+  if (chorus === block.lines.length) return "chorus";
+  if (chorus === 0) return "stanza";
   return undefined;
 }
 
@@ -240,11 +240,11 @@ function kindByFont(
 ): PartKind {
   const kind = fontKind(block, profile);
   if (kind) return kind;
-  const refrain = block.lines.filter((line) => line.font === profile.refrain.font);
-  const most = refrain.length * 2 > block.lines.length ? "refrain" : "stanza";
+  const chorus = block.lines.filter((line) => line.font === profile.chorus.font);
+  const most = chorus.length * 2 > block.lines.length ? "chorus" : "stanza";
   note(
     "fonts",
-    `${refrain.length} of ${block.lines.length} lines in the refrain font, taken as a ${most}: "${block.lines[0].text}"`,
+    `${chorus.length} of ${block.lines.length} lines in the chorus font, taken as a ${most}: "${block.lines[0].text}"`,
     block.lines[0].page,
   );
   return most;
@@ -252,20 +252,20 @@ function kindByFont(
 
 /**
  * As printed, when the page spells it out: a label standing for a part, or
- * the refrain printed more than once. Otherwise ADR-0009's rule: the
- * refrain, printed once, is sung first if printed first, and after every
- * stanza. A refrain printed as several blocks in a row is sung whole.
+ * the chorus printed more than once. Otherwise ADR-0009's rule: the
+ * chorus, printed once, is sung first if printed first, and after every
+ * stanza. A chorus printed as several blocks in a row is sung whole.
  */
 function sequenceOf(
   parts: Part[],
   order: (Part | PartKind)[],
   note: (kind: Note["kind"], message: string, page?: number) => void,
 ): SequenceEntry[] {
-  const isRefrain = (item: Part | PartKind) => typeof item !== "string" && item.kind === "refrain";
+  const isChorus = (item: Part | PartKind) => typeof item !== "string" && item.kind === "chorus";
   const groups: string[][] = [];
   for (const [i, item] of order.entries()) {
-    if (typeof item === "string" || item.kind !== "refrain") continue;
-    if (i > 0 && isRefrain(order[i - 1])) groups[groups.length - 1].push(item.id);
+    if (typeof item === "string" || item.kind !== "chorus") continue;
+    if (i > 0 && isChorus(order[i - 1])) groups[groups.length - 1].push(item.id);
     else groups.push([item.id]);
   }
   const labelled = order.some((item) => typeof item === "string");
@@ -283,23 +283,23 @@ function sequenceOf(
       else note("sequence", `a label asks for a ${item}, and the song has none`);
     }
     if (new Set(groups.map((g) => g.join())).size > 1) {
-      note("sequence", `${groups.length} different refrains, sung as printed`);
+      note("sequence", `${groups.length} different choruses, sung as printed`);
     }
     return ids.map((partId) => ({ partId }));
   }
 
-  const [refrain] = groups;
-  const ids: string[] = isRefrain(order[0]) ? [...refrain] : [];
+  const [chorus] = groups;
+  const ids: string[] = isChorus(order[0]) ? [...chorus] : [];
   for (const item of order) {
-    if (typeof item === "string" || item.kind === "refrain") continue;
+    if (typeof item === "string" || item.kind === "chorus") continue;
     ids.push(item.id);
-    if (item.kind === "stanza") ids.push(...refrain);
+    if (item.kind === "stanza") ids.push(...chorus);
   }
-  const others = parts.filter((p) => p.kind !== "stanza" && p.kind !== "refrain");
+  const others = parts.filter((p) => p.kind !== "stanza" && p.kind !== "chorus");
   if (others.length > 0) {
     note(
       "sequence",
-      `the refrain after every stanza; ${others.map((p) => p.kind).join(", ")} where printed`,
+      `the chorus after every stanza; ${others.map((p) => p.kind).join(", ")} where printed`,
     );
   }
   return ids.map((partId) => ({ partId }));

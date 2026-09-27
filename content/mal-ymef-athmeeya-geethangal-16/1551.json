@@ -3,8 +3,8 @@
   "title": "നന്ദിയോടെ ഞാൻ സ്തുതി പാടിടും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നന്ദിയോടെ ഞാൻ സ്തുതി പാടിടും",
         "എന്റെ യേശു നാഥാ -",
@@ -37,19 +37,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

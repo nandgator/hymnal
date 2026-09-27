@@ -3,8 +3,8 @@
   "title": "ജീവിതത്തോണി സ്വർഗ്ഗതീരം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ജീവിതത്തോണി സ്വർഗ്ഗതീരം",
         "ചേരാൻ ചേരാൻ",
@@ -50,25 +50,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

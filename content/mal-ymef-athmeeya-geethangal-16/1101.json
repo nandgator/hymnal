@@ -3,8 +3,8 @@
   "title": "യിസ്രായേലിൻ ദൈവം യുദ്ധവീരനാം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഓ! പോയിടാം ക്രിസ്തുവിൻ",
         "പിമ്പേ പോയിടാം",
@@ -65,25 +65,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

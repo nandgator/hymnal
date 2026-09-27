@@ -3,8 +3,8 @@
   "title": "ആഹ്! വഹ് പ്യാരീ സലിബ്",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പസ് ന ഛോഡൂംഗാ പ്യാരീ സലീബ്",
         "ജബ് തക് ദുനിയാ മെം ഹോഗാകയാം",
@@ -52,19 +52,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

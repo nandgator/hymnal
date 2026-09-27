@@ -3,8 +3,8 @@
   "title": "കാഹളം മുഴങ്ങിടുന്ന",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കാഹളം മുഴങ്ങിടുന്ന",
         "കാന്തനാഗമിച്ചിടുന്ന",
@@ -41,19 +41,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

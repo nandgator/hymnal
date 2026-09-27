@@ -3,8 +3,8 @@
   "title": "ഛോട് ന മുഝേ പ്യാരേ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "യീശു! യീശു! ബിൻതീ സുൻ മേരീ",
         "ഔരോം പർ തൂ ദയാ കർതാ",
@@ -50,19 +50,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

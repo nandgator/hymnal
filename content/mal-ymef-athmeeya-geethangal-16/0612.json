@@ -3,8 +3,8 @@
   "title": "അൻപോടെന്നെ പോറ്റും പ്രിയന്റെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഇത്രമാ സ്നേഹത്തെ എങ്ങനെ",
         "വർണ്ണിക്കും എൻ പ്രിയാ"
@@ -60,25 +60,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

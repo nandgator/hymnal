@@ -3,8 +3,8 @@
   "title": "ശ്രീയേശുരാജദേവാ നമോ നമോ...",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ശ്രീയേശുരാജദേവാ നമോ നമോ...",
         "ശ്രീതരും തിരുപൊന്നു നാമം നമോ നമോ...",
@@ -48,25 +48,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

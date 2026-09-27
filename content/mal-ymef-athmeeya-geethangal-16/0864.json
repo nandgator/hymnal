@@ -3,8 +3,8 @@
   "title": "ഇസ്രായേലിൻ പരിപാലകൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഇസ്രായേലിൻ പരിപാലകൻ",
         "അവൻ ഉറങ്ങുകില്ല മയങ്ങുകില്ല",
@@ -53,25 +53,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

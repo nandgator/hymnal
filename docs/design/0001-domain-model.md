@@ -20,7 +20,7 @@ unambiguous:
 2. **An occurrence — one position in the sung order — is addressable
    independently of the part whose text it shows.**
 
-Everything the presentation layer needs in order to signal "this refrain again"
+Everything the presentation layer needs in order to signal "this chorus again"
 follows from the second point.
 
 ---
@@ -55,7 +55,7 @@ type HymnNumber = number;
 type PartId = string;
 
 /**
- * A part's role in the song, in the usual order of one. A refrain is also
+ * A part's role in the song, in the usual order of one. A chorus is also
  * called a chorus. An instrumental solo, an ad lib or an elision has no
  * lyrics of its own, so none is a part.
  */
@@ -63,7 +63,7 @@ type PartKind =
   | "intro"
   | "stanza"
   | "pre-chorus"
-  | "refrain"
+  | "chorus"
   | "post-chorus"
   | "bridge"
   | "outro"
@@ -84,7 +84,7 @@ interface Part {
   id: PartId;
   kind: PartKind;
   lines: string[];
-  /** Display label, e.g. "1". Absent for refrains. */
+  /** Display label, e.g. "1". Absent for choruses. */
   label?: string;
 }
 
@@ -193,7 +193,7 @@ a follow source reporting where it believes the singing is
 Defining it once prevents three incompatible schemes appearing separately.
 
 A `Position` addresses an **occurrence**, not a part. Pointing at a part would
-be ambiguous the moment a refrain repeats — which is precisely the case that
+be ambiguous the moment a chorus repeats — which is precisely the case that
 matters.
 
 ---
@@ -375,7 +375,7 @@ CREATE TABLE hymn (
 CREATE TABLE part (
   hymn_number INTEGER NOT NULL REFERENCES hymn(number),
   id          TEXT NOT NULL,
-  kind        TEXT NOT NULL CHECK (kind IN ('intro','stanza','pre-chorus','refrain','post-chorus','bridge','outro','tag')),
+  kind        TEXT NOT NULL CHECK (kind IN ('intro','stanza','pre-chorus','chorus','post-chorus','bridge','outro','tag')),
   label       TEXT,
   PRIMARY KEY (hymn_number, id)
 ) STRICT;
@@ -455,7 +455,7 @@ Per [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md). Legacy record:
 | `id`                 | `hymn.number`                                               |
 | `author`             | `hymn.author`, `NULL` when empty (325 hymns)                |
 | `verses[i]`          | Part `s{i+1}`, kind `stanza`, label `{i+1}`                 |
-| `chorus` (non-empty) | Part `r`, kind `refrain`                                    |
+| `chorus` (non-empty) | Part `r`, kind `chorus`                                     |
 | `bridge`             | **Dropped.** Empty in all 1,631 records; survives as a kind |
 | `starts`             | Determines the first sequence entry                         |
 | —                    | `hymn.title` := first line of the first sequence entry      |
@@ -470,7 +470,7 @@ Sequence derivation:
 | Chorus only, no verses           | 98    | `s1` — one stanza, no repeat |
 
 The last row is a deliberate reinterpretation. A part that never repeats is not
-a refrain; calling it one was an artefact of the old template switch. These
+a chorus; calling it one was an artefact of the old template switch. These
 become a single stanza with a one-entry sequence.
 
 **Migration output is source, not a build artifact.** It is committed, and
@@ -502,8 +502,8 @@ Both are kept in the repo as the record of how the corpus was derived:
     156, 666, 753, 856, 864, 890, 895, 901, 924, 930, 1066, 1335). Those
     choruses are multi-paragraph and every one of the 12 also has verses,
     e.g. 930 has 10 verses and 11 chorus paragraphs, which suggests a different
-    refrain after each verse. The rules cannot infer that, so each becomes a
-    single refrain and the report flags the 12 for hand correction. The original
+    chorus after each verse. The rules cannot infer that, so each becomes a
+    single chorus and the report flags the 12 for hand correction. The original
     paragraphing remains in git history.
 - Fails on any legacy shape the rules do not cover: non-empty `bridge`, an
   empty verse, an unknown `starts`, or a `starts` inconsistent with the shape.
@@ -522,7 +522,7 @@ any listing; `isbn` stays absent until the printed copy is checked.
 | Question                                                | Resolve by                                                                             |
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Default focus on arrival — whole part or first line     | Trying it on screen                                                                    |
-| Which kinds besides stanza and refrain books really use | Hymns of Fellowship, the second hymnbook (Board #27)                                   |
+| Which kinds besides stanza and chorus books really use  | Hymns of Fellowship, the second hymnbook (Board #27)                                   |
 | Cross-book song identity (shared songs, translations)   | Deferred until a second book exists; see below                                         |
 | Word-level addressing below `lineIndex`                 | Phase 2, if lyric alignment proves feasible                                            |
 | ~~Synthetic multi-publisher `HymnbookId` (e.g. UUID7)~~ | Resolved: [ADR-0021](../decisions/0021-identify-books-by-the-store-that-holds-them.md) |
@@ -548,7 +548,7 @@ is separate: none leaves the device today, but any server-side state
 **Song, arrangement, singing (2026-09-26, noted, not built).** Three layers,
 each owning its own order. The **song** keeps only its printed sequence,
 never mutated (§5.1). An **arrangement** (Board #23) is a saved way of
-singing it ("v1, v2, refrain ×2, v4"), chosen per service; a service queue
+singing it ("v1, v2, chorus ×2, v4"), chosen per service; a service queue
 item (#22) is a song plus an optional arrangement. A **singing** is one
 occasion: the path actually sung, live repeats and jumps included, and its
 timestamps when recorded (#24). Today a live repeat lives only in the
@@ -589,9 +589,12 @@ CMS can apply the same checks. They cover I1-I7, plus:
 
 **Full-text index.** One `hymn_fts` row per hymn, `rowid` = hymn number, `body`
 = the lines of each part **once**, in part order and not in sung order, so a
-repeated refrain is not weighted up.
+repeated chorus is not weighted up.
 
 **Versioning.** `schema_version` gates compatibility with the application.
+An installed copy older than the app's is replaced by the app's own bundled
+one, once; a copy newer than the app says the app needs an update (ADR-0025,
+which took it to 2).
 `content_hash` is a SHA-256 over the source files (name and bytes, in a fixed
 order), so any lyric correction changes it and the same source always yields the
 same hash. It is deliberately not a build timestamp: rebuilding unchanged
@@ -926,7 +929,7 @@ loading, the error state, opening on the first occurrence with the whole
 part focused, `addRecent` firing once on open, part and line navigation,
 the repeat cue appearing/hiding, and jump-to-part's recurrence math. Verified
 by hand in a real browser against hymn 1 (a real 7-stanza hymn with an
-8-times-repeated refrain): search does not touch recents, opening does,
+8-times-repeated chorus): search does not touch recents, opening does,
 recents survive a reload, and the cue and "final repeat" wording match the
 engine's actual recurrence count end to end.
 
@@ -1090,7 +1093,7 @@ so a one-line step and a whole-part jump both take a duration proportional
 to their distance for free. A new hymn snaps instantly rather than
 scrolling from the previous one. **Parts are
 set apart by a gap** (about half a line), as in a printed hymnal, so the
-congregation can see where a verse ends and the refrain begins: a shape,
+congregation can see where a verse ends and the chorus begins: a shape,
 not a label, so it needs no language. **No part label, no recurrence cue
 unless the operator turns one on** — those are Operator aids; a cue
 tracking the _stored_ order has no meaning to a congregation watching
@@ -1107,23 +1110,23 @@ adds no lines to the flattened column; its focus is the earlier copy's,
 so the Output doesn't scroll away to identical text and `positionOfLine`
 never lands on it.
 
-**The refrain, pinned** (Board #13, which replaced the earlier Modes 2 and
-3). The corpus decides the shape: every special part in it is a refrain
+**The chorus, pinned** (Board #13, which replaced the earlier Modes 2 and
+3). The corpus decides the shape: every special part in it is a chorus
 (no bridge or tag), a hymn has at most one, 1,188 of 1,631 hymns have
 one, and 918 of those open on it. So:
 
-- **Only the refrain pins.** It's the part that recurs; a bridge or a
+- **Only the chorus pins.** It's the part that recurs; a bridge or a
   tag is sung once or twice near the end, so it stays in the verse
   column.
 - **Pinned from the first line, where the screen allows.** With "Pin
-  the refrain (chorus)" on (a Presentation setting, off by default:
-  flowing is the Output everyone knows), the refrain
+  the chorus" on (a Presentation setting, off by default:
+  flowing is the Output everyone knows), the chorus
   leaves the scrolling column, which holds only the verses (the Output
-  never shows the same refrain twice), and sits in its own pane, dimmed
+  never shows the same chorus twice), and sits in its own pane, dimmed
   until sung, lit in place when it is (a repeat too, with ×N as a cue).
   Two panes, chosen per hymn and screen:
-  - **Side by side**: verses in the left half, the refrain in the right,
-    centred on the eyeline. Preferred on a landscape screen: the refrain
+  - **Side by side**: verses in the left half, the chorus in the right,
+    centred on the eyeline. Preferred on a landscape screen: the chorus
     stays at eye height, where a band at the foot sits behind the heads
     in front for the back rows.
   - **The band**: at the foot, above the cue caption, the verses above it
@@ -1132,14 +1135,14 @@ one, and 918 of those open on it. So:
     portrait screen, where half-width columns would wrap every line, and
     the landscape fallback when side by side can't hold the floor.
 
-  While the refrain is sung, the verse column holds the verse to come at
+  While the chorus is sung, the verse column holds the verse to come at
   its eyeline, dimmed (at the end, the last verse), so what's next is in
-  view — for the 918 hymns that open on the refrain, verse 1 waits there.
+  view — for the 918 hymns that open on the chorus, verse 1 waits there.
   The pane is there from the first line because the type size is held
   per hymn: a pane arriving mid-hymn would force a resize.
 
 - **Big type wins.** Each layout is measured on the real screen at its
-  own width: the band needs the tallest verse and the refrain together,
+  own width: the band needs the tallest verse and the chorus together,
   side by side each in half the width, where long lines wrap and a long
   unbreakable word (Malayalam words don't break) must shrink until it
   fits its column. A layout qualifies only if it truly fits (at the
@@ -1148,21 +1151,21 @@ one, and 918 of those open on it. So:
   absolute floor, the same for every hymn and resolution, since what the
   back row needs is the type's share of the screen, not its share of the
   hymn's own flowing size (a relative 80% floor pinned only 61% of
-  refrain hymns on 16:9, a third side by side; this one about 85%, two
+  chorus hymns on 16:9, a third side by side; this one about 85%, two
   thirds side by side, sampled). The preferred qualifying layout wins, else
   the other, else the hymn flows. On 16:9, side by side costs more than
   the band (sampled: side 67–92%, band 86–100% of the flowing size). The
   Output measures and decides, the same way the fit is measured there;
-  the message only names the refrain. Live decides at its own size, so a
+  the message only names the chorus. Live decides at its own size, so a
   projector of an unusual aspect could rarely disagree with it.
 - **Every layout fits its width too.** The fit shrinks the type for the
   widest line as well as the tallest part, so a long word never runs off
   the screen or into the next column; on a portrait screen this applies
   to the flowing layout too.
-- **No mark on a special part.** A refrain, bridge or tag being sung is
-  lit like any part and set apart by the part gap; a pinned refrain is
+- **No mark on a special part.** A chorus, bridge or tag being sung is
+  lit like any part and set apart by the part gap; a pinned chorus is
   identified by its place. Tried and dropped: a tonal box (blockish; on
-  every refrain it pulled the eye off a short lit verse), a feathered
+  every chorus it pulled the eye off a short lit verse), a feathered
   glow, centered rules above and below, an indent and a margin hairline
   (both wrong on centered lines). Not a label (it needs a language) nor
   italics, as printed hymnals use: Malayalam has no true italic, and a
@@ -1383,7 +1386,7 @@ arrows, Page Up/Down, and `.` or `B` for a black screen, so those work too.
 | ↓ ↑                     | Next / previous line            |
 | Home End                | First / last part               |
 | 1–9, two digits quickly | Jump to stanza _n_ (§5.1)       |
-| R                       | Jump to the refrain             |
+| C                       | Jump to the chorus              |
 | B or .                  | Blank the Output / restore      |
 | O                       | Open or focus the Output window |
 | N                       | Next tab (in the main group)    |
@@ -1398,7 +1401,7 @@ arrows, Page Up/Down, and `.` or `B` for a black screen, so those work too.
   rendered by the `?` sheet and read by the command menu for its key hints,
   so the three can't disagree. The shell handles the keys that work on every
   screen (B, O, N, L, /, Ctrl/⌘+K, +, −, ?); the Presenter handles the ones
-  that move an engine (parts, lines, stanzas, refrain).
+  that move an engine (parts, lines, stanzas, chorus).
 - **Space is Next part**, even on a focused button: a clicker or a thumb
   on the space bar must never re-press whatever chip was last tapped (which
   would restart that part). Enter still activates a focused button. Radios
@@ -1408,8 +1411,8 @@ arrows, Page Up/Down, and `.` or `B` for a black screen, so those work too.
   for a second digit, then goes to 1. Typing a number that isn't a stanza
   does nothing. So a hymn of up to nine stanzas never waits, and the
   audience never sees stanza 1 flash on the way to 12.
-- **R** jumps to the hymn's first refrain, by the same move rule as a chip
-  (§5.1); a hymn with no refrain ignores it.
+- **C** jumps to the hymn's first chorus (ADR-0025), by the same move rule as a chip
+  (§5.1); a hymn with no chorus ignores it.
 - **+ −** step the Operator's text scale, the same step and bounds as
   Settings. The Output isn't affected: it fits itself per hymn (§16.1).
 

@@ -3,8 +3,8 @@
   "title": "മഴവില്ലും സൂര്യചന്ദ്രനും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "മഴവില്ലും സൂര്യചന്ദ്രനും",
         "വിണ്ണിലെ പൊന്നിൻ താരകളും",
@@ -37,19 +37,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

@@ -3,8 +3,8 @@
   "title": "എന്നേശുവല്ലാതില്ലെനി -",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എൻ രക്ഷകാ എൻ ദൈവമേ",
         "നീ അല്ലാതില്ലാരും",
@@ -57,19 +57,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

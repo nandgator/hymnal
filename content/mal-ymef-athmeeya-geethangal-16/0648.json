@@ -3,8 +3,8 @@
   "title": "ക്രിസ്തീയ ജീവിതം സൗഭാഗ്യജീവിതം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ക്രിസ്തീയ ജീവിതം സൗഭാഗ്യജീവിതം",
         "കർത്താവിൻ കുഞ്ഞുങ്ങൾക്കാനന്ദദായകം",
@@ -59,31 +59,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

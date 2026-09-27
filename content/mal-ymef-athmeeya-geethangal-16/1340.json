@@ -3,8 +3,8 @@
   "title": "ഉന്നതനാമം ഉത്തമനാമം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഉന്നതനാമം ഉത്തമനാമം",
         "ശ്രീയേശു നാമമെത്ര മംഗളനാമം"
@@ -31,19 +31,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

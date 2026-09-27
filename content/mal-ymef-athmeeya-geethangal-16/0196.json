@@ -3,8 +3,8 @@
   "title": "ദേവാധിദേവൻ നീ രാജാധിരാജൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നീ എന്നും യോഗ്യൻ, നീ എന്നും യോഗ്യൻ",
         "ദൈവത്തിൻ കുഞ്ഞാടേ നീ യോഗ്യനാം",
@@ -62,25 +62,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

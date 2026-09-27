@@ -3,8 +3,8 @@
   "title": "തഴുകും കരങ്ങൾ അരികിലുണ്ട്",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "അത്ഭുതമായ് ദൈവം വഴിയൊരുക്കും",
         "വൻ യെരിഹോ മതിൽ ഇടിഞ്ഞുവീഴും"
@@ -60,25 +60,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

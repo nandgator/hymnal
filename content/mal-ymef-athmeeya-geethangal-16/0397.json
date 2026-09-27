@@ -3,8 +3,8 @@
   "title": "പാപലോകം തേടിയിപ്പാരിൽ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പാപലോകം തേടിയിപ്പാരിൽ",
         "വന്നു ദേവൻ താൻ",
@@ -42,19 +42,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

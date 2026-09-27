@@ -3,8 +3,8 @@
   "title": "പരമ് പിതാ കീ ഹം സ്തുതി ഗായേം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പരമ് പിതാ കീ ഹം സ്തുതി ഗായേം",
         "വോ ഹീ ഹെ ജൊ ബചാതാ ഹമേം",
@@ -48,25 +48,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

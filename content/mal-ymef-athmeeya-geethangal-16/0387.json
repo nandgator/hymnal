@@ -3,8 +3,8 @@
   "title": "നിൻ ദാനം ഞാൻ അനുഭവിച്ചു",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നിൻ ദാനം ഞാൻ അനുഭവിച്ചു",
         "നിൻസ്നേഹം ഞാൻ രുചിച്ചറിഞ്ഞു",
@@ -60,31 +60,31 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

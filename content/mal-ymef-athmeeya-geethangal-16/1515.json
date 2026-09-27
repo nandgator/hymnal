@@ -3,8 +3,8 @@
   "title": "സ്തുതിഗീതങ്ങൾ ആലപിക്കും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "സ്തുതിഗീതങ്ങൾ ആലപിക്കും",
         "തിരു നാമമഹത്വത്തിനായ്",
@@ -37,19 +37,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

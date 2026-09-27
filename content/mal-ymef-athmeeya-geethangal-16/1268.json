@@ -3,8 +3,8 @@
   "title": "ഒന്ന് ചേര്‍ന്ന് പോകാം കുഞ്ഞുങ്ങളെ!",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ചേര്‍ന്നു പോകാം ചേര്‍ന്നു പോകാം",
         "യേശുവിനോട് സംഭാഷിച്ചിടാന്‍"
@@ -52,25 +52,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

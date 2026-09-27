@@ -14,10 +14,10 @@ function hymn(number: number, lines: string[], overrides: Record<string, unknown
     number,
     title: lines[0],
     parts: [
-      { id: "r", kind: "refrain", lines: [lines[0]] },
+      { id: "c", kind: "chorus", lines: [lines[0]] },
       { id: "s1", kind: "stanza", label: "1", lines: lines.slice(1) },
     ],
-    sequence: [{ partId: "r" }, { partId: "s1" }, { partId: "r" }],
+    sequence: [{ partId: "c" }, { partId: "s1" }, { partId: "c" }],
     meta: { author: "KVS" },
     ...overrides,
   };
@@ -134,7 +134,7 @@ describe("buildContent", () => {
     expect(count(db, "hymn_fts")).toBe(2);
     expect(
       db.prepare("SELECT part_id FROM sequence_entry WHERE hymn_number = 1 ORDER BY idx").all(),
-    ).toEqual([{ part_id: "r" }, { part_id: "s1" }, { part_id: "r" }]);
+    ).toEqual([{ part_id: "c" }, { part_id: "s1" }, { part_id: "c" }]);
     expect(
       db
         .prepare("SELECT text FROM line WHERE hymn_number = 1 AND part_id = 's1' ORDER BY idx")

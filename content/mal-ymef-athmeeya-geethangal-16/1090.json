@@ -3,8 +3,8 @@
   "title": "വിതച്ചിടുക നാം, വർഗ്ഗത്തിന്റെ വിത്താം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കൊയ്ത്തുകാലത്തിൽ, നാം സന്തോഷിച്ചും",
         "കറ്റകൾ ചുമന്നും, കൊണ്ടുവന്നിടും"
@@ -82,37 +82,37 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s6"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

@@ -3,8 +3,8 @@
   "title": "കൊഞ്ചി കുഴയുന്ന കുഞ്ഞേ നിനക്കു",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കൊഞ്ചി കുഴയുന്ന കുഞ്ഞേ നിനക്കു",
         "സ്വര്‍ഗ്ഗത്തിലുണ്ടൊരു അപ്പച്ചന്‍"
@@ -36,19 +36,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

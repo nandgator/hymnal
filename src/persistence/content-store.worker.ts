@@ -71,6 +71,7 @@ class ContentStoreWorker implements ContentStore {
   async ensureInstalled(
     id: HymnbookId,
     onProgress?: (progress: InstallProgress) => void,
+    replacing = false,
   ): Promise<ContentStatus> {
     const pool = await this.#poolReady;
     const filename = filenameFor(id);
@@ -78,7 +79,7 @@ class ContentStoreWorker implements ContentStore {
     // The dev server re-imports on every load, so a rebuilt package (or a
     // content-local/ test hymn) shows on reload; released builds install once.
     const installed = pool.getFileNames().includes(filename);
-    if (!installed || (import.meta.env.DEV && !this.#dbs.has(id))) {
+    if (replacing || !installed || (import.meta.env.DEV && !this.#dbs.has(id))) {
       // BASE_URL, not a root-absolute path — a GitHub Pages *project* page
       // serves from a subpath, not the domain root.
       const response = await fetch(`${import.meta.env.BASE_URL}content/${id}.sqlite`);
@@ -107,6 +108,13 @@ class ContentStoreWorker implements ContentStore {
       // fall through — undefined means corrupt, same as an empty result
     }
     if (found === undefined) return { state: "corrupt" };
+    // A copy installed by an earlier app is replaced by the one this app
+    // ships (ADR-0025), once: if the shipped one is old too, that's said.
+    if (found < SCHEMA_VERSION && !replacing) {
+      db.close();
+      this.#dbs.delete(id);
+      return this.ensureInstalled(id, onProgress, true);
+    }
     if (found !== SCHEMA_VERSION)
       return { state: "schema-mismatch", found, expected: SCHEMA_VERSION };
     return { state: "ready" };

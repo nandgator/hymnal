@@ -3,8 +3,8 @@
   "title": "എന്റെ കർത്താവിൻ പാദത്തിങ്കൽ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "എന്റെ കർത്താവിൻ പാദത്തിങ്കൽ",
         "സ്തോത്രയാഗങ്ങൽ അർപ്പിക്കും ഞാൻ",
@@ -49,25 +49,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

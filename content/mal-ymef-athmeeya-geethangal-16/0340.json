@@ -3,8 +3,8 @@
   "title": "പരിശുദ്ധൻ മഹോന്നതദേവൻ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ആഹാ ഹാ ഹാല്ലേലുയ്യാ ആമേൻ",
         "ആഹാ ഹാ ഹാല്ലേലുയ്യാ ആമേൻ",
@@ -51,19 +51,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

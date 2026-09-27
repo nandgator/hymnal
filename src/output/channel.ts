@@ -17,14 +17,14 @@ export type OutputMessage =
       lines: FlatLine[];
       focus: LineRange;
       /** What the cues need (SDD-0001 §16.1): the hymnbook's title, the
-       * focused part as a congregation reads it ("Verse 2", "Refrain"), and
+       * focused part as a congregation reads it ("Verse 2", "Chorus"), and
        * how many times in a row it's being sung. */
       hymnbookTitle?: string;
       part?: string;
       repeat?: number;
-      /** The hymn's refrain, if it has one — pinned where it fits
+      /** The hymn's chorus, if it has one — pinned where it fits
        * (SDD-0001 §16.1). */
-      refrain?: PartId;
+      chorus?: PartId;
     }
   | { type: "idle" }
   /** Hides what's presented, or shows it again — distinct from `idle`,
@@ -39,7 +39,7 @@ export type PresentationMessage = {
   type: "presentation";
   theme: OutputTheme;
   cues: OutputCues;
-  pinRefrain: boolean;
+  pinChorus: boolean;
 };
 
 /** Output → Operator: "I'm open — send me what's showing." Sent on

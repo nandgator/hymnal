@@ -3,8 +3,8 @@
   "title": "എനിക്കായ് കരുതുന്നവന്‍",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "പരീക്ഷ എന്‍റെ ദൈവം അനുവദിച്ചാല്‍",
         "പരിഹാരം എനിക്കായ് കരുതീട്ടുണ്ട്",
@@ -62,25 +62,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

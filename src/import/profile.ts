@@ -24,11 +24,11 @@ export interface Profile {
   furniture: { pageNumber: boolean };
   /** A song starts at a line matching this, in this font if given. */
   title: { pattern: string; font?: string };
-  /** A block set wholly in this font is a refrain. */
-  refrain: { font: string };
+  /** A block set wholly in this font is a chorus. */
+  chorus: { font: string };
   /**
    * The words that name a part, lower case, and the kind each names:
-   * { "chorus": "refrain" }. Alone in its block, a label means "sing that
+   * { "chorus": "chorus" }. Alone in its block, a label means "sing that
    * part here"; heading a block, it gives the block its kind.
    */
   labels: Record<string, PartKind>;
@@ -73,7 +73,7 @@ export function parseProfile(value: unknown): Profile {
     "index",
     "furniture",
     "title",
-    "refrain",
+    "chorus",
     "labels",
     "stanzaGap",
   ]);
@@ -118,10 +118,10 @@ export function parseProfile(value: unknown): Profile {
     }
   } else need(false, "title is required");
 
-  if (isRecord(p.refrain)) {
-    known("refrain.", p.refrain, ["font"]);
-    need(text(p.refrain.font), "refrain.font is required");
-  } else need(false, "refrain is required");
+  if (isRecord(p.chorus)) {
+    known("chorus.", p.chorus, ["font"]);
+    need(text(p.chorus.font), "chorus.font is required");
+  } else need(false, "chorus is required");
 
   if (isRecord(p.labels)) {
     for (const [word, kind] of Object.entries(p.labels)) {

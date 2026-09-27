@@ -3,8 +3,8 @@
   "title": "കുതിച്ചുപായും ഞാന്‍ സീയോന്‍",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "കുതിച്ചുപായും ഞാന്‍ സീയോന്‍",
         "തിരഞ്ഞുപായും ഞാന്‍",
@@ -37,19 +37,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

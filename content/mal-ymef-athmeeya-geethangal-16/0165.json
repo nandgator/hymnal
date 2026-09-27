@@ -3,8 +3,8 @@
   "title": "സർവ്വ നന്മകൾക്കും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "സർവ്വ നന്മകൾക്കും",
         "സർവ്വദാനങ്ങൾക്കും",
@@ -38,19 +38,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

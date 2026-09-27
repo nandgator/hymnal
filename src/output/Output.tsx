@@ -36,7 +36,7 @@ export function Output() {
   const [blanked, setBlanked] = createSignal(false);
   const [cues, setCues] = createSignal<OutputCues>({});
   const [reveal, setReveal] = createSignal(0);
-  const [pinRefrain, setPinRefrain] = createSignal(false);
+  const [pinChorus, setPinChorus] = createSignal(false);
   // Theme and cues follow the Operator's Settings live (SDD-0001 §16.1).
   const receive = (next: OutputMessage) => {
     if (next.type === "blank") setBlanked(next.blanked);
@@ -44,7 +44,7 @@ export function Output() {
     else if (next.type === "presentation") {
       document.documentElement.setAttribute("data-output-theme", next.theme);
       setCues(next.cues);
-      setPinRefrain(next.pinRefrain);
+      setPinChorus(next.pinChorus);
     } else setMessage(next);
   };
 
@@ -94,7 +94,7 @@ export function Output() {
           blanked={blanked()}
           cues={cues()}
           reveal={reveal()}
-          pinRefrain={pinRefrain()}
+          pinChorus={pinChorus()}
           onSeek={(line, whole) =>
             requestSeek({
               hymnbookId: current().hymnbookId,

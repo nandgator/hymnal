@@ -3,8 +3,8 @@
   "title": "നീ എന്റെ സങ്കേതവും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ആരാധിക്കും ഞാൻ പൂർണ്ണഹൃദയമോടെ",
         "തേടും നിന്മുഖം ജീവകാലമെല്ലാം",
@@ -53,19 +53,19 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

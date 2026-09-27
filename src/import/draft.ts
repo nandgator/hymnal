@@ -89,7 +89,7 @@ export function draftBook(pages: SourcePage[], profile: Profile): Draft {
   const count = (kind: string) => hymns.filter((h) => h.parts.some((p) => p.kind === kind)).length;
   const summary = [
     `${hymns.length} songs, numbered 1–${highest}; ${index.length} listed in the index`,
-    `${count("refrain")} with a refrain, ${count("bridge")} with a bridge, ${count("outro")} with an ending`,
+    `${count("chorus")} with a chorus, ${count("bridge")} with a bridge, ${count("outro")} with an ending`,
     `line pitch ${flowed.pitch} pt; column measures ${flowed.measure.map((m) => m.toFixed(0)).join(", ")} pt`,
     `${notes.length} notes`,
   ];

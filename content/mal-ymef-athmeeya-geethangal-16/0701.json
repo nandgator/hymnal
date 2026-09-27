@@ -3,8 +3,8 @@
   "title": "ദൈവമെന്റെ രക്ഷകനായ് തീർന്നതാൽ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ദൈവമെന്റെ രക്ഷകനായ് തീർന്നതാൽ",
         "ധൈര്യമായ് ഞാൻ പാടിടും ഹല്ലേലുയ്യാ",
@@ -51,25 +51,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

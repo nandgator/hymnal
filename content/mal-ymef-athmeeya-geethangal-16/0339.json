@@ -3,8 +3,8 @@
   "title": "യേശുക്രിസ്തു ജീവിക്കുന്നെന്നും",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ഹല്ലേലുയ്യാ - ഹല്ലേലുയ്യാ",
         "ഹല്ലേലുയ്യാ",
@@ -66,25 +66,25 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

@@ -3,8 +3,8 @@
   "title": "സ്വർഗ്ഗത്തിൽ നിന്നു വരും ദൈവകൂടാരം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "സ്വർഗ്ഗത്തിൽ നിന്നു വരും ദൈവകൂടാരം",
         "പുതുവാന ഭൂമിയതിൽ",
@@ -53,25 +53,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

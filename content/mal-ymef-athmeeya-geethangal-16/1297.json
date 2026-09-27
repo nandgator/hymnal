@@ -3,8 +3,8 @@
   "title": "യോനയോട് ദൈവം ചൊല്ലി",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "യോനയോട് ദൈവം ചൊല്ലി",
         "നിനെവേക്ക് പോക - പക്ഷെ",
@@ -44,19 +44,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

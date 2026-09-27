@@ -3,8 +3,8 @@
   "title": "മനുഷ്യാ... നീ എവിടെ? നീ എവിടെ?",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "മനുഷ്യാ... നീ എവിടെ? നീ എവിടെ?",
         "ആദിയിലേദനിൽ എൻ പ്രതിച്ഛായയിൽ",
@@ -37,19 +37,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

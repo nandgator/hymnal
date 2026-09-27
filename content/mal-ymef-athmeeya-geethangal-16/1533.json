@@ -3,8 +3,8 @@
   "title": "നാഥാ നിൻ തിരു സവിധേ - ഇന്നു",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "നാഥാ നിൻ തിരു സവിധേ - ഇന്നു",
         "താണു വണങ്ങിടുന്നു",
@@ -37,19 +37,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

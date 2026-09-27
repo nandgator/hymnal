@@ -3,8 +3,8 @@
   "title": "അരുമാതാതാ! അയ്യോ! നിന്റെ",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "അരുമാതാതാ! അയ്യോ! നിന്റെ",
         "അടിമലർഗതി മമ ത്രിയേകനാകുമെൻ",
@@ -69,25 +69,25 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

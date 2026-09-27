@@ -3,8 +3,8 @@
   "title": "ബാലിക ബാലന്മാരെ നമ്മള്‍",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ജിഞ്ചിക്കിനാന",
         "ജിഞ്ചിക്കിനാനാനാ",
@@ -40,13 +40,13 @@
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {

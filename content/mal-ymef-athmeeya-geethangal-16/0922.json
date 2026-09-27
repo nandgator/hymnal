@@ -3,8 +3,8 @@
   "title": "ആഴത്തിൽ ആഴത്തിൽ വേരൂന്നിടാം",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "ആഴത്തിൽ ആഴത്തിൽ വേരൂന്നിടാം",
         "ഉയരത്തിൻ ഫലമാർന്നിടാം",
@@ -37,19 +37,19 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

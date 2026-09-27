@@ -3,8 +3,8 @@
   "title": "സുന്ദരനാം മനുവേലാ! നിന്നെ പിരിഞ്ഞീ ലോകയാത്ര",
   "parts": [
     {
-      "id": "r",
-      "kind": "refrain",
+      "id": "c",
+      "kind": "chorus",
       "lines": [
         "സുന്ദരനാം മനുവേലാ! നിന്നെ പിരിഞ്ഞീ ലോകയാത്ര",
         "പ്രാകൃതരാം ജാരൻമാരെ വരിക്കുമോ വത്സലാ",
@@ -68,43 +68,43 @@
   ],
   "sequence": [
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s1"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s2"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s3"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s4"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s5"
     },
     {
-      "partId": "r"
+      "partId": "c"
     },
     {
       "partId": "s6"
     },
     {
-      "partId": "r"
+      "partId": "c"
     }
   ],
   "meta": {}

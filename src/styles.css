@@ -2447,7 +2447,7 @@ html[data-scrolling],
    only, and faint on blocks and lines alike so it never reads as a
    selection (DESIGN.md § Structure). */
 /* A part's label, small caps as an area title (the mockup): VERSE 2,
-   REFRAIN. */
+   CHORUS. */
 .seq-head {
   color: var(--md-sys-color-on-surface-variant);
   font-size: 0.75rem;
@@ -2584,7 +2584,7 @@ html[data-scrolling],
 
 /* Icon-only: a fixed MD3 touch target, not scaled with the text. */
 /* A keypad of equal cells (DESIGN.md § Stability): numbered stanzas one
-   cell each, unnumbered parts (refrain, bridge, tag) a full row. */
+   cell each, unnumbered parts (chorus, bridge, tag) a full row. */
 /* Fixed cells, never stretched; at most one row of stanzas wide, so a
    full-row chip spans the stanzas beneath it rather than the whole card. */
 .chip-set {
@@ -2869,7 +2869,7 @@ html[data-scrolling],
 }
 
 /* Parts set apart as in a printed hymnal (SDD-0001 §16.1): where a verse
-   ends and the refrain begins, without a label. In em, so it scales with
+   ends and the chorus begins, without a label. In em, so it scales with
    the fitted type, and a margin, so the fit's block heights (measured
    within a part) don't count it. */
 .output-part-start {
@@ -2880,12 +2880,12 @@ html[data-scrolling],
   color: var(--output-ink);
 }
 
-/* The refrain, pinned (SDD-0001 §16.1): the refrain's copies leave the
+/* The chorus, pinned (SDD-0001 §16.1): the chorus's copies leave the
    column (hidden in pinned mode), and it shows once, in a band sticky above the bottom margin
    (--safe-bottom, set by OutputView). Still ground around it: the verses
    fade out just above, and nothing shows through below. */
 /* Set by OutputView as it fits, so layout never waits on a render. */
-.output-pinned-mode > .output-list:not(.output-pinned) > .output-refrain {
+.output-pinned-mode > .output-list:not(.output-pinned) > .output-chorus {
   display: none;
 }
 
@@ -2922,7 +2922,7 @@ html[data-scrolling],
   background-color: var(--output-ground);
 }
 
-/* Side by side: the verses take the left half, the refrain the right, at
+/* Side by side: the verses take the left half, the chorus the right, at
    --pin-top (centred on the eyeline by OutputView). Each column keeps the
    outer margin at its screen edge and half of it at the middle. */
 .output-side-mode > .output-list:not(.output-pinned) {

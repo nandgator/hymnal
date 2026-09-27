@@ -89,6 +89,11 @@ describe("preferences", () => {
     expect(await state.getPreferences()).toEqual({ theme: "dark", fontScale: 1 });
   });
 
+  it("reads a renamed preference under its old name (ADR-0025)", async () => {
+    await state.setPreferences({ theme: "dark", fontScale: 1, pinRefrain: true } as never);
+    expect(await state.getPreferences()).toEqual({ theme: "dark", fontScale: 1, pinChorus: true });
+  });
+
   it("drops a retired preference", async () => {
     await state.setPreferences({ theme: "dark", fontScale: 1, navigator: "lyrics" } as never);
     expect(await state.getPreferences()).toEqual({ theme: "dark", fontScale: 1 });

@@ -45,8 +45,8 @@ export interface Preferences {
   /** The Output's cues; absent means {@link DEFAULT_OUTPUT_CUES}, and once
    * set, missing ones are off. */
   outputCues?: OutputCues;
-  /** Pin the refrain where it fits; absent means off — SDD-0001 §16.1. */
-  pinRefrain?: boolean;
+  /** Pin the chorus where it fits; absent means off — SDD-0001 §16.1. */
+  pinChorus?: boolean;
   /** The Operator's tab groups, as stored; read through `workspaceOf`, which
    * makes any stored value whole — SDD-0001 §16.4. */
   workspace?: unknown;
@@ -59,7 +59,7 @@ export const DEFAULT_OUTPUT_CUES: OutputCues = { number: true, hymnbook: true, f
 export const outputCuesOf = (preferences: Preferences): OutputCues =>
   preferences.outputCues ?? DEFAULT_OUTPUT_CUES;
 
-export const pinRefrainOf = (preferences: Preferences) => preferences.pinRefrain ?? false;
+export const pinChorusOf = (preferences: Preferences) => preferences.pinChorus ?? false;
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",
@@ -143,10 +143,21 @@ export function openUserState(dbName: string): UserState {
       // Merged over the defaults, so a document saved before a preference
       // existed still loads complete — no migration needed. A retired one
       // is dropped: `navigator`, gone with the Parts | Lyrics switch
-      // (SDD-0001 §16.4).
-      const { navigator: _retired, ...stored } = ((await readDoc()).preferences ??
-        {}) as Partial<Preferences> & { navigator?: unknown };
-      return { ...DEFAULT_PREFERENCES, ...stored };
+      // (SDD-0001 §16.4). A renamed one is read under its old name:
+      // `pinRefrain`, now `pinChorus` (ADR-0025).
+      const {
+        navigator: _retired,
+        pinRefrain,
+        ...stored
+      } = ((await readDoc()).preferences ?? {}) as Partial<Preferences> & {
+        navigator?: unknown;
+        pinRefrain?: boolean;
+      };
+      return {
+        ...DEFAULT_PREFERENCES,
+        ...(pinRefrain === undefined ? {} : { pinChorus: pinRefrain }),
+        ...stored,
+      };
     },
 
     async setPreferences(preferences) {
