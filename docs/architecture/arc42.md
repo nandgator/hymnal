@@ -541,7 +541,8 @@ and clickers actually send.
 | [0020](../decisions/0020-present-songs-do-not-publish-them.md)               | Present songs; don't publish them                          | Accepted                                                                          |
 | [0021](../decisions/0021-identify-books-by-the-store-that-holds-them.md)     | Identify books by the store that holds them                | Accepted                                                                          |
 | [0022](../decisions/0022-publish-a-json-schema-for-the-format.md)            | Publish a JSON Schema for the content format               | Accepted                                                                          |
-| [0023](../decisions/0023-recognise-the-document-and-infer-its-layout.md)     | Recognise what a document holds; infer its layout          | Accepted                                                                          |
+| [0023](../decisions/0023-recognise-the-document-and-infer-its-layout.md)     | Recognise what a document holds; infer its layout          | Superseded by [0024](../decisions/0024-import-case-by-case.md)                    |
+| [0024](../decisions/0024-import-case-by-case.md)                             | Import case by case; the app loads only format 1           | Accepted                                                                          |
 
 Full index, with open questions, in
 [`docs/decisions/`](../decisions/README.md).
