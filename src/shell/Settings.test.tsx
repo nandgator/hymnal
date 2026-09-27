@@ -26,7 +26,7 @@ describe("Settings", () => {
     render(() => (
       <Settings
         userState={fakeUserState({
-          getPreferences: async () => ({ theme: "dark", fontScale: 1.25, navigator: "parts" }),
+          getPreferences: async () => ({ theme: "dark", fontScale: 1.25 }),
         })}
       />
     ));
@@ -73,7 +73,6 @@ describe("Settings", () => {
     expect(setPreferences).toHaveBeenLastCalledWith({
       theme: "light",
       fontScale: 1,
-      navigator: "parts",
     });
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
   });
@@ -87,7 +86,6 @@ describe("Settings", () => {
     expect(setPreferences).toHaveBeenLastCalledWith({
       theme: "system",
       fontScale: 1.125,
-      navigator: "parts",
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Decrease text size" }));
@@ -95,7 +93,6 @@ describe("Settings", () => {
     expect(setPreferences).toHaveBeenLastCalledWith({
       theme: "system",
       fontScale: 0.875,
-      navigator: "parts",
     });
   });
 
@@ -103,7 +100,7 @@ describe("Settings", () => {
     render(() => (
       <Settings
         userState={fakeUserState({
-          getPreferences: async () => ({ theme: "system", fontScale: 0.75, navigator: "parts" }),
+          getPreferences: async () => ({ theme: "system", fontScale: 0.75 }),
         })}
       />
     ));
@@ -115,7 +112,7 @@ describe("Settings", () => {
     render(() => (
       <Settings
         userState={fakeUserState({
-          getPreferences: async () => ({ theme: "system", fontScale: 2, navigator: "parts" }),
+          getPreferences: async () => ({ theme: "system", fontScale: 2 }),
         })}
       />
     ));
@@ -164,17 +161,6 @@ describe("Settings", () => {
     fireEvent.click(split);
     expect(setPreferences).toHaveBeenLastCalledWith(
       expect.objectContaining({ workspace: expect.objectContaining({ split: false }) }),
-    );
-  });
-
-  it("sets which navigator leads", async () => {
-    const setPreferences = vi.fn(async () => {});
-    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
-    await screen.findByText("100%");
-
-    fireEvent.click(screen.getByRole("radio", { name: "Lyrics" }));
-    expect(setPreferences).toHaveBeenLastCalledWith(
-      expect.objectContaining({ navigator: "lyrics" }),
     );
   });
 

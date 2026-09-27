@@ -35,7 +35,7 @@ function fakeUserState(overrides: Partial<UserState> = {}): UserState {
     setLastPosition: async () => {},
     getRecents: async () => [],
     addRecent: async () => {},
-    getPreferences: async () => ({ theme: "system", fontScale: 1, navigator: "parts" }),
+    getPreferences: async () => ({ theme: "system", fontScale: 1 }),
     setPreferences: async () => {},
     ...overrides,
   };
@@ -53,16 +53,34 @@ describe("Finder", () => {
     expect(await screen.findByText("No recent songs yet.")).toBeInTheDocument();
   });
 
-  it("shows recents by title, resolved from listHymns", async () => {
+  it("shows recents by number, title and when, as the Operator's tab does", async () => {
     const recents: RecentEntry[] = [{ hymnbookId: "book", hymnNumber: 42, viewedAt: 1 }];
     render(() => (
       <Finder
+        hymnbookId="book"
         store={fakeStore()}
         userState={fakeUserState({ getRecents: async () => recents })}
         onSelect={vi.fn()}
       />
     ));
-    expect(await screen.findByRole("button", { name: "Forty-Second Hymn" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Forty-Second Hymn/ })).toBeInTheDocument();
+  });
+
+  it("shows only this book's recents", async () => {
+    const recents: RecentEntry[] = [
+      { hymnbookId: "other", hymnNumber: 7, viewedAt: 2 },
+      { hymnbookId: "book", hymnNumber: 42, viewedAt: 1 },
+    ];
+    render(() => (
+      <Finder
+        hymnbookId="book"
+        store={fakeStore()}
+        userState={fakeUserState({ getRecents: async () => recents })}
+        onSelect={vi.fn()}
+      />
+    ));
+    await screen.findByRole("button", { name: /Forty-Second Hymn/ });
+    expect(screen.queryByText("#7")).not.toBeInTheDocument();
   });
 
   it("hands an exact hymn number straight to onSelect", async () => {
@@ -128,13 +146,14 @@ describe("Finder", () => {
     const recents: RecentEntry[] = [{ hymnbookId: "book", hymnNumber: 42, viewedAt: 1 }];
     render(() => (
       <Finder
+        hymnbookId="book"
         store={fakeStore()}
         userState={fakeUserState({ getRecents: async () => recents })}
         onSelect={onSelect}
       />
     ));
 
-    fireEvent.click(await screen.findByRole("button", { name: "Forty-Second Hymn" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Forty-Second Hymn/ }));
     expect(onSelect).toHaveBeenCalledWith(42);
   });
 

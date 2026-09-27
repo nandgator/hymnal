@@ -2,7 +2,7 @@ import { onCleanup } from "solid-js";
 
 /** Every scroll container whose scrollbar hides until needed (DESIGN.md §
  * Register) — the page itself included. */
-const PANES = "html, .shell-main, .sequence, .navigator-body, .main-column, .sheet-content";
+const PANES = "html, .shell-main, .sequence, .sheet-content";
 /** How long after the last scroll event a pane still counts as scrolling. */
 const SETTLE_MS = 800;
 

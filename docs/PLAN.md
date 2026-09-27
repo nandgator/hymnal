@@ -35,16 +35,17 @@ the "Operator Layout" artifact. Parts, each reviewed before the next:
 
 Parts 1–3b are done: workspace model, wide layout, pane toolbar, design pass.
 
-- **Part 4a, next.** Under 840px: Live strip, tabs merged, keypad above
-  the dock (wrapping, two rows at most), Repeat ×n menu, Undo snackbar.
-  Retires the Parts | Lyrics switch and `preferences.navigator`. Fixes the
-  blanked strip (a grey slab in light, gone in dark; dim to the Output's
-  ground, as Live does); the half-width keypad goes with the switch. One
-  Recents list everywhere: the Finder's and the picker's use the tab's
-  (number, title, when; one inset; "Recents")
-- Part 4b. Loading states: skeletons in place, install progress
+- ~~Part 4a~~ — done. Under 840px: Live strip; tabs merged, Parts a
+  third tab (Repeat row and keypad as the stage's). Retires the Parts |
+  Lyrics switch and `preferences.navigator`. Fixes the blanked strip (dim
+  to the Output's ground, as Live does) and the phone's off-centre icons.
+  One Recents list everywhere: number, title, when; this book's only
+- **Part 4b, next.** Loading states: skeletons in place, install progress
 - Part 4c. Command menu and Settings entries; the switch between wide and
-  phone layouts animated
+  phone layouts animated, components folding both ways. Not a View
+  Transition: Chromium skips one on any resize (probed 2026-09-27), and
+  crossing 840px is a resize. Then every animation checked per frame;
+  Split is jittery (the user, by hand)
 
 **Board #27 (song import, CLI) runs alongside**: it touches no UI. Target:
 _Hymns of Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its
@@ -139,6 +140,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-27 — #26 part 4a: phone layout, Parts a tab; one Recents list
 - 2026-09-27 — Triage and inference dropped; import case by case (ADR-0024)
 - 2026-09-27 — Triage and inferred layout (ADR-0023); a local shelf of PDFs
 - 2026-09-27 — #27 part 4: Hymns of Fellowship drafted, 275 songs; report
@@ -150,4 +152,3 @@ ones only, here:
 - 2026-09-27 — Song import designed: ADR-0018/0019; SDD-0002 format v1, SDD-0003
 - 2026-09-26 — CI: deploy workflow actions moved to their Node 24 majors
 - 2026-09-26 — #26 part 3b: design pass; transport in the stage; refrains in full
-- 2026-09-26 — #26 part 3: tab groups' toolbar; interface scale fixed — ADR-0017

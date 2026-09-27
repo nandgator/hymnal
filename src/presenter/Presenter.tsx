@@ -1,4 +1,5 @@
 import {
+  type Accessor,
   createEffect,
   createMemo,
   createResource,
@@ -32,6 +33,7 @@ import { ignoresShortcuts } from "../shell/keymap.ts";
 import { Menu, type MenuItem } from "../shell/Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY, SPLIT_QUERY, STAGE_QUERY } from "../shell/media.ts";
 import type { PaneId } from "../shell/panes.ts";
+import { RecentsList } from "../shell/RecentsList.tsx";
 import { RollingNumber } from "../shell/RollingNumber.tsx";
 import { SwapLabel } from "../shell/SwapLabel.tsx";
 import {
@@ -47,7 +49,6 @@ import {
   visibleGroups,
   type Workspace,
 } from "../shell/workspace.ts";
-import { RecentsTab } from "./RecentsTab.tsx";
 
 // Most parts carry no label — it's printed only for numbered stanzas
 // (SDD-0001 §2.1). Every other part falls back to its kind: "Pre-chorus".
@@ -72,12 +73,12 @@ export interface PresenterActions {
   canUndoRepeat(): boolean;
   resetRepeats(): void;
   canResetRepeats(): boolean;
-  /** The next tab of the main group; on a phone, the other navigator. */
+  /** The next tab of the main group. */
   nextTab(): void;
 }
 
-/** Which navigator leads the workspace (SDD-0001 §16.4). */
-export type Navigator = "parts" | "lyrics";
+/** A tab as shown: the workspace's, plus Parts on a phone (SDD-0001 §16.4). */
+type ShownTab = TabId | "parts";
 
 export interface PresenterProps {
   hymnNumber: HymnNumber;
@@ -91,10 +92,6 @@ export interface PresenterProps {
   onBack?: () => void;
   /** Called with each hymn once loaded — the shell's switcher row shows it. */
   onLoaded?: (hymn: Hymn) => void;
-  /** Which navigator leads under 840px, until Board #26 part 4 retires it;
-   * the shell keeps it in preferences. */
-  navigator?: Navigator;
-  onNavigatorChange?: (navigator: Navigator) => void;
   /** The Output is blanked (SDD-0001 §16.5); the shell holds it. */
   blanked?: boolean;
   /** Blanks or restores the Output — the button in Live's heading. */
@@ -104,7 +101,7 @@ export interface PresenterProps {
   /** Which supporting panes show, by id; absent means shown (SDD-0001
    * §16.4). The shell keeps it in preferences. */
   panes?: Record<string, boolean>;
-  /** The tab groups from 840px, as stored (SDD-0001 §16.4); the shell keeps
+  /** The tab groups, as stored (SDD-0001 §16.4); the shell keeps
    * them in preferences. */
   workspace?: unknown;
   onWorkspaceChange?: (workspace: Workspace) => void;
@@ -363,7 +360,8 @@ export function Presenter(props: PresenterProps) {
   // Height for the full Live preview above the keypad; shorter, the strip.
   const roomy = createMediaQuery(STAGE_QUERY);
 
-  // From 840px: tabs in two groups beside What they see (SDD-0001 §16.4).
+  // Tabs in two groups beside What they see from 840px, merged into one
+  // on a phone (SDD-0001 §16.4).
   // Kept by the shell in preferences; local too, so the Presenter works
   // on its own.
   const [workspace, setWorkspaceSignal] = createSignal<Workspace>(
@@ -392,12 +390,22 @@ export function Presenter(props: PresenterProps) {
   // A tab switch isn't a layout change: no View Transition (which would
   // snapshot and cross-fade the tab bar), just the pill's glide and the
   // content's zoom-in, both in the DOM.
-  const showTab = (tab: TabId) => {
+  // On a phone Parts joins the merged tabs and is where it opens (DESIGN.md
+  // § Structure). It is phone-only, so it's kept for the session and never
+  // stored in the workspace.
+  const [phoneTab, setPhoneTab] = createSignal<ShownTab>("parts");
+  const tabsOf = (group: VisibleGroup): ShownTab[] =>
+    expanded() ? group.tabs : [...group.tabs, "parts"];
+  const activeOf = (group: VisibleGroup): ShownTab => (expanded() ? group.active : phoneTab());
+  const showTab = (tab: ShownTab) => {
+    if (!expanded()) setPhoneTab(tab);
+    if (tab === "parts") return;
     const next = selectTab(workspace(), tab, groups().length === 1);
     setWorkspaceSignal(next);
     props.onWorkspaceChange?.(next);
   };
-  const tabName = (tab: TabId) => TABS.find((t) => t.id === tab)?.name ?? tab;
+  const tabName = (tab: ShownTab) =>
+    tab === "parts" ? "Parts" : (TABS.find((t) => t.id === tab)?.name ?? tab);
   // A group's heading (SDD-0001 §16.4): side by side, a pane toolbar of
   // icons — expand or collapse, move (a ⋯ menu, for a group of several
   // tabs), close; merged, Split — disabled, with the reason, when the
@@ -414,19 +422,11 @@ export function Presenter(props: PresenterProps) {
     }));
   const canSplitTabs = () => canSplit() && TABS.length > 1;
 
-  // Under 840px, until part 4: one navigator leads, Parts or Lyrics, and
-  // the switch is the one tap to the other. The shell keeps the choice.
-  const [navigator, setNavigatorSignal] = createSignal<Navigator>(props.navigator ?? "parts");
-  createEffect(() => {
-    if (props.navigator) setNavigatorSignal(props.navigator);
-  });
-  const setNavigator = (next: Navigator) => {
-    setNavigatorSignal(next);
-    props.onNavigatorChange?.(next);
+  const nextTab = () => {
+    if (expanded()) return setWorkspace(nextTabOf(workspace(), canSplit()));
+    const tabs = groups()[0] ? tabsOf(groups()[0]) : [];
+    showTab(tabs[(tabs.indexOf(phoneTab()) + 1) % tabs.length]);
   };
-  const other = (): Navigator => (navigator() === "parts" ? "lyrics" : "parts");
-  const nextTab = () =>
-    expanded() ? setWorkspace(nextTabOf(workspace(), canSplit())) : setNavigator(other());
   // Pane visibility, kept by the shell (SDD-0001 §16.4): Live, toggled by
   // L or the command menu there.
   const shown = (id: PaneId) => props.panes?.[id] ?? true;
@@ -443,7 +443,8 @@ export function Presenter(props: PresenterProps) {
   let lastStep: string | undefined;
   createEffect(() => {
     version();
-    navigator();
+    expanded();
+    phoneTab();
     groups();
     const lineIndex = cursor()?.lineIndex;
     const step = `${props.hymnNumber}:${cursor()?.occurrenceIndex}:${lineIndex}`;
@@ -826,9 +827,146 @@ export function Presenter(props: PresenterProps) {
     );
   };
 
-  const NAVIGATOR_TITLES: Record<Navigator, string> = { parts: "Parts", lyrics: "Lyrics" };
-  const navigatorPane = (kind: Navigator, loaded: Hymn) =>
-    kind === "parts" ? partsNavigator(loaded) : lyricsNavigator();
+  // A tab group (SDD-0001 §16.4): its tabs, or a lone tab's title; from
+  // 840px its pane toolbar; the active tab's content.
+  const tabGroup = (group: Accessor<VisibleGroup>, loaded: Accessor<Hymn>) => {
+    // The pill: one element per tab bar, gliding to the selected
+    // tab (styles.css eases its position and width). Measured,
+    // since a tab's width follows its label and the text size.
+    let tablist: HTMLDivElement | undefined;
+    const [pill, setPill] = createSignal<{ x: number; w: number }>();
+    const measurePill = () => {
+      const tab = tablist?.querySelector<HTMLElement>('[aria-selected="true"]');
+      if (tab) setPill({ x: tab.offsetLeft, w: tab.offsetWidth });
+    };
+    createEffect(() => {
+      activeOf(group());
+      tabsOf(group()).length;
+      queueMicrotask(measurePill);
+    });
+    onMount(() => {
+      if (typeof ResizeObserver !== "function") return;
+      const observer = new ResizeObserver(measurePill);
+      queueMicrotask(() => tablist && observer.observe(tablist));
+      onCleanup(() => observer.disconnect());
+    });
+    return (
+      <section
+        class="area"
+        classList={{ "area-main": group().main }}
+        style={{ "view-transition-name": `area-${group().index}` }}
+        aria-label={tabName(activeOf(group()))}
+      >
+        <div class="area-header">
+          <Show
+            when={tabsOf(group()).length > 1}
+            fallback={<h3 class="area-title">{tabName(activeOf(group()))}</h3>}
+          >
+            <div class="area-tabs" role="tablist" ref={tablist}>
+              <span
+                class="area-tab-pill"
+                classList={{ "area-tab-pill-shown": !!pill() }}
+                style={{
+                  transform: `translateX(${pill()?.x ?? 0}px)`,
+                  width: `${pill()?.w ?? 0}px`,
+                }}
+              />
+              <For each={tabsOf(group())}>
+                {(tab) => (
+                  <button
+                    type="button"
+                    role="tab"
+                    class="area-tab"
+                    aria-selected={tab === activeOf(group())}
+                    onClick={() => showTab(tab)}
+                  >
+                    {tabName(tab)}
+                  </button>
+                )}
+              </For>
+            </div>
+          </Show>
+          {/* On a phone there's no room to split, so no toolbar either. */}
+          <Show when={expanded()}>
+            <div class="area-actions">
+              <Show
+                when={split()}
+                fallback={
+                  <button
+                    type="button"
+                    class="icon-button area-icon"
+                    aria-label="Split into two groups"
+                    title={
+                      canSplitTabs()
+                        ? "Split into two groups"
+                        : "Split into two groups (needs a window 1400px wide)"
+                    }
+                    disabled={!canSplitTabs()}
+                    onClick={() => setWorkspace(setSplit(workspace(), true))}
+                  >
+                    <span class="icon icon-split" aria-hidden="true" />
+                  </button>
+                }
+              >
+                {/* A pane toolbar, after VS Code's and Zed's:
+                expand or collapse, move, close. */}
+                <button
+                  type="button"
+                  class="icon-button area-icon"
+                  aria-label={group().main ? "Collapse to the side" : "Expand to main"}
+                  title={group().main ? "Collapse to the side" : "Expand to main"}
+                  onClick={() => swapMain(group())}
+                >
+                  <span
+                    class={`icon ${group().main ? "icon-collapse" : "icon-expand-full"}`}
+                    aria-hidden="true"
+                  />
+                </button>
+                {/* A lone tab's move would empty its group — what
+                Close group already does — so Move shows only
+                for a group of several. */}
+                <Show when={group().tabs.length > 1}>
+                  <Menu label={`${tabName(group().active)} options`} items={moveItems(group())} />
+                </Show>
+                <button
+                  type="button"
+                  class="icon-button area-icon"
+                  aria-label="Close group"
+                  title="Close group — its tabs join the other"
+                  onClick={() => setWorkspace(setSplit(workspace(), false))}
+                >
+                  <span class="icon icon-close" aria-hidden="true" />
+                </button>
+              </Show>
+            </div>
+          </Show>
+        </div>
+        <div class="area-body" role="tabpanel">
+          <Switch>
+            {/* A tab's content mounts afresh on a switch, and its
+              wrapper softly zooms in (styles.css). */}
+            <Match when={activeOf(group()) === "hymn"}>
+              <div class="area-tab-content">{lyricsNavigator()}</div>
+            </Match>
+            <Match when={activeOf(group()) === "recents"}>
+              <div class="area-tab-content">
+                <RecentsList
+                  hymnbookId={loaded().hymnbookId}
+                  current={loaded().number}
+                  store={props.store}
+                  userState={props.userState}
+                  onSelect={(number) => props.onSelectHymn?.(number)}
+                />
+              </div>
+            </Match>
+            <Match when={activeOf(group()) === "parts"}>
+              <div class="area-tab-content">{partsNavigator(loaded())}</div>
+            </Match>
+          </Switch>
+        </div>
+      </section>
+    );
+  };
 
   return (
     <Switch fallback={<p class="body-large on-surface-variant">Loading…</p>}>
@@ -852,35 +990,11 @@ export function Presenter(props: PresenterProps) {
             <Show
               when={expanded()}
               fallback={
-                <div class="operator-body">
-                  <div class="main-column">
-                    <Show when={shown("live")}>{liveStrip()}</Show>
-                    <section class="navigator" aria-label="Navigator">
-                      <div class="navigator-header">
-                        {/* MD3 segmented button on native radios: arrow keys
-                            move between the options for free. */}
-                        <fieldset class="segmented">
-                          <legend class="visually-hidden">Navigate by</legend>
-                          <For each={["parts", "lyrics"] as Navigator[]}>
-                            {(kind) => (
-                              <label class="segment">
-                                <input
-                                  type="radio"
-                                  name="navigator"
-                                  class="segment-input"
-                                  checked={navigator() === kind}
-                                  onChange={() => setNavigator(kind)}
-                                />
-                                <span class="segment-check icon icon-check" aria-hidden="true" />
-                                {NAVIGATOR_TITLES[kind]}
-                              </label>
-                            )}
-                          </For>
-                        </fieldset>
-                      </div>
-                      <div class="navigator-body">{navigatorPane(navigator(), loaded())}</div>
-                    </section>
-                  </div>
+                // Under 840px (DESIGN.md § Structure): the Live strip, then
+                // the tabs merged, Parts among them; the dock below.
+                <div class="operator-phone">
+                  <Show when={shown("live")}>{liveStrip()}</Show>
+                  <Index each={groups()}>{(group) => tabGroup(group, loaded)}</Index>
                 </div>
               }
             >
@@ -888,145 +1002,7 @@ export function Presenter(props: PresenterProps) {
                   taking the room, then What they see — Live and Parts —
                   which never moves. */}
               <div class="operator-areas">
-                <Index each={groups()}>
-                  {(group) => {
-                    // The pill: one element per tab bar, gliding to the selected
-                    // tab (styles.css eases its position and width). Measured,
-                    // since a tab's width follows its label and the text size.
-                    let tablist: HTMLDivElement | undefined;
-                    const [pill, setPill] = createSignal<{ x: number; w: number }>();
-                    const measurePill = () => {
-                      const tab = tablist?.querySelector<HTMLElement>('[aria-selected="true"]');
-                      if (tab) setPill({ x: tab.offsetLeft, w: tab.offsetWidth });
-                    };
-                    createEffect(() => {
-                      group().active;
-                      group().tabs.length;
-                      queueMicrotask(measurePill);
-                    });
-                    onMount(() => {
-                      if (typeof ResizeObserver !== "function") return;
-                      const observer = new ResizeObserver(measurePill);
-                      queueMicrotask(() => tablist && observer.observe(tablist));
-                      onCleanup(() => observer.disconnect());
-                    });
-                    return (
-                      <section
-                        class="area"
-                        classList={{ "area-main": group().main }}
-                        style={{ "view-transition-name": `area-${group().index}` }}
-                        aria-label={tabName(group().active)}
-                      >
-                        <div class="area-header">
-                          <Show
-                            when={group().tabs.length > 1}
-                            fallback={<h3 class="area-title">{tabName(group().active)}</h3>}
-                          >
-                            <div class="area-tabs" role="tablist" ref={tablist}>
-                              <span
-                                class="area-tab-pill"
-                                classList={{ "area-tab-pill-shown": !!pill() }}
-                                style={{
-                                  transform: `translateX(${pill()?.x ?? 0}px)`,
-                                  width: `${pill()?.w ?? 0}px`,
-                                }}
-                              />
-                              <For each={group().tabs}>
-                                {(tab) => (
-                                  <button
-                                    type="button"
-                                    role="tab"
-                                    class="area-tab"
-                                    aria-selected={tab === group().active}
-                                    onClick={() => showTab(tab)}
-                                  >
-                                    {tabName(tab)}
-                                  </button>
-                                )}
-                              </For>
-                            </div>
-                          </Show>
-                          <div class="area-actions">
-                            <Show
-                              when={split()}
-                              fallback={
-                                <button
-                                  type="button"
-                                  class="icon-button area-icon"
-                                  aria-label="Split into two groups"
-                                  title={
-                                    canSplitTabs()
-                                      ? "Split into two groups"
-                                      : "Split into two groups (needs a window 1400px wide)"
-                                  }
-                                  disabled={!canSplitTabs()}
-                                  onClick={() => setWorkspace(setSplit(workspace(), true))}
-                                >
-                                  <span class="icon icon-split" aria-hidden="true" />
-                                </button>
-                              }
-                            >
-                              {/* A pane toolbar, after VS Code's and Zed's:
-                                expand or collapse, move, close. */}
-                              <button
-                                type="button"
-                                class="icon-button area-icon"
-                                aria-label={
-                                  group().main ? "Collapse to the side" : "Expand to main"
-                                }
-                                title={group().main ? "Collapse to the side" : "Expand to main"}
-                                onClick={() => swapMain(group())}
-                              >
-                                <span
-                                  class={`icon ${group().main ? "icon-collapse" : "icon-expand-full"}`}
-                                  aria-hidden="true"
-                                />
-                              </button>
-                              {/* A lone tab's move would empty its group — what
-                                Close group already does — so Move shows only
-                                for a group of several. */}
-                              <Show when={group().tabs.length > 1}>
-                                <Menu
-                                  label={`${tabName(group().active)} options`}
-                                  items={moveItems(group())}
-                                />
-                              </Show>
-                              <button
-                                type="button"
-                                class="icon-button area-icon"
-                                aria-label="Close group"
-                                title="Close group — its tabs join the other"
-                                onClick={() => setWorkspace(setSplit(workspace(), false))}
-                              >
-                                <span class="icon icon-close" aria-hidden="true" />
-                              </button>
-                            </Show>
-                          </div>
-                        </div>
-                        <div class="area-body" role="tabpanel">
-                          <Switch>
-                            {/* A tab's content mounts afresh on a switch, and its
-                              wrapper softly zooms in (styles.css). */}
-                            <Match when={group().active === "hymn"}>
-                              <div class="area-tab-content">{lyricsNavigator()}</div>
-                            </Match>
-                            <Match when={group().active === "recents"}>
-                              <div class="area-tab-content">
-                                <RecentsTab
-                                  hymnbookId={loaded().hymnbookId}
-                                  current={loaded().number}
-                                  store={props.store}
-                                  userState={props.userState}
-                                  onSelect={(number) => props.onSelectHymn?.(number)}
-                                />
-                              </div>
-                            </Match>
-                          </Switch>
-                        </div>
-                      </section>
-                    );
-                  }}
-                </Index>
+                <Index each={groups()}>{(group) => tabGroup(group, loaded)}</Index>
                 <aside
                   class="area stage"
                   style={{ "view-transition-name": "stage" }}

@@ -3,11 +3,11 @@ import type { HymnbookId, HymnNumber } from "../domain/types.ts";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
 
-export interface RecentsTabProps {
+export interface RecentsListProps {
   hymnbookId: HymnbookId;
-  /** The hymn up now, marked; its change also refreshes the list, since
-   * opening a hymn records it as recent (SDD-0001 §14). */
-  current: HymnNumber;
+  /** The hymn up now, if any, marked; its change also refreshes the list,
+   * since opening a hymn records it as recent (SDD-0001 §14). */
+  current?: HymnNumber;
   /** Defaults to {@link getContentStore}; overridable for tests. */
   store?: ContentStore;
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
@@ -29,9 +29,10 @@ export function viewedLabel(viewedAt: number, now = Date.now()): string {
   return at.toLocaleDateString([], { day: "numeric", month: "short" });
 }
 
-/** The Recents tab (SDD-0001 §16.4): this book's recent hymns, newest
- * first; a tap opens one in place. */
-export function RecentsTab(props: RecentsTabProps) {
+/** Recents (SDD-0001 §16.4): this book's recent hymns, newest first, as
+ * number, title and when. One list wherever recents show — the Operator's
+ * tab, the Finder, the song picker — so they never drift apart. */
+export function RecentsList(props: RecentsListProps) {
   const store = () => props.store ?? getContentStore();
   const [titles] = createResource(
     () => props.hymnbookId,

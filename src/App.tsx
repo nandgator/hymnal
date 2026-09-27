@@ -498,10 +498,6 @@ function Operator() {
                   hymnNumber={number()}
                   hymnbookId={hymnbookId()}
                   onLoaded={setHymn}
-                  navigator={preferences.preferences().navigator}
-                  onNavigatorChange={(navigator) =>
-                    preferences.update({ ...preferences.preferences(), navigator })
-                  }
                   onBack={() => setHymnPickerOpen(true)}
                   blanked={blanked()}
                   onToggleBlank={toggleBlank}
@@ -531,7 +527,7 @@ function Operator() {
         title="Go to a Song"
         placement={expanded() ? "center" : "bottom"}
       >
-        <Finder hymnbookId={hymnbookId()} onSelect={chooseHymn} />
+        <Finder hymnbookId={hymnbookId()} current={hymnNumber()} onSelect={chooseHymn} />
       </Sheet>
 
       <Sheet
@@ -542,6 +538,7 @@ function Operator() {
       >
         <Finder
           hymnbookId={hymnbookId()}
+          current={hymnNumber()}
           onSelect={(number) => {
             setCommandMenuOpen(false);
             chooseHymn(number);

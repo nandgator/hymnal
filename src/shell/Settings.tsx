@@ -41,10 +41,6 @@ export const OUTPUT_CUES: {
   { id: "part", name: "Part", example: "Verse 2, Refrain" },
   { id: "repeat", name: "Repeat count", example: "×2, on a repeat" },
 ];
-const NAVIGATORS: { value: Preferences["navigator"]; label: string }[] = [
-  { value: "parts", label: "Parts" },
-  { value: "lyrics", label: "Lyrics" },
-];
 
 let nextId = 0;
 
@@ -127,7 +123,7 @@ export function Settings(props: SettingsProps) {
     props.controller ?? createPreferences(props.userState ?? defaultUserState);
   const id = `settings-${++nextId}`;
 
-  // A segmented button on native radios, as the Operator's navigator switch.
+  // A segmented button on native radios (MD3).
   const segmented = <T extends string>(
     legend: string,
     name: string,
@@ -303,16 +299,6 @@ export function Settings(props: SettingsProps) {
             }
           />
         </label>
-        <div class="settings-row">
-          <span class="settings-label">On a phone, leads with</span>
-          {segmented(
-            "Leading navigator",
-            "navigator",
-            NAVIGATORS,
-            () => preferences().navigator,
-            (navigator) => update({ ...preferences(), navigator }),
-          )}
-        </div>
       </section>
 
       <section class="settings-section" aria-labelledby={`${id}-presentation`}>

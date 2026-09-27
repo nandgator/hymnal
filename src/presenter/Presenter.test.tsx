@@ -51,7 +51,7 @@ function fakeUserState(overrides: Partial<UserState> = {}): UserState {
     setLastPosition: async () => {},
     getRecents: async () => [],
     addRecent: async () => {},
-    getPreferences: async () => ({ theme: "system", fontScale: 1, navigator: "parts" }),
+    getPreferences: async () => ({ theme: "system", fontScale: 1 }),
     setPreferences: async () => {},
     ...overrides,
   };
@@ -71,7 +71,7 @@ function stubMedia(matches: (query: string) => boolean) {
   );
 }
 
-// The Lyrics navigator marks the current occurrence's block aria-current="step".
+// The Lyrics list marks the current occurrence's block aria-current="step".
 const currentPart = () => {
   const block = within(screen.getByRole("region", { name: "Lyrics" }))
     .getAllByRole("listitem")
@@ -388,31 +388,54 @@ describe("Presenter", () => {
     }
   });
 
-  it("on a phone: a Live strip, Parts below, Lyrics one tap away via the switch", async () => {
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn((query: string) => ({
-        matches: false,
-        media: query,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      })),
-    );
+  it("on a phone: the Live strip, then the tabs merged with Parts, opening on Parts", async () => {
+    stubMedia(() => false);
     try {
       render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
       await screen.findByText("Test Hymn");
 
       const strip = screen.getByRole("button", { name: /^Live/ });
       expect(strip).toHaveAttribute("aria-expanded", "false");
-      expect(screen.queryByRole("img", { name: "Live output preview" })).not.toBeInTheDocument();
       fireEvent.click(strip);
       expect(screen.getByRole("img", { name: "Live output preview" })).toBeInTheDocument();
 
-      expect(screen.getByRole("region", { name: "Jump to part" })).toBeInTheDocument();
+      // One merged group, no toolbar, no Parts | Lyrics switch, no stage.
+      expect(screen.getAllByRole("tablist")).toHaveLength(1);
+      expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
+        "This Song",
+        "Recents",
+        "Parts",
+      ]);
+      expect(screen.getByRole("tab", { name: "Parts" })).toHaveAttribute("aria-selected", "true");
+      expect(screen.queryByRole("radio", { name: "Lyrics" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Split/ })).not.toBeInTheDocument();
       expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("radio", { name: "Lyrics" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Line 2a" }));
+
+      // Parts holds the stage's Repeat row and keypad.
+      const keypad = within(screen.getByRole("region", { name: "Jump to part" }));
+      fireEvent.click(keypad.getByRole("button", { name: "2" }));
+      fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
+      expect(screen.getByRole("button", { name: "Undo repeat" })).toBeEnabled();
+
+      fireEvent.click(screen.getByRole("tab", { name: "This Song" }));
       expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("2");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("on a phone, N steps through the tabs, Parts included", async () => {
+    stubMedia(() => false);
+    try {
+      render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+      await screen.findByText("Test Hymn");
+      const selected = () => screen.getByRole("tab", { selected: true }).textContent;
+
+      expect(selected()).toBe("Parts");
+      fireEvent.keyDown(window, { key: "n" });
+      expect(selected()).toBe("This Song");
+      fireEvent.keyDown(window, { key: "n" });
+      expect(selected()).toBe("Recents");
     } finally {
       vi.unstubAllGlobals();
     }
@@ -506,16 +529,16 @@ describe("Presenter", () => {
     expect(keypad.getAllByRole("button").map((b) => b.textContent)).toEqual(["Refrain", "1", "2"]);
   });
 
-  it("keeps its shortcuts when the Parts | Lyrics switch has focus (phone)", async () => {
+  it("keeps its shortcuts when a phone's tab has focus", async () => {
     stubMedia(() => false);
     try {
       render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
       await screen.findByText("Test Hymn");
 
-      const lyrics = screen.getByRole("radio", { name: "Lyrics" });
-      fireEvent.click(lyrics);
-      lyrics.focus();
-      fireEvent.keyDown(lyrics, { key: "ArrowRight" });
+      const tab = screen.getByRole("tab", { name: "This Song" });
+      fireEvent.click(tab);
+      tab.focus();
+      fireEvent.keyDown(tab, { key: "ArrowRight" });
       expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Refrain");
     } finally {
       vi.unstubAllGlobals();

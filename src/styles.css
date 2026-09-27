@@ -1174,31 +1174,19 @@ input[type="checkbox"].switch:checked::before {
   margin-inline-start: -0.75rem;
 }
 
-/* Workspace (DESIGN.md § Structure, SDD-0001 §16.4): a main column —
-   Live on top, the leading navigator below — and, from 840px, a sidebar
-   with the other navigator, collapsible. On a phone Live is a strip and
-   the other navigator a bottom sheet. Each part scrolls inside itself;
-   the page never does. */
-/* The row is the room left, not the content's height — otherwise the
-   content, not the viewport, sets the height and the page scrolls. */
-.operator-body {
-  display: grid;
+/* Under 840px (DESIGN.md § Structure): the Live strip, then the tabs
+   merged into one panel taking the room, Parts among them. Only the
+   panel's body scrolls; the page never does. */
+.operator-phone {
+  display: flex;
   flex: 1;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
-  gap: var(--space-xl);
+  flex-direction: column;
+  gap: var(--space-sm);
   min-height: 0;
 }
 
-/* When height is short (a small window, or A+ on a laptop), Live gives way
-   first — the navigator is where the operator works. If even that isn't
-   enough, the column scrolls inside itself, never the page. */
-.main-column {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-  min-height: 0;
-  overflow-y: auto;
+.operator-phone .area {
+  flex: 1 1 0;
 }
 
 .live-pane {
@@ -1212,16 +1200,19 @@ input[type="checkbox"].switch:checked::before {
 /* Blanked (SDD-0001 §16.5): the Output shows bare ground; Live stays
    readable, dimmed, so the operator can prepare behind it. The preview
    fades its contents into the Output's own ground (its background), never
-   to a grey slab over a light Operator; the strip just fades. */
+   to a grey slab over a light Operator, nor into a dark one. The strip
+   does the same. */
 .live-blanked {
   opacity: 0.4;
 }
 
-.output-view-mini.live-blanked {
+.output-view-mini.live-blanked,
+.live-strip-toggle.live-blanked {
   opacity: 1;
 }
 
-.output-view-mini.live-blanked > * {
+.output-view-mini.live-blanked > *,
+.live-strip-toggle.live-blanked > * {
   opacity: 0.25;
 }
 
@@ -1322,34 +1313,19 @@ input[type="checkbox"].switch:checked::before {
      word is the accessible name and the tooltip, so the crumbs keep room. */
   .present-button {
     justify-content: center;
+    gap: 0;
     width: 3rem;
     padding: 0;
     font-size: 0;
   }
-}
 
-.navigator {
-  display: flex;
-  flex: 1 1 12rem;
-  flex-direction: column;
-  gap: var(--space-md);
-  min-height: 0;
-}
-
-.navigator-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
-}
-
-.navigator-body {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-  overflow-y: auto;
+  .present-button .swap-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
 }
 
 .parts-navigator {
@@ -1835,10 +1811,21 @@ input[type="checkbox"].switch:checked::before {
 .live-strip-row .live-control {
   flex: none;
   justify-content: center;
+  gap: 0;
   width: 3rem;
   min-height: 3rem;
   padding: 0;
   font-size: 0;
+}
+
+/* Out of the layout, not just shrunk (as Go Live's on a phone): its
+   reserved width pushed the icon off centre. */
+.live-strip-row .live-control .swap-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 
 .live-strip-row .live-control .icon {
@@ -2055,8 +2042,6 @@ input[type="checkbox"].switch:checked::before {
 .sequence,
 .area-body,
 .stage .parts-navigator > section,
-.navigator-body,
-.main-column,
 .sheet-content {
   --scrollbar-thumb: transparent;
   scrollbar-color: var(--scrollbar-thumb) transparent;
@@ -2065,14 +2050,11 @@ input[type="checkbox"].switch:checked::before {
   transition: --scrollbar-thumb 400ms ease-out;
 }
 
-:is(
-  .sequence,
-  .area-body,
-  .stage .parts-navigator > section,
-  .navigator-body,
-  .main-column,
-  .sheet-content
-):is(:hover, :focus-within, [data-scrolling]) {
+:is(.sequence, .area-body, .stage .parts-navigator > section, .sheet-content):is(
+  :hover,
+  :focus-within,
+  [data-scrolling]
+) {
   --scrollbar-thumb: var(--md-sys-color-outline-variant);
   transition-duration: 150ms;
   transition-timing-function: ease-in;
@@ -2259,7 +2241,7 @@ html[data-scrolling],
     display: none;
   }
 
-  :is(html, .shell-main, .sequence, .navigator-body, .main-column, .sheet-content, .area-tab-pill) {
+  :is(html, .shell-main, .sequence, .sheet-content, .area-tab-pill) {
     transition: none;
   }
 
@@ -2517,9 +2499,10 @@ html[data-scrolling],
   grid-column: 1 / -1;
 }
 
-/* In the stage: six equal columns across its width, edges on Live's, and a
-   short last row centred, never left in a corner (PRINCIPLES.md, rhythm). */
-.stage .chip-set {
+/* In the stage and a phone's Parts tab: six equal columns across its
+   width, edges on Live's, and a short last row centred, never left in a
+   corner (PRINCIPLES.md, rhythm). */
+:is(.stage, .operator-phone) .chip-set {
   --cols: 6;
   display: flex;
   flex-wrap: wrap;
@@ -2527,11 +2510,11 @@ html[data-scrolling],
   max-width: none;
 }
 
-.stage .chip-set li {
+:is(.stage, .operator-phone) .chip-set li {
   flex: 0 0 calc((100% - (var(--cols) - 1) * var(--space-xs)) / var(--cols));
 }
 
-.stage .chip-set li:has(.chip-wide) {
+:is(.stage, .operator-phone) .chip-set li:has(.chip-wide) {
   flex-basis: 100%;
 }
 

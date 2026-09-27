@@ -68,31 +68,29 @@ describe("preferences", () => {
   });
 
   it("round-trips", async () => {
-    await state.setPreferences({ theme: "dark", fontScale: 1.25, navigator: "parts" });
+    await state.setPreferences({ theme: "dark", fontScale: 1.25 });
     expect(await state.getPreferences()).toEqual({
       theme: "dark",
       fontScale: 1.25,
-      navigator: "parts",
     });
   });
 
   it("overwrites on each set", async () => {
-    await state.setPreferences({ theme: "dark", fontScale: 1.25, navigator: "parts" });
-    await state.setPreferences({ theme: "light", fontScale: 1, navigator: "parts" });
+    await state.setPreferences({ theme: "dark", fontScale: 1.25 });
+    await state.setPreferences({ theme: "light", fontScale: 1 });
     expect(await state.getPreferences()).toEqual({
       theme: "light",
       fontScale: 1,
-      navigator: "parts",
     });
   });
 
   it("fills a preference saved before it existed from the defaults, without migrating", async () => {
-    // A document written before `navigator` was a preference.
-    await state.setPreferences({ theme: "dark", fontScale: 1.5 } as never);
-    expect(await state.getPreferences()).toEqual({
-      theme: "dark",
-      fontScale: 1.5,
-      navigator: "parts",
-    });
+    await state.setPreferences({ theme: "dark" } as never);
+    expect(await state.getPreferences()).toEqual({ theme: "dark", fontScale: 1 });
+  });
+
+  it("drops a retired preference", async () => {
+    await state.setPreferences({ theme: "dark", fontScale: 1, navigator: "lyrics" } as never);
+    expect(await state.getPreferences()).toEqual({ theme: "dark", fontScale: 1 });
   });
 });

@@ -14,7 +14,8 @@ import {
   getContentStore,
   type SearchResult,
 } from "../persistence/content-store.ts";
-import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
+import type { UserState } from "../persistence/user-state.ts";
+import { RecentsList } from "../shell/RecentsList.tsx";
 
 /** How long typing must pause before a lyric search runs. */
 const LYRIC_DEBOUNCE_MS = 200;
@@ -30,6 +31,8 @@ export interface FinderProps {
   userState?: UserState;
   /** Called with the chosen hymn number — number lookup, a search result, or a recent. */
   onSelect: (number: HymnNumber) => void;
+  /** The hymn up now, marked in Recents. */
+  current?: HymnNumber;
   /** Called when the user wants to go back to hymnbook selection. */
   onBack?: () => void;
   /** Actions listed ahead of the hymns — this makes the Finder the command
@@ -80,14 +83,9 @@ function matchesCommand(label: string, query: string): boolean {
 export function Finder(props: FinderProps) {
   const id = () => props.hymnbookId ?? BUNDLED_HYMNBOOK_ID;
   const store = () => props.store ?? getContentStore();
-  const state = () => props.userState ?? defaultUserState;
   const listId = `finder-options-${++nextId}`;
 
   const [hymns] = createResource(() => store().listHymns(id()));
-  const titleFor = (number: HymnNumber) =>
-    hymns()?.find((hymn) => hymn.number === number)?.title ?? `#${number}`;
-
-  const [recents] = createResource(() => state().getRecents());
 
   const [query, setQuery] = createSignal("");
   const trimmed = () => query().trim();
@@ -279,27 +277,14 @@ export function Finder(props: FinderProps) {
 
       <Show when={!trimmed()}>
         <section>
-          <h2 class="title-medium on-surface-variant">Recent</h2>
-          <Show
-            when={recents()?.length}
-            fallback={<p class="body-large on-surface-variant">No recent songs yet.</p>}
-          >
-            <ul class="list">
-              <For each={recents()}>
-                {(entry) => (
-                  <li>
-                    <button
-                      type="button"
-                      class="list-row"
-                      onClick={() => props.onSelect(entry.hymnNumber)}
-                    >
-                      {titleFor(entry.hymnNumber)}
-                    </button>
-                  </li>
-                )}
-              </For>
-            </ul>
-          </Show>
+          <h2 class="title-medium on-surface-variant">Recents</h2>
+          <RecentsList
+            hymnbookId={id()}
+            current={props.current}
+            store={props.store}
+            userState={props.userState}
+            onSelect={props.onSelect}
+          />
         </section>
       </Show>
     </div>

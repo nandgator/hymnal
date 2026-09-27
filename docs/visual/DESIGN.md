@@ -495,11 +495,14 @@ unit.
   - **Areas are panels**: `surface-container-low` on the `surface`
     ground, 22px corners, 12px apart, no borders. Each has a quiet
     header, 52px tall: a small uppercase label (or its tabs) and at most
-    one or two icon actions. One lead on screen: the current part, in
-    the tonal "selected" colour (softened for its size), its label in
-    `primary`. Tonal always means selected — the current part, the
-    selected key, the song that's up in Recents — and neutral always means
-    an action at rest. Numbers are tabular, so nothing jitters as they change.
+    one or two icon actions. (Headings on the ground above bodies as cards
+    were tried on 2026-09-27 and dropped: the gaps between areas no longer
+    read, and the toolbar icons floated apart from their panels.)
+  - **One lead on screen**: the current part, in the tonal "selected"
+    colour (softened for its size), its label in `primary`. Tonal always
+    means selected — the current part, the selected key, the song that's
+    up in Recents — and neutral always means an action at rest. Numbers
+    are tabular, so nothing jitters as they change.
   - **One shape, one icon set.** Every control (buttons, keys, tabs,
     icon buttons, the search bar) is a rounded rectangle of
     `--button-shape`, never a pill beside a square; only MD3's switch
@@ -539,17 +542,14 @@ unit.
     dot emptied to a ring, so it shows on every screen, Live on screen or
     not.
   - **Phone** (and anything under 840px): Live collapses to a thin
-    strip showing the current line, expanding on tap; the tabs fill the
-    room below it, merged; the part keypad sits above the dock, in thumb
-    reach, with Repeat at the end of its first row carrying the count
-    (×2), which opens Undo last repeat and Reset repeats. Keys are one
-    fixed size, at least 44px, Refrain first as **R** (its key; the full
-    name stays the accessible one), and wrap to a second row when a song
-    has more parts than fit: 79% of songs fit one row at 390px, 99.6% two.
-    Beyond two rows the keys scroll inside, the current one kept in view.
-    The keypad's height is set per song, so nothing moves mid-song. Each
-    repeat shows a snackbar with Undo (MD3: one at a time, 4s, a new
-    repeat replacing it), above the keys. No Parts | Lyrics switch.
+    strip showing the current line, expanding on tap. Below it the tabs,
+    merged, with **Parts** as a third tab: This Song | Recents | Parts. On
+    a phone one thing is worked at a time, the lyrics or the parts, so the
+    keypad gets a tab's room rather than a strip of it. Parts holds what
+    the stage holds from 840px: the Repeat row (Repeat · ×2 · Undo ·
+    Reset, holding its height) and the keypad (Refrain full width, verses
+    in equal columns), scrolling inside like any tab. It opens on Parts.
+    The transport is the dock. No snackbar: Undo stays in the Repeat row.
   - **Where a control lives follows how often it's used mid-service**:
     frequent ones (the tabs, expand and collapse, Repeat)
     stay on screen; occasional ones go into Settings.

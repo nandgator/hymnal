@@ -34,8 +34,6 @@ export interface Preferences {
   theme: "system" | "light" | "dark";
   /** Multiplier over the responsive base size — arc42 §8.7's user-controlled text scale. */
   fontScale: number;
-  /** Which navigator leads the Operator workspace — SDD-0001 §16.4. */
-  navigator: "parts" | "lyrics";
   /** Which supporting panes show, by pane id; absent means shown, so a new
    * pane needs no migration — SDD-0001 §16.4. */
   panes?: Record<string, boolean>;
@@ -66,7 +64,6 @@ export const pinRefrainOf = (preferences: Preferences) => preferences.pinRefrain
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",
   fontScale: 1,
-  navigator: "parts",
 };
 
 /**
@@ -144,8 +141,12 @@ export function openUserState(dbName: string): UserState {
 
     async getPreferences() {
       // Merged over the defaults, so a document saved before a preference
-      // existed still loads complete — no migration needed.
-      return { ...DEFAULT_PREFERENCES, ...(await readDoc()).preferences };
+      // existed still loads complete — no migration needed. A retired one
+      // is dropped: `navigator`, gone with the Parts | Lyrics switch
+      // (SDD-0001 §16.4).
+      const { navigator: _retired, ...stored } = ((await readDoc()).preferences ??
+        {}) as Partial<Preferences> & { navigator?: unknown };
+      return { ...DEFAULT_PREFERENCES, ...stored };
     },
 
     async setPreferences(preferences) {

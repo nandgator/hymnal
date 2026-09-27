@@ -1334,10 +1334,9 @@ Studio: sections, a switcher row, the workspace, the dock.
 - **Repeat sits with Parts**: under the Parts heading, one row of Repeat,
   the count (×2), Undo and Reset, then the keypad. The row keeps its
   height before any repeat (Undo and Reset shown disabled), so the keypad
-  never moves. On a phone the part keypad sits above the dock, wrapping
-  to at most two rows (DESIGN.md § Structure); the Repeat button carries
-  the count, which opens **Undo last repeat** and
-  **Reset repeats**, and each repeat shows a snackbar with **Undo**.
+  never moves. On a phone Parts is a third tab (This Song | Recents |
+  Parts), holding the same row and keypad (DESIGN.md § Structure); it is
+  phone-only, so a stored workspace never holds it.
 - **Supporting panes stay data, not layout code**: the registry above,
   plus the tab list. With no Live on screen (Live hidden, or another
   section), the Blanked badge (§16.5) sits at the end of the switcher
