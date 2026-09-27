@@ -608,6 +608,17 @@ unit.
   command menu the highlight follows a moving pointer and leaves with
   it; Enter then takes the top match. Reduced motion shows the end
   state.
+- **Loading: the shape of what's coming, in its place** (Board #26 part 4).
+  A screen still loading shows a skeleton of itself: the Library its card
+  (title, count line, button), the Operator its panels, empty, where they
+  will sit. Content then fills in and nothing moves (§ Stability). The
+  skeleton appears only after about 300ms, so a fast load shows nothing;
+  while shown it carries a soft shimmer, static under reduced motion. No
+  spinner, and no bare "Loading…". A real wait gets real progress: the
+  first install of a hymnbook is a bar with words ("Installing
+  Athmeeya Geethangal…"), determinate when the download's size is known,
+  else indeterminate. A hot-swap needs none: the song on screen stays until
+  the next has loaded (SDD-0001 §16.4).
 - **Sheets** keep their title and Close pinned to the card's top. The
   command menu is called **Search**; Settings has its own search, which
   hides rows (and empty sections) that don't match.
