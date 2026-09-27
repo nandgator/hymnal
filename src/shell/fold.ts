@@ -12,6 +12,8 @@
  * it is one row either way.
  */
 
+import { stillCopy } from "./still.ts";
+
 /** MD3's fade-through: out quickly, then in, zooming in from 92%, as MD3 specifies. */
 export const OUT_MS = 90;
 export const IN_MS = 210;
@@ -23,24 +25,15 @@ const BLUR = "4px";
 let running: (() => void) | undefined;
 let pending = false;
 
-/** A still copy of the screen: inert and unnamed. */
+/** A still copy of the screen, for the fade. */
 function copyOf(shell: HTMLElement) {
-  const copy = shell.cloneNode(true) as HTMLElement;
-  const from = [shell, ...shell.querySelectorAll<HTMLElement>("*")];
-  const to = [copy, ...copy.querySelectorAll<HTMLElement>("*")];
-  const scrolled: [HTMLElement, number, number][] = [];
-  from.forEach((el, i) => {
-    const same = to[i];
-    same.removeAttribute("id");
-    if (el.scrollTop || el.scrollLeft) scrolled.push([same, el.scrollTop, el.scrollLeft]);
-  });
-  copy.setAttribute("inert", "");
+  const { copy, settle } = stillCopy(shell);
   // An open sheet stays in the top layer, above the fade; its copy would
   // only draw again, out of place.
   for (const dialog of copy.querySelectorAll("dialog")) dialog.remove();
   // The live row shows through: it never left.
   copy.querySelector<HTMLElement>(".switcher-row")?.style.setProperty("visibility", "hidden");
-  return { copy, scrolled };
+  return { copy, settle };
 }
 
 const reduced = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
@@ -57,23 +50,20 @@ export function foldBeforeChange() {
   if (!shell || typeof shell.animate !== "function") return;
   running?.();
   pending = true;
-  const { copy, scrolled } = copyOf(shell);
+  const { copy, settle } = copyOf(shell);
   requestAnimationFrame(() => {
     pending = false;
-    play(shell, copy, scrolled);
+    play(shell, copy, settle);
   });
 }
 
-function play(shell: HTMLElement, copy: HTMLElement, scrolled: [HTMLElement, number, number][]) {
+function play(shell: HTMLElement, copy: HTMLElement, settle: () => void) {
   const layer = document.createElement("div");
   layer.className = "fold-layer";
   layer.setAttribute("aria-hidden", "true");
   layer.append(copy);
   document.body.append(layer);
-  for (const [el, top, left] of scrolled) {
-    el.scrollTop = top;
-    el.scrollLeft = left;
-  }
+  settle();
 
   const animations = [
     copy.animate(

@@ -11,6 +11,7 @@ import {
   type UserState,
 } from "../persistence/user-state.ts";
 import { isPaneShown, PANES, type PaneId } from "./panes.ts";
+import { easeThemeChange, revealWithin, shownTheme } from "./theme.ts";
 import { setSplit, workspaceOf } from "./workspace.ts";
 
 const MIN_SCALE = 0.75;
@@ -59,6 +60,9 @@ export interface PreferencesController {
 export const canAdjustScale = (preferences: Preferences, direction: 1 | -1) =>
   direction > 0 ? preferences.fontScale < MAX_SCALE : preferences.fontScale > MIN_SCALE;
 
+/** The Operator's Live preview, or the phone's collapsed Live strip. */
+const LIVE_SELECTOR = ".operator .output-view-mini, .operator .live-strip-toggle";
+
 /**
  * Loads the user's preferences and applies them globally as `--font-scale`
  * and `data-theme` on the root element. The shell creates one at startup, so
@@ -80,7 +84,17 @@ export function createPreferences(state: UserState = defaultUserState): Preferen
   });
 
   const update = (next: Preferences) => {
-    mutate(next);
+    const current = preferences();
+    // A theme eases: revealed over the old (theme.ts).
+    if (next.theme !== current.theme)
+      easeThemeChange(() => mutate(next), ["data-theme-copy", shownTheme()]);
+    else if (next.outputTheme !== current.outputTheme) {
+      // Only Live shows the presentation's theme; the reveal plays there.
+      const lives = [...document.querySelectorAll<HTMLElement>(LIVE_SELECTOR)].filter(
+        (el) => el.getBoundingClientRect().width > 0,
+      );
+      revealWithin(lives, () => mutate(next));
+    } else mutate(next);
     void state.setPreferences(next);
   };
   return {

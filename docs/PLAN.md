@@ -144,6 +144,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-28 — The fold a fade-through; theme changes revealed in a circle
 - 2026-09-27 — #26 part 4c: the fold; Split jitter; search one style, no Find
 - 2026-09-27 — The refrain is the chorus: screen, key C, code, format (ADR-0025)
 - 2026-09-27 — #26 part 4b: loading in place, install progress; Recents
@@ -155,4 +156,3 @@ ones only, here:
 - 2026-09-27 — #27 part 3: JSON Schema for format 1; `$schema` allowed
 - 2026-09-27 — Presents, not publishes (ADR-0020); store keys; JSON Schema
 - 2026-09-27 — #27 part 2: PDF reader; columns split at gutters; `bun run import`
-- 2026-09-27 — Song import designed: ADR-0018/0019; SDD-0002 format v1, SDD-0003

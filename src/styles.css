@@ -16,7 +16,12 @@
 
   /* Board #10 — user-controlled text scale (arc42 §8.7), set by Settings. */
   --font-scale: 1;
+}
 
+/* Colours answer to a still copy too (theme.ts), so the copy laid over the
+   page as the theme changes keeps the theme being left. */
+:root,
+[data-theme-copy="light"] {
   /* Color roles, light scheme (DESIGN.md `colors-light`). */
   --md-sys-color-primary: #8b5a00;
   --md-sys-color-on-primary: #ffffff;
@@ -44,7 +49,9 @@
   --hymnal-live: #a83900;
   --hymnal-live-container: #ffdbcf;
   --hymnal-on-live-container: #380d00;
+}
 
+:root {
   /* Typography. One family for UI and hymn content alike. */
   --font-family: "Hymnal Sans", Roboto, system-ui, sans-serif;
   --font-family-hymn: "Hymnal Sans", "Noto Sans Malayalam", system-ui, sans-serif;
@@ -107,7 +114,8 @@
 
 /* Explicit override wins regardless of system setting. Light needs no
    block: bare :root already is light. */
-:root[data-theme="dark"] {
+:root[data-theme="dark"],
+[data-theme-copy="dark"] {
   --md-sys-color-primary: #ffb951;
   --md-sys-color-on-primary: #452b00;
   --md-sys-color-primary-container: #653f00;
@@ -132,6 +140,14 @@
   --hymnal-live: #ff8c5f;
   --hymnal-live-container: #7b2e0d;
   --hymnal-on-live-container: #ffdbcf;
+}
+
+[data-theme-copy="light"] {
+  color-scheme: light;
+}
+
+[data-theme-copy="dark"] {
+  color-scheme: dark;
 }
 
 /* Output view: outside the tonal system, apart from the Operator's theme.
@@ -2212,6 +2228,74 @@ html[data-scrolling],
    alone dropped the glide to 30fps (measured, 1500px, integrated GPU). */
 :root {
   view-transition-name: none;
+}
+
+/* A theme change (theme.ts): a still copy of the window in the old theme,
+   above everything, sheets too (a popover), a hole growing in it. */
+.theme-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: auto;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  pointer-events: none;
+  contain: strict;
+}
+
+/* Above all of the copied page, as the top layer is above the page. */
+.theme-layer-scrim,
+.theme-layer-sheet {
+  position: fixed;
+  z-index: 1;
+  inset: auto;
+  margin: 0;
+}
+
+.theme-layer > :not(.theme-layer-scrim, .theme-layer-sheet) {
+  position: relative;
+  z-index: 0;
+}
+
+.theme-layer-scrim {
+  inset: 0;
+}
+
+.theme-layer-sheet {
+  display: flex;
+  max-width: none;
+  max-height: none;
+}
+
+/* The reveal's hole, grown from script; its edge feathered 24px. */
+@property --reveal-r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.theme-layer,
+.theme-reveal-old {
+  mask-image: radial-gradient(
+    circle at var(--reveal-x) var(--reveal-y),
+    transparent calc(var(--reveal-r) - 24px),
+    #000 var(--reveal-r)
+  );
+}
+
+/* The presentation's theme, in Live: the old Live on top. */
+.theme-reveal-old {
+  position: absolute;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  pointer-events: none;
 }
 
 ::view-transition-group(*) {

@@ -1,5 +1,6 @@
 import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
 import type { OutputCues } from "../persistence/user-state.ts";
+import { easeThemeChange } from "../shell/theme.ts";
 import { forwardKey, type OutputMessage, requestSeek, subscribeOutput } from "./channel.ts";
 import { OutputView } from "./OutputView.tsx";
 
@@ -42,7 +43,12 @@ export function Output() {
     if (next.type === "blank") setBlanked(next.blanked);
     else if (next.type === "reveal") setReveal((n) => n + 1);
     else if (next.type === "presentation") {
-      document.documentElement.setAttribute("data-output-theme", next.theme);
+      const root = document.documentElement;
+      const current = root.getAttribute("data-output-theme");
+      const apply = () => root.setAttribute("data-output-theme", next.theme);
+      // The first theme is the Output's start, not a change.
+      if (current && current !== next.theme) easeThemeChange(apply, ["data-output-theme", current]);
+      else apply();
       setCues(next.cues);
       setPinChorus(next.pinChorus);
     } else setMessage(next);
