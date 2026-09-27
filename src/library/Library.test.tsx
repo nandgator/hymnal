@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { describe, expect, it } from "vitest";
 import type { Hymnbook } from "../domain/types.ts";
 import type { ContentStatus, ContentStore } from "../persistence/content-store.ts";
@@ -31,9 +31,61 @@ function fakeStore(overrides: Partial<ContentStore> = {}): ContentStore {
 }
 
 describe("Library", () => {
-  it("shows a loading state before the store responds", () => {
-    render(() => <Library store={fakeStore()} />);
-    expect(screen.getByText("Loading…")).toBeInTheDocument();
+  it("shows nothing for a fast load, then a skeleton of its card (DESIGN.md § Structure)", async () => {
+    render(() => <Library store={fakeStore({ ensureInstalled: () => new Promise(() => {}) })} />);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(await screen.findByRole("status")).toHaveTextContent("Loading…");
+  });
+
+  it("shows a first install's progress, in megabytes", async () => {
+    render(() => (
+      <Library
+        store={fakeStore({
+          ensureInstalled: (_id, onProgress) => {
+            onProgress?.({ loaded: 2_900_000, total: 5_800_000 });
+            return new Promise(() => {});
+          },
+        })}
+      />
+    ));
+    const bar = await screen.findByRole("progressbar", { name: "Installing the songbook" });
+    expect(bar).toHaveAttribute("aria-valuenow", "50");
+    expect(screen.getByText("2.9 of 5.8 MB")).toBeInTheDocument();
+  });
+
+  it("moves the bar as the download goes on", async () => {
+    let report: ((progress: { loaded: number; total?: number }) => void) | undefined;
+    render(() => (
+      <Library
+        store={fakeStore({
+          ensureInstalled: (_id, onProgress) => {
+            report = onProgress;
+            onProgress?.({ loaded: 0, total: 4_000_000 });
+            return new Promise(() => {});
+          },
+        })}
+      />
+    ));
+    const bar = await screen.findByRole("progressbar");
+    report?.({ loaded: 3_000_000, total: 4_000_000 });
+    await waitFor(() => expect(bar).toHaveAttribute("aria-valuenow", "75"));
+    expect(screen.getByText("3.0 of 4.0 MB")).toBeInTheDocument();
+  });
+
+  it("sweeps when the download's size is unknown", async () => {
+    render(() => (
+      <Library
+        store={fakeStore({
+          ensureInstalled: (_id, onProgress) => {
+            onProgress?.({ loaded: 1_000_000 });
+            return new Promise(() => {});
+          },
+        })}
+      />
+    ));
+    const bar = await screen.findByRole("progressbar");
+    expect(bar).not.toHaveAttribute("aria-valuenow");
+    expect(screen.getByText("1.0 MB")).toBeInTheDocument();
   });
 
   it("shows the hymnbook once ready", async () => {

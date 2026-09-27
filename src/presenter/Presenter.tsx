@@ -30,6 +30,7 @@ import {
   type UserState,
 } from "../persistence/user-state.ts";
 import { ignoresShortcuts } from "../shell/keymap.ts";
+import { AfterDelay } from "../shell/Loading.tsx";
 import { Menu, type MenuItem } from "../shell/Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY, SPLIT_QUERY, STAGE_QUERY } from "../shell/media.ts";
 import type { PaneId } from "../shell/panes.ts";
@@ -968,8 +969,45 @@ export function Presenter(props: PresenterProps) {
     );
   };
 
+  // The first load, after a moment (DESIGN.md § Structure): the panels,
+  // empty, where they will sit, so the song fills in and nothing moves. A
+  // hot-swap never shows it: the song on screen stays until the next loads.
+  const skeleton = () => (
+    <AfterDelay>
+      <article class="operator" role="status" aria-busy="true">
+        <span class="visually-hidden">Loading…</span>
+        <Show
+          when={expanded()}
+          fallback={
+            <div class="operator-phone" aria-hidden="true">
+              <Show when={shown("live")}>
+                <span class="skeleton skeleton-strip" />
+              </Show>
+              <section class="area area-main skeleton-panel" />
+              {/* The dock's room, so the panel ends where the real one will. */}
+              <div class="dock">
+                <div class="transport">
+                  <Index each={[0, 1, 2, 3]}>{() => <span class="skeleton skeleton-key" />}</Index>
+                </div>
+              </div>
+            </div>
+          }
+        >
+          <div class="operator-areas" aria-hidden="true">
+            <Index each={groups()}>
+              {(group) => (
+                <section class="area skeleton-panel" classList={{ "area-main": group().main }} />
+              )}
+            </Index>
+            <aside class="area stage skeleton-panel" />
+          </div>
+        </Show>
+      </article>
+    </AfterDelay>
+  );
+
   return (
-    <Switch fallback={<p class="body-large on-surface-variant">Loading…</p>}>
+    <Switch fallback={skeleton()}>
       <Match when={hymn.error}>
         <div class="card-elevated library">
           <p class="body-large">No song numbered {props.hymnNumber}.</p>

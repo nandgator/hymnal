@@ -1,11 +1,21 @@
-import { type Accessor, createEffect, createResource, Match, Show, Switch } from "solid-js";
+import {
+  type Accessor,
+  createEffect,
+  createResource,
+  createSignal,
+  Match,
+  Show,
+  Switch,
+} from "solid-js";
 import { BUNDLED_HYMNBOOK_ID } from "../config.ts";
 import type { Hymnbook, HymnbookId } from "../domain/types.ts";
 import {
   type ContentStatus,
   type ContentStore,
   getContentStore,
+  type InstallProgress,
 } from "../persistence/content-store.ts";
+import { AfterDelay, ProgressBar } from "../shell/Loading.tsx";
 
 class ContentUnavailable extends Error {
   readonly status: Exclude<ContentStatus, { state: "ready" }>;
@@ -42,16 +52,49 @@ export interface LibraryProps {
   onLoaded?: (hymnbook: Hymnbook) => void;
 }
 
+const megabytes = (bytes: number) => (bytes / 1_000_000).toFixed(1);
+
+/** The card to come, in its place: title, count line, button. */
+const librarySkeleton = () => (
+  <div class="card-elevated library" role="status" aria-busy="true">
+    <span class="visually-hidden">Loading…</span>
+    <span class="skeleton skeleton-title" aria-hidden="true" />
+    <span class="skeleton skeleton-line" aria-hidden="true" />
+    <span class="skeleton skeleton-button" aria-hidden="true" />
+  </div>
+);
+
+/** A first install: the songbook copied to this device, once. The title is
+ * in the file still arriving, so the words can't name it. */
+const installing = (progress: Accessor<InstallProgress>) => (
+  <div class="card-elevated library" aria-busy="true">
+    <p class="body-large">Installing the songbook for offline use…</p>
+    <ProgressBar
+      label="Installing the songbook"
+      value={progress().total ? progress().loaded / (progress().total ?? 1) : undefined}
+    />
+    <p class="body-medium on-surface-variant library-progress-text">
+      {progress().total
+        ? `${megabytes(progress().loaded)} of ${megabytes(progress().total ?? 0)} MB`
+        : `${megabytes(progress().loaded)} MB`}
+    </p>
+  </div>
+);
+
 /**
  * Board #7 — the first-run provisioning gate, and arc42's "know which are
  * available offline" home for as long as there's exactly one hymnbook to
  * know about.
  */
 export function Library(props: LibraryProps) {
+  // Set once the first install's download reports: a real wait, so real
+  // progress rather than a skeleton (DESIGN.md § Structure).
+  const [progress, setProgress] = createSignal<InstallProgress>();
   const load = async (): Promise<Hymnbook> => {
     const id = props.hymnbookId ?? BUNDLED_HYMNBOOK_ID;
     const store = props.store ?? getContentStore();
-    const status = await store.ensureInstalled(id);
+    setProgress(undefined);
+    const status = await store.ensureInstalled(id, (next) => setProgress(next));
     if (status.state !== "ready") throw new ContentUnavailable(status);
     return store.getHymnbook(id);
   };
@@ -61,7 +104,15 @@ export function Library(props: LibraryProps) {
   });
 
   return (
-    <Switch fallback={<p>Loading…</p>}>
+    <Switch
+      fallback={
+        <AfterDelay>
+          <Show when={progress()} fallback={librarySkeleton()}>
+            {(now) => installing(now)}
+          </Show>
+        </AfterDelay>
+      }
+    >
       <Match when={hymnbook.error}>
         <div class="card-elevated library">
           <p class="body-large">{describeError(hymnbook.error)}</p>

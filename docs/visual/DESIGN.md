@@ -602,8 +602,10 @@ unit.
   a tab change is not a layout change, so the tab bar's one pill glides to
   the selected tab and the new content softly zooms in, in the page itself
   (a View Transition there cross-faded snapshots of the tab labels, which
-  flickered). A menu grows from its button; a sheet rises over a blurred
-  page and sinks away on close; every control's change of state eases.
+  flickered). A song chosen from Recents glides to the top, every row
+  moving from where it was to where it lands. A menu grows from its
+  button; a sheet rises over a blurred page and sinks away on close; every
+  control's change of state eases.
   **Press**: a control gives a little under the finger (96%) at once and springs
   back with a slight overshoot, Material 3 Expressive's press kept small;
   an icon that changes meaning (Blank to Restore) turns in. The Repeat
@@ -621,9 +623,11 @@ unit.
   skeleton appears only after about 300ms, so a fast load shows nothing;
   while shown it carries a soft shimmer, static under reduced motion. No
   spinner, and no bare "Loading…". A real wait gets real progress: the
-  first install of a hymnbook is a bar with words ("Installing
-  Athmeeya Geethangal…"), determinate when the download's size is known,
-  else indeterminate. A hot-swap needs none: the song on screen stays until
+  first install of a hymnbook is a bar with words ("Installing the
+  songbook for offline use…", not its title: that is inside the file
+  still arriving) and megabytes, determinate when the download's size is
+  known, else indeterminate. Go Live holds the right edge from the first
+  frame, loaded or not. A hot-swap needs none: the song on screen stays until
   the next has loaded (SDD-0001 §16.4).
 - **Sheets** keep their title and Close pinned to the card's top. The
   command menu is called **Search**; Settings has its own search, which

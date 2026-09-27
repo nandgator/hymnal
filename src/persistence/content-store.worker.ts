@@ -10,6 +10,7 @@ import type {
   PartKind,
   SequenceEntry,
 } from "../domain/types.ts";
+import { download, type InstallProgress } from "./download.ts";
 
 export interface HymnSummary {
   number: number;
@@ -32,9 +33,15 @@ export type ContentStatus =
  * Runtime counterpart to scripts/build-content.ts — see SDD-0001 §10.
  * Read-only: content is immutable at runtime.
  */
+export type { InstallProgress };
+
 export interface ContentStore {
-  /** Must succeed before any other method is called for this hymnbook. */
-  ensureInstalled(id: HymnbookId): Promise<ContentStatus>;
+  /** Must succeed before any other method is called for this hymnbook.
+   * `onProgress` hears the download, when there is one. */
+  ensureInstalled(
+    id: HymnbookId,
+    onProgress?: (progress: InstallProgress) => void,
+  ): Promise<ContentStatus>;
   getHymnbook(id: HymnbookId): Promise<Hymnbook>;
   listHymns(id: HymnbookId): Promise<HymnSummary[]>;
   getHymn(id: HymnbookId, number: number): Promise<HymnSource>;
@@ -61,7 +68,10 @@ class ContentStoreWorker implements ContentStore {
     );
   }
 
-  async ensureInstalled(id: HymnbookId): Promise<ContentStatus> {
+  async ensureInstalled(
+    id: HymnbookId,
+    onProgress?: (progress: InstallProgress) => void,
+  ): Promise<ContentStatus> {
     const pool = await this.#poolReady;
     const filename = filenameFor(id);
 
@@ -73,7 +83,7 @@ class ContentStoreWorker implements ContentStore {
       // serves from a subpath, not the domain root.
       const response = await fetch(`${import.meta.env.BASE_URL}content/${id}.sqlite`);
       if (!response.ok) return { state: "missing-asset" };
-      const bytes = new Uint8Array(await response.arrayBuffer());
+      const bytes = await download(response, onProgress);
       // A dev-server SPA fallback (or misconfigured host) can answer a
       // missing asset with a 200 of something else entirely — check the
       // actual SQLite file header rather than trusting response.ok alone.

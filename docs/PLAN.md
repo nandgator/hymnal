@@ -40,8 +40,12 @@ Parts 1–3b are done: workspace model, wide layout, pane toolbar, design pass.
   Lyrics switch and `preferences.navigator`. Fixes the blanked strip (dim
   to the Output's ground, as Live does) and the phone's off-centre icons.
   One Recents list everywhere: number, title, when; this book's only
-- **Part 4b, next.** Loading states: skeletons in place, install progress
-- Part 4c. Command menu and Settings entries; the switch between wide and
+- ~~Part 4b~~ — done. Loading states: skeletons in place after 300ms,
+  install progress streamed from the worker; Go Live no longer jumps
+  during load; key caps' fill token. Recents: arrives with the screen (the
+  last list shown at once, then refreshed), glides a chosen song to the
+  top, never claims "none" while loading
+- **Part 4c, next.** Command menu and Settings entries; the switch between wide and
   phone layouts animated, components folding both ways. Not a View
   Transition: Chromium skips one on any resize (probed 2026-09-27), and
   crossing 840px is a resize. Then every animation checked per frame;
@@ -85,25 +89,26 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                                     | Blocked by   |
-| --- | ---------------------------------------------------------------------------------------- | ------------ |
-| 26  | Rethink the Operator layout: Parts, Live preview and Lyrics                              | —            |
-| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now                       | 26           |
-| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                         | —            |
-| 28  | Library: load songs and books in format 1, local only; keys, duplicates (ADR-0020/21/24) | 27, 2nd book |
-| 29  | Import: PowerPoint reader; _Songs of Zion_ (.pptx, its PDF to cross-check)               | 27           |
-| 30  | Full song, landscape: printed form in columns, the highlight glides; mockup              | 26           |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                              | —            |
-| 15  | Transliteration: search and display across scripts (ADR-0014)                            | —            |
-| 16  | Feedback and corrections from users — where collected: TBD                               | —            |
-| 17  | About: acknowledgements, copyright, credits                                              | —            |
-| 18  | Over-the-air update notices (as Supabase announces changes)                              | —            |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                          | 2nd book     |
-| 21  | Hold: freeze the Output on what's showing, navigate, release                             | —            |
-| 22  | Service queue: line up hymns for a service (a supporting pane)                           | —            |
-| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved                | 22           |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                               | Phase 2      |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation                            | content      |
+| #   | Task                                                                                                           | Blocked by   |
+| --- | -------------------------------------------------------------------------------------------------------------- | ------------ |
+| 26  | Rethink the Operator layout: Parts, Live preview and Lyrics                                                    | —            |
+| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now                                             | 26           |
+| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                               | —            |
+| 28  | Library: load songs and books in format 1, local only; keys, duplicates (ADR-0020/21/24)                       | 27, 2nd book |
+| 29  | Import: PowerPoint reader; _Songs of Zion_ (.pptx, its PDF to cross-check)                                     | 27           |
+| 33  | Recents as a real recent list: "just now", "a few minutes ago", day and date; grouped Today, Yesterday, Before | 26           |
+| 30  | Full song, landscape: printed form in columns, the highlight glides; mockup                                    | 26           |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                    | —            |
+| 15  | Transliteration: search and display across scripts (ADR-0014)                                                  | —            |
+| 16  | Feedback and corrections from users — where collected: TBD                                                     | —            |
+| 17  | About: acknowledgements, copyright, credits                                                                    | —            |
+| 18  | Over-the-air update notices (as Supabase announces changes)                                                    | —            |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                                | 2nd book     |
+| 21  | Hold: freeze the Output on what's showing, navigate, release                                                   | —            |
+| 22  | Service queue: line up hymns for a service (a supporting pane)                                                 | —            |
+| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved                                      | 22           |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                     | Phase 2      |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                  | content      |
 
 26 and 20 finish Phase 1; 27 is a build-time tool beside them. 14–15 sit
 past the scope guard below. 16–25 are notes, not scheduled: the shell
@@ -140,6 +145,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-27 — #26 part 4b: loading in place, install progress; Recents
 - 2026-09-27 — #26 part 4a: phone layout, Parts a tab; one Recents list
 - 2026-09-27 — Triage and inference dropped; import case by case (ADR-0024)
 - 2026-09-27 — Triage and inferred layout (ADR-0023); a local shelf of PDFs
@@ -151,4 +157,3 @@ ones only, here:
 - 2026-09-27 — #27 part 1: format v1; unknown fields fail at every level
 - 2026-09-27 — Song import designed: ADR-0018/0019; SDD-0002 format v1, SDD-0003
 - 2026-09-26 — CI: deploy workflow actions moved to their Node 24 majors
-- 2026-09-26 — #26 part 3b: design pass; transport in the stage; refrains in full

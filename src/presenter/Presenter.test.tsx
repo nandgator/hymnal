@@ -81,9 +81,16 @@ const currentPart = () => {
 };
 
 describe("Presenter", () => {
-  it("shows a loading state before the store responds", () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
-    expect(screen.getByText("Loading…")).toBeInTheDocument();
+  it("shows nothing for a fast load, then its panels empty in place (DESIGN.md § Structure)", async () => {
+    render(() => (
+      <Presenter
+        hymnNumber={7}
+        store={fakeStore({ getHymn: () => new Promise(() => {}) })}
+        userState={fakeUserState()}
+      />
+    ));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(await screen.findByRole("status")).toHaveTextContent("Loading…");
   });
 
   it("opens on the first part, whole part focused, and records it as recent", async () => {

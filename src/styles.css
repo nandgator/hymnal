@@ -36,6 +36,7 @@
   --md-sys-color-surface-container-low: #fbf1e6;
   --md-sys-color-surface-container: #f5ecdf;
   --md-sys-color-surface-container-high: #f0e6d9;
+  --md-sys-color-surface-container-highest: #eae1d4;
   --md-sys-color-inverse-surface: #362f26;
   --md-sys-color-inverse-on-surface: #fbeee1;
   /* On air: a custom colour, Material's way — red harmonised to the amber
@@ -95,6 +96,7 @@
     --md-sys-color-surface-container-low: #201a12;
     --md-sys-color-surface-container: #241e15;
     --md-sys-color-surface-container-high: #2f2819;
+    --md-sys-color-surface-container-highest: #3a3223;
     --md-sys-color-inverse-surface: #eae1d9;
     --md-sys-color-inverse-on-surface: #362f26;
     --hymnal-live: #ff8c5f;
@@ -124,6 +126,7 @@
   --md-sys-color-surface-container-low: #201a12;
   --md-sys-color-surface-container: #241e15;
   --md-sys-color-surface-container-high: #2f2819;
+  --md-sys-color-surface-container-highest: #3a3223;
   --md-sys-color-inverse-surface: #eae1d9;
   --md-sys-color-inverse-on-surface: #362f26;
   --hymnal-live: #ff8c5f;
@@ -470,11 +473,15 @@ button:disabled {
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
 
+/* The crumbs take the slack, so Go Live holds the right edge from the
+   first frame: pushed by the search box instead, it sat beside "Hymnal"
+   while the book loaded, then jumped right (DESIGN.md § Stability). */
 .crumbs {
   display: flex;
   align-items: center;
   gap: var(--space-xxs);
   min-width: 0;
+  margin-inline-end: auto;
 }
 
 .crumb,
@@ -1172,6 +1179,108 @@ input[type="checkbox"].switch:checked::before {
 
 .operator-header .btn-text {
   margin-inline-start: -0.75rem;
+}
+
+/* Loading (DESIGN.md § Structure): the shape of what's coming, in its
+   place, fading in once the wait has lasted (AfterDelay), a soft light
+   passing over it. Reduced motion keeps the shapes, still. */
+.skeleton {
+  display: block;
+  border-radius: var(--shape-sm);
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.skeleton,
+.skeleton-panel {
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--md-sys-color-on-surface) 5%, transparent) 50%,
+    transparent 70%
+  );
+  background-repeat: no-repeat;
+  background-size: 250% 100%;
+  animation:
+    fade-in var(--motion-medium) var(--motion-emphasized),
+    shimmer 1.6s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: 0 0;
+  }
+}
+
+/* The Library card's parts, at their own sizes: title, count, button. */
+.skeleton-title {
+  width: min(16rem, 70%);
+  height: 2.75rem;
+}
+
+.skeleton-line {
+  width: min(10rem, 45%);
+  height: 1.25rem;
+}
+
+.skeleton-button {
+  width: 9rem;
+  height: 2.5rem;
+  border-radius: var(--button-shape);
+}
+
+/* A phone dock's buttons, icon-only. */
+.skeleton-key {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--button-shape);
+}
+
+.skeleton-strip {
+  flex: none;
+  height: 3rem;
+  border-radius: var(--shape-md);
+}
+
+/* MD3 linear progress: a 4px track, the indicator in primary. Determinate
+   scales to its value; indeterminate sweeps. */
+.progress {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background-color: var(--md-sys-color-surface-container-highest);
+}
+
+.progress-indicator {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--md-sys-color-primary);
+  transform-origin: left;
+  transition: transform var(--motion-medium) var(--motion-emphasized);
+}
+
+.progress-indeterminate .progress-indicator {
+  animation: progress-sweep 1.4s var(--motion-emphasized) infinite;
+}
+
+@keyframes progress-sweep {
+  from {
+    transform: translateX(-100%) scaleX(0.4);
+  }
+
+  to {
+    transform: translateX(250%) scaleX(0.4);
+  }
+}
+
+.library-progress-text {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Under 840px (DESIGN.md § Structure): the Live strip, then the tabs
@@ -2267,6 +2376,8 @@ html[data-scrolling],
   ::view-transition-old(*),
   ::view-transition-new(*),
   .menu-popover,
+  .skeleton,
+  .skeleton-panel,
   .area-tab-content,
   .workspace > :not(.operator),
   .icon-swap,
