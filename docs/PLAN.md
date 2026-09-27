@@ -47,7 +47,7 @@ Parts 1–3b are done: workspace model, wide layout, pane toolbar, design pass.
   top, never claims "none" while loading
 - ~~Part 4c~~ — done, for review. Split and Make main in the command menu
   only where two groups fit, gliding; the fold between wide and phone
-  (ghost panels, not a View Transition); Split jitter fixed (snapshots
+  (a fade-through); Split jitter fixed (snapshots
   clipped, not scaled; no root capture); every animation timed per frame
 
 **Board #27 (song import, CLI) runs alongside**: it touches no UI. Target:
