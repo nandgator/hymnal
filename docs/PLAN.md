@@ -46,9 +46,9 @@ _Hymns of Fellowship_, the second hymnbook; its draft stays in `imports/`
 until its rights are known. Spec:
 ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
-1. **Next.** Format v1: `format: 1` in `hymnbook.json`; unknown fields
-   rejected at every level; a newer `format` refused (SDD-0002 §4)
-2. PDF reader (pdf.js) → `SourcePage`; `bun run import` dumping lines;
+1. ~~Format v1: `format: 1`, unknown fields rejected, other formats
+   refused~~ — done
+2. **Next.** PDF reader (pdf.js) → `SourcePage`; `bun run import` dumping lines;
    `imports/` gitignored
 3. Flow, songs, parts, draft, report — against a profile (SDD-0003 §3)
 4. Judge, swappable by manifest; Laya first (SDD-0003 §4.1). Only if
@@ -125,6 +125,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-27 — #27 part 1: format v1; unknown fields fail at every level
 - 2026-09-27 — Song import designed: ADR-0018/0019; SDD-0002 format v1, SDD-0003
 - 2026-09-26 — CI: deploy workflow actions moved to their Node 24 majors
 - 2026-09-26 — #26 part 3b: design pass; transport in the stage; refrains in full
@@ -136,4 +137,3 @@ ones only, here:
 - 2026-09-25 — #13 designed: refrain pinned, Mode 3 dropped; part 1: refrain band
 - 2026-09-25 — Phone switcher row: hymnbook icon + hymn number, titles as names
 - 2026-09-25 — #12 done. Part 4c: cues (number badge, lower third), fade on change
-- 2026-09-25 — #12 part 4b: Repeat, Undo, Reset; a repeat stays in place on the Output

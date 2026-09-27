@@ -566,9 +566,11 @@ CMS can apply the same checks. They cover I1-I7, plus:
 
 - The file name matches `number`, and the hymn count matches
   `hymnbook.hymnCount`.
-- **Unsupported metadata fails.** §6 stores only `author`, `tune` and `meter`;
-  a hymn carrying `topics`, `scripture` or `copyright` is a violation rather
-  than a silent drop, until the schema is extended to hold them.
+- **Unknown fields fail**, at every level, and so does a `format` other than
+  the one the reader knows ([SDD-0002 §4](0002-content-format.md#4-rules)).
+  §6 stores only `author`, `tune` and `meter`, so a hymn carrying `topics`,
+  `scripture` or `copyright` is a violation rather than a silent drop, until
+  a new format version adds them.
 - I8 holds by construction: the pipeline assigns `idx` 0..n-1 from the
   sequence array, so gaps cannot occur.
 

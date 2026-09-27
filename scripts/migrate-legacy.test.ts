@@ -6,6 +6,7 @@ import type { LegacyHymn } from "./legacy-convert.ts";
 import { migrate } from "./migrate-legacy.ts";
 
 const hymnbook = {
+  format: 1,
   id: "test-book",
   title: "Test",
   language: "ml",

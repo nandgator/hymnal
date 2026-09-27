@@ -7,7 +7,7 @@ import { buildContent, hashContent, loadContent } from "./build-content.ts";
 import { FTS_TOKENCHARS, SCHEMA_VERSION } from "./content-schema.ts";
 
 const BOOK_ID = "test-book";
-const book = { id: BOOK_ID, title: "T", language: "ml", script: "Mlym", hymnCount: 2 };
+const book = { format: 1, id: BOOK_ID, title: "T", language: "ml", script: "Mlym", hymnCount: 2 };
 
 function hymn(number: number, lines: string[], overrides: Record<string, unknown> = {}) {
   return {
@@ -195,7 +195,7 @@ describe("buildContent", () => {
       "I3",
       "I5",
       "I5",
-      "unsupported-meta",
+      "unknown-field",
     ]);
     expect(result.outFile).toBeUndefined();
     expect(existsSync(outDir)).toBe(false);

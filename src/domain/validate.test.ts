@@ -65,11 +65,41 @@ describe("validateHymn", () => {
     ]);
   });
 
-  it("rejects metadata the schema cannot store", () => {
+  it("rejects metadata format 1 does not define", () => {
     const v = validateHymn(hymn({ meta: { author: "a", topics: ["x"], copyright: "c" } }));
+    expect(v).toEqual([
+      {
+        rule: "unknown-field",
+        where: "hymn 7",
+        message: "meta.topics is not a field of format 1",
+      },
+      {
+        rule: "unknown-field",
+        where: "hymn 7",
+        message: "meta.copyright is not a field of format 1",
+      },
+    ]);
+  });
+
+  it("rejects unknown fields at every level, labelled by hymn", () => {
+    const parts = [{ id: "s1", kind: "stanza", lines: ["a"], chords: [] }];
+    const v = validateHymn(
+      hymn({ tags: [], parts, sequence: [{ partId: "s1", times: 2 }] }),
+      "0007.json",
+    );
+    expect(v.map((x) => [x.rule, x.where, x.message])).toEqual([
+      ["unknown-field", "hymn 7", "tags is not a field of format 1"],
+      ["unknown-field", "hymn 7", "parts[0].chords is not a field of format 1"],
+      ["unknown-field", "hymn 7", "sequence[0].times is not a field of format 1"],
+    ]);
+  });
+
+  it("requires optional fields, when present, to be strings", () => {
+    const parts = [{ id: "s1", kind: "stanza", label: 1, lines: ["a"] }];
+    const v = validateHymn(hymn({ parts, sequence: [{ partId: "s1" }], meta: { author: null } }));
     expect(v.map((x) => x.message)).toEqual([
-      "meta.topics cannot be stored by the current schema",
-      "meta.copyright cannot be stored by the current schema",
+      "parts[0].label must be a string",
+      "meta.author must be a string",
     ]);
   });
 
@@ -124,7 +154,7 @@ describe("hymnFileName", () => {
 });
 
 describe("validateCorpus", () => {
-  const book = { id: "b", title: "T", language: "ml", script: "Mlym", hymnCount: 2 };
+  const book = { format: 1, id: "b", title: "T", language: "ml", script: "Mlym", hymnCount: 2 };
   const file = (number: number, name = hymnFileName(number)) => ({
     file: name,
     hymn: hymn({ number }),
@@ -171,11 +201,33 @@ describe("validateCorpus", () => {
     expect(validateCorpus(null, []).map((x) => x.rule)).toEqual(["shape"]);
     const v = validateCorpus({ id: "", hymnCount: "x" }, []);
     expect(v.map((x) => x.message)).toEqual([
+      "format must be an integer",
       "id must be a non-empty string",
       "title must be a non-empty string",
       "language must be a non-empty string",
       "script must be a non-empty string",
       "hymnCount must be an integer",
     ]);
+  });
+
+  it("rejects unknown hymnbook fields and non-string optional ones", () => {
+    const v = validateCorpus({ ...book, isbn: 978, region: "IN" }, [file(1), file(2)]);
+    expect(v.map((x) => x.message)).toEqual([
+      "region is not a field of format 1",
+      "isbn must be a string",
+    ]);
+  });
+
+  it("refuses another format outright, naming both versions", () => {
+    const bad = { file: "0002.json", hymn: hymn({ number: 2, sequence: [] }) };
+    for (const format of [2, 0]) {
+      expect(validateCorpus({ ...book, format, extra: true }, [file(1), bad])).toEqual([
+        {
+          rule: "format",
+          where: "hymnbook",
+          message: `the book is format ${format}; this reader knows format 1`,
+        },
+      ]);
+    }
   });
 });

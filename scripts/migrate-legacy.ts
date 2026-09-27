@@ -2,8 +2,8 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Hymnbook } from "../src/domain/types.ts";
-import { hymnFileName } from "../src/domain/validate.ts";
+import type { HymnbookSource } from "../src/domain/types.ts";
+import { CONTENT_FORMAT, hymnFileName } from "../src/domain/validate.ts";
 import {
   convertLegacyHymn,
   type LegacyHymn,
@@ -14,7 +14,8 @@ import {
 const LEGACY_COMMIT = "155baea";
 const LEGACY_DIR = "archive/data/lyrics/mal";
 
-export const HYMNBOOK: Hymnbook = {
+export const HYMNBOOK: HymnbookSource = {
+  format: CONTENT_FORMAT,
   id: "mal-ymef-athmeeya-geethangal-16",
   title: "ആത്മീയ ഗീതങ്ങൾ",
   language: "ml",
@@ -26,7 +27,7 @@ export const HYMNBOOK: Hymnbook = {
 
 export interface MigrateOptions {
   outDir: string;
-  hymnbook: Hymnbook;
+  hymnbook: HymnbookSource;
   legacy: LegacyHymn[];
 }
 

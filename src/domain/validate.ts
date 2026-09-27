@@ -13,8 +13,27 @@ export interface HymnFile {
   hymn: unknown;
 }
 
+/** The content format this reader accepts, and the only one (SDD-0002 §5). */
+export const CONTENT_FORMAT = 1;
+
 const PART_KINDS: readonly PartKind[] = ["stanza", "refrain", "bridge", "tag"];
-const STORED_META = ["author", "tune", "meter"];
+
+/** Every field of format 1, by level (SDD-0002 §2-3). Anything else is a violation. */
+const HYMNBOOK_FIELDS = [
+  "format",
+  "id",
+  "title",
+  "language",
+  "script",
+  "publisher",
+  "edition",
+  "isbn",
+  "hymnCount",
+];
+const HYMN_FIELDS = ["number", "title", "parts", "sequence", "meta"];
+const PART_FIELDS = ["id", "kind", "label", "lines"];
+const ENTRY_FIELDS = ["partId"];
+const META_FIELDS = ["author", "tune", "meter"];
 
 export const hymnFileName = (number: number) => `${String(number).padStart(4, "0")}.json`;
 
@@ -23,12 +42,38 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 
 const isNonEmptyString = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 
+type Add = (rule: string, message: string) => void;
+
+/** Flags fields format 1 doesn't define: never ignored, since ignoring drops content. */
+function checkFields(record: Record<string, unknown>, known: string[], path: string, add: Add) {
+  for (const key of Object.keys(record)) {
+    if (!known.includes(key)) {
+      add("unknown-field", `${path}${key} is not a field of format ${CONTENT_FORMAT}`);
+    }
+  }
+}
+
+/** Optional fields may be absent, but present ones must be strings. */
+function checkOptionalStrings(
+  record: Record<string, unknown>,
+  keys: string[],
+  path: string,
+  add: Add,
+) {
+  for (const key of keys) {
+    if (key in record && typeof record[key] !== "string") {
+      add("shape", `${path}${key} must be a string`);
+    }
+  }
+}
+
 /** Checks one hymn from source. Returns every violation; never repairs or throws. */
 export function validateHymn(input: unknown, where = "hymn"): Violation[] {
   const out: Violation[] = [];
-  const add = (rule: string, message: string) => out.push({ rule, where, message });
+  const add: Add = (rule, message) => out.push({ rule, where, message });
 
   if (!isRecord(input)) return [{ rule: "shape", where, message: "hymn is not an object" }];
+  checkFields(input, HYMN_FIELDS, "", add);
   const { number, title, parts, sequence, meta } = input;
   if (typeof number === "number" && Number.isInteger(number) && number > 0) {
     where = `hymn ${number}`;
@@ -48,6 +93,8 @@ export function validateHymn(input: unknown, where = "hymn"): Violation[] {
       return;
     }
     partIds.push(part.id);
+    checkFields(part, PART_FIELDS, `parts[${i}].`, add);
+    checkOptionalStrings(part, ["label"], `parts[${i}].`, add);
     if (!PART_KINDS.includes(part.kind as PartKind)) {
       add("shape", `part ${part.id} has unknown kind ${JSON.stringify(part.kind)}`);
     }
@@ -71,6 +118,7 @@ export function validateHymn(input: unknown, where = "hymn"): Violation[] {
       add("shape", `sequence[${i}] needs a non-empty string partId`);
       return;
     }
+    checkFields(entry, ENTRY_FIELDS, `sequence[${i}].`, add);
     referenced.add(entry.partId);
     if (!partIds.includes(entry.partId)) {
       add("I2", `sequence[${i}] references unknown part ${entry.partId}`);
@@ -82,13 +130,10 @@ export function validateHymn(input: unknown, where = "hymn"): Violation[] {
   }
 
   if (isRecord(meta)) {
-    for (const key of Object.keys(meta)) {
-      if (!STORED_META.includes(key)) {
-        add("unsupported-meta", `meta.${key} cannot be stored by the current schema`);
-      }
-    }
+    checkFields(meta, META_FIELDS, "meta.", add);
+    checkOptionalStrings(meta, META_FIELDS, "meta.", add);
   }
-  return out;
+  return relabel(out, where);
 }
 
 const relabel = (violations: Violation[], where: string) =>
@@ -97,25 +142,31 @@ const relabel = (violations: Violation[], where: string) =>
 /** Checks a whole hymnbook directory: the metadata, every hymn, and cross-hymn rules. */
 export function validateCorpus(hymnbook: unknown, files: HymnFile[]): Violation[] {
   const out: Violation[] = [];
+  const add: Add = (rule, message) => out.push({ rule, where: "hymnbook", message });
 
   let expectedCount: number | undefined;
   if (!isRecord(hymnbook)) {
-    out.push({ rule: "shape", where: "hymnbook", message: "hymnbook.json is not an object" });
+    add("shape", "hymnbook.json is not an object");
   } else {
+    const { format } = hymnbook;
+    if (typeof format !== "number" || !Number.isInteger(format)) {
+      add("shape", "format must be an integer");
+    } else if (format !== CONTENT_FORMAT) {
+      // A book in another format is judged by rules this reader doesn't
+      // know, so its other violations would only be noise.
+      add("format", `the book is format ${format}; this reader knows format ${CONTENT_FORMAT}`);
+      return out;
+    }
+    checkFields(hymnbook, HYMNBOOK_FIELDS, "", add);
+    checkOptionalStrings(hymnbook, ["publisher", "edition", "isbn"], "", add);
     for (const key of ["id", "title", "language", "script"] as const) {
-      if (!isNonEmptyString(hymnbook[key])) {
-        out.push({
-          rule: "shape",
-          where: "hymnbook",
-          message: `${key} must be a non-empty string`,
-        });
-      }
+      if (!isNonEmptyString(hymnbook[key])) add("shape", `${key} must be a non-empty string`);
     }
     const count = (hymnbook as Partial<Hymnbook>).hymnCount;
     if (typeof count === "number" && Number.isInteger(count) && count >= 0) {
       expectedCount = count;
     } else {
-      out.push({ rule: "shape", where: "hymnbook", message: "hymnCount must be an integer" });
+      add("shape", "hymnCount must be an integer");
     }
   }
 
