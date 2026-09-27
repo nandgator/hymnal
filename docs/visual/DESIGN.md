@@ -540,10 +540,16 @@ unit.
     not.
   - **Phone** (and anything under 840px): Live collapses to a thin
     strip showing the current line, expanding on tap; the tabs fill the
-    room below it, merged; the part keypad is a row above the dock, in
-    thumb reach, with Repeat at its end carrying the count (×2), which
-    opens Undo last repeat and Reset repeats. Each repeat shows a
-    snackbar with Undo. No Parts | Lyrics switch.
+    room below it, merged; the part keypad sits above the dock, in thumb
+    reach, with Repeat at the end of its first row carrying the count
+    (×2), which opens Undo last repeat and Reset repeats. Keys are one
+    fixed size, at least 44px, Refrain first as **R** (its key; the full
+    name stays the accessible one), and wrap to a second row when a song
+    has more parts than fit: 79% of songs fit one row at 390px, 99.6% two.
+    Beyond two rows the keys scroll inside, the current one kept in view.
+    The keypad's height is set per song, so nothing moves mid-song. Each
+    repeat shows a snackbar with Undo (MD3: one at a time, 4s, a new
+    repeat replacing it), above the keys. No Parts | Lyrics switch.
   - **Where a control lives follows how often it's used mid-service**:
     frequent ones (the tabs, expand and collapse, Repeat)
     stay on screen; occasional ones go into Settings.

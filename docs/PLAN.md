@@ -35,14 +35,16 @@ the "Operator Layout" artifact. Parts, each reviewed before the next:
 
 Parts 1–3b are done: workspace model, wide layout, pane toolbar, design pass.
 
-- **Part 4, next.** Under 840px: Live strip, tabs merged, parts row with ×n
-  menu, Undo snackbar; command menu and Settings entries; the switch
-  between wide and phone layouts animated. Retires the Parts | Lyrics
-  switch (tick, outline) and `preferences.navigator`. Fix the keypad (half
-  the width on a phone; fill it, as the stage does) and the blanked strip
-  (a grey slab in light, gone in dark; dim to the Output's ground, as Live
-  does). Loading states: skeletons in place, install progress (DESIGN.md
-  § Structure)
+- **Part 4a, next.** Under 840px: Live strip, tabs merged, keypad above
+  the dock (wrapping, two rows at most), Repeat ×n menu, Undo snackbar.
+  Retires the Parts | Lyrics switch and `preferences.navigator`. Fixes the
+  blanked strip (a grey slab in light, gone in dark; dim to the Output's
+  ground, as Live does); the half-width keypad goes with the switch. One
+  Recents list everywhere: the Finder's and the picker's use the tab's
+  (number, title, when; one inset; "Recents")
+- Part 4b. Loading states: skeletons in place, install progress
+- Part 4c. Command menu and Settings entries; the switch between wide and
+  phone layouts animated
 
 **Board #27 (song import, CLI) runs alongside**: it touches no UI. Target:
 _Hymns of Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its
