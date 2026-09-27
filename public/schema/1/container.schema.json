@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Hymnbook container, content format 1",
+  "description": "<id>.hymnbook.json.gz, unzipped: a whole book in one document. Specified by SDD-0002 §1.",
+  "type": "object",
+  "required": ["hymnbook", "hymns"],
+  "additionalProperties": false,
+  "properties": {
+    "hymnbook": { "$ref": "hymnbook.schema.json" },
+    "hymns": {
+      "type": "array",
+      "items": { "$ref": "hymn.schema.json" },
+      "description": "Every hymn, in number order."
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Hymn, content format 1",
+  "description": "NNNN.json: one hymn. Specified by SDD-0002 §3. Not expressible here, and enforced by the content pipeline: part ids are unique (I1), every sequence entry names a part (I2), every part is sung (I5), and the file is named for its number.",
+  "type": "object",
+  "required": ["number", "title", "parts", "sequence", "meta"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "description": "The schema this file follows, for editors." },
+    "number": { "type": "integer", "minimum": 1, "description": "Number as printed." },
+    "title": {
+      "$ref": "#/$defs/text",
+      "description": "As the hymn is known; the first line when none is printed."
+    },
+    "parts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/part" },
+      "description": "Each text block, printed once, in printed order."
+    },
+    "sequence": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/entry" },
+      "description": "Sung order."
+    },
+    "meta": { "$ref": "#/$defs/meta" }
+  },
+  "$defs": {
+    "text": { "type": "string", "pattern": "\\S", "description": "Not empty after trimming." },
+    "part": {
+      "type": "object",
+      "required": ["id", "kind", "lines"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/text", "description": "Unique in the hymn, e.g. \"s1\", \"r\"." },
+        "kind": { "enum": ["stanza", "refrain", "bridge", "tag"] },
+        "label": { "type": "string", "description": "Shown with the part, e.g. \"1\"." },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/text" },
+          "description": "One entry per displayed line."
+        }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "required": ["partId"],
+      "additionalProperties": false,
+      "properties": { "partId": { "$ref": "#/$defs/text" } }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "author": { "type": "string" },
+        "tune": { "type": "string" },
+        "meter": { "type": "string" }
+      }
+    }
+  }
+}

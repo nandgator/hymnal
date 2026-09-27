@@ -1,3 +1,5 @@
+import hymnSchema from "../../public/schema/1/hymn.schema.json" with { type: "json" };
+import hymnbookSchema from "../../public/schema/1/hymnbook.schema.json" with { type: "json" };
 import type { Hymnbook, PartKind } from "./types.ts";
 
 export interface Violation {
@@ -18,22 +20,17 @@ export const CONTENT_FORMAT = 1;
 
 const PART_KINDS: readonly PartKind[] = ["stanza", "refrain", "bridge", "tag"];
 
-/** Every field of format 1, by level (SDD-0002 §2-3). Anything else is a violation. */
-const HYMNBOOK_FIELDS = [
-  "format",
-  "id",
-  "title",
-  "language",
-  "script",
-  "publisher",
-  "edition",
-  "isbn",
-  "hymnCount",
-];
-const HYMN_FIELDS = ["number", "title", "parts", "sequence", "meta"];
-const PART_FIELDS = ["id", "kind", "label", "lines"];
-const ENTRY_FIELDS = ["partId"];
-const META_FIELDS = ["author", "tune", "meter"];
+/**
+ * Every field of format 1, by level, read from its JSON Schema: the schema is
+ * the one definition of which fields exist (ADR-0022). Anything else is a
+ * violation. Everything else is checked here.
+ */
+const fields = (schema: { properties: object }) => Object.keys(schema.properties);
+const HYMNBOOK_FIELDS = fields(hymnbookSchema);
+const HYMN_FIELDS = fields(hymnSchema);
+const PART_FIELDS = fields(hymnSchema.$defs.part);
+const ENTRY_FIELDS = fields(hymnSchema.$defs.entry);
+const META_FIELDS = fields(hymnSchema.$defs.meta);
 
 export const hymnFileName = (number: number) => `${String(number).padStart(4, "0")}.json`;
 
@@ -74,6 +71,7 @@ export function validateHymn(input: unknown, where = "hymn"): Violation[] {
 
   if (!isRecord(input)) return [{ rule: "shape", where, message: "hymn is not an object" }];
   checkFields(input, HYMN_FIELDS, "", add);
+  checkOptionalStrings(input, ["$schema"], "", add);
   const { number, title, parts, sequence, meta } = input;
   if (typeof number === "number" && Number.isInteger(number) && number > 0) {
     where = `hymn ${number}`;
@@ -158,7 +156,7 @@ export function validateCorpus(hymnbook: unknown, files: HymnFile[]): Violation[
       return out;
     }
     checkFields(hymnbook, HYMNBOOK_FIELDS, "", add);
-    checkOptionalStrings(hymnbook, ["publisher", "edition", "isbn"], "", add);
+    checkOptionalStrings(hymnbook, ["$schema", "publisher", "edition", "isbn"], "", add);
     for (const key of ["id", "title", "language", "script"] as const) {
       if (!isNonEmptyString(hymnbook[key])) add("shape", `${key} must be a non-empty string`);
     }

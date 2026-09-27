@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Hymnbook, content format 1",
+  "description": "hymnbook.json: a book's metadata. Specified by SDD-0002 §2; the rules that span files (SDD-0002 §4) are enforced by the content pipeline.",
+  "type": "object",
+  "required": ["format", "id", "title", "language", "script", "hymnCount"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "description": "The schema this file follows, for editors." },
+    "format": { "const": 1, "description": "The content format's version." },
+    "id": {
+      "$ref": "#/$defs/text",
+      "description": "Opaque slug, the book's directory name. Unique only where the holder makes it so."
+    },
+    "title": { "$ref": "#/$defs/text", "description": "Title in the book's own script." },
+    "language": { "$ref": "#/$defs/text", "description": "BCP-47, e.g. \"ml\"." },
+    "script": { "$ref": "#/$defs/text", "description": "ISO 15924, e.g. \"Mlym\"." },
+    "publisher": { "type": "string" },
+    "edition": { "type": "string" },
+    "isbn": { "type": "string" },
+    "hymnCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "How many hymn files there are."
+    }
+  },
+  "$defs": {
+    "text": { "type": "string", "pattern": "\\S", "description": "Not empty after trimming." }
+  }
+}

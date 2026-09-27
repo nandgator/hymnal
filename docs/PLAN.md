@@ -50,9 +50,9 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
    refused~~ — done
 2. ~~PDF reader (pdf.js) → `SourcePage`, gutters found per page;
    `bun run import` prints lines and fonts~~ — done
-3. **Next.** JSON Schema for format 1 (ADR-0022): `public/schema/1/`,
-   `validate.ts` reads its fields from it, `$schema` allowed, ajv test
-4. Flow, songs, parts, draft, report — against a profile (SDD-0003 §3)
+3. ~~JSON Schema for format 1 (ADR-0022): `validate.ts` reads its fields
+   from it; ajv test keeps them agreed~~ — done
+4. **Next.** Flow, songs, parts, draft, report — against a profile (SDD-0003 §3)
 5. Judge, swappable by manifest; Laya first (SDD-0003 §4.1). Only if
    part 4's report shows questions the rules can't answer
 
@@ -127,6 +127,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-27 — #27 part 3: JSON Schema for format 1; `$schema` allowed
 - 2026-09-27 — Presents, not publishes (ADR-0020); store keys; JSON Schema
 - 2026-09-27 — #27 part 2: PDF reader; columns split at gutters; `bun run import`
 - 2026-09-27 — #27 part 1: format v1; unknown fields fail at every level
@@ -138,4 +139,3 @@ ones only, here:
 - 2026-09-26 — #26 designed: areas + two tab groups; part 1: workspace model
 - 2026-09-26 — Songs shared across books, rights record, regions: noted — SDD §8
 - 2026-09-26 — #13 done. Part 2: refrain pinned (side or band), no part marks
-- 2026-09-25 — #13 designed: refrain pinned, Mode 3 dropped; part 1: refrain band
