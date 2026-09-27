@@ -604,15 +604,17 @@ unit.
   stretched (the Split jitter). **The fold**: crossing 840px, the panels glide
   and reshape into the other layout — the tab groups and the stage fold into the
   phone's one group and back out, Live becomes the strip, the transport the
-  dock, the keypad's chips find their places — as the old screen fades out and
-  the new one in; the switcher row stays (`fold.ts`: not a View Transition,
-  which Chromium skips on a resize). A tab change is not a layout change, so the
-  tab bar's one pill glides to the selected tab and the new content softly zooms
-  in, in the page itself (a View Transition there cross-faded snapshots of the
-  tab labels, which flickered). A song chosen from Recents glides to the top,
-  every row moving from where it was to where it lands. A menu grows from its
-  button; a sheet rises over a blurred page and sinks away on close; every
-  control's change of state eases.
+  dock, the keypad's chips find their places —, their text travelling in them,
+  never gone: the new screen is whole under the old before the old fades,
+  blurring as it goes (fading both left an empty moment, and blurring both cost
+  frames); the switcher row stays (`fold.ts`: not a View Transition, which
+  Chromium skips on a resize). A tab change is not a layout change, so the tab
+  bar's one pill glides to the selected tab and the new content softly zooms in,
+  in the page itself (a View Transition there cross-faded snapshots of the tab
+  labels, which flickered). A song chosen from Recents glides to the top, every
+  row moving from where it was to where it lands. A menu grows from its button;
+  a sheet rises over a blurred page and sinks away on close; every control's
+  change of state eases.
   **Press**: a control gives a little under the finger (96%) at once and springs
   back with a slight overshoot, Material 3 Expressive's press kept small;
   an icon that changes meaning (Blank to Restore) turns in. The Repeat

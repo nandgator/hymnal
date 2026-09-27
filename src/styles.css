@@ -3058,18 +3058,13 @@ html[data-scrolling],
   opacity: 0;
 }
 
-/* The fold between wide and phone (fold.ts): ghosts of the panels and the
-   old screen, over the new one, for as long as it lasts. */
+/* The fold between wide and phone (fold.ts): the old screen, over the new
+   one, for as long as it lasts. */
 .fold-layer {
   position: fixed;
   inset: 0;
   z-index: 1000;
   pointer-events: none;
-  contain: strict;
-}
-
-.fold-ghost {
-  position: absolute;
   contain: strict;
 }
 
