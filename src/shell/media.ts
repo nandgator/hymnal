@@ -1,4 +1,5 @@
 import { createSignal, onCleanup } from "solid-js";
+import { foldBeforeChange } from "./fold.ts";
 
 /** MD3's expanded window size class starts at 840dp (DESIGN.md § Structure). */
 export const EXPANDED_QUERY = "(min-width: 840px)";
@@ -18,7 +19,11 @@ export const STAGE_QUERY = "(min-height: 640px)";
 export function createMediaQuery(query: string) {
   const list = typeof window.matchMedia === "function" ? window.matchMedia(query) : undefined;
   const [matches, setMatches] = createSignal(list?.matches ?? true);
-  const onChange = (event: MediaQueryListEvent) => setMatches(event.matches);
+  const onChange = (event: MediaQueryListEvent) => {
+    // Crossing 840px swaps the layout: the fold measures the old one first.
+    if (query === EXPANDED_QUERY) foldBeforeChange();
+    setMatches(event.matches);
+  };
   list?.addEventListener("change", onChange);
   onCleanup(() => list?.removeEventListener("change", onChange));
   return matches;

@@ -597,13 +597,20 @@ unit.
   Restore; Go Live, On Air and Blanked) is as wide as its longest label,
   so the swap never resizes it. Repeat, Undo and Reset
   are text buttons: occasional, so quiet.
-- **Motion** explains change, at Material's emphasised easing: areas glide
-  to their places on expand, collapse, close and split (View Transitions);
-  a tab change is not a layout change, so the tab bar's one pill glides to
-  the selected tab and the new content softly zooms in, in the page itself
-  (a View Transition there cross-faded snapshots of the tab labels, which
-  flickered). A song chosen from Recents glides to the top, every row
-  moving from where it was to where it lands. A menu grows from its
+- **Motion** explains change, at Material's emphasised easing: areas glide to
+  their places on expand, collapse, close and split (View Transitions of the
+  panels only, not the whole page, which halved the frame rate); a panel
+  reshapes but what's in it keeps its size, clipped as the panel glides, never
+  stretched (the Split jitter). **The fold**: crossing 840px, the panels glide
+  and reshape into the other layout — the tab groups and the stage fold into the
+  phone's one group and back out, Live becomes the strip, the transport the
+  dock, the keypad's chips find their places — as the old screen fades out and
+  the new one in; the switcher row stays (`fold.ts`: not a View Transition,
+  which Chromium skips on a resize). A tab change is not a layout change, so the
+  tab bar's one pill glides to the selected tab and the new content softly zooms
+  in, in the page itself (a View Transition there cross-faded snapshots of the
+  tab labels, which flickered). A song chosen from Recents glides to the top,
+  every row moving from where it was to where it lands. A menu grows from its
   button; a sheet rises over a blurred page and sinks away on close; every
   control's change of state eases.
   **Press**: a control gives a little under the finger (96%) at once and springs

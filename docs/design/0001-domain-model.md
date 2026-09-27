@@ -1435,7 +1435,8 @@ shows when every word typed starts a word of its name, so "bl" finds
 "Blank the Output". A number matches no action, so the Finder's fast path
 holds: `/`, a number, Enter. With the box empty, the actions show, each
 with its key. Actions: Blank or Restore the Output, Go live, Next
-tab, Split or merge the tabs, Make the other tab group main, Show or hide
+tab, Split or merge the tabs and Make the other tab group main (only where
+two groups fit, from 1400px; they glide as the pane toolbar's do), Show or hide
 each pane, Switch hymnbook, Library, Settings, Text size up and down, Keyboard shortcuts.
 
 ### 16.6 Testing

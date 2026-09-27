@@ -202,6 +202,8 @@ describe("App", () => {
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     let menu = await screen.findByRole("dialog", { name: "Search" });
     expect(within(menu).queryByRole("option", { name: /Undo Repeat/ })).not.toBeInTheDocument();
+    // Wide enough for two groups (jsdom matches every query): they're offered.
+    expect(within(menu).getByRole("option", { name: /Merge the Tabs/ })).toBeInTheDocument();
     fireEvent.mouseDown(within(menu).getByRole("option", { name: /Repeat This Part/ }));
     expect(document.querySelector(".repeat-count")).toHaveTextContent(/^×2/);
 
@@ -209,6 +211,33 @@ describe("App", () => {
     menu = await screen.findByRole("dialog", { name: "Search" });
     fireEvent.mouseDown(within(menu).getByRole("option", { name: /Undo Repeat/ }));
     expect(document.querySelector(".repeat-count")).toBeEmptyDOMElement();
+  });
+
+  it("offers Split and Make main only where two tab groups fit (SDD-0001 §16.5)", async () => {
+    // 1400px isn't met; every other query is.
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: !query.includes("1400px"),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    render(() => <App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+      target: { value: "1" },
+    });
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
+    await screen.findByRole("img", { name: "Live output preview" });
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const menu = await screen.findByRole("dialog", { name: "Search" });
+    expect(within(menu).getByRole("option", { name: /Next Tab/ })).toBeInTheDocument();
+    expect(within(menu).queryByRole("option", { name: /the Tabs/ })).not.toBeInTheDocument();
+    expect(within(menu).queryByRole("option", { name: /Main/ })).not.toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 
   it("blanks the Output with B and restores it with a second press (.)", async () => {

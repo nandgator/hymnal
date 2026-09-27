@@ -21,7 +21,7 @@ import { canAdjustScale, createPreferences, OUTPUT_CUES, Settings } from "./shel
 import { Sheet } from "./shell/Sheet.tsx";
 import { SwapLabel } from "./shell/SwapLabel.tsx";
 import { installScrollReveal } from "./shell/scrollReveal.ts";
-import { makeMain, setSplit, workspaceOf } from "./shell/workspace.ts";
+import { workspaceOf } from "./shell/workspace.ts";
 
 /** The app's top-level sections (DESIGN.md § Structure, layer 1). Feedback,
  * About and Updates are reserved here, not built (PLAN Board #16–18). */
@@ -217,24 +217,21 @@ function Operator() {
               hint: keyHint("tab"),
               run: run(() => presenterActions()?.nextTab()),
             },
+          ]
+        : []),
+      // Only where two groups fit (1400px): narrower, the tabs are merged
+      // by width, and these would change nothing on screen (SDD-0001 §16.5).
+      ...(presenting() && presenterActions()?.canSplitTabs()
+        ? [
             {
               label: workspaceOf(prefs).split ? "Merge the tabs" : "Split the tabs",
-              run: run(() => {
-                const ws = workspaceOf(prefs);
-                preferences.update({ ...prefs, workspace: setSplit(ws, !ws.split) });
-              }),
+              run: run(() => presenterActions()?.toggleSplit()),
             },
             ...(workspaceOf(prefs).split
               ? [
                   {
                     label: "Make the other tab group main",
-                    run: run(() => {
-                      const ws = workspaceOf(prefs);
-                      preferences.update({
-                        ...prefs,
-                        workspace: makeMain(ws, ws.main === 0 ? 1 : 0),
-                      });
-                    }),
+                    run: run(() => presenterActions()?.swapMain()),
                   },
                 ]
               : []),

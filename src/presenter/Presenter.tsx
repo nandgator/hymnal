@@ -76,6 +76,12 @@ export interface PresenterActions {
   canResetRepeats(): boolean;
   /** The next tab of the main group. */
   nextTab(): void;
+  /** Whether two groups fit, so splitting and Make main mean anything. */
+  canSplitTabs(): boolean;
+  /** Splits or merges the tabs, gliding as the pane toolbar does. */
+  toggleSplit(): void;
+  /** Makes the other group main. */
+  swapMain(): void;
 }
 
 /** A tab as shown: the workspace's, plus Parts on a phone (SDD-0001 §16.4). */
@@ -233,6 +239,9 @@ export function Presenter(props: PresenterProps) {
       resetRepeats,
       canResetRepeats,
       nextTab: () => nextTab(),
+      canSplitTabs: () => canSplitTabs(),
+      toggleSplit: () => setWorkspace(setSplit(workspace(), !workspace().split)),
+      swapMain: () => setWorkspace(makeMain(workspace(), workspace().main === 0 ? 1 : 0)),
     }),
   );
   onCleanup(() => props.onActions?.(undefined));
@@ -855,7 +864,10 @@ export function Presenter(props: PresenterProps) {
       <section
         class="area"
         classList={{ "area-main": group().main }}
-        style={{ "view-transition-name": `area-${group().index}` }}
+        style={{
+          "view-transition-name": `area-${group().index}`,
+          "view-transition-class": "area",
+        }}
         aria-label={tabName(activeOf(group()))}
       >
         <div class="area-header">
@@ -1043,7 +1055,7 @@ export function Presenter(props: PresenterProps) {
                 <Index each={groups()}>{(group) => tabGroup(group, loaded)}</Index>
                 <aside
                   class="area stage"
-                  style={{ "view-transition-name": "stage" }}
+                  style={{ "view-transition-name": "stage", "view-transition-class": "area" }}
                   aria-label="What they see"
                 >
                   <Show when={shown("live")}>

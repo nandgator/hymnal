@@ -45,11 +45,10 @@ Parts 1–3b are done: workspace model, wide layout, pane toolbar, design pass.
   during load; key caps' fill token. Recents: arrives with the screen (the
   last list shown at once, then refreshed), glides a chosen song to the
   top, never claims "none" while loading
-- **Part 4c, next.** Command menu and Settings entries; the switch between wide and
-  phone layouts animated, components folding both ways. Not a View
-  Transition: Chromium skips one on any resize (probed 2026-09-27), and
-  crossing 840px is a resize. Then every animation checked per frame;
-  Split is jittery (the user, by hand)
+- ~~Part 4c~~ — done, for review. Split and Make main in the command menu
+  only where two groups fit, gliding; the fold between wide and phone
+  (ghost panels, not a View Transition); Split jitter fixed (snapshots
+  clipped, not scaled; no root capture); every animation timed per frame
 
 **Board #27 (song import, CLI) runs alongside**: it touches no UI. Target:
 _Hymns of Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its
@@ -145,6 +144,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-27 — #26 part 4c: the fold; Split jitter; search one style, no Find
 - 2026-09-27 — The refrain is the chorus: screen, key C, code, format (ADR-0025)
 - 2026-09-27 — #26 part 4b: loading in place, install progress; Recents
 - 2026-09-27 — #26 part 4a: phone layout, Parts a tab; one Recents list
@@ -155,5 +155,4 @@ ones only, here:
 - 2026-09-27 — #27 part 3: JSON Schema for format 1; `$schema` allowed
 - 2026-09-27 — Presents, not publishes (ADR-0020); store keys; JSON Schema
 - 2026-09-27 — #27 part 2: PDF reader; columns split at gutters; `bun run import`
-- 2026-09-27 — #27 part 1: format v1; unknown fields fail at every level
 - 2026-09-27 — Song import designed: ADR-0018/0019; SDD-0002 format v1, SDD-0003
