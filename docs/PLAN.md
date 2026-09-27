@@ -55,9 +55,11 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
    from it; ajv test keeps them agreed~~ — done
 4. ~~Flow, songs, parts, draft, report against a profile (SDD-0003 §3)~~ —
    done; 275 songs, 1,017 notes
-5. Judge, swappable by manifest; Laya first (SDD-0003 §4.1). Only if a
-   book's report shows questions the rules can't answer. Triage and
-   inference (ADR-0023) were dropped: case by case (ADR-0024)
+5. **Next, after #26.** Review the Fellowship report by section, smallest
+   first; wraps by sample. First fix: title recasing ("I serve A risen Savior")
+6. Judge, swappable by manifest; Laya first (SDD-0003 §4.1). Only if part 5
+   finds questions the rules can't answer. Triage and inference were
+   dropped: case by case (ADR-0024)
 
 ## State
 
