@@ -206,7 +206,14 @@ from. With a profile (part 3),
 `bun run import <file> --profile <profile.json> [--out <dir>]` writes
 `imports/<id>/`: `hymnbook.json`, the `NNNN.json` files and `report.md`.
 `imports/` is gitignored. A reviewed draft is moved into `content/` by hand,
-and only once its rights allow (arc42 R2).
+and only once its rights allow (arc42 R2). In practice that means
+public-domain books shipped as samples
+([ADR-0020](../decisions/0020-present-songs-do-not-publish-them.md)).
+
+In the browser (#28) the draft goes to the device's own store instead,
+which assigns its key, records source and song hashes, and handles a file
+or book it already holds
+([ADR-0021](../decisions/0021-identify-books-by-the-store-that-holds-them.md)).
 
 ## 6. Testing
 

@@ -506,13 +506,13 @@ any listing; `isbn` stays absent until the printed copy is checked.
 
 ## 8. Open questions
 
-| Question                                              | Resolve by                                     |
-| ----------------------------------------------------- | ---------------------------------------------- |
-| Default focus on arrival — whole part or first line   | Trying it on screen                            |
-| Whether `tag` and `bridge` kinds are ever populated   | A second hymnbook                              |
-| Cross-book song identity (shared songs, translations) | Deferred until a second book exists; see below |
-| Word-level addressing below `lineIndex`               | Phase 2, if lyric alignment proves feasible    |
-| Synthetic multi-publisher `HymnbookId` (e.g. UUID7)   | CMS (Board #11), if publishing is opened up    |
+| Question                                                | Resolve by                                                                             |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Default focus on arrival — whole part or first line     | Trying it on screen                                                                    |
+| Whether `tag` and `bridge` kinds are ever populated     | A second hymnbook                                                                      |
+| Cross-book song identity (shared songs, translations)   | Deferred until a second book exists; see below                                         |
+| Word-level addressing below `lineIndex`                 | Phase 2, if lyric alignment proves feasible                                            |
+| ~~Synthetic multi-publisher `HymnbookId` (e.g. UUID7)~~ | Resolved: [ADR-0021](../decisions/0021-identify-books-by-the-store-that-holds-them.md) |
 
 **Songs shared across books (2026-09-26, noted, not built).** Current
 leaning: each book keeps its own copy of a shared song, as printed, and the

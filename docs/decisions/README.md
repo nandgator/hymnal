@@ -29,6 +29,9 @@ new record, never edited.
 | [0017](0017-fix-the-interface-scale.md)                         | Fix the interface scale; only content scales            | Accepted                                                             |
 | [0018](0018-import-songs-through-a-layout-aware-pipeline.md)    | Import songs through a layout-aware pipeline, CLI first | Accepted                                                             |
 | [0019](0019-version-the-content-format.md)                      | Version the content format; one gzipped file per book   | Accepted                                                             |
+| [0020](0020-present-songs-do-not-publish-them.md)               | Present songs; don't publish them                       | Accepted                                                             |
+| [0021](0021-identify-books-by-the-store-that-holds-them.md)     | Identify books by the store that holds them             | Accepted                                                             |
+| [0022](0022-publish-a-json-schema-for-the-format.md)            | Publish a JSON Schema for the content format            | Accepted                                                             |
 
 ## Open questions
 

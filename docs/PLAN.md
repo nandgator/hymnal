@@ -50,9 +50,11 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
    refused~~ — done
 2. ~~PDF reader (pdf.js) → `SourcePage`, gutters found per page;
    `bun run import` prints lines and fonts~~ — done
-3. **Next.** Flow, songs, parts, draft, report — against a profile (SDD-0003 §3)
-4. Judge, swappable by manifest; Laya first (SDD-0003 §4.1). Only if
-   part 3's report shows questions the rules can't answer
+3. **Next.** JSON Schema for format 1 (ADR-0022): `public/schema/1/`,
+   `validate.ts` reads its fields from it, `$schema` allowed, ajv test
+4. Flow, songs, parts, draft, report — against a profile (SDD-0003 §3)
+5. Judge, swappable by manifest; Laya first (SDD-0003 §4.1). Only if
+   part 4's report shows questions the rules can't answer
 
 ## State
 
@@ -72,23 +74,23 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                               | Blocked by   |
-| --- | ------------------------------------------------------------------ | ------------ |
-| 26  | Rethink the Operator layout: Parts, Live preview and Lyrics        | —            |
-| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now | 26           |
-| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                   | —            |
-| 28  | Song import in the browser: local only, never uploaded (ADR-0018)  | 27, 2nd book |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)        | —            |
-| 15  | Transliteration: search and display across scripts (ADR-0014)      | —            |
-| 16  | Feedback and corrections from users — where collected: TBD         | —            |
-| 17  | About: acknowledgements, copyright, credits                        | —            |
-| 18  | Over-the-air update notices (as Supabase announces changes)        | —            |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)    | 2nd book     |
-| 21  | Hold: freeze the Output on what's showing, navigate, release       | —            |
-| 22  | Service queue: line up hymns for a service (a supporting pane)     | —            |
-| 23  | Arrangements: mix parts of hymns into a saved mashup               | 22           |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording         | Phase 2      |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation      | content      |
+| #   | Task                                                                        | Blocked by   |
+| --- | --------------------------------------------------------------------------- | ------------ |
+| 26  | Rethink the Operator layout: Parts, Live preview and Lyrics                 | —            |
+| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now          | 26           |
+| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                            | —            |
+| 28  | Library: import songs and books, local only; keys, duplicates (ADR-0020/21) | 27, 2nd book |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                 | —            |
+| 15  | Transliteration: search and display across scripts (ADR-0014)               | —            |
+| 16  | Feedback and corrections from users — where collected: TBD                  | —            |
+| 17  | About: acknowledgements, copyright, credits                                 | —            |
+| 18  | Over-the-air update notices (as Supabase announces changes)                 | —            |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)             | 2nd book     |
+| 21  | Hold: freeze the Output on what's showing, navigate, release                | —            |
+| 22  | Service queue: line up hymns for a service (a supporting pane)              | —            |
+| 23  | Arrangements: mix parts of hymns into a saved mashup                        | 22           |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                  | Phase 2      |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation               | content      |
 
 26 and 20 finish Phase 1; 27 is a build-time tool beside them. 14–15 sit
 past the scope guard below. 16–25 are notes, not scheduled: the shell
@@ -125,6 +127,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-27 — Presents, not publishes (ADR-0020); store keys; JSON Schema
 - 2026-09-27 — #27 part 2: PDF reader; columns split at gutters; `bun run import`
 - 2026-09-27 — #27 part 1: format v1; unknown fields fail at every level
 - 2026-09-27 — Song import designed: ADR-0018/0019; SDD-0002 format v1, SDD-0003
@@ -136,4 +139,3 @@ ones only, here:
 - 2026-09-26 — Songs shared across books, rights record, regions: noted — SDD §8
 - 2026-09-26 — #13 done. Part 2: refrain pinned (side or band), no part marks
 - 2026-09-25 — #13 designed: refrain pinned, Mode 3 dropped; part 1: refrain band
-- 2026-09-25 — Phone switcher row: hymnbook icon + hymn number, titles as names
