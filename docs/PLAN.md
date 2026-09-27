@@ -53,9 +53,14 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
    `bun run import` prints lines and fonts~~ — done
 3. ~~JSON Schema for format 1 (ADR-0022): `validate.ts` reads its fields
    from it; ajv test keeps them agreed~~ — done
-4. **Next.** Flow, songs, parts, draft, report — against a profile (SDD-0003 §3)
-5. Judge, swappable by manifest; Laya first (SDD-0003 §4.1). Only if
-   part 4's report shows questions the rules can't answer
+4. ~~Flow, songs, parts, draft, report against a profile (SDD-0003 §3)~~ —
+   done; 275 songs, 1,017 notes
+5. **Next.** Triage: each page classified, routed or refused; a document
+   with no song page refused (ADR-0023, SDD-0003 §3.1). Scored on the shelf
+6. Inference: the profile worked out, a file only overriding; Fellowship
+   drafts the same without its profile, Zion drafts
+7. Judge, swappable by manifest; Laya first, on pages and questions the
+   rules leave open (SDD-0003 §4.1)
 
 ## State
 
@@ -82,6 +87,8 @@ Ordered. Top unblocked item is next.
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                            | —            |
 | 28  | Library: import songs and books, local only; keys, duplicates (ADR-0020/21) | 27, 2nd book |
 | 29  | Import: PowerPoint reader; _Songs of Zion_ (.pptx, its PDF to cross-check)  | 27           |
+| 31  | Import: image stage (OCR, Tesseract); handwriting as assisted typing        | 27           |
+| 32  | Import: words set under music, rejoined into stanzas                        | 27           |
 | 30  | Full song, landscape: printed form in columns, the highlight glides; mockup | 26           |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                 | —            |
 | 15  | Transliteration: search and display across scripts (ADR-0014)               | —            |
@@ -130,6 +137,8 @@ ones only, here:
 
 ## Log
 
+- 2026-09-27 — Triage and inferred layout (ADR-0023); a local shelf of PDFs
+- 2026-09-27 — #27 part 4: Hymns of Fellowship drafted, 275 songs; report
 - 2026-09-27 — Part kinds widened (intro … tag); same songs = same book (ADR-0021)
 - 2026-09-27 — #27 part 3: JSON Schema for format 1; `$schema` allowed
 - 2026-09-27 — Presents, not publishes (ADR-0020); store keys; JSON Schema

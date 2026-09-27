@@ -1,6 +1,7 @@
 # SDD-0003 — Song import
 
-- **Status:** Accepted; PDF reader first
+- **Status:** Accepted; PDF reader first; triage and inference next
+  ([ADR-0023](../decisions/0023-recognise-the-document-and-infer-its-layout.md))
 - **Date:** 2026-09-27
 - **Decision:** [ADR-0018](../decisions/0018-import-songs-through-a-layout-aware-pipeline.md)
 
@@ -79,39 +80,101 @@ A document that yields no text (a scan), or text outside the profile's
 
 ## 3. The profile
 
-What differs between books is data, one JSON file per book, passed on the
-command line. It holds no lyrics.
+What differs between books is data, one JSON file per book in
+`import-profiles/`, passed on the command line. It holds no lyrics, so it is
+committed. Unknown fields fail, as in the format.
 
-```jsonc
+`NEXT` (ADR-0023): every field is inferred, and a profile only overrides.
+Until then, a profile is required and written from `bun run import`'s font
+table.
+
+```json
 {
   "hymnbook": { "id": "…", "title": "…", "language": "en", "script": "Latn" },
-  "pages": { "from": 5, "to": 104 }, // skip front matter and index
-  "columns": 2,
-  "furniture": { "pageNumber": true }, // drop the folio
+  "pages": { "from": 7, "to": 104 },
+  "index": { "pages": { "from": 3, "to": 6 } },
+  "furniture": { "pageNumber": true },
   "title": {
-    "pattern": "^\\((\\d+)\\)\\s+(.+)$", // group 1: number, group 2: title
-    "font": "TimesNewRomanPS-BoldMT", // optional: must also match
+    "pattern": "^\\(?(?<number>\\d+)\\)\\s*(?<title>.+)$",
+    "font": "TimesNewRomanPS-BoldMT"
   },
   "refrain": { "font": "TimesNewRomanPS-ItalicMT" },
-  "stanzaGap": 1.5, // × line pitch
-  "sequence": "refrain-after-each-stanza", // or "as-printed"
+  "labels": { "chorus": "refrain", "bridge": "bridge", "end": "outro" },
+  "stanzaGap": 1.3
 }
 ```
 
-A title that wraps onto the next line, in the same font, is joined.
-`sequence` follows [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md):
-with a refrain, it is sung first when printed first, and after every stanza.
+The rules the stages apply with it:
+
+- **Columns** are found per page by their gutters (§2); a page with fewer
+  than most is split where most are. A line that is only a number is the
+  folio, when `furniture.pageNumber` is set.
+- **A song** starts at a line matching `title.pattern` in `title.font`, and
+  runs on across columns and pages. A heading that wraps, in the same font,
+  is joined.
+- **Blocks** split where the gap exceeds `stanzaGap` × the book's line
+  pitch. At the top of a column the gap can't be seen, so the halves are
+  joined when a wrap runs across the break, or when together they are as
+  long as the song's other blocks.
+- **Labels** in `labels`, however punctuated ("Chorus:", "(chorus)",
+  "Chorus…"): heading lines, they give them their kind; alone or closing a
+  block, they stand for that part sung again.
+- **Kind**, unlabelled: a block wholly in `refrain.font` is a refrain,
+  else a stanza. A block printed again word for word is the same part.
+- **Wraps** are joined where the next line's first word would not have fitted
+  on this one, against the column's widest line. Before a lowercase word
+  that is sure; before a capital, only a short remainder after unpunctuated
+  text is joined, as a guess.
+- **Sequence** is as printed when the page spells it out: a label, or
+  refrains printed more than once. Otherwise
+  [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)'s rule: the
+  refrain, printed once (several blocks in a row count as one), is sung
+  first if printed first, and after every stanza.
+- **Title**: the index's, where it names the same song as the heading
+  (indexes are set in the book's case, headings often in capitals); else
+  the heading, its capitalised words recased from the song's own lines.
+- Repeat marks ("(2)", "(repeat)") stay in the line as printed.
+
+## 3.1 Triage and inference (ADR-0023, to build)
+
+Before the stages above, each page is classified, and a document with no
+song page is refused, the reason named. The reader adds what triage needs:
+how much of the page images cover, and whether its text is invisible (an
+OCR layer, render mode 3, or `GlyphLessFont`).
+
+| Signal                                  | Points to                         |
+| --------------------------------------- | --------------------------------- |
+| No text, images over most of the page   | Images only: the image stage      |
+| Invisible text over a page image        | Someone else's OCR: flagged songs |
+| Many digits, currency, aligned columns  | A statement or table: skip        |
+| Long lines in paragraphs                | Prose: skip                       |
+| Very short lines, hyphenated syllables  | Words under music: refuse         |
+| Blocks of 2–8 short lines, even lengths | Lyrics                            |
+| A heading style numbered in sequence    | A songbook, and its headings      |
+
+Pages the rules leave open go to the judge (§4.1), else are flagged.
+Inference then fills the profile: per-page pitch and measure (type size
+varies by page in _Songs of Zion_), the numbered heading style, whether
+songs carry titles (else the first line is the title), the refrain font
+(a second body font set in whole blocks), and part labels from a built-in
+list per language.
 
 ## 4. The report
 
 Nothing uncertain is decided silently; each is written to `report.md` beside
 the draft, by hymn:
 
-- a line wrap joined (both halves quoted)
-- a block of mixed fonts, so neither clearly stanza nor refrain
-- a number missing, duplicated, or out of order
-- text before the first title, or a page the profile covered with no song
 - any `validate.ts` violation in the draft
+- text before the first title, or a title with nothing under it
+- a number missing, duplicated, or out of order
+- the index disagreeing with the page: title, page number, or a song not
+  found
+- a block split by a column break, joined or kept apart, when not certain
+- a block in mixed fonts, so neither clearly stanza nor refrain
+- a sequence taken from a rule beside a bridge or ending, or refrains that
+  differ
+- a line wrap joined (both halves quoted; guesses marked)
+- a repeat mark kept as printed
 
 ### 4.1 The judge: an optional second opinion
 
@@ -202,9 +265,10 @@ questions the rules cannot answer.
 
 `bun run import <file> [--pages 5-12]` prints each line with its position,
 size and font, then every font with a sample: what a profile is written
-from. With a profile (part 3),
+from. With a profile,
 `bun run import <file> --profile <profile.json> [--out <dir>]` writes
-`imports/<id>/`: `hymnbook.json`, the `NNNN.json` files and `report.md`.
+`imports/<id>/`: `hymnbook.json`, the `NNNN.json` files and `report.md`,
+replacing a previous draft's files there.
 `imports/` is gitignored. A reviewed draft is moved into `content/` by hand,
 and only once its rights allow (arc42 R2). In practice that means
 public-domain books shipped as samples
@@ -218,8 +282,22 @@ or book it already holds
 ## 6. Testing
 
 Fixtures are PDFs generated by the test itself, never a real book's lyrics.
-Stages below the reader are tested on `SourcePage` values directly. A real
-book is used only by hand, locally.
+Stages below the reader are tested on `SourcePage` values directly.
+
+**The shelf.** Real documents, kept in `content-local/shelf/` and never
+committed, from sources that allow downloading (ADR-0023). Each songbook
+gains a reviewed draft; a script runs every document and scores triage and
+drafts against them. Gathered 2026-09-27:
+
+| Kind                | Documents                                                                                                      |
+| ------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Typeset songbooks   | _Hymns of Fellowship_ (two PDFs), _Songs of Zion_, Watts' _Psalms and Hymns_ (CCEL)                            |
+| Scans with OCR text | Malayalam: Basel Mission 1898, _Kristhaathmeeya Geethangal_ 1880; English: _Winnowed Songs_ 1890 (archive.org) |
+| Words under music   | _Hymns Ancient and Modern_ 1861 (archive.org)                                                                  |
+| To refuse           | IRS Form 1040, a research paper, Wikipedia's article "Hymn"                                                    |
+
+Wanted: a child's drawing or photo, a bank statement (made up), a scan
+without text, handwritten song photos, a single-song sheet, a chord sheet.
 
 ## 7. The first book
 
@@ -227,5 +305,11 @@ _Hymns of Fellowship_ (Bethesda Assembly, Thane): English, 104 pages,
 InDesign, two columns, text extractable. It is the target of #27 and would
 be the app's second hymnbook. No Malayalam PDF is available, so Malayalam
 import is untested.
+
+First draft (2026-09-27), in 4 s: 275 songs, numbered 1–275 without a gap,
+each in the index on its page; 178 with a refrain, 26 with a bridge; valid
+content. 1,017 notes, 786 of them wraps: its columns are 157 pt wide. Two
+PDFs of it exist; their drafts are identical, and the reports differ in one
+line, the older index listing #165 on the wrong page.
 
 `OPEN:` Malayalam PDFs with legacy fonts; OCR; the other readers.
