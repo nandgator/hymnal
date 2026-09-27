@@ -1,0 +1,36 @@
+{
+  "hymnbook": {
+    "id": "eng-bethesda-hymns-of-fellowship",
+    "title": "Hymns of Fellowship",
+    "language": "en",
+    "script": "Latn",
+    "publisher": "Bethesda Assembly, Thane"
+  },
+  "pages": {
+    "from": 7,
+    "to": 104
+  },
+  "index": {
+    "pages": {
+      "from": 3,
+      "to": 6
+    }
+  },
+  "furniture": {
+    "pageNumber": true
+  },
+  "title": {
+    "pattern": "^\\(?(?<number>\\d+)\\)\\s*(?<title>.+)$",
+    "font": "TimesNewRomanPS-BoldMT"
+  },
+  "refrain": {
+    "font": "TimesNewRomanPS-ItalicMT"
+  },
+  "labels": {
+    "chorus": "refrain",
+    "cho": "refrain",
+    "bridge": "bridge",
+    "end": "outro"
+  },
+  "stanzaGap": 1.3
+}

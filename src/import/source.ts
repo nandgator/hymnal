@@ -94,9 +94,13 @@ export function findGutters(runs: SourceRun[]): Band[] {
 /** A gutter separates text on at least this many baselines. */
 const GUTTER_LINES = 3;
 
-/** How many runs start right of the band while another on their baseline ends left of it. */
+/**
+ * How many runs start right of the band while another on their baseline
+ * starts left of it and stops short of the next column. The band's left edge
+ * can sit inside a column's longest line, the one run tolerated across it.
+ */
 function linesBeside(runs: SourceRun[], band: Band): number {
-  const ends = runs.filter((run) => run.x + run.width <= band.from + 1);
+  const ends = runs.filter((run) => run.x < band.from && run.x + run.width <= band.to - 1);
   return runs.filter(
     (run) =>
       run.x >= band.to - 1 && ends.some((end) => Math.abs(end.y - run.y) <= BASELINE * run.size),

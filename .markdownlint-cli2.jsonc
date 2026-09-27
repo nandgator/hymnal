@@ -22,6 +22,8 @@
     "dist/**",
     "target/**",
     "db/**",
+    "imports/**",
+    "content-local/**",
     ".svelte-kit/**",
     "**/CHANGELOG.md"
   ]

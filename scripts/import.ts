@@ -1,13 +1,21 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { parseArgs } from "node:util";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
+import { hymnFileName } from "../src/domain/validate.ts";
+import { type Draft, draftBook } from "../src/import/draft.ts";
+import { parseProfile } from "../src/import/profile.ts";
 import { type PageRange, readPdf } from "../src/import/read/pdf.ts";
+import { renderReport } from "../src/import/report.ts";
 import { ImportError, type SourcePage } from "../src/import/source.ts";
 
 const USAGE = `Usage: bun run import <file.pdf> [--pages <from>[-<to>]]
+       bun run import <file.pdf> --profile <profile.json> [--out <dir>]
 
-Prints each line of the PDF with its position, size and font, then the
-fonts it uses: what a book's profile is written from (SDD-0003 §3).`;
+Without a profile, prints each line of the PDF with its position, size and
+font, then the fonts it uses: what a book's profile is written from.
+With one, writes a draft hymnbook and report.md to <dir>, by default
+imports/<id>/ (SDD-0003 §3, §5).`;
 
 /** "5-12" → pages 5 to 12; "5" → page 5 alone; "5-" → page 5 to the end. */
 export function parsePages(value: string): PageRange {
@@ -66,16 +74,41 @@ function print(pages: SourcePage[]) {
   if (blank.length > 0) console.log(`\nNo text on page(s) ${blank.join(", ")}.`);
 }
 
+/** Replaces a previous draft's files in `dir`, and nothing else there. */
+export function writeDraft(dir: string, draft: Draft) {
+  mkdirSync(dir, { recursive: true });
+  for (const name of readdirSync(dir)) {
+    if (/^(\d{4}\.json|hymnbook\.json|report\.md)$/.test(name)) rmSync(join(dir, name));
+  }
+  const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
+  writeFileSync(join(dir, "hymnbook.json"), json(draft.hymnbook));
+  for (const hymn of draft.hymns) writeFileSync(join(dir, hymnFileName(hymn.number)), json(hymn));
+  writeFileSync(
+    join(dir, "report.md"),
+    renderReport(draft.hymnbook.title, draft.summary, draft.notes),
+  );
+}
+
 async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
-    options: { pages: { type: "string" }, help: { type: "boolean", short: "h" } },
+    options: {
+      pages: { type: "string" },
+      profile: { type: "string" },
+      out: { type: "string" },
+      help: { type: "boolean", short: "h" },
+    },
   });
   if (values.help || positionals.length !== 1) {
     console.log(USAGE);
     process.exit(values.help ? 0 : 1);
   }
 
+  const profile = values.profile
+    ? parseProfile(JSON.parse(readFileSync(values.profile, "utf8")))
+    : undefined;
+  if (profile && values.pages)
+    throw new ImportError("--pages and --profile don't mix: the profile names its pages.");
   const range = values.pages ? parsePages(values.pages) : {};
   const pages = await readPdf(new Uint8Array(readFileSync(positionals[0])), pdfjs, range);
   if (pages.every((page) => page.lines.length === 0)) {
@@ -83,7 +116,13 @@ async function main() {
       "No text found: the PDF looks scanned. Scans need OCR, which isn't supported yet.",
     );
   }
-  print(pages);
+  if (!profile) return print(pages);
+
+  const draft = draftBook(pages, profile);
+  const dir = values.out ?? join("imports", profile.hymnbook.id);
+  writeDraft(dir, draft);
+  for (const line of draft.summary) console.log(line);
+  console.log(`Wrote ${dir}/ (see report.md)`);
 }
 
 if (import.meta.main) {
