@@ -40,6 +40,10 @@ bun-debug.log*
 # only: never committed, never deployed (see scripts/build-content.ts).
 content-local/
 
+# Song import drafts (SDD-0003 §5). Imported lyrics are usually under
+# copyright: reviewed by hand, moved into content/ only if rights allow.
+imports/
+
 # Generated hymnbook packages. Built by the content pipeline, never committed.
 # The corpus itself is source and IS committed.
 *.sqlite

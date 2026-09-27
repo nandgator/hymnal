@@ -50,14 +50,26 @@ interface SourcePage {
   number: number; // 1-based
   width: number;
   height: number;
-  lines: SourceLine[]; // in the order the document gives them
+  lines: SourceLine[]; // top to bottom, then left to right
 }
 ```
 
-**PDF** (pdf.js, `getTextContent`): text runs on one baseline are merged
-into a line, with a space where the gap between them is wider than a
-fraction of the font size. Run order within the content stream is not
-trusted. `font` is the PostScript name with the subset prefix stripped
+**Lines from runs** (`src/import/source.ts`, shared by every reader that
+has positions). Content-stream order is not trusted: runs on one baseline
+are one line, with a space where the gap is wider than 0.15 em, unless a
+column gutter falls between them. No gap width tells a gutter from a word
+space: justified lines in _Hymns of Fellowship_ stretch a space to 1.6 em,
+and its narrowest gutter is 1.5 em. A gutter is instead found per page as a
+vertical band no text crosses, with text beside it on three or more
+baselines; one stray run across it (a folio) is tolerated. Its right edge,
+where the next column starts, is where a baseline splits. On that book's
+98 song pages this merges no line across columns and splits none within
+one.
+
+**PDF** (pdf.js, `getTextContent`), passed pdf.js rather than importing it:
+Node and Bun want its legacy build, a browser its default one. A PDF whose
+permissions forbid copying text is refused, as is a password-protected
+one. `font` is the PostScript name with the subset prefix stripped
 (`OYCPPR+TimesNewRomanPS-ItalicMT` → `TimesNewRomanPS-ItalicMT`); one font
 often appears under several subsets. pdf.js resolves names only after the
 page's operator list is loaded.
@@ -188,6 +200,9 @@ questions the rules cannot answer.
 
 ## 5. Output
 
+`bun run import <file> [--pages 5-12]` prints each line with its position,
+size and font, then every font with a sample: what a profile is written
+from. With a profile (part 3),
 `bun run import <file> --profile <profile.json> [--out <dir>]` writes
 `imports/<id>/`: `hymnbook.json`, the `NNNN.json` files and `report.md`.
 `imports/` is gitignored. A reviewed draft is moved into `content/` by hand,
