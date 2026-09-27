@@ -42,8 +42,9 @@ Parts 1–3b are done: workspace model, wide layout, pane toolbar, design pass.
   width and the greyed strip while blanked
 
 **Board #27 (song import, CLI) runs alongside**: it touches no UI. Target:
-_Hymns of Fellowship_, the second hymnbook; its draft stays in `imports/`
-until its rights are known. Spec:
+_Hymns of Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its
+index), the second hymnbook; its draft stays in `imports/` until its rights
+are known. Spec:
 ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 1. ~~Format v1: `format: 1`, unknown fields rejected, other formats
@@ -80,6 +81,8 @@ Ordered. Top unblocked item is next.
 | 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now          | 26           |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                            | —            |
 | 28  | Library: import songs and books, local only; keys, duplicates (ADR-0020/21) | 27, 2nd book |
+| 29  | Import: PowerPoint reader; _Songs of Zion_ (.pptx, its PDF to cross-check)  | 27           |
+| 30  | Full song, landscape: printed form in columns, the highlight glides; mockup | 26           |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                 | —            |
 | 15  | Transliteration: search and display across scripts (ADR-0014)               | —            |
 | 16  | Feedback and corrections from users — where collected: TBD                  | —            |
@@ -88,7 +91,7 @@ Ordered. Top unblocked item is next.
 | 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)             | 2nd book     |
 | 21  | Hold: freeze the Output on what's showing, navigate, release                | —            |
 | 22  | Service queue: line up hymns for a service (a supporting pane)              | —            |
-| 23  | Arrangements: mix parts of hymns into a saved mashup                        | 22           |
+| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved   | 22           |
 | 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                  | Phase 2      |
 | 25  | Stage outputs for musicians: lyrics + chords, score, notation               | content      |
 
@@ -127,6 +130,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-27 — Part kinds widened (intro … tag); same songs = same book (ADR-0021)
 - 2026-09-27 — #27 part 3: JSON Schema for format 1; `$schema` allowed
 - 2026-09-27 — Presents, not publishes (ADR-0020); store keys; JSON Schema
 - 2026-09-27 — #27 part 2: PDF reader; columns split at gutters; `bun run import`

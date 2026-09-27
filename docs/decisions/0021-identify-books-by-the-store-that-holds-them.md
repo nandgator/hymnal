@@ -50,13 +50,16 @@ the source file, and every song a hash of its lines, normalised for Unicode
 | Match                              | What happens                                               |
 | ---------------------------------- | ---------------------------------------------------------- |
 | The same file again                | Not imported again; the user is taken to the existing book |
+| A different file, the same songs   | As the same file; the new file's hash is recorded too      |
 | The same origin, different content | The user chooses: replace it, keep both, or reconcile      |
 | A song already in the collection   | Flagged in review, never blocked                           |
 
-**Reconcile** compares the two editions song by song (added, removed,
-changed) and lets the user pick per song. Replacing or reconciling keeps the
-book's key, so recents and positions still point at it. Its screen is
-designed with Board #28.
+"The same songs" means every song's hash matches, in the same numbers: a
+re-exported PDF whose index was reflowed is the same book (the two _Hymns of
+Fellowship_ files are). **Reconcile** compares the two editions song by song
+(added, removed, changed) and lets the user pick per song. Replacing or
+reconciling keeps the book's key, so recents and positions still point at
+it. Its screen is designed with Board #28.
 
 ### Consequences
 
