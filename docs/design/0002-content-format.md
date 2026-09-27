@@ -1,0 +1,98 @@
+# SDD-0002 — Content format, version 1
+
+- **Status:** Accepted
+- **Date:** 2026-09-27
+- **Decisions:** [ADR-0019](../decisions/0019-version-the-content-format.md)
+  (versioning, container), [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)
+  (source is committed and corrected in place)
+
+The files a hymnbook is written in: what the migration and the importer
+produce, what the content pipeline reads. It is the contract between those
+tools. The in-memory model is [SDD-0001 §2](0001-domain-model.md#2-entities);
+the built package is SDD-0001 §6. Neither is this format.
+
+## 1. Two forms
+
+**Directory**, the source form, committed under `content/<id>/`:
+
+```text
+content/<id>/
+  hymnbook.json
+  0001.json
+  0002.json
+  …
+```
+
+**Container**, one file for moving a book as a unit: `<id>.hymnbook.json.gz`,
+the gzip of one UTF-8 JSON document:
+
+```jsonc
+{
+  "hymnbook": {/* hymnbook.json, verbatim */},
+  "hymns": [/* every NNNN.json, in number order */],
+}
+```
+
+Both forms carry the same content and pass the same rules. Specified, not
+yet built: no tool writes the container until a download or sharing path
+needs it (ADR-0019).
+
+All files are UTF-8 JSON. `NNNN` is the hymn number, zero-padded to four
+digits.
+
+## 2. `hymnbook.json`
+
+| Field       | Type    | Required | Meaning                                                                          |
+| ----------- | ------- | -------- | -------------------------------------------------------------------------------- |
+| `format`    | integer | yes      | This format's version; `1`                                                       |
+| `id`        | string  | yes      | Opaque slug, the directory name ([SDD-0001 §2.1](0001-domain-model.md#21-types)) |
+| `title`     | string  | yes      | Title in the book's own script                                                   |
+| `language`  | string  | yes      | BCP-47, e.g. `ml`                                                                |
+| `script`    | string  | yes      | ISO 15924, e.g. `Mlym`                                                           |
+| `publisher` | string  | no       |                                                                                  |
+| `edition`   | string  | no       |                                                                                  |
+| `isbn`      | string  | no       |                                                                                  |
+| `hymnCount` | integer | yes      | How many hymn files there are                                                    |
+
+## 3. `NNNN.json`
+
+| Field      | Type         | Required | Meaning                                                      |
+| ---------- | ------------ | -------- | ------------------------------------------------------------ |
+| `number`   | integer, ≥ 1 | yes      | Number as printed; matches the file name                     |
+| `title`    | string       | yes      | As the hymn is known; the first line when none is printed    |
+| `parts`    | array        | yes      | Each text block, printed once, in printed order              |
+| `sequence` | array        | yes      | Sung order, as `{ "partId": … }` entries                     |
+| `meta`     | object       | yes      | `author`, `tune`, `meter`, all optional strings; may be `{}` |
+
+A part:
+
+| Field   | Type     | Required | Meaning                                            |
+| ------- | -------- | -------- | -------------------------------------------------- |
+| `id`    | string   | yes      | Unique in the hymn, e.g. `s1`, `r`                 |
+| `kind`  | string   | yes      | `stanza`, `refrain`, `bridge` or `tag`             |
+| `label` | string   | no       | Shown with the part, e.g. `1`; absent for refrains |
+| `lines` | string[] | yes      | One entry per displayed line                       |
+
+## 4. Rules
+
+A book that breaks any rule is rejected whole, with every violation listed;
+nothing is repaired ([arc42 §8.6](../architecture/arc42.md#86-handling-imperfect-content)).
+The rules are the invariants I1–I7 of
+[SDD-0001 §4](0001-domain-model.md#4-invariants), plus:
+
+- Each file name matches its `number`; the file count matches `hymnCount`.
+- Every required field is present, with the type above.
+- **No field outside these tables**, at any level. An unknown field is a
+  violation, never ignored.
+- `format` is a version the reader knows. A newer one is refused with a
+  message naming both versions.
+
+## 5. Versioning
+
+`format` is a whole number. Any change to the fields or rules above,
+additions included, is a new version, and this document is updated with it.
+A reader accepts exactly the versions it was written for. There are no minor
+versions: an old reader skipping a new field would be a silent drop (ADR-0019).
+
+`format` versions this source. The SQLite package's `schema_version`
+versions the package; they change independently.

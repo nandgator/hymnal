@@ -33,20 +33,26 @@ hymnal is built.
 follow the layout. Spec: SDD-0001 §16.4, DESIGN.md § Structure; mockup in
 the "Operator Layout" artifact. Parts, each reviewed before the next:
 
-1. ~~Workspace model: tabs in two groups, split, main; `preferences.workspace`
-   normalised on read~~ — done
-2. ~~Wide layout: the stage (Live, Repeat row, keypad), This hymn and
-   Recents tabs; areas as panels; sidebar retired~~ — done
-3. ~~Groups: a pane toolbar (expand or collapse, move, close; split),
-   merged when narrow; fixed interface scale (ADR-0017)~~ — done
-   3b. ~~Design pass (docs/visual/PRINCIPLES.md): transport in the stage,
-   Go Live / On Air, one disabled style, elevation, motion, the case
-   rule, "Song" on screen~~ — done
-4. **Next.** Under 840px: Live strip, tabs merged, parts row with ×n
-   menu, Undo snackbar; command menu and Settings entries; the switch
-   between wide and phone layouts animated. Retires the Parts | Lyrics
-   switch (tick, outline) and `preferences.navigator`; fix the keypad's
-   width and the greyed strip while blanked
+Parts 1–3b are done: workspace model, wide layout, pane toolbar, design pass.
+
+- **Part 4, next.** Under 840px: Live strip, tabs merged, parts row with ×n
+  menu, Undo snackbar; command menu and Settings entries; the switch
+  between wide and phone layouts animated. Retires the Parts | Lyrics
+  switch (tick, outline) and `preferences.navigator`; fix the keypad's
+  width and the greyed strip while blanked
+
+**Board #27 (song import, CLI) runs alongside**: it touches no UI. Target:
+_Hymns of Fellowship_, the second hymnbook; its draft stays in `imports/`
+until its rights are known. Spec:
+ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
+
+1. **Next.** Format v1: `format: 1` in `hymnbook.json`; unknown fields
+   rejected at every level; a newer `format` refused (SDD-0002 §4)
+2. PDF reader (pdf.js) → `SourcePage`; `bun run import` dumping lines;
+   `imports/` gitignored
+3. Flow, songs, parts, draft, report — against a profile (SDD-0003 §3)
+4. Judge, swappable by manifest; Laya first (SDD-0003 §4.1). Only if
+   part 3's report shows questions the rules can't answer
 
 ## State
 
@@ -66,25 +72,27 @@ the "Operator Layout" artifact. Parts, each reviewed before the next:
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                               | Blocked by |
-| --- | ------------------------------------------------------------------ | ---------- |
-| 26  | Rethink the Operator layout: Parts, Live preview and Lyrics        | —          |
-| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now | 26         |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)        | —          |
-| 15  | Transliteration: search and display across scripts (ADR-0014)      | —          |
-| 16  | Feedback and corrections from users — where collected: TBD         | —          |
-| 17  | About: acknowledgements, copyright, credits                        | —          |
-| 18  | Over-the-air update notices (as Supabase announces changes)        | —          |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)    | 2nd book   |
-| 21  | Hold: freeze the Output on what's showing, navigate, release       | —          |
-| 22  | Service queue: line up hymns for a service (a supporting pane)     | —          |
-| 23  | Arrangements: mix parts of hymns into a saved mashup               | 22         |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording         | Phase 2    |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation      | content    |
+| #   | Task                                                               | Blocked by   |
+| --- | ------------------------------------------------------------------ | ------------ |
+| 26  | Rethink the Operator layout: Parts, Live preview and Lyrics        | —            |
+| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now | 26           |
+| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                   | —            |
+| 28  | Song import in the browser: local only, never uploaded (ADR-0018)  | 27, 2nd book |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)        | —            |
+| 15  | Transliteration: search and display across scripts (ADR-0014)      | —            |
+| 16  | Feedback and corrections from users — where collected: TBD         | —            |
+| 17  | About: acknowledgements, copyright, credits                        | —            |
+| 18  | Over-the-air update notices (as Supabase announces changes)        | —            |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)    | 2nd book     |
+| 21  | Hold: freeze the Output on what's showing, navigate, release       | —            |
+| 22  | Service queue: line up hymns for a service (a supporting pane)     | —            |
+| 23  | Arrangements: mix parts of hymns into a saved mashup               | 22           |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording         | Phase 2      |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation      | content      |
 
-26 and 20 finish Phase 1. 14–15 sit past the scope guard below. 16–25
-are notes, not scheduled: the shell reserves room for them (DESIGN.md §
-Structure).
+26 and 20 finish Phase 1; 27 is a build-time tool beside them. 14–15 sit
+past the scope guard below. 16–25 are notes, not scheduled: the shell
+reserves room for them (DESIGN.md § Structure).
 
 ## Invariants
 
@@ -117,6 +125,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-27 — Song import designed: ADR-0018/0019; SDD-0002 format v1, SDD-0003
 - 2026-09-26 — CI: deploy workflow actions moved to their Node 24 majors
 - 2026-09-26 — #26 part 3b: design pass; transport in the stage; refrains in full
 - 2026-09-26 — #26 part 3: tab groups' toolbar; interface scale fixed — ADR-0017
@@ -128,4 +137,3 @@ ones only, here:
 - 2026-09-25 — Phone switcher row: hymnbook icon + hymn number, titles as names
 - 2026-09-25 — #12 done. Part 4c: cues (number badge, lower third), fade on change
 - 2026-09-25 — #12 part 4b: Repeat, Undo, Reset; a repeat stays in place on the Output
-- 2026-09-25 — #12 part 4a: Output on tokens; Output-only presets, Warm default

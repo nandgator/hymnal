@@ -41,15 +41,16 @@ described here, which is why it was archived rather than refactored
 
 Recorded so scope creep stays visible:
 
-| Deferred                                               | Rationale                                                                                                    |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| Multi-device live sync                                 | [ADR-0011](../decisions/0011-defer-multi-device-sync-and-projector-output.md)                                |
-| Projector / external display output                    | [ADR-0011](../decisions/0011-defer-multi-device-sync-and-projector-output.md)                                |
-| Audio follow — announcement detection, lyric alignment | Phase 2; [ADR-0010](../decisions/0010-model-liveness-as-pluggable-follow-sources.md)                         |
-| Native app packaging                                   | [ADR-0006](../decisions/0006-defer-the-native-wrapper-decision.md)                                           |
-| Transliteration — search and display across scripts    | [ADR-0014](../decisions/0014-defer-transliteration.md)                                                       |
-| Bookmarks                                              | [ADR-0012](../decisions/0012-drop-the-bookmark-helper.md)                                                    |
-| Content authoring / editing UI                         | Corpus is corrected by rule and by hand for now; [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md) |
+| Deferred                                               | Rationale                                                                                                                                                           |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Multi-device live sync                                 | [ADR-0011](../decisions/0011-defer-multi-device-sync-and-projector-output.md)                                                                                       |
+| Projector / external display output                    | [ADR-0011](../decisions/0011-defer-multi-device-sync-and-projector-output.md)                                                                                       |
+| Audio follow — announcement detection, lyric alignment | Phase 2; [ADR-0010](../decisions/0010-model-liveness-as-pluggable-follow-sources.md)                                                                                |
+| Native app packaging                                   | [ADR-0006](../decisions/0006-defer-the-native-wrapper-decision.md)                                                                                                  |
+| Transliteration — search and display across scripts    | [ADR-0014](../decisions/0014-defer-transliteration.md)                                                                                                              |
+| Bookmarks                                              | [ADR-0012](../decisions/0012-drop-the-bookmark-helper.md)                                                                                                           |
+| Content authoring / editing UI                         | Corpus is corrected by rule and by hand for now; [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)                                                        |
+| Song import in the browser                             | Needs a review screen and a second book on the device; the CLI importer comes first — [ADR-0018](../decisions/0018-import-songs-through-a-layout-aware-pipeline.md) |
 
 ### 1.2 Quality Goals
 
@@ -532,6 +533,8 @@ and clickers actually send.
 | [0015](../decisions/0015-use-official-sqlite-wasm-not-wa-sqlite.md)          | Use the official SQLite Wasm build, not wa-sqlite          | Accepted                                                                          |
 | [0016](../decisions/0016-license-under-apache-2.md)                          | License the project under Apache-2.0                       | Accepted                                                                          |
 | [0017](../decisions/0017-fix-the-interface-scale.md)                         | Fix the interface scale; only content scales               | Accepted                                                                          |
+| [0018](../decisions/0018-import-songs-through-a-layout-aware-pipeline.md)    | Import songs through a layout-aware pipeline, CLI first    | Accepted                                                                          |
+| [0019](../decisions/0019-version-the-content-format.md)                      | Version the content format; one gzipped file per book      | Accepted                                                                          |
 
 Full index, with open questions, in
 [`docs/decisions/`](../decisions/README.md).
