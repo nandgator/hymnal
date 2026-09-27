@@ -17,6 +17,8 @@ export const OUT_MS = 90;
 export const IN_MS = 210;
 const EMPHASIZED_DECELERATE = "cubic-bezier(0.05, 0.7, 0.1, 1)";
 const SETTLE_FROM = 0.92;
+/** A slight blur, leaving and arriving, so the change reads as focus. */
+const BLUR = "4px";
 
 let running: (() => void) | undefined;
 let pending = false;
@@ -74,16 +76,26 @@ function play(shell: HTMLElement, copy: HTMLElement, scrolled: [HTMLElement, num
   }
 
   const animations = [
-    copy.animate([{ opacity: 1 }, { opacity: 0 }], {
-      duration: OUT_MS,
-      easing: "linear",
-      fill: "both",
-    }),
+    copy.animate(
+      [
+        { opacity: 1, filter: "blur(0px)" },
+        { opacity: 0, filter: `blur(${BLUR})` },
+      ],
+      {
+        duration: OUT_MS,
+        easing: "linear",
+        fill: "both",
+      },
+    ),
     ...[...shell.querySelectorAll<HTMLElement>(":scope > .nav-rail, .workspace")].map((el) =>
       el.animate(
         [
-          { opacity: 0, transform: el.matches(".workspace") ? `scale(${SETTLE_FROM})` : "none" },
-          { opacity: 1, transform: "none" },
+          {
+            opacity: 0,
+            transform: el.matches(".workspace") ? `scale(${SETTLE_FROM})` : "none",
+            filter: `blur(${BLUR})`,
+          },
+          { opacity: 1, transform: "none", filter: "blur(0px)" },
         ],
         { duration: IN_MS, delay: OUT_MS, easing: EMPHASIZED_DECELERATE, fill: "both" },
       ),
