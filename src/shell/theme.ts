@@ -17,9 +17,11 @@ import { stillCopy } from "./still.ts";
 
 export const THEME_MS = 400;
 const EMPHASIZED = "cubic-bezier(0.2, 0, 0, 1)";
-/** The circle's edge is soft, this wide: the new theme blurs in at it,
- * rather than a hard line crossing the text (styles.css). */
-const FEATHER = 24;
+/** The circle's edge is soft, this share of its reach: the new theme blurs
+ * in at it, rather than a hard line crossing the text. A share, not a
+ * width, so Live, a scale model of the Output, reveals as the Output does
+ * (24px on a 1080p Output). */
+const FEATHER = 0.022;
 
 const reduced = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 /** A hidden window paints nothing, so its reveal would stall, the copy left over it. */
@@ -47,12 +49,28 @@ function origin(from: "control" | "middle"): [number, number] {
 /** Opens a hole in `copy` from (x, y), its own coordinates, until it's gone. */
 function open(copy: HTMLElement, x: number, y: number, remove: () => void) {
   const { width, height } = copy.getBoundingClientRect();
-  const radius = Math.hypot(Math.max(x, width - x), Math.max(y, height - y)) + FEATHER;
+  const reach = Math.hypot(Math.max(x, width - x), Math.max(y, height - y));
+  const feather = reach * FEATHER;
+  const radius = reach + feather;
+  copy.style.setProperty("--reveal-feather", `${feather}px`);
   copy.style.setProperty("--reveal-x", `${x}px`);
   copy.style.setProperty("--reveal-y", `${y}px`);
   copy
     .animate({ "--reveal-r": ["0px", `${radius}px`] }, { duration: THEME_MS, easing: EMPHASIZED })
     .finished.then(remove, remove);
+}
+
+/**
+ * The reveal carries the change, so the page's own colour transitions end
+ * as they start: under the hole they'd fade the text on their own, faster
+ * than the circle spreads, a crossfade after all (the Output's lines take
+ * 200ms), and repaint the page every frame (86 of them, 50–117ms frames,
+ * measured).
+ */
+function endTransitions(within: Document | HTMLElement) {
+  const animations =
+    within instanceof Document ? within.getAnimations() : within.getAnimations({ subtree: true });
+  for (const animation of animations) if (animation instanceof CSSTransition) animation.finish();
 }
 
 /** A still copy of the whole window: the page, and any open sheet over it
@@ -122,11 +140,7 @@ export function easeThemeChange(
   // Still: a copied sheet would replay its opening.
   for (const animation of layer.getAnimations({ subtree: true })) animation.cancel();
   apply();
-  // The reveal carries the change: the controls' own colour transitions
-  // would repaint the page under it every frame (86 of them, 50–117ms
-  // frames, measured), so they end as they start.
-  for (const animation of document.getAnimations())
-    if (animation instanceof CSSTransition) animation.finish();
+  endTransitions(document);
   open(layer, x, y, () => layer.remove());
 }
 
@@ -152,6 +166,7 @@ export function revealWithin(lives: HTMLElement[], apply: () => void) {
     return copy;
   });
   apply();
+  for (const live of lives) endTransitions(live);
   for (const copy of copies) {
     const { width, height } = copy.getBoundingClientRect();
     open(copy, width / 2, height / 2, () => copy.remove());

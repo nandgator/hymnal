@@ -2275,7 +2275,8 @@ html[data-scrolling],
   max-height: none;
 }
 
-/* The reveal's hole, grown from script; its edge feathered 24px. */
+/* The reveal's hole, grown from script; its edge feathered by a share of
+   its reach (theme.ts). */
 @property --reveal-r {
   syntax: "<length>";
   inherits: false;
@@ -2286,7 +2287,7 @@ html[data-scrolling],
 .theme-reveal-old {
   mask-image: radial-gradient(
     circle at var(--reveal-x) var(--reveal-y),
-    transparent calc(var(--reveal-r) - 24px),
+    transparent calc(var(--reveal-r) - var(--reveal-feather)),
     #000 var(--reveal-r)
   );
 }

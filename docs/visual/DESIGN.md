@@ -606,32 +606,34 @@ unit.
   in from 92% (210ms), each through a slight blur (4px); the switcher row stays
   (`fold.ts`: not a View Transition, which Chromium skips on a resize). **A
   theme change** is revealed: the new theme spreads over the old in a soft-edged
-  circle (feathered 24px), 400ms, from the control chosen, or from the middle on
-  the Output. The presentation's theme plays in the Operator's Live preview too,
-  from its middle, as on the Output. Never a crossfade, which halfway makes text
-  and ground the same grey. A still copy of the window in the old theme lies
-  over the page (sheets too) and a hole grows in it, so what shows through is
-  the page itself; a View Transition's snapshot gave way to the page at the end
-  with a visible flicker of the text. Controls' own colour transitions are off
-  meanwhile (`theme.ts`). The system's theme changing, while the Operator
-  follows it, is revealed from the middle: its media query's listener runs as
-  the frame begins, before it's painted. Panels once glided into the other
-  layout, but the two share too little and a window still being dragged stranded
-  them mid-way. A tab change is not a layout change, so the tab bar's one pill
-  glides to the selected tab and the new content softly zooms in, in the page
-  itself (a View Transition there cross-faded snapshots of the tab labels, which
-  flickered). A song chosen from Recents glides to the top, every row moving
-  from where it was to where it lands. A menu grows from its button; a sheet
-  rises over a blurred page and sinks away on close; every control's change of
-  state eases. **Press**: a control gives a little under the finger (96%) at
-  once and springs back with a slight overshoot, Material 3 Expressive's press
-  kept small; an icon that changes meaning (Blank to Restore) turns in. The
-  Repeat count is a rolling number (an odometer): the old count rolls out as the
-  new one rolls in, up as it grows and down on Undo. It is in the text colour,
-  not Repeat's primary: coloured text means a control. Each rail section eases
-  in on arrival, the Library as the Operator. In the command menu the highlight
-  follows a moving pointer and leaves with it; Enter then takes the top match.
-  Reduced motion shows the end state.
+  circle (feathered by 2% of its reach, 24px on a 1080p Output, so Live, the
+  Output's scale model, looks the same), 400ms, from the control chosen, or from
+  the middle on the Output. The presentation's theme plays in the Operator's
+  Live preview too, from its middle, as on the Output. Never a crossfade, which
+  halfway makes text and ground the same grey. A still copy of the window in the
+  old theme lies over the page (sheets too) and a hole grows in it, so what
+  shows through is the page itself; a View Transition's snapshot gave way to the
+  page at the end with a visible flicker of the text. Controls' own colour
+  transitions end as they start, in Live too, where the lines' 200ms fade under
+  the hole read as a crossfade (`theme.ts`). The system's theme changing, while
+  the Operator follows it, is revealed from the middle: its media query's
+  listener runs as the frame begins, before it's painted. Panels once glided
+  into the other layout, but the two share too little and a window still being
+  dragged stranded them mid-way. A tab change is not a layout change, so the tab
+  bar's one pill glides to the selected tab and the new content softly zooms in,
+  in the page itself (a View Transition there cross-faded snapshots of the tab
+  labels, which flickered). A song chosen from Recents glides to the top, every
+  row moving from where it was to where it lands. A menu grows from its button;
+  a sheet rises over a blurred page and sinks away on close; every control's
+  change of state eases. **Press**: a control gives a little under the finger
+  (96%) at once and springs back with a slight overshoot, Material 3
+  Expressive's press kept small; an icon that changes meaning (Blank to Restore)
+  turns in. The Repeat count is a rolling number (an odometer): the old count
+  rolls out as the new one rolls in, up as it grows and down on Undo. It is in
+  the text colour, not Repeat's primary: coloured text means a control. Each
+  rail section eases in on arrival, the Library as the Operator. In the command
+  menu the highlight follows a moving pointer and leaves with it; Enter then
+  takes the top match. Reduced motion shows the end state.
 - **Loading: the shape of what's coming, in its place** (Board #26 part 4).
   A screen still loading shows a skeleton of itself: the Library its card
   (title, count line, button), the Operator its panels, empty, where they
