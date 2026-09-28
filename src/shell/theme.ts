@@ -208,18 +208,27 @@ export function revealWithin(lives: HTMLElement[], apply: () => void) {
     copy.setAttribute("aria-hidden", "true");
     copy.setAttribute("data-output-theme", theme);
     copy.classList.add("theme-reveal-old");
-    if (getComputedStyle(live).position === "static") live.style.position = "relative";
+    // Its own place over Live, not what Live has inline: a position lent
+    // to Live by an earlier reveal made the copy a row item beside it.
+    copy.style.removeProperty("position");
     copy.style.top = `${live.scrollTop}px`;
     copy.style.left = `${live.scrollLeft}px`;
+    // Live holds the copy in place, and has its own position back after.
+    const lent = getComputedStyle(live).position === "static";
+    if (lent) live.style.position = "relative";
     live.append(copy);
     settle();
-    return copy;
+    const remove = () => {
+      copy.remove();
+      if (lent) live.style.removeProperty("position");
+    };
+    return { copy, remove };
   });
   apply();
   for (const live of lives) endTransitions(live);
-  for (const copy of copies) {
+  for (const { copy, remove } of copies) {
     const { width, height } = copy.getBoundingClientRect();
     const shape = copy.matches(".output-view") ? "circle" : "strip";
-    open(copy, [width / 2, height / 2], shape, () => copy.remove());
+    open(copy, [width / 2, height / 2], shape, remove);
   }
 }

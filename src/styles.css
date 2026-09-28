@@ -2293,8 +2293,10 @@ html[data-scrolling],
   );
 }
 
-/* The presentation's theme, in Live: the old Live on top. */
-.theme-reveal-old {
+/* The presentation's theme, in Live: the old Live on top. Doubled, to win
+   over what it copies (.output-view is relative, later in this file, and
+   the copy was laid out below the preview's lines, out of sight). */
+.theme-reveal-old.theme-reveal-old {
   position: absolute;
   z-index: 1;
   width: 100%;
