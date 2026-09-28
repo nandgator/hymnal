@@ -34,8 +34,8 @@ export function shownTheme(): "light" | "dark" {
 }
 
 /** Where the reveal starts: the control just used, else the middle. */
-function origin(): [number, number] {
-  const active = document.activeElement;
+function origin(from: "control" | "middle"): [number, number] {
+  const active = from === "control" ? document.activeElement : null;
   const control = active?.closest("label") ?? active;
   if (control && control !== document.body) {
     const rect = control.getBoundingClientRect();
@@ -62,9 +62,6 @@ function windowCopy(): { layer: HTMLElement; settle: () => void } {
   layer.className = "theme-layer";
   layer.setAttribute("aria-hidden", "true");
   layer.setAttribute("inert", "");
-  const body = getComputedStyle(document.body);
-  layer.style.backgroundColor = body.backgroundColor;
-  layer.style.color = body.color;
   const settles: (() => void)[] = [];
   for (const child of document.body.children) {
     if (!(child instanceof HTMLElement) || child.matches("script, .theme-layer, .fold-layer"))
@@ -104,12 +101,19 @@ function windowCopy(): { layer: HTMLElement; settle: () => void } {
 /**
  * Applies a theme change to the whole window, revealed. `was` is the
  * attribute that gives the copy the theme being left: `data-theme-copy`
- * for the Operator's, `data-output-theme` for the presentation's.
+ * for the Operator's, `data-output-theme` for the presentation's. `apply`
+ * may do nothing, when the page has changed already (the system's theme).
  */
-export function easeThemeChange(apply: () => void, was: [name: string, value: string]) {
+export function easeThemeChange(
+  apply: () => void,
+  was: [name: string, value: string],
+  from: "control" | "middle" = "control",
+) {
   if (!canAnimate()) return apply();
-  const [x, y] = origin();
+  const [x, y] = origin(from);
   const { layer, settle } = windowCopy();
+  // Its ground from the theme it keeps (styles.css), not read off the page,
+  // which may already be in the new one.
   layer.setAttribute(...was);
   layer.popover = "manual";
   document.body.append(layer);

@@ -613,8 +613,9 @@ unit.
   over the page (sheets too) and a hole grows in it, so what shows through is
   the page itself; a View Transition's snapshot gave way to the page at the end
   with a visible flicker of the text. Controls' own colour transitions are off
-  meanwhile (`theme.ts`). The system theme changing underneath still snaps:
-  nothing hears of it before it's painted. Panels once glided into the other
+  meanwhile (`theme.ts`). The system's theme changing, while the Operator
+  follows it, is revealed from the middle: its media query's listener runs as
+  the frame begins, before it's painted. Panels once glided into the other
   layout, but the two share too little and a window still being dragged stranded
   them mid-way. A tab change is not a layout change, so the tab bar's one pill
   glides to the selected tab and the new content softly zooms in, in the page

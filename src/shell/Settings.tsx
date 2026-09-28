@@ -1,4 +1,4 @@
-import { createEffect, createResource, createSignal, For, Show } from "solid-js";
+import { createEffect, createResource, createSignal, For, onCleanup, Show } from "solid-js";
 import {
   DEFAULT_OUTPUT_THEME,
   DEFAULT_PREFERENCES,
@@ -82,6 +82,17 @@ export function createPreferences(state: UserState = defaultUserState): Preferen
     // Live and the Live strip are the Output scaled: same preset.
     root.setAttribute("data-output-theme", prefs.outputTheme ?? DEFAULT_OUTPUT_THEME);
   });
+
+  // The system's theme changing is revealed too, while the Operator follows
+  // it: the listener runs as the frame begins, before it's painted, with the
+  // page already in the new theme, so the copy is told the one it left.
+  const system = window.matchMedia?.("(prefers-color-scheme: dark)");
+  const onSystemTheme = (event: MediaQueryListEvent) => {
+    if (preferences().theme !== "system") return;
+    easeThemeChange(() => {}, ["data-theme-copy", event.matches ? "light" : "dark"], "middle");
+  };
+  system?.addEventListener?.("change", onSystemTheme);
+  onCleanup(() => system?.removeEventListener?.("change", onSystemTheme));
 
   const update = (next: Preferences) => {
     const current = preferences();

@@ -2234,6 +2234,9 @@ html[data-scrolling],
    above everything, sheets too (a popover), a hole growing in it. */
 .theme-layer {
   position: fixed;
+  /* The body's ground and ink, in the theme the copy keeps. */
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
   inset: 0;
   z-index: 1000;
   width: auto;
