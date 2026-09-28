@@ -27,6 +27,8 @@ const STANDARD = "cubic-bezier(0.4, 0, 0.2, 1)";
 const FEATHER = 0.022;
 /** Softer in a Live strip: its one line of text is crossed side to side. */
 const STRIP_FEATHER = 0.15;
+/** Softer over the Operator's own theme: nothing there has to match. */
+const OPERATOR_FEATHER = 0.05;
 
 const reduced = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 /** A hidden window paints nothing, so its reveal would stall, the copy left over it. */
@@ -61,9 +63,9 @@ function open(
   [x, y]: [number, number],
   shape: "circle" | "strip",
   remove: () => void,
+  feather = shape === "strip" ? STRIP_FEATHER : FEATHER,
 ) {
   const { width, height } = copy.getBoundingClientRect();
-  const feather = shape === "strip" ? STRIP_FEATHER : FEATHER;
   // Sized so that, fully open, even the feathered edge is past every corner.
   const [rx, ry] =
     shape === "strip"
@@ -73,9 +75,12 @@ function open(
       : Array(2).fill(Math.hypot(Math.max(x, width - x), Math.max(y, height - y)));
   copy.style.setProperty("--reveal-x", `${x}px`);
   copy.style.setProperty("--reveal-y", `${y}px`);
-  copy.style.setProperty("--reveal-rx", `${rx / (1 - feather)}px`);
-  copy.style.setProperty("--reveal-ry", `${ry / (1 - feather)}px`);
-  copy.style.setProperty("--reveal-feather", `${feather * 100}%`);
+  // One width throughout, not a share of the hole's size as it grows,
+  // which left the edge sharp while the hole was small.
+  const edge = rx * feather;
+  copy.style.setProperty("--reveal-rx", `${rx + edge}px`);
+  copy.style.setProperty("--reveal-ry", `${ry + edge}px`);
+  copy.style.setProperty("--reveal-feather", `${edge}px`);
   whenSteady(() =>
     copy
       .animate({ "--reveal-p": [0, 1] }, { duration: THEME_MS, easing: STANDARD })
@@ -185,7 +190,8 @@ export function easeThemeChange(
   for (const animation of layer.getAnimations({ subtree: true })) animation.cancel();
   apply();
   endTransitions(document);
-  open(layer, [x, y], "circle", () => layer.remove());
+  const operator = was[0] === "data-theme-copy";
+  open(layer, [x, y], "circle", () => layer.remove(), operator ? OPERATOR_FEATHER : FEATHER);
 }
 
 /**
