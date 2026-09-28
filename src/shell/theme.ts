@@ -130,12 +130,14 @@ function windowCopy(): { layer: HTMLElement; settle: () => void } {
   layer.setAttribute("aria-hidden", "true");
   layer.setAttribute("inert", "");
   const settles: (() => void)[] = [];
+  const pages: HTMLElement[] = [];
   for (const child of document.body.children) {
     if (!(child instanceof HTMLElement) || child.matches("script, .theme-layer, .fold-layer"))
       continue;
     const { copy, settle } = stillCopy(child);
     for (const dialog of copy.querySelectorAll("dialog")) dialog.remove();
     layer.append(copy);
+    pages.push(copy);
     settles.push(settle);
   }
   for (const dialog of document.querySelectorAll<HTMLDialogElement>("dialog[open]")) {
@@ -144,8 +146,13 @@ function windowCopy(): { layer: HTMLElement; settle: () => void } {
       const scrim = document.createElement("div");
       scrim.className = "theme-layer-scrim";
       scrim.style.backgroundColor = backdrop.backgroundColor;
-      scrim.style.backdropFilter = backdrop.backdropFilter;
       layer.append(scrim);
+      // The backdrop's blur on the copied page itself, not on the scrim:
+      // Firefox left what followed a backdrop-filter in the layer out of
+      // its mask, the sheet whole until the end, then gone at once. And a
+      // still copy, blurred once, needn't be blurred again every frame.
+      const blur = backdrop.backdropFilter;
+      if (blur && blur !== "none") for (const page of pages) page.style.filter = blur;
     }
     const rect = dialog.getBoundingClientRect();
     const { copy, settle } = stillCopy(dialog);

@@ -127,6 +127,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-28 — Firefox: the sheet reveals too (no backdrop-filter in the copy)
 - 2026-09-28 — #26 done. Live's theme reveal shows; every sheet follows the layout
 - 2026-09-28 — The fold a fade-through; theme changes revealed in a circle
 - 2026-09-27 — #26 part 4c: the fold; Split jitter; search one style, no Find
