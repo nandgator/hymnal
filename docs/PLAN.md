@@ -29,28 +29,12 @@ hymnal is built.
 
 ## Now
 
-**Board #26 (Operator layout rethink) is in progress**, then #20: keys
-follow the layout. Spec: SDD-0001 §16.4, DESIGN.md § Structure; mockup in
-the "Operator Layout" artifact. Parts, each reviewed before the next:
+**Next: Board #27 part 5** (below), then #33 (Recents as a real recent
+list), then #20 (keys follow the layout). #26, the Operator layout, is
+done: parts 1–4c, reviewed; its motion rules are DESIGN.md § Motion (the
+fold a fade-through; theme changes revealed; sheets follow the layout).
 
-Parts 1–3b are done: workspace model, wide layout, pane toolbar, design pass.
-
-- ~~Part 4a~~ — done. Under 840px: Live strip; tabs merged, Parts a
-  third tab (Repeat row and keypad as the stage's). Retires the Parts |
-  Lyrics switch and `preferences.navigator`. Fixes the blanked strip (dim
-  to the Output's ground, as Live does) and the phone's off-centre icons.
-  One Recents list everywhere: number, title, when; this book's only
-- ~~Part 4b~~ — done. Loading states: skeletons in place after 300ms,
-  install progress streamed from the worker; Go Live no longer jumps
-  during load; key caps' fill token. Recents: arrives with the screen (the
-  last list shown at once, then refreshed), glides a chosen song to the
-  top, never claims "none" while loading
-- ~~Part 4c~~ — done, for review. Split and Make main in the command menu
-  only where two groups fit, gliding; the fold between wide and phone
-  (a fade-through); Split jitter fixed (snapshots
-  clipped, not scaled; no root capture); every animation timed per frame
-
-**Board #27 (song import, CLI) runs alongside**: it touches no UI. Target:
+**Board #27 (song import, CLI)**: it touches no UI. Target:
 _Hymns of Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its
 index), the second hymnbook; its draft stays in `imports/` until its rights
 are known. Spec:
@@ -64,8 +48,8 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
    from it; ajv test keeps them agreed~~ — done
 4. ~~Flow, songs, parts, draft, report against a profile (SDD-0003 §3)~~ —
    done; 275 songs, 1,017 notes
-5. **Next, after #26.** Review the Fellowship report by section, smallest
-   first; wraps by sample. First fix: title recasing ("I serve A risen Savior")
+5. **Next.** Review the Fellowship report by section, smallest first;
+   wraps by sample. First fix: title recasing ("I serve A risen Savior")
 6. Judge, swappable by manifest; Laya first (SDD-0003 §4.1). Only if part 5
    finds questions the rules can't answer. Triage and inference were
    dropped: case by case (ADR-0024)
@@ -90,13 +74,12 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                                                                           | Blocked by   |
 | --- | -------------------------------------------------------------------------------------------------------------- | ------------ |
-| 26  | Rethink the Operator layout: Parts, Live preview and Lyrics                                                    | —            |
-| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now                                             | 26           |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                               | —            |
+| 33  | Recents as a real recent list: "just now", "a few minutes ago", day and date; grouped Today, Yesterday, Before | —            |
+| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now                                             | —            |
 | 28  | Library: load songs and books in format 1, local only; keys, duplicates (ADR-0020/21/24)                       | 27, 2nd book |
 | 29  | Import: PowerPoint reader; _Songs of Zion_ (.pptx, its PDF to cross-check)                                     | 27           |
-| 33  | Recents as a real recent list: "just now", "a few minutes ago", day and date; grouped Today, Yesterday, Before | 26           |
-| 30  | Full song, landscape: printed form in columns, the highlight glides; mockup                                    | 26           |
+| 30  | Full song, landscape: printed form in columns, the highlight glides; mockup                                    | —            |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                    | —            |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                  | —            |
 | 16  | Feedback and corrections from users — where collected: TBD                                                     | —            |
@@ -109,7 +92,7 @@ Ordered. Top unblocked item is next.
 | 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                     | Phase 2      |
 | 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                  | content      |
 
-26 and 20 finish Phase 1; 27 is a build-time tool beside them. 14–15 sit
+20 finishes Phase 1; 27 is a build-time tool beside it. 14–15 sit
 past the scope guard below. 16–25 are notes, not scheduled: the shell
 reserves room for them (DESIGN.md § Structure).
 
@@ -144,6 +127,7 @@ ones only, here:
 
 ## Log
 
+- 2026-09-28 — #26 done. Live's theme reveal shows; every sheet follows the layout
 - 2026-09-28 — The fold a fade-through; theme changes revealed in a circle
 - 2026-09-27 — #26 part 4c: the fold; Split jitter; search one style, no Find
 - 2026-09-27 — The refrain is the chorus: screen, key C, code, format (ADR-0025)
@@ -155,4 +139,3 @@ ones only, here:
 - 2026-09-27 — Part kinds widened (intro … tag); same songs = same book (ADR-0021)
 - 2026-09-27 — #27 part 3: JSON Schema for format 1; `$schema` allowed
 - 2026-09-27 — Presents, not publishes (ADR-0020); store keys; JSON Schema
-- 2026-09-27 — #27 part 2: PDF reader; columns split at gutters; `bun run import`
