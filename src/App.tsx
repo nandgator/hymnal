@@ -549,7 +549,7 @@ function Operator() {
         onClose={closeShortcuts}
         closeLabel={shortcutsReturn() ? "Back" : undefined}
         title="Keyboard Shortcuts"
-        placement="center"
+        placement={expanded() ? "center" : "bottom"}
       >
         <table class="shortcut-table">
           <tbody>
@@ -614,7 +614,7 @@ function Operator() {
         open={settingsOpen()}
         onClose={() => setSettingsOpen(false)}
         title="Settings"
-        placement="center"
+        placement={expanded() ? "center" : "bottom"}
       >
         <Settings controller={preferences} onShowShortcuts={() => showShortcuts(setSettingsOpen)} />
       </Sheet>

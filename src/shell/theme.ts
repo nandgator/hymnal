@@ -15,13 +15,18 @@
 
 import { stillCopy } from "./still.ts";
 
-export const THEME_MS = 400;
-const EMPHASIZED = "cubic-bezier(0.2, 0, 0, 1)";
-/** The circle's edge is soft, this share of its reach: the new theme blurs
- * in at it, rather than a hard line crossing the text. A share, not a
- * width, so Live, a scale model of the Output, reveals as the Output does
- * (24px on a 1080p Output). */
+export const THEME_MS = 500;
+/** Material's standard easing: a gentle start, so the middle, where the
+ * Output's current line is, doesn't flip at once (the emphasized curve
+ * reached half the circle in a fifth of the time). */
+const STANDARD = "cubic-bezier(0.4, 0, 0.2, 1)";
+/** The edge is soft, this share of its reach: the new theme blurs in at
+ * it, rather than a hard line crossing the text. A share, not a width, so
+ * Live, a scale model of the Output, reveals as the Output does (24px on a
+ * 1080p Output). */
 const FEATHER = 0.022;
+/** Softer in a Live strip: its one line of text is crossed side to side. */
+const STRIP_FEATHER = 0.15;
 
 const reduced = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 /** A hidden window paints nothing, so its reveal would stall, the copy left over it. */
@@ -46,18 +51,57 @@ function origin(from: "control" | "middle"): [number, number] {
   return [innerWidth / 2, innerHeight / 2];
 }
 
-/** Opens a hole in `copy` from (x, y), its own coordinates, until it's gone. */
-function open(copy: HTMLElement, x: number, y: number, remove: () => void) {
+/**
+ * Opens a hole in `copy` from (x, y), its own coordinates, until it's gone:
+ * a circle, or in a strip a curtain opening from its middle, rather than
+ * a round blob crossing its one line of text.
+ */
+function open(
+  copy: HTMLElement,
+  [x, y]: [number, number],
+  shape: "circle" | "strip",
+  remove: () => void,
+) {
   const { width, height } = copy.getBoundingClientRect();
-  const reach = Math.hypot(Math.max(x, width - x), Math.max(y, height - y));
-  const feather = reach * FEATHER;
-  const radius = reach + feather;
-  copy.style.setProperty("--reveal-feather", `${feather}px`);
+  const feather = shape === "strip" ? STRIP_FEATHER : FEATHER;
+  // Sized so that, fully open, even the feathered edge is past every corner.
+  const [rx, ry] =
+    shape === "strip"
+      ? // So tall its sides are straight: the strip opens from the middle
+        // like a curtain, two soft edges moving out across the line.
+        [width / 2, height * 20]
+      : Array(2).fill(Math.hypot(Math.max(x, width - x), Math.max(y, height - y)));
   copy.style.setProperty("--reveal-x", `${x}px`);
   copy.style.setProperty("--reveal-y", `${y}px`);
-  copy
-    .animate({ "--reveal-r": ["0px", `${radius}px`] }, { duration: THEME_MS, easing: EMPHASIZED })
-    .finished.then(remove, remove);
+  copy.style.setProperty("--reveal-rx", `${rx / (1 - feather)}px`);
+  copy.style.setProperty("--reveal-ry", `${ry / (1 - feather)}px`);
+  copy.style.setProperty("--reveal-feather", `${feather * 100}%`);
+  whenSteady(() =>
+    copy
+      .animate({ "--reveal-p": [0, 1] }, { duration: THEME_MS, easing: STANDARD })
+      .finished.then(remove, remove),
+  );
+}
+
+/**
+ * Calls `start` once frames come steadily again (two in a row, or after
+ * 600ms at most). The frame that first paints the copy and the page in its
+ * new theme is slow (117–133ms, measured), and a change of the system's or
+ * the browser's theme brings more as the browser repaints itself (150–367ms,
+ * then some of 50–200ms): begun at once, the circle would jump through
+ * them. Until then the copy is whole, the old theme still showing.
+ */
+function whenSteady(start: () => void) {
+  const begun = performance.now();
+  let last = begun;
+  let steady = 0;
+  const tick = (now: number) => {
+    steady = now - last < 25 ? steady + 1 : 0;
+    last = now;
+    if (steady >= 2 || now - begun > 600) start();
+    else requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 
 /**
@@ -141,7 +185,7 @@ export function easeThemeChange(
   for (const animation of layer.getAnimations({ subtree: true })) animation.cancel();
   apply();
   endTransitions(document);
-  open(layer, x, y, () => layer.remove());
+  open(layer, [x, y], "circle", () => layer.remove());
 }
 
 /**
@@ -169,6 +213,7 @@ export function revealWithin(lives: HTMLElement[], apply: () => void) {
   for (const live of lives) endTransitions(live);
   for (const copy of copies) {
     const { width, height } = copy.getBoundingClientRect();
-    open(copy, width / 2, height / 2, () => copy.remove());
+    const shape = copy.matches(".output-view") ? "circle" : "strip";
+    open(copy, [width / 2, height / 2], shape, () => copy.remove());
   }
 }

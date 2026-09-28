@@ -2275,20 +2275,21 @@ html[data-scrolling],
   max-height: none;
 }
 
-/* The reveal's hole, grown from script; its edge feathered by a share of
-   its reach (theme.ts). */
-@property --reveal-r {
-  syntax: "<length>";
+/* The reveal's hole, grown from script (--reveal-p, 0 to 1) to a size and
+   feather set per copy (theme.ts). */
+@property --reveal-p {
+  syntax: "<number>";
   inherits: false;
-  initial-value: 0px;
+  initial-value: 0;
 }
 
 .theme-layer,
 .theme-reveal-old {
   mask-image: radial-gradient(
-    circle at var(--reveal-x) var(--reveal-y),
-    transparent calc(var(--reveal-r) - var(--reveal-feather)),
-    #000 var(--reveal-r)
+    calc(var(--reveal-p) * var(--reveal-rx)) calc(var(--reveal-p) * var(--reveal-ry)) at
+      var(--reveal-x) var(--reveal-y),
+    transparent calc(100% - var(--reveal-feather)),
+    #000 100%
   );
 }
 

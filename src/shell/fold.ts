@@ -77,12 +77,17 @@ function play(shell: HTMLElement, copy: HTMLElement, settle: () => void) {
         fill: "both",
       },
     ),
-    ...[...shell.querySelectorAll<HTMLElement>(":scope > .nav-rail, .workspace")].map((el) =>
+    // An open sheet moves too, centred card to bottom sheet and back: it
+    // arrives like the rest (it's in the top layer, above the copy).
+    ...[
+      ...shell.querySelectorAll<HTMLElement>(":scope > .nav-rail, .workspace"),
+      ...document.querySelectorAll<HTMLElement>("dialog.sheet[open]"),
+    ].map((el) =>
       el.animate(
         [
           {
             opacity: 0,
-            transform: el.matches(".workspace") ? `scale(${SETTLE_FROM})` : "none",
+            transform: el.matches(".workspace, .sheet") ? `scale(${SETTLE_FROM})` : "none",
             filter: `blur(${BLUR})`,
           },
           { opacity: 1, transform: "none", filter: "blur(0px)" },
