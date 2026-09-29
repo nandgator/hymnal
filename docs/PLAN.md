@@ -49,10 +49,13 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 4. ~~Flow, songs, parts, draft, report against a profile (SDD-0003 §3)~~ —
    done; 275 songs, 1,017 notes
 5. **Next.** Review the Fellowship report by section, smallest first;
-   wraps by sample. First fix: title recasing ("I serve A risen Savior")
-6. Judge, swappable by manifest; Laya first (SDD-0003 §4.1). Only if part 5
-   finds questions the rules can't answer. Triage and inference were
-   dropped: case by case (ADR-0024)
+   wraps by sample. ~~Title recasing~~, ~~mixed fonts~~ done; next:
+   sequences (28). Breaks: the code measures against every block, SDD-0003
+   §3 says the same kind; tried, it moved 6 songs, some worse
+6. Judge, swappable by manifest; Laya first (SDD-0003 §4.1), after part 5.
+   Found so far: the kind of a short unlabelled block (bridge, tag, a
+   split stanza; 20 in Fellowship). Triage and inference were dropped:
+   case by case (ADR-0024)
 
 ## State
 
@@ -127,6 +130,10 @@ ones only, here:
 
 ## Log
 
+- 2026-09-29 — #27 part 5: kind by first font; directions out; "…Cho…", cues read
+- 2026-09-28 — #27 part 5: repeat marks taken off lines; "(Repeat Chorus)" a label
+- 2026-09-28 — #27 part 5: "Cho…" mid-block closes a stanza unless a chorus follows
+- 2026-09-28 — #27 part 5: titles cased as the lyrics set them; shown in Title Case
 - 2026-09-28 — Firefox: the sheet reveals too (no backdrop-filter in the copy)
 - 2026-09-28 — #26 done. Live's theme reveal shows; every sheet follows the layout
 - 2026-09-28 — The fold a fade-through; theme changes revealed in a circle
@@ -135,8 +142,3 @@ ones only, here:
 - 2026-09-27 — #26 part 4b: loading in place, install progress; Recents
 - 2026-09-27 — #26 part 4a: phone layout, Parts a tab; one Recents list
 - 2026-09-27 — Triage and inference dropped; import case by case (ADR-0024)
-- 2026-09-27 — Triage and inferred layout (ADR-0023); a local shelf of PDFs
-- 2026-09-27 — #27 part 4: Hymns of Fellowship drafted, 275 songs; report
-- 2026-09-27 — Part kinds widened (intro … tag); same songs = same book (ADR-0021)
-- 2026-09-27 — #27 part 3: JSON Schema for format 1; `$schema` allowed
-- 2026-09-27 — Presents, not publishes (ADR-0020); store keys; JSON Schema

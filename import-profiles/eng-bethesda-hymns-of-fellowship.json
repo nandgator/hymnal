@@ -29,8 +29,21 @@
   "labels": {
     "chorus": "chorus",
     "cho": "chorus",
+    "ch": "chorus",
     "bridge": "bridge",
     "end": "outro"
   },
+  "directions": [
+    "ladies",
+    "men",
+    "women",
+    "together",
+    "all",
+    "echo",
+    "descant",
+    "verse",
+    "solo",
+    "unison"
+  ],
   "stanzaGap": 1.3
 }

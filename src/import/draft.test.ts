@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HymnSource } from "../domain/types.ts";
-import { draftBook } from "./draft.ts";
+import { draftBook, titleOf } from "./draft.ts";
 import { flow, readIndex } from "./flow.ts";
 import { type Profile, parseProfile } from "./profile.ts";
 import type { SourceLine, SourcePage } from "./source.ts";
@@ -272,5 +272,237 @@ describe("draftBook", () => {
     const h = hymn(3);
     expect(h.parts.map((p) => p.id)).toEqual(["s1", "s2"]);
     expect(sequence(h)).toBe("s1 s2 s1");
+  });
+});
+
+describe("titleOf", () => {
+  const lines = [
+    "I serve a risen Savior,",
+    "A Savior who is Lord of all,",
+    "Jesus paid it all,",
+    "Give thanks to the KING,",
+    "He knows my name",
+  ];
+  const title = (heading: string) => titleOf(heading, undefined, lines);
+
+  it("cases each word as the song sets it within a line, not first in one", () => {
+    expect(title("I SERVE A RISEN SAVIOR")).toBe("I serve a risen Savior");
+  });
+
+  it("falls back to a line's first word, then capitals, then lower case", () => {
+    expect(title("JESUS PAID IT ALL")).toBe("Jesus paid it all");
+    expect(title("THANKS TO THE KING")).toBe("Thanks to the KING");
+    expect(title("NOT IN THE SONG")).toBe("Not in the song");
+  });
+
+  it("starts a subtitle in brackets with a capital, and keeps mixed case as printed", () => {
+    expect(title("MY SAVIOR (HE KNOWS MY NAME)")).toBe("My Savior (He knows my name)");
+    expect(title("I SERVE (Psalms 5:1-3)")).toBe("I serve (Psalms 5:1-3)");
+  });
+
+  it("takes the index's title when it names the same song", () => {
+    const entry = { number: 1, title: "I serve a risen savior", page: "1" };
+    expect(titleOf("I SERVE A RISEN SAVIOR", entry, lines)).toBe("I serve a risen savior");
+  });
+});
+
+describe("a label within a block", () => {
+  const sung = (lines: string[]) => {
+    const { hymns } = draftBook([page(1, lines, [])], {
+      ...profile,
+      index: undefined,
+      pages: { from: 1, to: 1 },
+    });
+    const [h] = hymns;
+    return `${h.parts.map((p) => `${p.id}:${p.lines[0]}`).join(" ")} | ${sequence(h)}`;
+  };
+
+  it("closes the lines before it when what follows isn't in the chorus font", () => {
+    expect(
+      sung([
+        "# (1) ONE SONG",
+        "_ Sing it, sing it",
+        "_ All day long",
+        "",
+        "First verse here",
+        "Goes on and on",
+        "(chorus)",
+        "Second verse here",
+        "Goes on again",
+      ]),
+    ).toBe("c:Sing it, sing it s1:First verse here s2:Second verse here | c s1 c s2");
+  });
+
+  it("heads what follows when that is in the chorus font", () => {
+    expect(
+      sung([
+        "# (1) ONE SONG",
+        "First verse here",
+        "Goes on and on",
+        "Chorus:",
+        "_ Sing it, sing it",
+        "_ All day long",
+      ]),
+    ).toBe("s1:First verse here c:Sing it, sing it | s1 c");
+  });
+});
+
+describe("repeat marks", () => {
+  const drafted = (lines: string[]) => {
+    const { hymns, notes } = draftBook([page(1, lines, [])], {
+      ...profile,
+      index: undefined,
+      pages: { from: 1, to: 1 },
+    });
+    const [h] = hymns;
+    return {
+      parts: h.parts.map((p) => `${p.id}: ${p.lines.join(" / ")}`),
+      sequence: sequence(h),
+      notes: notes.filter((n) => n.kind === "repeat").map((n) => n.message),
+    };
+  };
+
+  it("are taken out of the line, a line left empty dropped, each noted", () => {
+    const { parts, notes } = drafted([
+      "# (1) ONE SONG",
+      "Glory to the Lord (2)",
+      "Thou art worthy (3) O Lord,",
+      "Upon the cross (2).",
+      "Thank you for the cross – 2",
+      "Sing it again x 2",
+      "(repeat)",
+    ]);
+    expect(parts).toEqual([
+      "s1: Glory to the Lord / Thou art worthy O Lord, / Upon the cross. / Thank you for the cross / Sing it again",
+    ]);
+    expect(notes).toContain('"(repeat)" → dropped');
+    expect(notes).toContain('"Thank you for the cross – 2" → "Thank you for the cross"');
+  });
+
+  it("leave a verse reference alone", () => {
+    expect(drafted(["# (1) ONE SONG", "Give ear (Psalms 5 :1-3)"]).parts).toEqual([
+      "s1: Give ear (Psalms 5 :1-3)",
+    ]);
+  });
+
+  it('read "(Repeat Chorus)" as the chorus sung again', () => {
+    expect(
+      drafted([
+        "# (1) ONE SONG",
+        "_ Sing it, sing it",
+        "",
+        "First verse here",
+        "(Repeat Chorus)",
+        "Second verse here",
+        "Chorus again",
+      ]).sequence,
+    ).toBe("c s1 c s2");
+  });
+});
+
+describe("directions, cues and fonts", () => {
+  const drafted = (lines: string[]) => {
+    const { hymns, notes } = draftBook([page(1, lines, [])], {
+      ...profile,
+      index: undefined,
+      pages: { from: 1, to: 1 },
+      labels: { ...profile.labels, cho: "chorus" },
+      directions: ["ladies", "men", "women", "together", "echo", "descant"],
+    });
+    const [h] = hymns;
+    return {
+      parts: h.parts.map((p) => `${p.id}: ${p.lines.join(" / ")}`),
+      sequence: sequence(h),
+      notes: (kind: string) => notes.filter((n) => n.kind === kind).map((n) => n.message),
+    };
+  };
+
+  it("takes directions out of the line, and leaves echoed words", () => {
+    const { parts, notes } = drafted([
+      "# (1) ONE SONG",
+      "(ladies descant)",
+      "(Men) Worship the King, (Women)come and see",
+      "He walked where I walked (echo)",
+      "And hear us sing (and hear us sing)",
+      "[Together]",
+    ]);
+    expect(parts).toEqual([
+      "s1: Worship the King, come and see / He walked where I walked / And hear us sing (and hear us sing)",
+    ]);
+    expect(notes("direction")).toContain('"(ladies descant)" → dropped');
+  });
+
+  it("reads a label ending a line after an ellipsis as the part sung again", () => {
+    const { parts, sequence } = drafted([
+      "# (1) ONE SONG",
+      "_ Sing it, sing it",
+      "",
+      "First verse here",
+      "That I might live…Cho…",
+      "Second verse here",
+      "Goes on today. Cho…",
+    ]);
+    expect(parts).toEqual([
+      "c: Sing it, sing it",
+      "s1: First verse here / That I might live",
+      "s2: Second verse here / Goes on today.",
+    ]);
+    expect(sequence).toBe("c s1 c s2 c");
+  });
+
+  it("reads the chorus's first line, quoted or in its font, as a cue", () => {
+    const { parts, sequence, notes } = drafted([
+      "# (1) ONE SONG",
+      "_ Bind us together, Lord;",
+      "_ Bind us with love.",
+      "",
+      "One God, one King",
+      "_ Bind us together, Lord ...",
+      "",
+      "One Body, one song",
+      "“Bind us together”",
+    ]);
+    expect(parts).toEqual([
+      "c: Bind us together, Lord; / Bind us with love.",
+      "s1: One God, one King",
+      "s2: One Body, one song",
+    ]);
+    expect(sequence).toBe("c s1 c s2 c");
+    expect(notes("fonts")).toEqual([]);
+  });
+
+  it("keeps a stanza's own last line that leads into the chorus", () => {
+    const { parts } = drafted([
+      "# (1) ONE SONG",
+      "_ One day at a time sweet Jesus",
+      "",
+      "Teach me to take",
+      "One day at a time…",
+    ]);
+    expect(parts).toContain("s1: Teach me to take / One day at a time…");
+  });
+
+  it("takes a label before the chorus printed as that chorus", () => {
+    expect(
+      drafted(["# (1) ONE SONG", "First verse here", "Goes on now…Cho…", "_ Sing it, sing it"])
+        .sequence,
+    ).toBe("s1 c");
+  });
+
+  it("gives a block in two fonts the kind of the font it starts in", () => {
+    const { parts, notes } = drafted([
+      "# (1) ONE SONG",
+      "First verse here",
+      "",
+      "_ Passover, Passover",
+      "_ Pass over me",
+      "For see the Lamb has died",
+      "And I will live",
+      "I will live",
+    ]);
+    expect(parts[1]).toMatch(/^c: Passover/);
+    expect(notes("fonts")).toEqual([
+      '2 of 5 lines in the chorus font, taken as a chorus as it starts: "Passover, Passover"',
+    ]);
   });
 });

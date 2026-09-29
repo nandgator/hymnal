@@ -27,7 +27,48 @@ const ID_PREFIX: Record<PartKind, string> = {
   tag: "t",
 };
 
-const REPEAT_MARK = /\((?:\d+\s*x?|x\s*\d+|twice|thrice|repeat[^)]*)\)|\bx\s*\d+\b/i;
+/** "(2)", "(x 3)", "(twice)", "(repeat)", "x 2", "– 2" ending a line, and "Repeat" alone. */
+const REPEAT_MARK =
+  /\((?:\d+\s*x?|x\s*\d+|twice|thrice|repeat[^)]*)\)|\bx\s*\d+\b|\s[–-]\s*\d+\s*$|^\s*repeat\s*[.…:]*\s*$/gi;
+
+/** A line without what `pattern` finds, and no space left before punctuation. */
+function without(text: string, pattern: RegExp): string {
+  if (!new RegExp(pattern.source, pattern.flags.replace("g", "")).test(text)) return text;
+  return text
+    .replace(pattern, " ")
+    .replace(/\s+([.,;:!?])/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/**
+ * The Output shows lyrics: the operator repeats with Repeat, and the singers
+ * know their parts. Repeat marks and directions are taken out of each line,
+ * a line left empty is dropped, and each is noted.
+ */
+function lyricsOnly(
+  lines: FlowLine[],
+  profile: Profile,
+  note: (kind: Note["kind"], message: string, page?: number) => void,
+): FlowLine[] {
+  const words = profile.directions?.join("|");
+  const direction = words
+    ? new RegExp(`[(\\[]\\s*(?:${words})(?:[\\s,&]+(?:and|${words}))*\\s*[)\\]]`, "giu")
+    : undefined;
+  return lines.flatMap((line) => {
+    let text = line.text;
+    for (const [kind, pattern] of [
+      ["repeat", REPEAT_MARK],
+      ["direction", direction],
+    ] as const) {
+      if (!pattern) continue;
+      const out = without(text, pattern);
+      if (out !== text) note(kind, `"${text}" → ${out ? `"${out}"` : "dropped"}`, line.page);
+      text = out;
+    }
+    return text ? [{ ...line, text }] : [];
+  });
+}
 
 /**
  * A found song → parts and a sequence (SDD-0003 §1). Blocks are split at
@@ -47,7 +88,12 @@ export function toParts(
   for (const item of printed) {
     if ("block" in item) item.block.lines = unwrap(item.block.lines, flow, note);
   }
-  const joined = joinBreaks(printed, flow, profile, note);
+  const lyrics = joinBreaks(printed, flow, profile, note).filter((item) => {
+    if (!("block" in item)) return true;
+    item.block.lines = lyricsOnly(item.block.lines, profile, note);
+    return item.block.lines.length > 0;
+  });
+  const joined = cued(lyrics, profile, note);
 
   // Parts in printed order; a block printed again word for word is the same part.
   const parts: Part[] = [];
@@ -71,10 +117,6 @@ export function toParts(
     order.push(part);
   }
 
-  for (const part of parts) {
-    const marked = part.lines.filter((line) => REPEAT_MARK.test(line));
-    for (const line of marked) note("repeat", `"${line}"`);
-  }
   return { parts, sequence: sequenceOf(parts, order, note) };
 }
 
@@ -92,7 +134,11 @@ function blocks(lines: FlowLine[], profile: Profile): Block[] {
 /**
  * Labels, as the profile words them: "Chorus:", "(chorus)", "Bridge", "End:".
  * Heading lines, a label gives them their kind; alone, or closing a block,
- * it stands for that part sung again.
+ * it stands for that part sung again, as it does ending a line after an
+ * ellipsis or before one ("covered me…Cho….", "today. Ch…"). Within a block, a chorus label heads
+ * what follows only if that is set in the chorus font: otherwise it closes
+ * the lines before it, and a new block starts (the printer left no gap
+ * between "Cho…" and the next stanza).
  */
 function labelled(
   input: Block[],
@@ -102,7 +148,11 @@ function labelled(
   const words = Object.keys(profile.labels).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
   if (words.length === 0) return input.map((block) => ({ block }));
   const label = new RegExp(
-    `^\\(?\\s*(${words.join("|")})\\s*[:.…]*\\s*\\)?\\s*[:.…]*\\s*(\\(.*\\)|x\\s*\\d+)?$`,
+    `^\\(?\\s*(repeat\\s+)?(${words.join("|")})\\s*[:.…]*\\s*\\)?\\s*[:.…]*\\s*(\\(.*\\)|x\\s*\\d+)?$`,
+    "i",
+  );
+  const ending = new RegExp(
+    `^(.*?)\\s*(?:(?:…|\\.{2,})\\s*(${words.join("|")})\\s*[:.…]*|\\s(${words.join("|")})\\s*(?:…|\\.{2,})[.…]*)\\s*$`,
     "i",
   );
 
@@ -119,14 +169,30 @@ function labelled(
     };
     for (const [i, line] of block.lines.entries()) {
       const match = label.exec(line.text);
+      const ends = match ? null : ending.exec(line.text);
+      if (ends) {
+        const text = ends[1].replace(/\s*(?:…|\.{2,})+$/, "");
+        if (text) rest.push({ ...line, text });
+        flush();
+        out.push({ refers: profile.labels[(ends[2] ?? ends[3]).toLowerCase()], page: line.page });
+        continue;
+      }
       if (!match) {
         rest.push(line);
         continue;
       }
       flush();
-      const named = profile.labels[match[1].toLowerCase()];
-      if (match[2]) note("repeat", `"${line.text}"`, line.page);
-      if (i === block.lines.length - 1) out.push({ refers: named, page: line.page });
+      const named = profile.labels[match[2].toLowerCase()];
+      if (match[3]) note("repeat", `"${line.text}"`, line.page);
+      const after = block.lines.slice(i + 1);
+      const next = after.findIndex((l) => label.test(l.text));
+      // "(Repeat Chorus)" only ever stands for the chorus.
+      const heads =
+        !match[1] &&
+        (i === 0 ||
+          named !== "chorus" ||
+          after.slice(0, next < 0 ? undefined : next).every((l) => l.font === profile.chorus.font));
+      if (i === block.lines.length - 1 || !heads) out.push({ refers: named, page: line.page });
       else kind = named;
     }
     flush();
@@ -225,6 +291,71 @@ function joinBreaks(
   return out;
 }
 
+/**
+ * A block's last line that quotes the chorus's first, in quotes or in the
+ * chorus's font ("“Who is this Man?”", "Bind us together, Lord ..."), is a
+ * cue: the chorus sung again, not a lyric. Before the chorus printed, a cue
+ * or a label is that chorus. Every block is given its kind here, the
+ * cue taken off first.
+ */
+function cued(
+  printed: Printed[],
+  profile: Profile,
+  note: (kind: Note["kind"], message: string, page?: number) => void,
+): Printed[] {
+  // As it starts, till a cue is off: a cue is often set in the chorus's font.
+  const kindOf = (block: Block) =>
+    block.kind ?? (block.lines[0].font === profile.chorus.font ? "chorus" : "stanza");
+  const words = (text: string) =>
+    text
+      .toLowerCase()
+      .match(/[\p{L}\p{N}’']+/gu)
+      ?.join(" ") ?? "";
+  const starts = printed.flatMap((item) =>
+    "block" in item && kindOf(item.block) === "chorus" ? [words(item.block.lines[0].text)] : [],
+  );
+  const out: Printed[] = [];
+  for (const [i, item] of printed.entries()) {
+    out.push(item);
+    if (!("block" in item)) continue;
+    const block = item.block;
+    if (kindOf(block) === "chorus") {
+      block.kind ??= kindByFont(block, profile, note);
+      continue;
+    }
+    const last = block.lines.at(-1) as FlowLine;
+    const next = printed[i + 1];
+    const chorusNext = next !== undefined && !("block" in next) && next.refers === "chorus";
+    const quoted = words(last.text);
+    // Trailing off alone isn't enough: a stanza's own last line often leads
+    // into the chorus with its words ("One day at a time…").
+    const set =
+      /^[“"‘'].*[”"’']$/.test(last.text.trim()) ||
+      (last.font === profile.chorus.font && block.lines[0].font !== profile.chorus.font);
+    const cue =
+      set &&
+      quoted.includes(" ") &&
+      starts.some((start) => start === quoted || start.startsWith(`${quoted} `));
+    if (cue) {
+      note("cue", `"${last.text}"`, last.page);
+      block.lines.pop();
+    }
+    if (block.lines.length === 0) out.pop();
+    else block.kind ??= kindByFont(block, profile, note);
+    if (cue && !chorusNext) out.push({ refers: "chorus", page: last.page });
+  }
+  return out.filter((item, i) => {
+    const next = out[i + 1];
+    return (
+      "block" in item ||
+      item.refers !== "chorus" ||
+      !next ||
+      !("block" in next) ||
+      next.block.kind !== "chorus"
+    );
+  });
+}
+
 /** "chorus" or "stanza" when one font sets the whole block, else undefined. */
 function fontKind(block: Block, profile: Profile): PartKind | undefined {
   const chorus = block.lines.filter((line) => line.font === profile.chorus.font).length;
@@ -233,6 +364,11 @@ function fontKind(block: Block, profile: Profile): PartKind | undefined {
   return undefined;
 }
 
+/**
+ * A block's kind: its label's, else its font's. In two fonts, the one it
+ * starts in: a chorus's italic can stop partway, and a stanza can end on
+ * the chorus's first line in italic, a cue.
+ */
 function kindByFont(
   block: Block,
   profile: Profile,
@@ -241,13 +377,13 @@ function kindByFont(
   const kind = fontKind(block, profile);
   if (kind) return kind;
   const chorus = block.lines.filter((line) => line.font === profile.chorus.font);
-  const most = chorus.length * 2 > block.lines.length ? "chorus" : "stanza";
+  const first = block.lines[0].font === profile.chorus.font ? "chorus" : "stanza";
   note(
     "fonts",
-    `${chorus.length} of ${block.lines.length} lines in the chorus font, taken as a ${most}: "${block.lines[0].text}"`,
+    `${chorus.length} of ${block.lines.length} lines in the chorus font, taken as a ${first} as it starts: "${block.lines[0].text}"`,
     block.lines[0].page,
   );
-  return most;
+  return first;
 }
 
 /**

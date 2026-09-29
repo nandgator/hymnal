@@ -32,6 +32,12 @@ export interface Profile {
    * part here"; heading a block, it gives the block its kind.
    */
   labels: Record<string, PartKind>;
+  /**
+   * Words that direct the singers, lower case: "ladies", "men", "echo". A
+   * bracket holding only these ("(ladies descant)", "[Together]") is taken
+   * out of the line; echoed words in brackets are lyrics and stay.
+   */
+  directions?: string[];
   /** A gap wider than this, × the book's line pitch, ends a block. */
   stanzaGap: number;
 }
@@ -75,6 +81,7 @@ export function parseProfile(value: unknown): Profile {
     "title",
     "chorus",
     "labels",
+    "directions",
     "stanzaGap",
   ]);
 
@@ -129,6 +136,13 @@ export function parseProfile(value: unknown): Profile {
       need(PART_KINDS.includes(kind as PartKind), `labels.${word}: "${kind}" is not a part kind`);
     }
   } else need(false, "labels is required, {} if the book prints none");
+
+  need(
+    p.directions === undefined ||
+      (Array.isArray(p.directions) &&
+        p.directions.every((w) => typeof w === "string" && /^\p{Ll}+$/u.test(w))),
+    "directions must be a list of lower-case words",
+  );
 
   need(
     typeof p.stanzaGap === "number" && p.stanzaGap > 1,

@@ -26,8 +26,12 @@ export type NoteKind =
   | "fonts"
   /** A sequence taken from a rule, not from the page. */
   | "sequence"
-  /** "(2)", "(repeat)": kept in the line as printed. */
+  /** "(2)", "(repeat)": taken out of the line. */
   | "repeat"
+  /** "(ladies descant)", "(echo)": taken out of the line. */
+  | "direction"
+  /** A last line quoting the chorus's first ("Bind us together, Lord ..."): the chorus sung again. */
+  | "cue"
   /** A violation of the content format. */
   | "invalid";
 
@@ -38,9 +42,11 @@ const HEADINGS: Record<NoteKind, string> = {
   index: "Index and page disagree",
   break: "Blocks split by a column or page break",
   fonts: "Blocks in mixed fonts",
+  cue: "Chorus cues read as the chorus",
   sequence: "Sequences taken from a rule",
   wrap: "Line wraps joined",
-  repeat: "Repeat marks kept as printed",
+  repeat: "Repeat marks taken out",
+  direction: "Directions taken out",
 };
 
 /** report.md: a summary, then every note, grouped by kind, most serious first. */

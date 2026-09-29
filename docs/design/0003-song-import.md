@@ -100,6 +100,7 @@ shared stages (ADR-0024); nothing is inferred.
   },
   "chorus": { "font": "TimesNewRomanPS-ItalicMT" },
   "labels": { "chorus": "chorus", "bridge": "bridge", "end": "outro" },
+  "directions": ["ladies", "men", "women", "together", "echo"],
   "stanzaGap": 1.3
 }
 ```
@@ -118,9 +119,19 @@ The rules the stages apply with it:
   long as the song's other blocks.
 - **Labels** in `labels`, however punctuated ("Chorus:", "(chorus)",
   "Chorus…"): heading lines, they give them their kind; alone or closing a
-  block, they stand for that part sung again.
-- **Kind**, unlabelled: a block wholly in `chorus.font` is a chorus,
-  else a stanza. A block printed again word for word is the same part.
+  block, they stand for that part sung again. Within a block, a chorus
+  label heads what follows only if it is in `chorus.font`; otherwise it
+  closes the lines before it (no gap was printed after "Cho…"). Ending a
+  line after an ellipsis or before one ("covered me…Cho….", "today. Ch…"),
+  a label closes the block there.
+- **Cues**: a block's last line that is the chorus's first line, in quotes
+  or in `chorus.font` ("Bind us together, Lord ...") stands for the chorus
+  sung again. Trailing off alone doesn't make a cue: a stanza's own last
+  line often leads into the chorus with its words. A label or cue just
+  before the chorus printed is that chorus.
+- **Kind**, unlabelled: a block starting in `chorus.font` is a chorus,
+  else a stanza (a chorus's italic can stop partway). A block printed
+  again word for word is the same part.
 - **Wraps** are joined where the next line's first word would not have fitted
   on this one, against the column's widest line. Before a lowercase word
   that is sure; before a capital, only a short remainder after unpunctuated
@@ -132,8 +143,16 @@ The rules the stages apply with it:
   first if printed first, and after every stanza.
 - **Title**: the index's, where it names the same song as the heading
   (indexes are set in the book's case, headings often in capitals); else
-  the heading, its capitalised words recased from the song's own lines.
-- Repeat marks ("(2)", "(repeat)") stay in the line as printed.
+  the heading, its capitalised words recased as the song's lines set them
+  within a line (a line's first word, or one in capitals, only when there's
+  nothing better); a bracketed subtitle starts with a capital.
+- Repeat marks ("(2)", "(repeat)", "x 2", "– 2" at a line's end) are
+  taken out of the line, and a line left empty is dropped: the Output
+  shows lyrics, and the operator repeats with Repeat. "(Repeat Chorus)" is
+  a label standing for the chorus. So are directions: a bracket holding
+  only `directions` words ("(ladies descant)", "(Men)", "(echo)",
+  "[Together]"); echoed words in brackets are lyrics and stay. Format 1
+  has nowhere to keep them.
 
 ## 4. The report
 
@@ -147,10 +166,11 @@ the draft, by hymn:
   found
 - a block split by a column break, joined or kept apart, when not certain
 - a block in mixed fonts, so neither clearly stanza nor chorus
+- a cue read as the chorus
 - a sequence taken from a rule beside a bridge or ending, or choruses that
   differ
 - a line wrap joined (both halves quoted; guesses marked)
-- a repeat mark kept as printed
+- a repeat mark or direction taken out, the line before and after
 
 ### 4.1 The judge: an optional second opinion
 

@@ -99,22 +99,39 @@ export function draftBook(pages: SourcePage[], profile: Profile): Draft {
 /**
  * The index's title where it names the same song as the heading (it is set
  * in the book's own case, where headings are often capitals). Otherwise
- * the heading, recased from the song's own words.
+ * the heading, recased from the song's own words: each as it's most often
+ * set within a line. A line's first word is capitalised for the line, not
+ * the word ("A risen Savior" took "A"), and a word set in capitals may be
+ * emphasis; so these count only when a word is never set otherwise
+ * ("Jesus" only starting lines, "LORD" only in capitals). A word the lines
+ * don't have goes lower case. The title, and a subtitle in brackets
+ * ("(Shout to the north)"), start with a capital.
  */
-function titleOf(heading: string, entry: IndexEntry | undefined, lines: string[]): string {
+export function titleOf(heading: string, entry: IndexEntry | undefined, lines: string[]): string {
   if (entry && simplify(entry.title) === simplify(heading)) return entry.title;
   const WORD = /[\p{L}’']+/gu;
-  const cased = new Map<string, string>();
-  for (const word of lines.join(" ").match(WORD)?.reverse() ?? []) {
-    cased.set(word.toLowerCase(), word);
+  const capitals = (word: string) => word.length > 1 && word === word.toUpperCase();
+  /** Per word, each casing: how weak its evidence (within a line 0, first
+   * in one 1, in capitals 2), and how often it's seen so. */
+  const seen = new Map<string, Map<string, [weak: number, count: number]>>();
+  for (const line of lines) {
+    for (const [i, word] of [...line.matchAll(WORD)].map((m) => m[0]).entries()) {
+      const casings = seen.get(word.toLowerCase()) ?? new Map();
+      const [weak, count] = casings.get(word) ?? [capitals(word) ? 2 : i === 0 ? 1 : 0, 0];
+      casings.set(word, [weak, count + 1]);
+      seen.set(word.toLowerCase(), casings);
+    }
   }
+  const casedAs = (word: string) => {
+    const casings = [...(seen.get(word.toLowerCase()) ?? [])];
+    casings.sort(([, a], [, b]) => a[0] - b[0] || b[1] - a[1]);
+    return casings[0]?.[0] ?? word.toLowerCase();
+  };
   // Only words set in capitals are recased; "(Psalms 5:1-3)" stays as printed.
   const recased = heading.replace(WORD, (word) =>
-    word.length > 1 && word === word.toUpperCase()
-      ? (cased.get(word.toLowerCase()) ?? word.toLowerCase())
-      : word,
+    word === word.toUpperCase() ? casedAs(word) : word,
   );
-  return recased.charAt(0).toUpperCase() + recased.slice(1);
+  return recased.replace(/^\p{Ll}|\(\p{Ll}/gu, (start) => start.toUpperCase());
 }
 
 const simplify = (title: string) =>
