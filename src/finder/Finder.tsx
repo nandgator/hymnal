@@ -15,6 +15,7 @@ import {
   type SearchResult,
 } from "../persistence/content-store.ts";
 import type { UserState } from "../persistence/user-state.ts";
+import { titleCase } from "../shell/case.ts";
 import { RecentsList } from "../shell/RecentsList.tsx";
 
 /** How long typing must pause before a lyric search runs. */
@@ -263,7 +264,7 @@ export function Finder(props: FinderProps) {
                 <>
                   <span class="finder-number">#{row.option.number}</span>
                   <span class="finder-title">
-                    {row.option.title}
+                    {titleCase(row.option.title)}
                     <Show when={row.option.snippet}>
                       {(snippet) => <span class="list-row-supporting"> — {snippet()}</span>}
                     </Show>

@@ -416,7 +416,7 @@ function Operator() {
                     onClick={() => setHymnPickerOpen(true)}
                   >
                     <span class="crumb-number">#{current().number}</span>
-                    <span class="crumb-text">{current().title}</span>
+                    <span class="crumb-text">{titleCase(current().title)}</span>
                     <span class="icon icon-expand" aria-hidden="true" />
                   </button>
                 </>

@@ -29,6 +29,7 @@ import {
   type OutputCues,
   type UserState,
 } from "../persistence/user-state.ts";
+import { titleCase } from "../shell/case.ts";
 import { ignoresShortcuts } from "../shell/keymap.ts";
 import { AfterDelay } from "../shell/Loading.tsx";
 import { Menu, type MenuItem } from "../shell/Menu.tsx";
@@ -259,7 +260,7 @@ export function Presenter(props: PresenterProps) {
       type: "content",
       hymnbookId: e.hymn.hymnbookId,
       number: e.hymn.number,
-      title: e.hymn.title,
+      title: titleCase(e.hymn.title),
       ...flattenLines(e),
       hymnbookTitle: props.hymnbookTitle,
       part: partCueLabel(e.current().part),
@@ -1034,7 +1035,7 @@ export function Presenter(props: PresenterProps) {
             {/* The title shows in the shell's switcher row; this heading
                 keeps the page's structure for screen readers. */}
             <h2 class="visually-hidden">
-              {loaded().title} <span>#{loaded().number}</span>
+              {titleCase(loaded().title)} <span>#{loaded().number}</span>
             </h2>
 
             <Show

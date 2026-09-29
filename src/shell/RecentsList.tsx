@@ -6,6 +6,7 @@ import {
   type RecentEntry,
   type UserState,
 } from "../persistence/user-state.ts";
+import { titleCase } from "./case.ts";
 
 export interface RecentsListProps {
   hymnbookId: HymnbookId;
@@ -131,7 +132,7 @@ export function RecentsList(props: RecentsListProps) {
                 onClick={() => props.onSelect(entry.hymnNumber)}
               >
                 <span class="recents-number">#{entry.hymnNumber}</span>
-                <span class="recents-title">{entry.title}</span>
+                <span class="recents-title">{titleCase(entry.title)}</span>
                 <span class="recents-when">{viewedLabel(entry.viewedAt)}</span>
               </button>
             </li>

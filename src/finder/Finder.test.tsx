@@ -126,7 +126,7 @@ describe("Finder", () => {
 
     submit("line");
 
-    expect(await screen.findByRole("option", { name: /^#1\s*Same line$/ })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /^#1\s*Same Line$/ })).toBeInTheDocument();
     expect(
       screen.getByRole("option", { name: /^#2\s*Title\s*—\s*A different line$/ }),
     ).toBeInTheDocument();

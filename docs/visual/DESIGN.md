@@ -668,7 +668,10 @@ unit.
   Forward); sentence case for what reads as a sentence — switch labels and
   their descriptions, field names, placeholders, tooltips, empty states
   (Find a song or action, No recent songs yet). `titleCase()` titles the
-  command menu. Small-caps area titles stay uppercase.
+  command menu. Small-caps area titles stay uppercase. **Song titles** are
+  Title Case wherever shown (I Serve a Risen Savior; a bracketed subtitle
+  starts afresh); content keeps them in sentence case, which keeps which
+  words are names, and a script without case is left as it is.
 - **Output: nothing ever bleeds off the screen.** The type is sized
   **per hymn** so its longest part fits inside a 10% safe margin, then
   held for the whole hymn, so the text never changes size between parts.

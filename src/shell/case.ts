@@ -25,12 +25,14 @@ const MINOR = new Set([
  * buttons (DESIGN.md § Words): "Bring the Output Forward". Sentences
  * (descriptions, placeholders, empty states) stay in sentence case and never
  * pass through this. A word already capitalised, or with a capital inside
- * (a key, a name), is left alone.
+ * (a key, a name), is left alone. Song titles pass through it too, where
+ * shown: a subtitle in brackets starts afresh, "Men of Faith (Shout to the
+ * North)".
  */
 export function titleCase(text: string): string {
   let first = true;
-  return text.replace(/[\p{L}\p{N}'’]+|[:—–]/gu, (word) => {
-    if (/^[:—–]$/.test(word)) {
+  return text.replace(/[\p{L}\p{N}'’]+|[:—–(]/gu, (word) => {
+    if (/^[:—–(]$/.test(word)) {
       first = true;
       return word;
     }
