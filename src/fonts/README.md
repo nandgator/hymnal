@@ -4,7 +4,8 @@ Bundled, never fetched from a CDN (arc42 §8.3).
 
 ## Hymnal Sans
 
-Google Sans ([google/fonts `ofl/googlesans`](https://github.com/google/fonts/tree/main/ofl/googlesans),
+Google Sans
+([google/fonts `ofl/googlesans`](https://github.com/google/fonts/tree/main/ofl/googlesans),
 SIL OFL 1.1), subset and renamed. Google's trademark note
 ([`HymnalSans-TRADEMARKS.txt`](HymnalSans-TRADEMARKS.txt)) forbids the "Google
 Sans" name on a modified version, and subsetting is one. Why this font:

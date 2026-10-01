@@ -33,11 +33,11 @@ enough that "read the code" is a bad answer. The domain model has one because
 everything else depends on it.
 
 **The visual design is not system design.** `design/` holds SDDs — how a
-subsystem works. `visual/DESIGN.md` holds how the app looks: color roles,
-type scale, shape, elevation and components, as tokens in its front matter
-(the `DESIGN.md` convention). Read it before writing CSS. An SDD may say
-_that_ a screen exists and what it shows; the visual spec says how it's
-drawn. Neither restates the other.
+subsystem works. `visual/DESIGN.md` holds how the app looks: color roles, type
+scale, shape, elevation and components, as tokens in its front matter (the
+`DESIGN.md` convention). Read it before writing CSS. An SDD may say _that_ a
+screen exists and what it shows; the visual spec says how it's drawn. Neither
+restates the other.
 
 ## Workflow
 
@@ -46,17 +46,20 @@ drawn. Neither restates the other.
    options, the decision isn't understood yet.
 3. If the decision changes the system's shape, update arc42 to match and link
    the ADR from §9.
-4. If the decision needs detailed design to be buildable, write or update an SDD.
+4. If the decision needs detailed design to be buildable, write or update an
+   SDD.
 5. Implement.
 
 Deferring is a decision. Record it with status `Deferred` and note what event
-forces the choice — see [ADR-0006](decisions/0006-defer-the-native-wrapper-decision.md)
-for the pattern.
+forces the choice — see
+[ADR-0006](decisions/0006-defer-the-native-wrapper-decision.md) for the pattern.
 
 ## Conventions
 
 - ADRs follow [MADR](https://adr.github.io/madr/), numbered sequentially, named
   `NNNN-lowercase-with-hyphens.md`.
 - Status is one of `Proposed`, `Accepted`, `Deferred`, `Superseded`, `Rejected`.
-- Diagrams are source-controlled text (Mermaid) so they diff, never binary exports.
-- `OPEN:` marks a known, deliberate gap. Grep for it to find undecided territory.
+- Diagrams are source-controlled text (Mermaid) so they diff, never binary
+  exports.
+- `OPEN:` marks a known, deliberate gap. Grep for it to find undecided
+  territory.

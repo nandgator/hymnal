@@ -79,8 +79,8 @@ Bad:
 
 - Two formatters in one project, which needs explaining. This ADR is that
   explanation.
-- Biome's ecosystem is younger than ESLint's, and some specialised rules have
-  no equivalent.
+- Biome's ecosystem is younger than ESLint's, and some specialised rules have no
+  equivalent.
 
 Neutral:
 
@@ -88,8 +88,8 @@ Neutral:
   applies formatting, `lint` applies the lint rules' own autofixes, and
   `cqa:fix` runs both in that order. Formatting first, then linting, because a
   lint fix can be the last edit to a file and must survive the formatter —
-  verified with a bare URL, which markdownlint rewrites and prettier then
-  leaves alone.
+  verified with a bare URL, which markdownlint rewrites and prettier then leaves
+  alone.
 - `biome lint --write` applies only safe fixes. `--unsafe` is deliberately not
   used: a fixer that changes behaviour is not a formatter.
 - No framework-specific linting yet. SolidJS rules

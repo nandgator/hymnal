@@ -15,13 +15,13 @@ outside Flutter; Google's wavering commitment after the 2023–24 team layoffs;
 non-native rendering, since Flutter paints every pixel itself rather than using
 platform widgets; and the weight of the SDK and toolchain.
 
-Go and Ruby were then raised. Neither survives examination. Ruby has no
-credible cross-platform mobile UI story — RubyMotion is effectively dead and
-the desktop toolkits are hobby-grade — and it would only make sense as a
-server, which this design does not have. Go's `gomobile` has stagnated for
-years; Wails is desktop-only with no mobile support; and Fyne and Gio both
-paint their own pixels, reproducing the exact objection raised against Flutter
-with a fraction of the ecosystem.
+Go and Ruby were then raised. Neither survives examination. Ruby has no credible
+cross-platform mobile UI story — RubyMotion is effectively dead and the desktop
+toolkits are hobby-grade — and it would only make sense as a server, which this
+design does not have. Go's `gomobile` has stagnated for years; Wails is
+desktop-only with no mobile support; and Fyne and Gio both paint their own
+pixels, reproducing the exact objection raised against Flutter with a fraction
+of the ecosystem.
 
 ## Considered Options
 
@@ -35,14 +35,13 @@ with a fraction of the ecosystem.
 Chosen: **a responsive web frontend.**
 
 The observation that settles it: **Tauri, Capacitor and a plain PWA all run a
-web frontend.** They differ only in what wraps it. So this is two decisions,
-not one, and they differ sharply in reversibility — the frontend is
-irreversible and everything is built on it, while the wrapper is late-binding
-and swappable.
+web frontend.** They differ only in what wraps it. So this is two decisions, not
+one, and they differ sharply in reversibility — the frontend is irreversible and
+everything is built on it, while the wrapper is late-binding and swappable.
 
-Phase 1 is scoped to single-device use, local persistence, no sync and no
-audio. It requires **no native capability whatsoever**. Committing to a wrapper
-now would buy nothing and forfeit flexibility, so that decision is deferred:
+Phase 1 is scoped to single-device use, local persistence, no sync and no audio.
+It requires **no native capability whatsoever**. Committing to a wrapper now
+would buy nothing and forfeit flexibility, so that decision is deferred:
 [ADR-0006](0006-defer-the-native-wrapper-decision.md).
 
 A web frontend also answers the objections that ruled out Flutter. Rendering is

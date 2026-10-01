@@ -11,8 +11,8 @@ the same code under any wrapper chosen later.
 
 What this application actually does is narrow: render a lot of text, move a
 focus highlight through it smoothly at part and line granularity, and stay
-responsive on a mid-range Android phone several years old. It is not
-form-heavy, not data-entry-heavy, and has no server rendering requirement.
+responsive on a mid-range Android phone several years old. It is not form-heavy,
+not data-entry-heavy, and has no server rendering requirement.
 
 ## Considered Options
 
@@ -25,11 +25,11 @@ form-heavy, not data-entry-heavy, and has no server rendering requirement.
 
 Chosen: **SolidJS.**
 
-Fine-grained reactivity suits the central UI problem directly. Moving focus
-from one line to the next should update two nodes, not reconcile a tree — and
-the highlighting in Phase 2 would drive that at word granularity, potentially
-many times per second. Solid updates the DOM without a virtual DOM diff, and
-its runtime is small, which matters against the device floor.
+Fine-grained reactivity suits the central UI problem directly. Moving focus from
+one line to the next should update two nodes, not reconcile a tree — and the
+highlighting in Phase 2 would drive that at word granularity, potentially many
+times per second. Solid updates the DOM without a virtual DOM diff, and its
+runtime is small, which matters against the device floor.
 
 It uses JSX without a compiler-dependent component format, so the templating is
 ordinary JavaScript expressions.
@@ -54,6 +54,6 @@ Bad:
 
 Neutral:
 
-- Mitigated by keeping the domain layer framework-free. The Sequence Engine,
-  the occurrence model and persistence must not import Solid. If the framework
-  ever has to change, the parts that matter are portable.
+- Mitigated by keeping the domain layer framework-free. The Sequence Engine, the
+  occurrence model and persistence must not import Solid. If the framework ever
+  has to change, the parts that matter are portable.

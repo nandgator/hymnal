@@ -9,9 +9,9 @@ Two capabilities were considered for Phase 1 and then pulled out: congregation
 devices following an operator live, and driving a projector as a second display
 distinct from the phone view.
 
-Both are plausible. Both are large. Network conditions vary by venue — some
-have usable wifi, some have none, some have unreliable internet — so a
-broadcast transport cannot assume any one of them.
+Both are plausible. Both are large. Network conditions vary by venue — some have
+usable wifi, some have none, some have unreliable internet — so a broadcast
+transport cannot assume any one of them.
 
 ## Decision Outcome
 

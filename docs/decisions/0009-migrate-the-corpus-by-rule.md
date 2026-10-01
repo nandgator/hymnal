@@ -20,12 +20,12 @@ first appears. Measured across all 1,631 hymns:
 | Repetition data               | **none**                 |
 | Tune, meter, topic, scripture | **none**                 |
 
-`starts` records only an entry point: `chorus` for 1,016 hymns and `verse-1`
-for the remaining 615. Sung order is not recorded anywhere.
+`starts` records only an entry point: `chorus` for 1,016 hymns and `verse-1` for
+the remaining 615. Sung order is not recorded anywhere.
 
-Perfect data is unreachable without a manual pass over the printed 16th
-edition, hymn by hymn. That is a large effort with no automatable shortcut, and
-it would block all other work.
+Perfect data is unreachable without a manual pass over the printed 16th edition,
+hymn by hymn. That is a large effort with no automatable shortcut, and it would
+block all other work.
 
 ## Considered Options
 
@@ -51,8 +51,8 @@ Rules applied:
   all 1,631 records, so nothing is lost.
 - Title defaults to the first line, which is how these hymns are referred to in
   practice.
-- Absent metadata stays absent. Fields are optional and backfilled
-  pragmatically rather than invented.
+- Absent metadata stays absent. Fields are optional and backfilled pragmatically
+  rather than invented.
 
 Hand-authoring first would block everything else for a long time. An authoring
 tool is the right long-term answer but is a substantial subsystem, and building

@@ -31,17 +31,17 @@ Chosen: **model liveness as one observable with pluggable sources, and ship
 exactly one source in Phase 1.**
 
 The presentation layer subscribes to an abstract "what is live now" stream — a
-position in the address space `(hymnbook, hymn, occurrence, line)` — rather
-than to user input events. In Phase 1 the only implementation is local user
+position in the address space `(hymnbook, hymn, occurrence, line)` — rather than
+to user input events. In Phase 1 the only implementation is local user
 navigation.
 
-This is one interface and one indirection. It is the **only** concession Phase
-1 makes to Phase 2, and it is made because it is nearly free now and expensive
+This is one interface and one indirection. It is the **only** concession Phase 1
+makes to Phase 2, and it is made because it is nearly free now and expensive
 later: retrofitting would mean touching every part of the renderer.
 
-Stubbing unimplemented sources is worse than not having them. Stubs rot, imply
-a design not validated against a working implementation, and invite building to
-a guessed shape.
+Stubbing unimplemented sources is worse than not having them. Stubs rot, imply a
+design not validated against a working implementation, and invite building to a
+guessed shape.
 
 ### Consequences
 

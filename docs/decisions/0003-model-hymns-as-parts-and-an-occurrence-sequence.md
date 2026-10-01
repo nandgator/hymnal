@@ -29,8 +29,8 @@ The requirement needs the opposite: repetition as a first-class concept.
 ## Considered Options
 
 - **Keep the flat model, infer repeats at render time**
-- **Store the fully expanded sung order** (the refrain's text duplicated at
-  each repeat)
+- **Store the fully expanded sung order** (the refrain's text duplicated at each
+  repeat)
 - **Parts plus a sequence of references to parts**
 - **A linked structure** where each part points to its successor
 
@@ -48,21 +48,21 @@ shows. "The chorus, third time" is `part=refrain, occurrence=5`: identifiable,
 distinguishable from occurrences 1 and 3, yet sharing their identity.
 
 That is exactly what the visual-cue requirement needs. The renderer is told not
-only _which text_ but _which showing of it_ — so it knows the text has been
-seen before, how many times, and what preceded it.
+only _which text_ but _which showing of it_ — so it knows the text has been seen
+before, how many times, and what preceded it.
 
 Rejected alternatives, and why:
 
 - **Inferring at render time** is what the current system does. The knowledge
-  lives in template branches rather than data, so every new hymn shape needs
-  new code. This is the failure being corrected.
+  lives in template branches rather than data, so every new hymn shape needs new
+  code. This is the failure being corrected.
 - **Expanding the sung order** duplicates lyric text at every repeat. A
   correction must then be applied in several places, which directly threatens
   the top quality goal, and repetition becomes invisible — the renderer cannot
   tell a repeat from a new stanza.
 - **A linked structure** makes the common operations awkward: random access,
-  "what is occurrence 7", and counting prior showings all require traversal.
-  It also permits cycles, which would be a non-terminating hymn.
+  "what is occurrence 7", and counting prior showings all require traversal. It
+  also permits cycles, which would be a non-terminating hymn.
 
 ### Consequences
 
@@ -73,8 +73,8 @@ Good:
 - Free navigation (R6) is separable: the sequence is an _expectation_, never a
   constraint. The presenter may deviate without mutating stored data.
 - **The display question becomes a view-layer decision.** Inline-with-cue,
-  pinned refrain, and render-once-with-focus-jumping are all strategies over
-  the same data, so the visual language can be settled later, or more than one
+  pinned refrain, and render-once-with-focus-jumping are all strategies over the
+  same data, so the visual language can be settled later, or more than one
   offered. Nothing in storage has to change.
 - A later audio follow source can report a position in the same address space.
 

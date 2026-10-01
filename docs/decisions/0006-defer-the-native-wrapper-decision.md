@@ -17,8 +17,8 @@ The question is not only _which_, but _when_.
 Chosen: **defer, and ship Phase 1 as an installable PWA.**
 
 Phase 1 is single-device, locally persisted, with no sync and no audio. It
-contains **no native capability requirement at all**. A wrapper chosen now
-would be chosen on speculation about Phase 2, and would have to be lived with
+contains **no native capability requirement at all**. A wrapper chosen now would
+be chosen on speculation about Phase 2, and would have to be lived with
 regardless of whether that speculation held.
 
 Deferring also buys real information. Tauri's mobile support, the current

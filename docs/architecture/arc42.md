@@ -12,9 +12,9 @@ implied.
 ## 1. Introduction and Goals
 
 Hymnal presents hymn lyrics on a screen during corporate worship, and lets a
-reader find and follow a hymn on their own device. It presents songs; it
-doesn't publish them. Songs come from what the user imports, kept on their
-device, and from public-domain books that ship with it
+reader find and follow a hymn on their own device. It presents songs; it doesn't
+publish them. Songs come from what the user imports, kept on their device, and
+from public-domain books that ship with it
 ([ADR-0020](../decisions/0020-present-songs-do-not-publish-them.md)).
 
 The existing implementation (now under [`archive/`](../../archive/)) generated
@@ -158,48 +158,48 @@ input, no chord charts or sheet music, no in-app content editing.
 
 Five decisions carry the design. Each links its ADR.
 
-**1. Separate a hymn's _structure_ from its _performance_.**
-The central modelling insight, and the thing the old implementation could not
-express. A hymn owns a set of **parts**; it separately owns a **sequence** of
-references to those parts. A part may be referenced many times, so a chorus is
-stored once and sung repeatedly.
+**1. Separate a hymn's _structure_ from its _performance_.** The central
+modelling insight, and the thing the old implementation could not express. A
+hymn owns a set of **parts**; it separately owns a **sequence** of references to
+those parts. A part may be referenced many times, so a chorus is stored once and
+sung repeatedly.
 
 This makes an **occurrence** — a specific position in the sequence — a distinct
 addressable thing from the **part** whose text it shows. That distinction is
 what makes R4 possible: the renderer knows this exact text has been seen before,
-how many times, and what preceded it. It also makes R3 and R6 independent —
-the sequence is the _expectation_, never a constraint on navigation.
-→ [ADR-0003](../decisions/0003-model-hymns-as-parts-and-an-occurrence-sequence.md),
+how many times, and what preceded it. It also makes R3 and R6 independent — the
+sequence is the _expectation_, never a constraint on navigation. →
+[ADR-0003](../decisions/0003-model-hymns-as-parts-and-an-occurrence-sequence.md),
 and the [domain model SDD](../design/0001-domain-model.md).
 
-**2. Web frontend now, native wrapper later.**
-Every candidate path — PWA, Capacitor, Tauri — runs a web frontend. The frontend
-is therefore the irreversible decision and the wrapper is late-binding. Phase 1
-requires no native capability whatsoever, so committing to a wrapper now would
-buy nothing and cost flexibility.
-→ [ADR-0004](../decisions/0004-build-a-responsive-web-application.md),
+**2. Web frontend now, native wrapper later.** Every candidate path — PWA,
+Capacitor, Tauri — runs a web frontend. The frontend is therefore the
+irreversible decision and the wrapper is late-binding. Phase 1 requires no
+native capability whatsoever, so committing to a wrapper now would buy nothing
+and cost flexibility. →
+[ADR-0004](../decisions/0004-build-a-responsive-web-application.md),
 [ADR-0006](../decisions/0006-defer-the-native-wrapper-decision.md)
 
-**3. SQLite as the content store, one database per hymnbook.**
-Content is read-heavy, immutable at runtime, and needs full-text search over
-Malayalam. A prebuilt SQLite per book makes a hymnbook a _file_ — installable,
-removable, versionable, and independently distributable — which is what makes R1
-and quality goal 5 cheap.
-→ [ADR-0008](../decisions/0008-sqlite-as-the-on-device-content-store.md)
+**3. SQLite as the content store, one database per hymnbook.** Content is
+read-heavy, immutable at runtime, and needs full-text search over Malayalam. A
+prebuilt SQLite per book makes a hymnbook a _file_ — installable, removable,
+versionable, and independently distributable — which is what makes R1 and
+quality goal 5 cheap. →
+[ADR-0008](../decisions/0008-sqlite-as-the-on-device-content-store.md)
 
-**4. "What is live" is an observable with pluggable sources.**
-Phase 1 ships exactly one source: local user navigation. But the presentation
-layer subscribes to an _abstraction_, not to the user's taps. Audio follow later
-becomes an additional source rather than a rewrite of the renderer. This is one
-interface, and it is the only concession Phase 1 makes to Phase 2.
-→ [ADR-0010](../decisions/0010-model-liveness-as-pluggable-follow-sources.md)
+**4. "What is live" is an observable with pluggable sources.** Phase 1 ships
+exactly one source: local user navigation. But the presentation layer subscribes
+to an _abstraction_, not to the user's taps. Audio follow later becomes an
+additional source rather than a rewrite of the renderer. This is one interface,
+and it is the only concession Phase 1 makes to Phase 2. →
+[ADR-0010](../decisions/0010-model-liveness-as-pluggable-follow-sources.md)
 
-**5. Migrate the corpus by rule, and refine it in use.**
-The existing 1,631 hymns have no titles, no sequences, and a `bridge` field
-empty in every record. Perfect data is unreachable without a manual pass over
-the printed book. A rule-based migration produces a good-enough corpus now, and
-the storage format is designed so corrections never require re-migration.
-→ [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)
+**5. Migrate the corpus by rule, and refine it in use.** The existing 1,631
+hymns have no titles, no sequences, and a `bridge` field empty in every record.
+Perfect data is unreachable without a manual pass over the printed book. A
+rule-based migration produces a good-enough corpus now, and the storage format
+is designed so corrections never require re-migration. →
+[ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)
 
 ---
 
@@ -256,18 +256,18 @@ The Sequence Engine is deliberately pure — no rendering, no storage, no
 framework. It is the one piece with genuinely intricate logic, and it should be
 testable without a DOM.
 
-Built in Board #9 (SDD-0001 §14): Occurrence Resolver turned out not to earn
-a separate component — `SequenceEngine.occurrenceAt` already answers it, and
+Built in Board #9 (SDD-0001 §14): Occurrence Resolver turned out not to earn a
+separate component — `SequenceEngine.occurrenceAt` already answers it, and
 splitting it out bought nothing extra. Renderer and Focus Controller are one
 `Presenter` component; the "active occurrence and active line" the Focus
-Controller was meant to own is exactly the engine's own cursor, read through
-a Solid signal bumped on each mutation.
+Controller was meant to own is exactly the engine's own cursor, read through a
+Solid signal bumped on each mutation.
 
 The Presenter redesign (SDD-0001 §16) adds one more: **Output**, a second,
-chrome-less renderer of the same cursor, reached via `BroadcastChannel`
-rather than sharing `Presenter`'s Solid signals directly (different window,
-different JS realm). Not a decomposition of Renderer — a second consumer of
-the same state.
+chrome-less renderer of the same cursor, reached via `BroadcastChannel` rather
+than sharing `Presenter`'s Solid signals directly (different window, different
+JS realm). Not a decomposition of Renderer — a second consumer of the same
+state.
 
 `OPEN:` Level 2 for Content Pipeline and Finder, once the migration rules and
 the Malayalam search strategy are settled.
@@ -300,30 +300,29 @@ sequenceDiagram
 ```
 
 `repeatOrdinal` crossing above 1 is the mechanism behind R4 — but only for a
-part repeating _immediately_, not for the hymn's ordinary verse-chorus
-structure (revised in the Presenter redesign, SDD-0001 §16; §2.2/§5.2 have
-the corrected definition and the corpus evidence behind it).
+part repeating _immediately_, not for the hymn's ordinary verse-chorus structure
+(revised in the Presenter redesign, SDD-0001 §16; §2.2/§5.2 have the corrected
+definition and the corpus evidence behind it).
 
-Implemented in Board #9 (SDD-0001 §14) with one change from this diagram:
-Finder never fetches or loads the hymn — it only hands the number to
-Presenter, which does the fetch, the `SequenceEngine.load`, and — once that
-succeeds — the recents write. Picking a hymn and opening it turned out to be
-different moments (a search result can be clicked by mistake), so only the
-latter should count as "viewed."
+Implemented in Board #9 (SDD-0001 §14) with one change from this diagram: Finder
+never fetches or loads the hymn — it only hands the number to Presenter, which
+does the fetch, the `SequenceEngine.load`, and — once that succeeds — the
+recents write. Picking a hymn and opening it turned out to be different moments
+(a search result can be clicked by mistake), so only the latter should count as
+"viewed."
 
 ### 6.2 Presenter overrides the sequence (R6)
 
 The song leader skips a verse, goes back to one, or repeats a chorus
 unexpectedly; the presenter follows at once. A jump to a part moves the cursor
-within the song's order and leaves the path unchanged, so Next and Previous
-keep following the song. A repeat is explicit and inserts an **ad-hoc
-occurrence** right after the cursor (SDD-0001 §5.1), so the recurrence count
-stays truthful. The stored sequence is never mutated by a live deviation.
+within the song's order and leaves the path unchanged, so Next and Previous keep
+following the song. A repeat is explicit and inserts an **ad-hoc occurrence**
+right after the cursor (SDD-0001 §5.1), so the recurrence count stays truthful.
+The stored sequence is never mutated by a live deviation.
 
-Implemented in Board #9: a plain list of the hymn's parts next to the
-renderer, one button per part, calling `jumpToPart` directly — no separate
-"override mode," since freely jumping is the whole point (R6's "without
-hesitation").
+Implemented in Board #9: a plain list of the hymn's parts next to the renderer,
+one button per part, calling `jumpToPart` directly — no separate "override
+mode," since freely jumping is the whole point (R6's "without hesitation").
 
 ### 6.3 Install a hymnbook
 
@@ -331,14 +330,13 @@ Fetch package → verify → write to OPFS → register in Library → available
 offline. Failure at any step leaves the previous state intact; a partially
 written book is never registered.
 
-Implemented for the one bundled book: `ContentStore.ensureInstalled`
-(SDD-0001 §10.2) is this flow — fetch the bundled asset, verify the SQLite
-header and schema version, import to OPFS. Library (SDD-0001 §12) runs it on
-every launch and surfaces a failure as a retryable error rather than
-crashing.
+Implemented for the one bundled book: `ContentStore.ensureInstalled` (SDD-0001
+§10.2) is this flow — fetch the bundled asset, verify the SQLite header and
+schema version, import to OPFS. Library (SDD-0001 §12) runs it on every launch
+and surfaces a failure as a retryable error rather than crashing.
 
-`OPEN:` A real install/remove flow and list UI, once a second hymnbook
-exists; storage-eviction recovery (§11); Phase 2 audio follow.
+`OPEN:` A real install/remove flow and list UI, once a second hymnbook exists;
+storage-eviction recovery (§11); Phase 2 audio follow.
 
 ### 6.4 Operator publishes to Output
 
@@ -359,12 +357,12 @@ sequenceDiagram
     O-->>O: blank until the next hymn opens
 ```
 
-Two windows, one browser, one device — not the deferred multi-device/
-projector scenario (ADR-0011). The channel is a module-level singleton
-(same shape as `userState`); the Output window's own lifecycle lives above
-`Presenter`, so it survives being navigated back to Finder and a different
-hymn opening, rather than closing and reopening between every hymn in a
-service. Full mechanism and rationale: SDD-0001 §16.1.
+Two windows, one browser, one device — not the deferred multi-device/ projector
+scenario (ADR-0011). The channel is a module-level singleton (same shape as
+`userState`); the Output window's own lifecycle lives above `Presenter`, so it
+survives being navigated back to Finder and a different hymn opening, rather
+than closing and reopening between every hymn in a service. Full mechanism and
+rationale: SDD-0001 §16.1.
 
 ---
 
@@ -397,17 +395,16 @@ Single artifact, static hosting, no runtime infrastructure. A service worker
 makes the app itself available offline; the bundled hymnbook means a first run
 with no network is still useful.
 
-Implemented in Board #10 (SDD-0001 §15): `.github/workflows/deploy.yml`
-builds and deploys to GitHub Pages on every push to `main`, gated on `bun run
-check`. The service worker (`vite-plugin-pwa`) precaches the app shell —
-including the SQLite Wasm runtime, which the app can't function without —
-but never the content package, which stays `ContentStore`'s job via OPFS.
-Verified against the actual production build with the network cut off: the
-shell, the SQLite engine, and a real hymn all load offline after one prior
-online visit.
+Implemented in Board #10 (SDD-0001 §15): `.github/workflows/deploy.yml` builds
+and deploys to GitHub Pages on every push to `main`, gated on `bun run check`.
+The service worker (`vite-plugin-pwa`) precaches the app shell — including the
+SQLite Wasm runtime, which the app can't function without — but never the
+content package, which stays `ContentStore`'s job via OPFS. Verified against the
+actual production build with the network cut off: the shell, the SQLite engine,
+and a real hymn all load offline after one prior online visit.
 
-`OPEN:` Wrapper deployment, once [ADR-0006](../decisions/0006-defer-the-native-wrapper-decision.md)
-is resolved.
+`OPEN:` Wrapper deployment, once
+[ADR-0006](../decisions/0006-defer-the-native-wrapper-decision.md) is resolved.
 
 ---
 
@@ -416,7 +413,8 @@ is resolved.
 ### 8.1 Domain model
 
 Hymnbook → Hymn → Parts + Sequence, with Occurrence as a first-class addressable
-position. Specified in full in the [domain model SDD](../design/0001-domain-model.md).
+position. Specified in full in the
+[domain model SDD](../design/0001-domain-model.md).
 
 ### 8.2 Addressing
 
@@ -435,13 +433,13 @@ typography is data-driven. UI language is independent of content language.
 Implemented in Board #10 (SDD-0001 §15): Noto Serif Malayalam, bundled as a
 woff2 and scoped to lyric content only (a `.hymn-text` class), not UI chrome.
 
-**Revised in the Presenter redesign** (SDD-0001 §16.3): Google Sans, one
-family for both UI chrome and hymn content — verified to carry full
-Malayalam glyph coverage and shipped under OFL. Full rationale and the
-complete visual token system (color, type scale, shape, elevation,
-components) live in [`docs/visual/DESIGN.md`](../visual/DESIGN.md), not
-here — read it before touching CSS. A second hymnbook's script gets its
-own font the same way, per hymnbook data, when that board arrives.
+**Revised in the Presenter redesign** (SDD-0001 §16.3): Google Sans, one family
+for both UI chrome and hymn content — verified to carry full Malayalam glyph
+coverage and shipped under OFL. Full rationale and the complete visual token
+system (color, type scale, shape, elevation, components) live in
+[`docs/visual/DESIGN.md`](../visual/DESIGN.md), not here — read it before
+touching CSS. A second hymnbook's script gets its own font the same way, per
+hymnbook data, when that board arrives.
 
 ### 8.4 Search
 
@@ -474,34 +472,32 @@ Responsive from phone to large display. User-controlled text scale and contrast.
 Focus transitions must be smooth enough not to distract and fast enough not to
 lag singing.
 
-Resolved in Board #9 (SDD-0001 §14): a text label, not color, so the cue
-stays legible in bright venue light and for colorblind viewers — quality
-goal 2 ranks above visual novelty. A toggle hides it entirely, since a
-presenter deliberately departing from the stored order finds a cue
-tracking that order actively misleading. **Revised in the Presenter
-redesign** (SDD-0001 §16): the label is now a plain running count
-(`repeatOrdinal`), and only ever appears for an immediately adjacent
-repeat — verse-chorus-verse-chorus is the hymn's normal printed form, not
-a repeat (§2.2, §5.2).
+Resolved in Board #9 (SDD-0001 §14): a text label, not color, so the cue stays
+legible in bright venue light and for colorblind viewers — quality goal 2 ranks
+above visual novelty. A toggle hides it entirely, since a presenter deliberately
+departing from the stored order finds a cue tracking that order actively
+misleading. **Revised in the Presenter redesign** (SDD-0001 §16): the label is
+now a plain running count (`repeatOrdinal`), and only ever appears for an
+immediately adjacent repeat — verse-chorus-verse-chorus is the hymn's normal
+printed form, not a repeat (§2.2, §5.2).
 
-Responsive layout implemented in Board #10 (SDD-0001 §15), since
-narrowed to content by [ADR-0017](../decisions/0017-fix-the-interface-scale.md)
-(the interface is a fixed size times the user's text scale): a continuous
+Responsive layout implemented in Board #10 (SDD-0001 §15), since narrowed to
+content by [ADR-0017](../decisions/0017-fix-the-interface-scale.md) (the
+interface is a fixed size times the user's text scale): a continuous
 `clamp()`-based type scale rather than fixed breakpoints, so phone and large
 display sit on one curve instead of jumping between layouts. User-controlled
-scale and contrast is `Settings` (`src/shell/Settings.tsx`), applied globally
-as `--font-scale` and `data-theme`, not per-view. One hard breakpoint caps
-line length on a large display, so it doesn't run wall to wall.
+scale and contrast is `Settings` (`src/shell/Settings.tsx`), applied globally as
+`--font-scale` and `data-theme`, not per-view. One hard breakpoint caps line
+length on a large display, so it doesn't run wall to wall.
 
 **Reversed in the Presenter redesign** (SDD-0001 §16): Board #10 declined a
-"presentation mode," reasoning it as the deferred multi-device/projector
-feature (ADR-0011). That was wrong — researching how existing
-worship-presentation software actually works (ProPresenter, EasyWorship,
-FreeShow, Proclaim) surfaced a universal pattern missed here: an Operator
-view and a chrome-less **Output** view, achieved as two windows from one
-browser on one device, not a second device. Phase 1 is still single-device;
-the Output window is a second window, not a second device. See §6.4 and
-SDD-0001 §16.1 for the mechanism.
+"presentation mode," reasoning it as the deferred multi-device/projector feature
+(ADR-0011). That was wrong — researching how existing worship-presentation
+software actually works (ProPresenter, EasyWorship, FreeShow, Proclaim) surfaced
+a universal pattern missed here: an Operator view and a chrome-less **Output**
+view, achieved as two windows from one browser on one device, not a second
+device. Phase 1 is still single-device; the Output window is a second window,
+not a second device. See §6.4 and SDD-0001 §16.1 for the mechanism.
 
 ### 8.8 Accessibility
 
@@ -510,8 +506,8 @@ technology. Full keyboard navigation — which also serves presenters using a
 remote or clicker.
 
 Implemented in Board #10: arrow keys step a line or a part in `Presenter`;
-`PageUp`/`PageDown` do the same, since that's what most presentation remotes
-and clickers actually send.
+`PageUp`/`PageDown` do the same, since that's what most presentation remotes and
+clickers actually send.
 
 ---
 
@@ -545,8 +541,7 @@ and clickers actually send.
 | [0024](../decisions/0024-import-case-by-case.md)                             | Import case by case; the app loads only format 1           | Accepted                                                                          |
 | [0025](../decisions/0025-call-it-the-chorus.md)                              | Call it the chorus: screen, key, code and format           | Accepted                                                                          |
 
-Full index, with open questions, in
-[`docs/decisions/`](../decisions/README.md).
+Full index, with open questions, in [`docs/decisions/`](../decisions/README.md).
 
 ---
 

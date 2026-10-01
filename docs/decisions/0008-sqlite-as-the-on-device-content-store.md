@@ -6,8 +6,8 @@
 ## Context and Problem Statement
 
 Content is read-only at runtime, potentially large — 1,631 hymns in the first
-book alone, with more books to come — and must be queryable both by exact
-number and by free text within lyrics, entirely offline.
+book alone, with more books to come — and must be queryable both by exact number
+and by free text within lyrics, entirely offline.
 
 Two kinds of state exist, and they are not alike:
 
@@ -29,13 +29,13 @@ Chosen: **prebuilt SQLite per hymnbook, queried in the browser via `wa-sqlite`
 with OPFS persistence; user state separately in IndexedDB.**
 
 The decisive property is that **a hymnbook becomes a file.** It can be built
-ahead of time, versioned, distributed, installed, removed and replaced as a
-unit — which is precisely what makes multi-book support cheap, and what makes
-"a new hymnbook is data, not code" achievable rather than aspirational.
+ahead of time, versioned, distributed, installed, removed and replaced as a unit
+— which is precisely what makes multi-book support cheap, and what makes "a new
+hymnbook is data, not code" achievable rather than aspirational.
 
 FTS5 provides full-text search over lyrics without hand-rolling an index.
-Loading JSON for every book into memory and indexing at startup would be slow
-on the device floor and would scale badly past the first book. IndexedDB has no
+Loading JSON for every book into memory and indexing at startup would be slow on
+the device floor and would scale badly past the first book. IndexedDB has no
 full-text search at all, so the index would have to be built and maintained by
 hand.
 
@@ -66,7 +66,7 @@ Bad:
 
 Neutral:
 
-- **Browsers may evict OPFS under storage pressure.** Persistent storage must
-  be requested, loss detected, and re-install offered. Because user state lives
-  in IndexedDB, eviction of content is an inconvenience rather than data loss —
+- **Browsers may evict OPFS under storage pressure.** Persistent storage must be
+  requested, loss detected, and re-install offered. Because user state lives in
+  IndexedDB, eviction of content is an inconvenience rather than data loss —
   which is the entire reason for the split.

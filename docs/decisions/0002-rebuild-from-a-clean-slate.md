@@ -36,15 +36,15 @@ the corpus and the licence.
 
 ## Decision Outcome
 
-Chosen: **archive the existing implementation into `archive/`, and build the
-new system from a clean slate in the same repository.**
+Chosen: **archive the existing implementation into `archive/`, and build the new
+system from a clean slate in the same repository.**
 
 Incremental refactoring would mean carrying a Rust generator, a SvelteKit app
 and reveal.js while replacing the purpose of all three — there is no
 intermediate state where the system is coherent. Deleting outright loses a
 working reference for the corpus format and the presentation behaviour, both of
-which are needed to write the migration. A fresh repository loses continuity
-for no benefit.
+which are needed to write the migration. A fresh repository loses continuity for
+no benefit.
 
 `git mv` was used throughout, so file history follows into `archive/`.
 

@@ -5,11 +5,11 @@
 
 ## Context and Problem Statement
 
-A requirement surfaced after the Phase 1 design was settled: hymns in one
-script should be usable in another. Concretely:
+A requirement surfaced after the Phase 1 design was settled: hymns in one script
+should be usable in another. Concretely:
 
-1. **Search** a hymn by typing its transliteration. A Malayalam hymn is found
-   by typing Latin letters.
+1. **Search** a hymn by typing its transliteration. A Malayalam hymn is found by
+   typing Latin letters.
 2. **Display** the transliteration. The presenter either switches fully to the
    transliterated text, or shows it interlaced with, or set apart from, the
    original.
@@ -19,10 +19,11 @@ script should be usable in another. Concretely:
 This widens scope. Phase 1 is one hymnbook, one script, single-device, and the
 scope guard in [PLAN.md](../PLAN.md) does not include it.
 
-The nearest existing code is [`mal2eng.rs`](https://github.com/nandgator/mal2eng.rs),
-a Rust port of `ml2en`: Malayalam to Latin only, version 0.1.1, MIT or
-Apache-2.0, published on crates.io, with no WASM support stated. It is a useful
-starting point and not the any-to-any engine the requirement needs.
+The nearest existing code is
+[`mal2eng.rs`](https://github.com/nandgator/mal2eng.rs), a Rust port of `ml2en`:
+Malayalam to Latin only, version 0.1.1, MIT or Apache-2.0, published on
+crates.io, with no WASM support stated. It is a useful starting point and not
+the any-to-any engine the requirement needs.
 
 ## Decision Outcome
 
@@ -38,11 +39,10 @@ Why nothing is precluded:
   ([ADR-0008](0008-sqlite-as-the-on-device-content-store.md)). A new search
   index is a `schema_version` bump and a rebuild, so it can be added without
   migrating anything.
-- Display strategy is a view-layer choice over unchanged data, the same
-  argument [ADR-0003](0003-model-hymns-as-parts-and-an-occurrence-sequence.md)
-  makes for repeated parts. Transliteration preserves line boundaries, so
-  interlacing is pairing line with line, and parts and the sequence are
-  untouched.
+- Display strategy is a view-layer choice over unchanged data, the same argument
+  [ADR-0003](0003-model-hymns-as-parts-and-an-occurrence-sequence.md) makes for
+  repeated parts. Transliteration preserves line boundaries, so interlacing is
+  pairing line with line, and parts and the sequence are untouched.
 
 ### Constraints recorded for when this is revisited
 
@@ -50,9 +50,9 @@ Not decisions, but findings that should not have to be rediscovered:
 
 - **Search is lossy in the reverse direction.** Latin to Malayalam is one to
   many: _vazhthuka_, _vaazhthuka_ and _valthuka_ can all mean one word. The
-  expected approach is to index a normalised phonetic key at build time and match
-  the transliterated query against it, rather than transliterating queries back
-  into the script.
+  expected approach is to index a normalised phonetic key at build time and
+  match the transliterated query against it, rather than transliterating queries
+  back into the script.
 - **Any to any is several problems.** Indic scripts share a broadly parallel
   Unicode layout, so Indic to Indic is largely mechanical. Script to Latin needs
   a chosen scheme. Latin to script is the lossy direction above. A pivot

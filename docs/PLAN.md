@@ -6,10 +6,9 @@ is reference; this is state. If the two disagree, this file is wrong — fix it.
 ## Workflow
 
 The loop, for anything bigger than a typo: an idea from either side → reasoned
-through relentlessly, together, until we share understanding — not until
-either side settles for less — → the relevant ADR/SDD/PLAN updated first →
-built in parts, user reviewing each → next Board item, repeat until the
-hymnal is built.
+through relentlessly, together, until we share understanding — not until either
+side settles for less — → the relevant ADR/SDD/PLAN updated first → built in
+parts, user reviewing each → next Board item, repeat until the hymnal is built.
 
 ## Session protocol
 
@@ -29,33 +28,31 @@ hymnal is built.
 
 ## Now
 
-**Next: Board #27 part 5** (below), then #33 (Recents as a real recent
-list), then #20 (keys follow the layout). #26, the Operator layout, is
-done: parts 1–4c, reviewed; its motion rules are DESIGN.md § Motion (the
-fold a fade-through; theme changes revealed; sheets follow the layout).
+**Next: Board #27 part 5** (below), then #33 (Recents as a real recent list),
+then #20 (keys follow the layout). #26, the Operator layout, is done: parts
+1–4c, reviewed; its motion rules are DESIGN.md § Motion (the fold a
+fade-through; theme changes revealed; sheets follow the layout).
 
-**Board #27 (song import, CLI)**: it touches no UI. Target:
-_Hymns of Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its
-index), the second hymnbook; its draft stays in `imports/` until its rights
-are known. Spec:
+**Board #27 (song import, CLI)**: it touches no UI. Target: _Hymns of
+Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its index), the
+second hymnbook; its draft stays in `imports/` until its rights are known. Spec:
 ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
-1. ~~Format v1: `format: 1`, unknown fields rejected, other formats
-   refused~~ — done
+1. ~~Format v1: `format: 1`, unknown fields rejected, other formats refused~~ —
+   done
 2. ~~PDF reader (pdf.js) → `SourcePage`, gutters found per page;
    `bun run import` prints lines and fonts~~ — done
-3. ~~JSON Schema for format 1 (ADR-0022): `validate.ts` reads its fields
-   from it; ajv test keeps them agreed~~ — done
-4. ~~Flow, songs, parts, draft, report against a profile (SDD-0003 §3)~~ —
-   done; 275 songs, 1,017 notes
-5. **Next.** Review the Fellowship report by section, smallest first;
-   wraps by sample. ~~Title recasing~~, ~~mixed fonts~~ done; next:
-   sequences (28). Breaks: the code measures against every block, SDD-0003
-   §3 says the same kind; tried, it moved 6 songs, some worse
-6. Judge, swappable by manifest; Laya first (SDD-0003 §4.1), after part 5.
-   Found so far: the kind of a short unlabelled block (bridge, tag, a
-   split stanza; 20 in Fellowship). Triage and inference were dropped:
-   case by case (ADR-0024)
+3. ~~JSON Schema for format 1 (ADR-0022): `validate.ts` reads its fields from
+   it; ajv test keeps them agreed~~ — done
+4. ~~Flow, songs, parts, draft, report against a profile (SDD-0003 §3)~~ — done;
+   275 songs, 1,017 notes
+5. **Next.** Review the Fellowship report by section, smallest first; wraps by
+   sample. ~~Title recasing~~, ~~mixed fonts~~ done; next: sequences (28).
+   Breaks: the code measures against every block, SDD-0003 §3 says the same
+   kind; tried, it moved 6 songs, some worse
+6. Judge, swappable by manifest; Laya first (SDD-0003 §4.1), after part 5. Found
+   so far: the kind of a short unlabelled block (bridge, tag, a split stanza; 20
+   in Fellowship). Triage and inference were dropped: case by case (ADR-0024)
 
 ## State
 
@@ -95,17 +92,20 @@ Ordered. Top unblocked item is next.
 | 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                     | Phase 2      |
 | 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                  | content      |
 
-20 finishes Phase 1; 27 is a build-time tool beside it. 14–15 sit
-past the scope guard below. 16–25 are notes, not scheduled: the shell
-reserves room for them (DESIGN.md § Structure).
+20 finishes Phase 1; 27 is a build-time tool beside it. 14–15 sit past the scope
+guard below. 16–25 are notes, not scheduled: the shell reserves room for them
+(DESIGN.md § Structure).
 
 ## Invariants
 
 Breaking these breaks the design. Check before deviating.
 
-- Domain layer imports no UI framework — [ADR-0005](decisions/0005-use-solidjs.md)
-- Content validated at build time, never repaired at runtime — [arc42 §8.6](architecture/arc42.md)
-- Migration output is committed source, never regenerated wholesale — [ADR-0009](decisions/0009-migrate-the-corpus-by-rule.md)
+- Domain layer imports no UI framework —
+  [ADR-0005](decisions/0005-use-solidjs.md)
+- Content validated at build time, never repaired at runtime —
+  [arc42 §8.6](architecture/arc42.md)
+- Migration output is committed source, never regenerated wholesale —
+  [ADR-0009](decisions/0009-migrate-the-corpus-by-rule.md)
 - Stored sequence never mutated; a jump moves, only a repeat inserts —
   [SDD-0001 §5.1](design/0001-domain-model.md)
 - A new hymnbook is data, not code — [arc42 §2.3](architecture/arc42.md)
@@ -113,16 +113,16 @@ Breaking these breaks the design. Check before deviating.
 
 ## Scope guard
 
-Phase 1 is: hymnbook selector, dynamic presentable hymnal, reworked
-persistence. Single-device. Nothing else.
+Phase 1 is: hymnbook selector, dynamic presentable hymnal, reworked persistence.
+Single-device. Nothing else.
 
 If a task seems to need sync, audio, a projector or a native wrapper — it
 doesn't. Re-read the deferral ADR before acting.
 
 ## Open questions
 
-Full list in [`docs/decisions/README.md`](decisions/README.md). Blocking
-ones only, here:
+Full list in [`docs/decisions/README.md`](decisions/README.md). Blocking ones
+only, here:
 
 | Question                          | Blocks      |
 | --------------------------------- | ----------- |
@@ -130,12 +130,17 @@ ones only, here:
 
 ## Log
 
-- 2026-09-29 — #27 part 5: kind by first font; directions out; "…Cho…", cues read
-- 2026-09-28 — #27 part 5: repeat marks taken off lines; "(Repeat Chorus)" a label
-- 2026-09-28 — #27 part 5: "Cho…" mid-block closes a stanza unless a chorus follows
-- 2026-09-28 — #27 part 5: titles cased as the lyrics set them; shown in Title Case
+- 2026-09-29 — #27 part 5: kind by first font; directions out; "…Cho…", cues
+  read
+- 2026-09-28 — #27 part 5: repeat marks taken off lines; "(Repeat Chorus)" a
+  label
+- 2026-09-28 — #27 part 5: "Cho…" mid-block closes a stanza unless a chorus
+  follows
+- 2026-09-28 — #27 part 5: titles cased as the lyrics set them; shown in Title
+  Case
 - 2026-09-28 — Firefox: the sheet reveals too (no backdrop-filter in the copy)
-- 2026-09-28 — #26 done. Live's theme reveal shows; every sheet follows the layout
+- 2026-09-28 — #26 done. Live's theme reveal shows; every sheet follows the
+  layout
 - 2026-09-28 — The fold a fade-through; theme changes revealed in a circle
 - 2026-09-27 — #26 part 4c: the fold; Split jitter; search one style, no Find
 - 2026-09-27 — The refrain is the chorus: screen, key C, code, format (ADR-0025)

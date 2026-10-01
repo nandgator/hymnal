@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/SchemaStore/schemastore/refs/heads/master/src/schemas/json/prettierrc.json",
-  "proseWrap": "preserve",
+  "proseWrap": "always",
   "printWidth": 80,
   "tabWidth": 2,
   "useTabs": false,

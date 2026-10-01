@@ -7,8 +7,8 @@
 
 A "bookmark helper" was one of three named Phase 1 features. On examination the
 intent was **browser bookmarks** — helping a user bookmark a hymn's URL so they
-could return to it, which the archived implementation made awkward because
-every hymn was a separate generated HTML file.
+could return to it, which the archived implementation made awkward because every
+hymn was a separate generated HTML file.
 
 That is a workaround for a problem the new architecture does not have.
 

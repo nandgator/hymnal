@@ -3,8 +3,8 @@
 Why things are the way they are. Format is [MADR](https://adr.github.io/madr/);
 the workflow is described in [`docs/README.md`](../README.md).
 
-ADRs are **immutable**. A decision that stops being right is superseded by a
-new record, never edited.
+ADRs are **immutable**. A decision that stops being right is superseded by a new
+record, never edited.
 
 ## Index
 

@@ -29,9 +29,9 @@ Given the corpus is knowingly imperfect
 ([ADR-0009](0009-migrate-the-corpus-by-rule.md)), corrections will be frequent,
 and coupling them to releases would make fixing a wrong word slow.
 
-Downloading everything means a first run with no network produces an
-application with no content. Against the offline reliability quality goal, that
-is the worst available outcome.
+Downloading everything means a first run with no network produces an application
+with no content. Against the offline reliability quality goal, that is the worst
+available outcome.
 
 Bundling the core book means the application is useful the moment it loads,
 offline, with no setup — which is the realistic first-use condition.
@@ -49,13 +49,13 @@ Bad:
 - Two content paths to implement and test — bundled and downloaded — where one
   would do.
 - The bundled book still requires an application release to correct. This is
-  accepted for now, and is worth revisiting if corrections prove frequent
-  enough to be annoying.
+  accepted for now, and is worth revisiting if corrections prove frequent enough
+  to be annoying.
 
 Neutral:
 
-- "Core" means the Malayalam YMEF 16th edition, as the only existing corpus.
-  Not a permanent designation.
+- "Core" means the Malayalam YMEF 16th edition, as the only existing corpus. Not
+  a permanent designation.
 - Both paths converge on the same store, so there is one query path regardless
   of how a book arrived. See
   [ADR-0008](0008-sqlite-as-the-on-device-content-store.md).
