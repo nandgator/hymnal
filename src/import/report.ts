@@ -22,6 +22,8 @@ export type NoteKind =
   | "wrap"
   /** A block split by a column or page break, joined or not. */
   | "break"
+  /** A stanza twice the length of the song's others: two printed with no gap? */
+  | "long"
   /** A block in mixed fonts, so neither clearly stanza nor chorus. */
   | "fonts"
   /** A sequence taken from a rule, not from the page. */
@@ -41,6 +43,7 @@ const HEADINGS: Record<NoteKind, string> = {
   number: "Numbers",
   index: "Index and page disagree",
   break: "Blocks split by a column or page break",
+  long: "Stanzas twice the usual length",
   fonts: "Blocks in mixed fonts",
   cue: "Chorus cues read as the chorus",
   sequence: "Sequences taken from a rule",

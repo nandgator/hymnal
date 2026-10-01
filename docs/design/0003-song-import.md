@@ -118,7 +118,8 @@ The rules the stages apply with it:
   wrap runs across the break, or when together they are as long as the song's
   usual block (the commonest length among its other blocks) and neither alone
   is, or when the first half is shorter than the usual block and the second is
-  as long: a stub at the foot of a column. A song with no other block joins.
+  as long: a stub at the foot of a column, or when both are chorus and the song
+  has no other. A song with no other block joins.
 - **Labels** in `labels`, however punctuated ("Chorus:", "(chorus)", "Chorus…"):
   heading lines, they give them their kind; alone or closing a block, they stand
   for that part sung again. Within a block, a chorus label heads what follows
@@ -169,6 +170,8 @@ draft, by hymn:
 - a number missing, duplicated, or out of order
 - the index disagreeing with the page: title, page number, or a song not found
 - a block split by a column break, joined or kept apart, when not certain
+- a stanza twice as long as the song's usual stanza (three lines or more): the
+  book may have printed two with no gap, which layout can't split
 - a block in mixed fonts, so neither clearly stanza nor chorus
 - a cue read as the chorus
 - a sequence taken from a rule beside a bridge or ending, or choruses that

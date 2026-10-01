@@ -117,6 +117,20 @@ export function toParts(
     order.push(part);
   }
 
+  // A book that prints two stanzas with no gap between them leaves one long block.
+  for (const part of parts) {
+    if (part.kind !== "stanza") continue;
+    const usual = mode(
+      parts.filter((p) => p !== part && p.kind === "stanza").map((p) => p.lines.length),
+    );
+    if (usual !== undefined && usual >= 3 && part.lines.length >= 2 * usual) {
+      note(
+        "long",
+        `stanza ${part.label}: ${part.lines.length} lines, twice the ${usual} of the song's other stanzas: two stanzas printed with no gap?`,
+      );
+    }
+  }
+
   return { parts, sequence: sequenceOf(parts, order, note) };
 }
 
@@ -242,7 +256,8 @@ function wraps(prev: FlowLine, line: FlowLine, flow: Flow): Wrap {
  * at the top of a column. The halves are joined when together they are as
  * long as the song's other blocks, and neither alone is; or when the first is
  * shorter than they are and the second as long (a stanza's stub at the foot
- * of a column, its rest at the top of the next).
+ * of a column, its rest at the top of the next); or when both are chorus and
+ * the song has no other chorus.
  */
 function joinBreaks(
   printed: Printed[],
@@ -277,8 +292,20 @@ function joinBreaks(
     const others = lengths.filter((n, j): n is number => n !== undefined && j !== i && j !== i - 1);
     const usual = mode(others);
     const together = a.lines.length + b.lines.length;
+    // The song's only chorus has no other to measure against.
+    const onlyChorus =
+      (a.kind ?? fontKind(a, profile)) === "chorus" &&
+      (b.kind ?? fontKind(b, profile)) === "chorus" &&
+      !printed.some(
+        (other, j) =>
+          j !== i &&
+          j !== i - 1 &&
+          "block" in other &&
+          (other.block.kind ?? fontKind(other.block, profile)) === "chorus",
+      );
     const join =
       usual === undefined ||
+      onlyChorus ||
       together === usual ||
       (a.lines.length !== usual && b.lines.length !== usual) ||
       (a.lines.length < usual && b.lines.length === usual);

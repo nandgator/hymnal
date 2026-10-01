@@ -341,6 +341,149 @@ describe("a stanza split by a column break", () => {
   });
 });
 
+describe("a chorus split by a column break", () => {
+  // Song 12's only chorus runs 4 | 2 over the break among stanzas of four;
+  // song 13 has another chorus, so its halves are measured against that.
+  const stanza = (word: string) => [
+    `Over the hill we ${word}`,
+    `Under the sky we ${word}`,
+    `Home again at last we ${word}`,
+    `Back to the sea we ${word}`,
+  ];
+  const chorus = (word: string, n: number) =>
+    Array.from({ length: n }, (_, i) => `_ Praise Him ${word} ${i + 1}`);
+  const choruses = draftBook(
+    [
+      indexPage,
+      page(
+        2,
+        ["# (12) ONE CHORUS", ...stanza("go"), "", ...stanza("sing"), "", ...chorus("now", 4)],
+        [...chorus("now", 6).slice(4), "", "# (14) FILLER", ...stanza("run")],
+      ),
+      page(
+        3,
+        [
+          "# (13) TWO CHORUSES",
+          ...chorus("first", 2),
+          "",
+          ...stanza("go"),
+          "",
+          ...chorus("again", 4),
+        ],
+        [...chorus("again", 6).slice(4), "", "# (15) FILLER", ...stanza("hop")],
+      ),
+    ],
+    profile,
+  );
+  const song = (number: number) => choruses.hymns.find((h) => h.number === number) as HymnSource;
+  const sizes = (number: number) =>
+    song(number)
+      .parts.filter((p) => p.kind === "chorus")
+      .map((p) => p.lines.length);
+
+  it("joins the halves when the song has no other chorus", () => {
+    expect(sizes(12)).toEqual([6]);
+  });
+
+  it("keeps a chorus half apart from a stanza half, with no other chorus", () => {
+    const mixed = draftBook(
+      [
+        indexPage,
+        page(
+          2,
+          ["# (16) MIXED", ...stanza("go"), "", ...chorus("now", 4)],
+          [...stanza("sing"), "", "# (17) FILLER", ...stanza("run")],
+        ),
+        page(3, ["# (18) FILLER", ...stanza("hop")], [...stanza("skip")]),
+      ],
+      profile,
+    );
+    const parts = mixed.hymns.find((h) => h.number === 16)?.parts.map((p) => p.lines.length);
+    expect(parts).toEqual([4, 4, 4]);
+  });
+
+  it("keeps them apart when the song has another chorus to measure against", () => {
+    expect(sizes(13)).toEqual([2, 4, 2]);
+  });
+});
+
+describe("a block twice the usual length", () => {
+  // Song 8 prints two stanzas of three, then six lines with no gap between
+  // them; song 9's chorus is twice its stanzas, and song 10's stanza of four
+  // follows stanzas of two.
+  const long = draftBook(
+    [
+      indexPage,
+      page(
+        2,
+        [
+          "# (8) NO GAP",
+          "Over the hill we go",
+          "Under the sky we sing",
+          "Home again at last",
+          "",
+          "Down by the shore we walk",
+          "Out on the sea we sail",
+          "Back to the sand we come",
+          "",
+          "Stars in the sky above",
+          "Moon on the sea below",
+          "Salt in the air tonight",
+          "Gulls on the wing at dawn",
+          "Waves on the shore at noon",
+          "Wind in the pines at dusk",
+        ],
+        [
+          "# (9) BIG CHORUS",
+          "Sing to the Lord a song",
+          "Sing to the Lord again",
+          "Sing to the Lord a song",
+          "Sing to the Lord again",
+          "",
+          "Morning has broken now",
+          "Evening will come again",
+          "Night will fall soft",
+          "Day will break clear",
+          "",
+          "_ Praise Him all you people",
+          "_ Praise Him all you saints",
+          "_ Praise Him all you nations",
+          "_ Praise Him all you kings",
+          "_ Praise Him in the heights",
+          "_ Praise Him in the deeps",
+          "_ Praise Him for His love",
+          "_ Praise Him for His grace",
+        ],
+      ),
+      page(
+        3,
+        ["# (11) FILLER", "Nothing to see here", "Nothing to hear either"],
+        [
+          "# (10) SHORT ONES",
+          "One line here friends",
+          "Another line follows",
+          "",
+          "A second pair arrives",
+          "With another line too",
+          "",
+          "Now a verse of four",
+          "That runs a bit longer",
+          "Past the usual pair",
+          "Before the song ends",
+        ],
+      ),
+    ],
+    profile,
+  );
+  const flagged = long.notes.filter((n) => n.kind === "long").map((n) => `${n.hymn} ${n.message}`);
+
+  it("notes a stanza twice as long as the song's other stanzas, where they are three lines or more", () => {
+    expect(flagged).toEqual([
+      "8 stanza 3: 6 lines, twice the 3 of the song's other stanzas: two stanzas printed with no gap?",
+    ]);
+  });
+});
+
 describe("titleOf", () => {
   const lines = [
     "I serve a risen Savior,",
