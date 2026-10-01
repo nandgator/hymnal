@@ -11,5 +11,6 @@
   "no-duplicate-heading": {
     "siblings_only": true
   },
-  "no-inline-html": false
+  "no-inline-html": false,
+  "no-missing-space-atx": false
 }

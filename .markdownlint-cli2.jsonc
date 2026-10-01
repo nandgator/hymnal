@@ -13,8 +13,12 @@
     "no-duplicate-heading": {
       "siblings_only": true
     },
-    "no-inline-html": false
+    "no-inline-html": false,
+    // Replaced by the custom rule below, which checks only a paragraph's first
+    // line: MD018's fix on a wrapped "#5)" turns it into a heading.
+    "no-missing-space-atx": false
   },
+  "customRules": ["./scripts/markdownlint/no-missing-space-atx.mjs"],
   "globs": ["**/*.md"],
   "ignores": [
     "node_modules/**",
