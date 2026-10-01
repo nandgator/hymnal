@@ -504,8 +504,14 @@ view is close enough to the frame to need a smaller unit.
     to Current" button floats up (chat apps' "jump to latest"): an action, so
     neutral, set apart by its shadow rather than by the tonal "selected" colour.
     The current block stays highlighted and, while you haven't scrolled away,
-    centred. Only a step glides there; a list shown anew (a tab, a split, expand
-    or collapse) lands on the current part at once.
+    centred. Only a step glides there: one tint layer slides and resizes from
+    the old part to the new as the list scrolls, one motion (a line step keeps
+    the tint still and only brightens its line). A jump of more than a screen
+    (End, a distant part) fades the tint and lands the scroll instead of
+    travelling through the song; Back to Current from far away just lands, the
+    tint staying put. A list shown anew (a tab, a split, expand or collapse,
+    another song) lands on the current part at once, and the tint re-measures,
+    never glides, as type size or width changes.
   - **Height matters too.** WCAG's Reflow sets a width floor (320 CSS px) but no
     single height floor, so the practice is to degrade gracefully. The stage
     needs Live and at least a row of the keypad: under 640px of height (a
@@ -617,7 +623,10 @@ view is close enough to the frame to need a smaller unit.
   the text colour, not Repeat's primary: coloured text means a control. Each
   rail section eases in on arrival, the Library as the Operator. In the command
   menu the highlight follows a moving pointer and leaves with it; Enter then
-  takes the top match. Reduced motion shows the end state.
+  takes the top match. Reduced motion shows the end state. **The Lyrics tint**
+  slides and resizes with the scroll in 250ms (`lyricsGlide.ts`: one animation
+  clocks both, so they land together; translate and height, never scaleY, which
+  warps the corners); a jump of more than a screen fades it instead.
 - **Loading: the shape of what's coming, in its place** (Board #26 part 4). A
   screen still loading shows a skeleton of itself: the Library its card (title,
   count line, button), the Operator its panels, empty, where they will sit.

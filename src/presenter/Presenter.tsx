@@ -51,6 +51,7 @@ import {
   visibleGroups,
   type Workspace,
 } from "../shell/workspace.ts";
+import { glideBack, glideLyrics, watchTint } from "./lyricsGlide.ts";
 
 // Most parts carry no label — it's printed only for numbered stanzas
 // (SDD-0001 §2.1). Every other part falls back to its kind: "Pre-chorus".
@@ -458,11 +459,13 @@ export function Presenter(props: PresenterProps) {
   // Output: the focused line under line focus, the whole block otherwise —
   // or its top, when the block is taller than the list. Each list scrolls
   // inside itself, never the page (DESIGN.md § Stability). Scrolling by
-  // hand only browses; the next step re-centres. Only a step glides: a
-  // list shown anew (a tab, a split, expand or collapse) lands on the
-  // current part at once, since gliding a whole song's lyrics every time
-  // is motion without meaning (PRINCIPLES.md, motion explains change).
+  // hand only browses; the next step re-centres. Only a step glides (the
+  // tint and the scroll as one motion, lyricsGlide.ts): a list shown anew
+  // (a tab, a split, expand or collapse) lands on the current part at once,
+  // since gliding a whole song's lyrics every time is motion without
+  // meaning (PRINCIPLES.md, motion explains change).
   let lastStep: string | undefined;
+  let lastHymn: HymnNumber | undefined;
   createEffect(() => {
     version();
     expanded();
@@ -470,25 +473,17 @@ export function Presenter(props: PresenterProps) {
     groups();
     const lineIndex = cursor()?.lineIndex;
     const step = `${props.hymnNumber}:${cursor()?.occurrenceIndex}:${lineIndex}`;
-    const behavior: ScrollBehavior = step === lastStep ? "instant" : "smooth";
+    // A step glides; the same step again, or another song, lands at once.
+    const still = step === lastStep || props.hymnNumber !== lastHymn;
     lastStep = step;
+    lastHymn = props.hymnNumber;
     for (const chip of document.querySelectorAll<HTMLElement>(
       '.chip-filter[aria-pressed="true"]',
     )) {
       chip.scrollIntoView?.({ block: "nearest" });
     }
     for (const list of document.querySelectorAll<HTMLElement>(".sequence")) {
-      const block = list.querySelector<HTMLElement>('[aria-current="step"]');
-      if (!block) continue;
-      const line =
-        lineIndex == null
-          ? null
-          : block.querySelector<HTMLElement>('.seq-line[aria-current="true"]');
-      const fits = block.offsetHeight <= list.clientHeight;
-      (line ?? block).scrollIntoView?.({
-        block: line || fits ? "center" : "start",
-        behavior,
-      });
+      glideLyrics(list, { still });
     }
   });
 
@@ -770,10 +765,15 @@ export function Presenter(props: PresenterProps) {
       observer.observe(block);
     });
     onCleanup(() => observer?.disconnect());
+    // The tint keeps to its block as parts resize (lyricsGlide.ts).
+    onMount(() => {
+      if (list) onCleanup(watchTint(list));
+    });
 
     return (
       <div class="lyrics-navigator">
         <section class="sequence" aria-label="Lyrics" ref={list}>
+          <div class="seq-tint" aria-hidden="true" />
           <ol class="seq-list">
             {/* One block per run: a part and its back-to-back repeats show
                 once, marked ×N, as on the Output (DESIGN.md § Stability). */}
@@ -839,11 +839,7 @@ export function Presenter(props: PresenterProps) {
           <button
             type="button"
             class="btn-tonal back-to-current"
-            onClick={() =>
-              list
-                ?.querySelector<HTMLElement>('[aria-current="step"]')
-                ?.scrollIntoView?.({ block: "center", behavior: "smooth" })
-            }
+            onClick={() => list && glideBack(list)}
           >
             Back to Current
           </button>

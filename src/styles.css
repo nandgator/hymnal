@@ -2175,6 +2175,10 @@ input[type="checkbox"].switch:checked::before {
 /* Sequence: the whole sung order, one block per occurrence, as
    ProPresenter's grouped slides and OpenLP's verse list. */
 .sequence {
+  position: relative;
+  /* A stacking context, so the tint can sit behind the text (z-index -1)
+     without falling behind the pane. */
+  isolation: isolate;
   min-height: 0;
   padding-inline: var(--space-xs);
   overflow-y: auto;
@@ -2558,12 +2562,25 @@ html[data-scrolling],
    never a neutral tone, which is what fields and resting buttons use. No
    box or edge stripe. */
 .seq-block[aria-current="step"] {
+  color: var(--md-sys-color-on-surface);
+}
+
+/* The tint behind the current part: one layer that slides and resizes from
+   part to part (lyricsGlide.ts sets its place and animates it), so it needs
+   no transition of its own. Position, size and 18px corners match a block's;
+   it scrolls with the content. */
+.seq-tint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  border-radius: 18px;
   background-color: color-mix(
     in srgb,
     var(--md-sys-color-secondary-container) 60%,
     var(--md-sys-color-surface-container-low)
   );
-  color: var(--md-sys-color-on-surface);
+  pointer-events: none;
 }
 
 .seq-heading {

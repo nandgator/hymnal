@@ -1,0 +1,358 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { glideLyrics, planGlide, scrollTargetTop, watchTint } from "./lyricsGlide.ts";
+
+const base = { still: false, reduced: false, tintTravel: 120, scrollTravel: 120, viewport: 600 };
+
+describe("planGlide", () => {
+  it("glides a step to a near part, tint and scroll together", () => {
+    expect(planGlide(base)).toEqual({ tint: "glide", scroll: "glide" });
+  });
+
+  it("keeps a line step's tint where it is, with a gliding scroll", () => {
+    expect(planGlide({ ...base, tintTravel: 0 })).toEqual({ tint: "glide", scroll: "glide" });
+  });
+
+  it("snaps a list shown anew, or the same step again", () => {
+    expect(planGlide({ ...base, still: true })).toEqual({ tint: "snap", scroll: "snap" });
+  });
+
+  it("shows the end state under reduced motion", () => {
+    expect(planGlide({ ...base, reduced: true })).toEqual({ tint: "snap", scroll: "snap" });
+  });
+
+  it("fades a far tint jump and lands the scroll at once", () => {
+    expect(planGlide({ ...base, tintTravel: 2400 })).toEqual({ tint: "fade", scroll: "snap" });
+  });
+
+  it("treats exactly a screen as near, more than a screen as far", () => {
+    expect(planGlide({ ...base, tintTravel: 600 }).tint).toBe("glide");
+    expect(planGlide({ ...base, tintTravel: 601 }).tint).toBe("fade");
+  });
+
+  it("leaves the tint alone when only the scroll is far (Back to Current)", () => {
+    expect(planGlide({ ...base, tintTravel: 0, scrollTravel: 3000 })).toEqual({
+      tint: "glide",
+      scroll: "snap",
+    });
+  });
+
+  it("snaps the scroll of a step whose tint is near but the scroll far", () => {
+    expect(planGlide({ ...base, tintTravel: 100, scrollTravel: 3000 }).scroll).toBe("snap");
+  });
+
+  it("is still when both still and reduced", () => {
+    expect(planGlide({ ...base, still: true, reduced: true })).toEqual({
+      tint: "snap",
+      scroll: "snap",
+    });
+  });
+
+  it("fades a far tint that comes with no scroll to travel", () => {
+    expect(planGlide({ ...base, tintTravel: 2400, scrollTravel: 0 })).toEqual({
+      tint: "fade",
+      scroll: "snap",
+    });
+  });
+
+  it("treats a scroll of exactly a screen as near", () => {
+    expect(planGlide({ ...base, scrollTravel: 600 }).scroll).toBe("glide");
+    expect(planGlide({ ...base, scrollTravel: 601 }).scroll).toBe("snap");
+  });
+
+  it("with no viewport, any travel is far", () => {
+    expect(planGlide({ ...base, viewport: 0 })).toEqual({ tint: "fade", scroll: "snap" });
+    expect(planGlide({ ...base, viewport: 0, tintTravel: 0, scrollTravel: 0 })).toEqual({
+      tint: "glide",
+      scroll: "glide",
+    });
+  });
+
+  it("snaps a tint that was never shown, gliding the scroll if it is near", () => {
+    expect(planGlide({ ...base, tintTravel: null })).toEqual({ tint: "snap", scroll: "glide" });
+    expect(planGlide({ ...base, tintTravel: null, scrollTravel: 5000 })).toEqual({
+      tint: "snap",
+      scroll: "snap",
+    });
+  });
+});
+
+describe("scrollTargetTop", () => {
+  const list = { viewport: 400, scrollHeight: 2000 };
+
+  it("centres an element", () => {
+    expect(scrollTargetTop({ ...list, top: 800, height: 200, align: "center" })).toBe(700);
+  });
+
+  it("puts a tall block's top at the top", () => {
+    expect(scrollTargetTop({ ...list, top: 800, height: 900, align: "start" })).toBe(800);
+  });
+
+  it("clamps content shorter than the viewport to 0", () => {
+    expect(
+      scrollTargetTop({
+        top: 100,
+        height: 100,
+        viewport: 400,
+        scrollHeight: 300,
+        align: "center",
+      }),
+    ).toBe(0);
+  });
+
+  it("stays within the list's ends", () => {
+    expect(scrollTargetTop({ ...list, top: 0, height: 100, align: "center" })).toBe(0);
+    expect(scrollTargetTop({ ...list, top: 1900, height: 100, align: "center" })).toBe(1600);
+  });
+});
+
+// DOM tests: a fake Element.animate whose progress the test controls.
+interface FakeAnim {
+  playState: string;
+  progress: number | null;
+  listeners: Record<string, () => void>;
+  cancel: () => void;
+  finish: () => void;
+}
+
+describe("glideLyrics", () => {
+  let anims: FakeAnim[];
+  let frames: FrameRequestCallback[];
+  let observed: (() => void) | null;
+  let watching: Set<Element>;
+
+  beforeEach(() => {
+    anims = [];
+    frames = [];
+    observed = null;
+    watching = new Set();
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => frames.push(cb));
+    vi.stubGlobal("cancelAnimationFrame", () => {
+      frames = [];
+    });
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(cb: () => void) {
+          observed = cb;
+        }
+        observe(el: Element) {
+          watching.add(el);
+        }
+        unobserve(el: Element) {
+          watching.delete(el);
+        }
+        disconnect() {
+          watching.clear();
+        }
+      },
+    );
+    vi.stubGlobal(
+      "DOMMatrix",
+      class {
+        m41 = 0;
+        m42 = 0;
+      },
+    );
+    HTMLElement.prototype.animate = () => {
+      const anim: FakeAnim = {
+        playState: "running",
+        progress: 0,
+        listeners: {},
+        cancel() {
+          this.playState = "idle";
+        },
+        finish() {
+          this.playState = "finished";
+          this.listeners.finish?.();
+        },
+      };
+      Object.assign(anim, {
+        effect: { getComputedTiming: () => ({ progress: anim.progress, localTime: 1 }) },
+        addEventListener: (type: string, fn: () => void) => {
+          anim.listeners[type] = fn;
+        },
+      });
+      anims.push(anim);
+      return anim as unknown as Animation;
+    };
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete (HTMLElement.prototype as { animate?: unknown }).animate;
+  });
+
+  const flush = () => {
+    const run = frames;
+    frames = [];
+    for (const cb of run) cb(0);
+  };
+
+  const define = (el: HTMLElement, props: Record<string, unknown>) => {
+    for (const [key, value] of Object.entries(props)) {
+      Object.defineProperty(el, key, { value, configurable: true, writable: true });
+    }
+  };
+
+  // Two blocks in a list 800 tall, 2000 of content; block 0 current.
+  function setup(clientHeight = 800) {
+    const list = document.createElement("section");
+    list.className = "sequence";
+    const tint = document.createElement("div");
+    tint.className = "seq-tint";
+    const seq = document.createElement("ol");
+    seq.className = "seq-list";
+    const blocks = [0, 800].map((top) => {
+      const li = document.createElement("li");
+      li.className = "seq-block";
+      define(li, { offsetTop: top, offsetLeft: 8, offsetWidth: 300, offsetHeight: 200 });
+      define(li, { offsetParent: list });
+      seq.append(li);
+      return li;
+    });
+    list.append(tint, seq);
+    define(list, { clientHeight, scrollHeight: 2000 });
+    document.body.append(list);
+    const current = (n: number) => {
+      blocks.forEach((b, i) => {
+        if (i === n) b.setAttribute("aria-current", "step");
+        else b.removeAttribute("aria-current");
+      });
+    };
+    current(0);
+    return { list, tint, blocks, current };
+  }
+
+  it("rides the tint's progress to the new centre", () => {
+    const { list, current } = setup();
+    glideLyrics(list, { still: true });
+    current(1);
+    glideLyrics(list, { still: false });
+    expect(anims).toHaveLength(1);
+    anims[0].progress = 0.5;
+    flush();
+    expect(list.scrollTop).toBe(250);
+    anims[0].finish();
+    flush();
+    expect(list.scrollTop).toBe(500);
+  });
+
+  it("keeps gliding through Shift, Tab and Ctrl keys, but a wheel lets go", () => {
+    const { list, current } = setup();
+    glideLyrics(list, { still: true });
+    current(1);
+    glideLyrics(list, { still: false });
+    anims[0].progress = 0.5;
+    flush();
+    for (const init of [{ key: "Shift" }, { key: "Tab" }, { key: "c", ctrlKey: true }]) {
+      list.dispatchEvent(new KeyboardEvent("keydown", init));
+    }
+    anims[0].progress = 0.75;
+    flush();
+    expect(list.scrollTop).toBe(375);
+    list.dispatchEvent(new Event("wheel"));
+    anims[0].progress = 1;
+    flush();
+    expect(list.scrollTop).toBe(375);
+  });
+
+  it("lets go for a key the list would scroll with", () => {
+    const { list, current } = setup();
+    glideLyrics(list, { still: true });
+    current(1);
+    glideLyrics(list, { still: false });
+    anims[0].progress = 0.5;
+    flush();
+    list.dispatchEvent(new KeyboardEvent("keydown", { key: "PageDown" }));
+    anims[0].progress = 1;
+    flush();
+    expect(list.scrollTop).toBe(250);
+  });
+
+  it("a new step mid-glide starts a fresh glide from where the scroll is", () => {
+    const { list, current } = setup();
+    glideLyrics(list, { still: true });
+    current(1);
+    glideLyrics(list, { still: false });
+    anims[0].progress = 0.5;
+    flush();
+    current(0);
+    glideLyrics(list, { still: false });
+    expect(anims).toHaveLength(2);
+    expect(anims[0].playState).toBe("idle");
+    anims[1].finish();
+    flush();
+    expect(list.scrollTop).toBe(0);
+  });
+
+  it("a resize mid-glide lands the scroll centred on the new geometry", () => {
+    const { list, blocks, current } = setup();
+    const stopWatching = watchTint(list);
+    glideLyrics(list, { still: true });
+    current(1);
+    glideLyrics(list, { still: false });
+    anims[0].progress = 0.5;
+    flush();
+    expect(list.scrollTop).toBe(250);
+    // A larger type: the block moves down and grows.
+    define(blocks[1], { offsetTop: 1000, offsetHeight: 300 });
+    define(list, { scrollHeight: 2400 });
+    observed?.();
+    expect(list.scrollTop).toBe(750);
+    flush();
+    anims[0].progress = 1;
+    flush();
+    expect(list.scrollTop).toBe(750);
+    stopWatching();
+  });
+
+  it("a resize with no glide re-measures the tint and leaves the scroll", () => {
+    const { list, tint, blocks } = setup();
+    const stopWatching = watchTint(list);
+    glideLyrics(list, { still: true });
+    list.scrollTop = 40;
+    define(blocks[0], { offsetHeight: 260 });
+    observed?.();
+    expect(tint.style.height).toBe("260px");
+    expect(list.scrollTop).toBe(40);
+    expect(anims).toHaveLength(0);
+    stopWatching();
+  });
+
+  it("watches the current block, and moves the watch on each step", () => {
+    const { list, blocks, current } = setup();
+    const stopWatching = watchTint(list);
+    expect(watching.has(blocks[0])).toBe(true);
+    current(1);
+    glideLyrics(list, { still: true });
+    expect(watching.has(blocks[0])).toBe(false);
+    expect(watching.has(blocks[1])).toBe(true);
+    stopWatching();
+  });
+
+  it("re-measures when the current block alone changes size (a ×N chip), no step", () => {
+    const { list, tint, blocks } = setup();
+    const stopWatching = watchTint(list);
+    glideLyrics(list, { still: true });
+    expect(tint.style.height).toBe("200px");
+    define(blocks[0], { offsetHeight: 204 }); // the list's own size is unchanged
+    observed?.();
+    expect(tint.style.height).toBe("204px");
+    expect(anims).toHaveLength(0);
+    stopWatching();
+  });
+
+  it("centres a list that was hidden at the step once it is shown, unanimated", () => {
+    const { list, tint, current } = setup(0);
+    const stopWatching = watchTint(list);
+    current(1);
+    glideLyrics(list, { still: false });
+    expect(list.scrollTop).toBe(0);
+    define(list, { clientHeight: 800 });
+    observed?.();
+    expect(list.scrollTop).toBe(500);
+    expect(tint.style.transform).toBe("translate(8px, 800px)");
+    expect(anims).toHaveLength(0);
+    stopWatching();
+  });
+});
