@@ -11,3 +11,4 @@ db/
 bun.lock
 bun.lockb
 *.min.*
+.claude/worktrees/

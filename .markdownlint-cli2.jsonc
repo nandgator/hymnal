@@ -28,6 +28,7 @@
     "db/**",
     "imports/**",
     "content-local/**",
+    ".claude/worktrees/**",
     ".svelte-kit/**",
     "**/CHANGELOG.md"
   ]
