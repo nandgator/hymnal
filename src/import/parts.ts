@@ -240,7 +240,9 @@ function wraps(prev: FlowLine, line: FlowLine, flow: Flow): Wrap {
 /**
  * At a column or page break, a stanza gap can't be seen: it is suppressed
  * at the top of a column. The halves are joined when together they are as
- * long as the song's other blocks of that kind, and neither alone is.
+ * long as the song's other blocks, and neither alone is; or when the first is
+ * shorter than they are and the second as long (a stanza's stub at the foot
+ * of a column, its rest at the top of the next).
  */
 function joinBreaks(
   printed: Printed[],
@@ -278,7 +280,8 @@ function joinBreaks(
     const join =
       usual === undefined ||
       together === usual ||
-      (a.lines.length !== usual && b.lines.length !== usual);
+      (a.lines.length !== usual && b.lines.length !== usual) ||
+      (a.lines.length < usual && b.lines.length === usual);
     const where = `"${a.lines.at(-1)?.text}" | "${b.lines[0].text}"`;
     if (join) {
       a.lines.push(...b.lines);

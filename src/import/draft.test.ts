@@ -275,6 +275,72 @@ describe("draftBook", () => {
   });
 });
 
+describe("a stanza split by a column break", () => {
+  // Song 6's second stanza starts at the foot of the left column; song 7 runs
+  // a stanza of four to the foot of the left column and starts another at the
+  // top of the right.
+  const stubs = draftBook(
+    [
+      indexPage,
+      page(
+        2,
+        [
+          "# (6) THE STUB",
+          "The widest line of this column runs out long",
+          "Over the hill",
+          "Under the sky",
+          "Home again",
+          "",
+          "Down by the shore",
+          "Out on the sea",
+        ],
+        [
+          "Waves come and go along the whole wide shore",
+          "Gulls wheel high above",
+          "Salt in the air",
+          "Wide and free",
+          "",
+          "Back to the shore",
+          "Back to the sea",
+          "Back to the sand",
+          "Back to me",
+        ],
+      ),
+      page(
+        3,
+        [
+          "# (7) TWO OF FOUR",
+          "The widest line of this column runs out long",
+          "Over the hill",
+          "Under the sky",
+          "Home again",
+          "",
+          "Down by the shore",
+          "Out on the sea",
+          "Waves come and go",
+          "Gulls overhead",
+        ],
+        ["Salt in the air", "Back to the shore", "Back to the sea", "Back to the sand"],
+      ),
+    ],
+    profile,
+  );
+  const song = (number: number) => stubs.hymns.find((h) => h.number === number) as HymnSource;
+
+  it("joins a half too short to be a block of this song to one as long as the others", () => {
+    expect(song(6).parts.map((p) => p.lines.length)).toEqual([4, 6, 4]);
+    expect(song(6).parts[1].lines.slice(0, 3)).toEqual([
+      "Down by the shore",
+      "Out on the sea",
+      "Waves come and go along the whole wide shore",
+    ]);
+  });
+
+  it("keeps two halves apart when each is as long as the song's blocks", () => {
+    expect(song(7).parts.map((p) => p.lines.length)).toEqual([4, 4, 4]);
+  });
+});
+
 describe("titleOf", () => {
   const lines = [
     "I serve a risen Savior,",

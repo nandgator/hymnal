@@ -116,7 +116,9 @@ The rules the stages apply with it:
 - **Blocks** split where the gap exceeds `stanzaGap` × the book's line pitch. At
   the top of a column the gap can't be seen, so the halves are joined when a
   wrap runs across the break, or when together they are as long as the song's
-  other blocks.
+  usual block (the commonest length among its other blocks) and neither alone
+  is, or when the first half is shorter than the usual block and the second is
+  as long: a stub at the foot of a column. A song with no other block joins.
 - **Labels** in `labels`, however punctuated ("Chorus:", "(chorus)", "Chorus…"):
   heading lines, they give them their kind; alone or closing a block, they stand
   for that part sung again. Within a block, a chorus label heads what follows
