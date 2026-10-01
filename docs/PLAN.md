@@ -28,10 +28,10 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 
 ## Now
 
-**Next: Board #27 part 5** (below), then #33 (Recents as a real recent list),
-then #20 (keys follow the layout). #26, the Operator layout, is done: parts
-1–4c, reviewed; its motion rules are DESIGN.md § Motion (the fold a
-fade-through; theme changes revealed; sheets follow the layout).
+**Next: Board #27 part 5** (below), then #20 (keys follow the layout). #26, the
+Operator layout, is done: parts 1–4c, reviewed; its motion rules are DESIGN.md §
+Motion (the fold a fade-through; theme changes revealed; sheets follow the
+layout).
 
 **Board #27 (song import, CLI)**: it touches no UI. Target: _Hymns of
 Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its index), the
@@ -75,25 +75,24 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                                                           | Blocked by   |
-| --- | -------------------------------------------------------------------------------------------------------------- | ------------ |
-| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                               | —            |
-| 33  | Recents as a real recent list: "just now", "a few minutes ago", day and date; grouped Today, Yesterday, Before | —            |
-| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now                                             | —            |
-| 28  | Library: load songs and books in format 1, local only; keys, duplicates (ADR-0020/21/24)                       | 27, 2nd book |
-| 29  | Import: PowerPoint reader; _Songs of Zion_ (.pptx, its PDF to cross-check)                                     | 27           |
-| 30  | Full song, landscape: printed form in columns, the highlight glides; mockup                                    | —            |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                    | —            |
-| 15  | Transliteration: search and display across scripts (ADR-0014)                                                  | —            |
-| 16  | Feedback and corrections from users — where collected: TBD                                                     | —            |
-| 17  | About: acknowledgements, copyright, credits                                                                    | —            |
-| 18  | Over-the-air update notices (as Supabase announces changes)                                                    | —            |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                                | 2nd book     |
-| 21  | Hold: freeze the Output on what's showing, navigate, release                                                   | —            |
-| 22  | Service queue: line up hymns for a service (a supporting pane)                                                 | —            |
-| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved                                      | 22           |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                     | Phase 2      |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                  | content      |
+| #   | Task                                                                                     | Blocked by   |
+| --- | ---------------------------------------------------------------------------------------- | ------------ |
+| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                         | —            |
+| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now                       | —            |
+| 28  | Library: load songs and books in format 1, local only; keys, duplicates (ADR-0020/21/24) | 27, 2nd book |
+| 29  | Import: PowerPoint reader; _Songs of Zion_ (.pptx, its PDF to cross-check)               | 27           |
+| 30  | Full song, landscape: printed form in columns, the highlight glides; mockup              | —            |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                              | —            |
+| 15  | Transliteration: search and display across scripts (ADR-0014)                            | —            |
+| 16  | Feedback and corrections from users — where collected: TBD                               | —            |
+| 17  | About: acknowledgements, copyright, credits                                              | —            |
+| 18  | Over-the-air update notices (as Supabase announces changes)                              | —            |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                          | 2nd book     |
+| 21  | Hold: freeze the Output on what's showing, navigate, release                             | —            |
+| 22  | Service queue: line up hymns for a service (a supporting pane)                           | —            |
+| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved                | 22           |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                               | Phase 2      |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation                            | content      |
 
 20 finishes Phase 1; 27 is a build-time tool beside it. 14–15 sit past the scope
 guard below. 16–25 are notes, not scheduled: the shell reserves room for them
@@ -133,6 +132,8 @@ only, here:
 
 ## Log
 
+- 2026-10-01 — #33 done: Recents grouped Today, Yesterday, Before; relative
+  times
 - 2026-10-01 — #27 part 5: titles match the index across O/Oh, &/and, a
   subtitle, a cut-short title
 - 2026-09-29 — #27 part 5: by rule the chorus follows a bridge; lone chorus cues

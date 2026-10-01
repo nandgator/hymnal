@@ -605,17 +605,19 @@ view is close enough to the frame to need a smaller unit.
   selected tab and the new content softly zooms in, in the page itself (a View
   Transition there cross-faded snapshots of the tab labels, which flickered). A
   song chosen from Recents glides to the top, every row moving from where it was
-  to where it lands. A menu grows from its button; a sheet rises over a blurred
-  page and sinks away on close; every control's change of state eases.
-  **Press**: a control gives a little under the finger (96%) at once and springs
-  back with a slight overshoot, Material 3 Expressive's press kept small; an
-  icon that changes meaning (Blank to Restore) turns in. The Repeat count is a
-  rolling number (an odometer): the old count rolls out as the new one rolls in,
-  up as it grows and down on Undo. It is in the text colour, not Repeat's
-  primary: coloured text means a control. Each rail section eases in on arrival,
-  the Library as the Operator. In the command menu the highlight follows a
-  moving pointer and leaves with it; Enter then takes the top match. Reduced
-  motion shows the end state.
+  to where it lands, the group headings (Today, Yesterday, Before) with them;
+  the rising row passes over the rows it crosses, not under; a heading whose
+  group emptied fades out where it stood (150ms). A menu grows from its button;
+  a sheet rises over a blurred page and sinks away on close; every control's
+  change of state eases. **Press**: a control gives a little under the finger
+  (96%) at once and springs back with a slight overshoot, Material 3
+  Expressive's press kept small; an icon that changes meaning (Blank to Restore)
+  turns in. The Repeat count is a rolling number (an odometer): the old count
+  rolls out as the new one rolls in, up as it grows and down on Undo. It is in
+  the text colour, not Repeat's primary: coloured text means a control. Each
+  rail section eases in on arrival, the Library as the Operator. In the command
+  menu the highlight follows a moving pointer and leaves with it; Enter then
+  takes the top match. Reduced motion shows the end state.
 - **Loading: the shape of what's coming, in its place** (Board #26 part 4). A
   screen still loading shows a skeleton of itself: the Library its card (title,
   count line, button), the Operator its panels, empty, where they will sit.

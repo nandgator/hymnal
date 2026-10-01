@@ -1979,7 +1979,32 @@ input[type="checkbox"].switch:checked::before {
 }
 
 .recents {
+  /* The ghost of an emptied group's heading is placed against it. */
+  position: relative;
   padding-inline: var(--space-xs);
+}
+
+/* Each row has its own stacking, so the song rising to the top can be
+   lifted above the rows it passes while it glides. */
+.recents li {
+  position: relative;
+}
+
+/* Today, Yesterday, Before: quiet headings, so the list reads as one and
+   the song titles stay the loudest thing. */
+.recents-group + .recents-group {
+  margin-top: var(--space-xs);
+}
+
+.recents-heading {
+  margin: 0;
+  padding: var(--space-xs) var(--space-md) var(--space-xxs);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.33;
+  text-transform: uppercase;
 }
 
 /* Dense, as a side list: the title gets the room, the number is small

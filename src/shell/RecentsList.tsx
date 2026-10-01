@@ -1,4 +1,10 @@
-import { createEffect, createSignal, For, on, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, on, onCleanup, Show } from "solid-js";
+import {
+  groupByRecency,
+  RECENCY_GROUP_TITLES,
+  RECENCY_GROUPS,
+  whenLabel,
+} from "../domain/recency.ts";
 import type { HymnbookId, HymnNumber } from "../domain/types.ts";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import {
@@ -20,19 +26,9 @@ export interface RecentsListProps {
   onSelect: (number: HymnNumber) => void;
 }
 
-/** When a hymn was opened: the time today, the weekday this week, else
- * the date — as the mockup's "9:41", "Sun". */
-export function viewedLabel(viewedAt: number, now = Date.now()): string {
-  const at = new Date(viewedAt);
-  const today = new Date(now);
-  if (at.toDateString() === today.toDateString()) {
-    return at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  }
-  if (now - viewedAt < 6 * 24 * 60 * 60 * 1000) {
-    return at.toLocaleDateString([], { weekday: "short" });
-  }
-  return at.toLocaleDateString([], { day: "numeric", month: "short" });
-}
+/** How often the words ("Just now") and the groups (midnight) are
+ * rechecked while the list is open. */
+const REFRESH_MS = 30_000;
 
 type RecentRow = RecentEntry & { title: string };
 
@@ -40,6 +36,8 @@ type RecentRow = RecentEntry & { title: string };
  * travel the list's length. */
 const EMPHASIZED = "cubic-bezier(0.2, 0, 0, 1)";
 const GLIDE_MS = 400;
+/** A heading whose group has emptied fades out quicker than rows travel. */
+const GHOST_FADE_MS = 150;
 
 /** The last list read, per user state and book, shown at once on the next
  * mount and replaced by the read every mount makes, so it's never older
@@ -65,28 +63,67 @@ export function RecentsList(props: RecentsListProps) {
   const [recents, setRecents] = createSignal<RecentRow[] | undefined>(
     lastRead().get(props.hymnbookId),
   );
-  // A song chosen moves to the top: every row glides from where it was to
-  // where it lands (FLIP), a new one fades in (DESIGN.md § Motion). Reduced
-  // motion lands at once.
-  let list: HTMLUListElement | undefined;
+  // Now, for the words and the groups: it moves on, so a row that was "Just
+  // now" ages, and at midnight Today becomes Yesterday, with the list open.
+  const [now, setNow] = createSignal(Date.now());
+  const refresh = setInterval(() => setNow(Date.now()), REFRESH_MS);
+  onCleanup(() => clearInterval(refresh));
+  const groups = createMemo(() => groupByRecency(recents() ?? [], now()));
+  // A song chosen moves to the top: every row, and each group heading, glides
+  // from where it was to where it lands (FLIP), a new one fades in, and a
+  // heading whose group emptied fades out where it stood (DESIGN.md § Motion).
+  // The song that rises passes over the rows it crosses, not under them.
+  // Reduced motion lands at once.
+  let list: HTMLDivElement | undefined;
   const glide = (apply: () => void) => {
-    const rows = () => [...(list?.querySelectorAll<HTMLElement>("[data-hymn]") ?? [])];
+    const keyed = () => [...(list?.querySelectorAll<HTMLElement>("[data-glide]") ?? [])];
     const before = new Map(
-      rows().map((row) => [row.dataset.hymn, row.getBoundingClientRect().top]),
+      keyed().map((el) => [el.dataset.glide, { el, rect: el.getBoundingClientRect() }]),
     );
     apply();
     if (before.size === 0 || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       return;
     }
-    for (const row of rows()) {
-      const was = before.get(row.dataset.hymn);
-      const timing = { duration: GLIDE_MS, easing: EMPHASIZED };
-      if (was === undefined) row.animate?.([{ opacity: 0 }, { opacity: 1 }], timing);
-      else {
-        const dy = was - row.getBoundingClientRect().top;
-        if (dy)
-          row.animate?.([{ transform: `translateY(${dy}px)` }, { transform: "none" }], timing);
+    const timing = { duration: GLIDE_MS, easing: EMPHASIZED };
+    const moves = keyed().map((el) => {
+      const was = before.get(el.dataset.glide);
+      return { el, was, dy: was ? was.rect.top - el.getBoundingClientRect().top : 0 };
+    });
+    const rising = Math.max(0, ...moves.map((move) => move.dy));
+    for (const { el, was, dy } of moves) {
+      if (!was) el.animate?.([{ opacity: 0 }, { opacity: 1 }], timing);
+      else if (dy) {
+        // Raised only while it travels (a row's own stacking, `position:
+        // relative`, is what lets it sit above the rows after it).
+        const lift = dy === rising ? { zIndex: 1 } : {};
+        el.animate?.(
+          [
+            { transform: `translateY(${dy}px)`, ...lift },
+            { transform: "none", ...lift },
+          ],
+          timing,
+        );
       }
+    }
+    // A heading whose group emptied is gone from the page: a copy stays at
+    // its old place and fades.
+    const box = list?.getBoundingClientRect();
+    for (const [key, { el, rect }] of before) {
+      if (!key?.startsWith("group-") || el.isConnected || !list || !box) continue;
+      const ghost = el.cloneNode(true) as HTMLElement;
+      ghost.removeAttribute("id");
+      ghost.removeAttribute("data-glide");
+      ghost.setAttribute("aria-hidden", "true");
+      ghost.style.cssText = `position:absolute;left:${rect.left - box.left}px;width:${rect.width}px;top:${rect.top - box.top}px;pointer-events:none`;
+      list.append(ghost);
+      const fade = ghost.animate?.([{ opacity: 1 }, { opacity: 0 }], {
+        duration: GHOST_FADE_MS,
+        easing: EMPHASIZED,
+        // Held at the end until removed, so it can't flash back.
+        fill: "forwards",
+      });
+      if (fade) fade.onfinish = () => ghost.remove();
+      else ghost.remove();
     }
   };
 
@@ -121,24 +158,40 @@ export function RecentsList(props: RecentsListProps) {
         </Show>
       }
     >
-      <ul class="list recents" ref={list}>
-        <For each={recents()}>
-          {(entry) => (
-            <li data-hymn={entry.hymnNumber}>
-              <button
-                type="button"
-                class="list-row recents-row"
-                aria-current={entry.hymnNumber === props.current ? "true" : undefined}
-                onClick={() => props.onSelect(entry.hymnNumber)}
-              >
-                <span class="recents-number">#{entry.hymnNumber}</span>
-                <span class="recents-title">{titleCase(entry.title)}</span>
-                <span class="recents-when">{viewedLabel(entry.viewedAt)}</span>
-              </button>
-            </li>
+      <div class="recents" ref={list}>
+        {/* The groups are fixed, and each row is the same object across reads
+            and refreshes, so a row that changes group moves rather than
+            being rebuilt. */}
+        <For each={RECENCY_GROUPS}>
+          {(group) => (
+            <Show when={groups()[group].length}>
+              <div class="recents-group">
+                <h3 class="recents-heading" data-glide={`group-${group}`}>
+                  {RECENCY_GROUP_TITLES[group]}
+                </h3>
+                <ul class="list">
+                  <For each={groups()[group]}>
+                    {(entry) => (
+                      <li data-glide={`hymn-${entry.hymnNumber}`}>
+                        <button
+                          type="button"
+                          class="list-row recents-row"
+                          aria-current={entry.hymnNumber === props.current ? "true" : undefined}
+                          onClick={() => props.onSelect(entry.hymnNumber)}
+                        >
+                          <span class="recents-number">#{entry.hymnNumber}</span>
+                          <span class="recents-title">{titleCase(entry.title)}</span>
+                          <span class="recents-when">{whenLabel(entry.viewedAt, now())}</span>
+                        </button>
+                      </li>
+                    )}
+                  </For>
+                </ul>
+              </div>
+            </Show>
           )}
         </For>
-      </ul>
+      </div>
     </Show>
   );
 }
