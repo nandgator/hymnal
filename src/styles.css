@@ -2011,7 +2011,9 @@ input[type="checkbox"].switch:checked::before {
    and muted. */
 .recents-row {
   display: flex;
-  gap: var(--space-sm);
+  /* The least between number, title and time: a title that just fits sits
+     this far from the time, never against it. */
+  gap: var(--space-md);
   min-height: 2.75rem;
   padding-block: var(--space-xxs);
   border-radius: var(--button-shape);
@@ -2042,6 +2044,9 @@ input[type="checkbox"].switch:checked::before {
 
 .recents-title {
   min-width: 0;
+  /* Malayalam glyphs overhang their advance; the clip box leaves them room
+     rather than cutting one at the gap. */
+  padding-inline-end: var(--space-xxs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
