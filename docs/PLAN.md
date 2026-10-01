@@ -29,9 +29,7 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 ## Now
 
 **Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
-**Next: Board #27 part 6** (below): its questions wait for the user. In review:
-This Song's tint glides from part to part with the scroll (DESIGN.md §
-Structure, Lyrics).
+**Next: Board #27 part 6** (below): its questions wait for the user.
 
 **Board #27 (song import, CLI)**: it touches no UI. Target: _Hymns of
 Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its index), the
@@ -131,6 +129,7 @@ only, here:
 
 ## Log
 
+- 2026-10-01 — This Song's tint glides from part to part, with the scroll
 - 2026-10-01 — #27 part 5 done. Decided while the user was away, by the
   recommendation: the 4-word limit, the wraps section summarised
 - 2026-10-01 — #20 done: R, U; key hints from one table; band size a setting
