@@ -47,11 +47,12 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 4. ~~Flow, songs, parts, draft, report against a profile (SDD-0003 §3)~~ — done;
    275 songs, 1,017 notes
 5. **Next.** Review the Fellowship report by section, smallest first; wraps by
-   sample. ~~Titles~~, ~~mixed fonts~~, ~~sequences~~ done; next: index (42).
-   Breaks: the code measures against every block, SDD-0003 §3 says the same
-   kind; tried, it moved 6 songs, some worse. Hand fixes, applied once after the
-   last re-import: #85 (c3 is s3; c2 after every chorus), #197 (s1 is the
-   chorus, s3 the outro: `c s1 c s1 c o`)
+   sample. ~~Titles~~, ~~mixed fonts~~, ~~sequences~~, ~~index~~ (42 → 10, the
+   book's own) done; next: breaks (68). Breaks: the code measures against every
+   block, SDD-0003 §3 says the same kind; tried, it moved 6 songs, some worse.
+   Hand fixes, applied once after the last re-import: #85 (c3 is s3; c2 after
+   every chorus), #197 (s1 is the chorus, s3 the outro: `c s1 c s1 c o`), #81
+   (index typo "descripton")
 6. Judge, swappable by manifest; Laya first (SDD-0003 §4.1), after part 5. Found
    so far: the kind of a short unlabelled block (bridge, tag, a split stanza; 20
    in Fellowship). Triage and inference were dropped: case by case (ADR-0024)
@@ -132,6 +133,8 @@ only, here:
 
 ## Log
 
+- 2026-10-01 — #27 part 5: titles match the index across O/Oh, &/and, a
+  subtitle, a cut-short title
 - 2026-09-29 — #27 part 5: by rule the chorus follows a bridge; lone chorus cues
 - 2026-09-29 — #27 part 5: kind by first font; directions out; "…Cho…", cues
   read

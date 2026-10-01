@@ -108,7 +108,7 @@ export function draftBook(pages: SourcePage[], profile: Profile): Draft {
  * ("(Shout to the north)"), start with a capital.
  */
 export function titleOf(heading: string, entry: IndexEntry | undefined, lines: string[]): string {
-  if (entry && simplify(entry.title) === simplify(heading)) return entry.title;
+  if (entry && names(entry.title, heading)) return entry.title;
   const WORD = /[\p{L}’']+/gu;
   const capitals = (word: string) => word.length > 1 && word === word.toUpperCase();
   /** Per word, each casing: how weak its evidence (within a line 0, first
@@ -139,8 +139,25 @@ const simplify = (title: string) =>
     .normalize("NFKC")
     .toLowerCase()
     .replace(/[’']/g, "'")
+    .replace(/&/g, " and ")
     .replace(/[^\p{L}\p{N}']+/gu, " ")
-    .trim();
+    .trim()
+    .replace(/\boh\b/g, "o");
+
+/**
+ * Whether two titles name the same song: the same words, or one's words
+ * begin the other's (a heading or an index may cut a long title short). A
+ * single word isn't enough to go by. A bracketed subtitle must match too.
+ */
+const names = (a: string, b: string) => {
+  if (SUBTITLE.test(a) || SUBTITLE.test(b)) return simplify(a) === simplify(b);
+  const [x, y] = [simplify(a).split(" "), simplify(b).split(" ")];
+  const [short, long] = x.length <= y.length ? [x, y] : [y, x];
+  return short.length >= 2 ? short.every((w, i) => w === long[i]) : short.join() === long.join();
+};
+
+/** A trailing bracketed subtitle, which an index may leave out. */
+const SUBTITLE = /\s*[([][^()[\]]*[)\]]$/;
 
 function checkAgainstIndex(
   song: { number: number; title: string; page: number },
@@ -150,7 +167,8 @@ function checkAgainstIndex(
   notes: Note[],
 ) {
   const at = { hymn: song.number, page: song.page };
-  if (title !== entry.title) {
+  const bare = song.title.replace(SUBTITLE, "");
+  if (title !== entry.title && simplify(bare) !== simplify(entry.title)) {
     notes.push({
       kind: "index",
       ...at,

@@ -143,10 +143,13 @@ The rules the stages apply with it:
   printed first, and after every stanza and bridge; an ending is sung where
   printed.
 - **Title**: the index's, where it names the same song as the heading (indexes
-  are set in the book's case, headings often in capitals); else the heading, its
-  capitalised words recased as the song's lines set them within a line (a line's
-  first word, or one in capitals, only when there's nothing better); a bracketed
-  subtitle starts with a capital.
+  are set in the book's case, headings often in capitals; "O" and "Oh", and "&"
+  and "and", count as the same word; so does a title cut short, if what is left
+  is two words or more); else the heading, its capitalised words recased as the
+  song's lines set them within a line (a line's first word, or one in capitals,
+  only when there's nothing better); a bracketed subtitle starts with a capital.
+  A heading that differs from the index only by a bracketed subtitle the index
+  leaves out keeps it, and is not reported.
 - Repeat marks ("(2)", "(repeat)", "x 2", "– 2" at a line's end) are taken out
   of the line, and a line left empty is dropped: the Output shows lyrics, and
   the operator repeats with Repeat. "(Repeat Chorus)" is a label standing for

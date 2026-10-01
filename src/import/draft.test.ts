@@ -306,6 +306,62 @@ describe("titleOf", () => {
   });
 });
 
+describe("the index against the heading", () => {
+  /** A one-song book whose index lists the song as `listed`. */
+  const indexed = (heading: string, listed: string) => {
+    const index: SourcePage = {
+      ...indexPage,
+      lines: ["1", listed, "1"].map((text, j) => ({
+        text,
+        x: [30, 50, 180][j],
+        y: 40,
+        width: 20,
+        size: 10,
+        font: ROMAN,
+      })),
+    };
+    const one = page(2, [`# (1) ${heading}`, "Sing out", "Sing the light"], [], "1");
+    return draftBook([index, one], { ...profile, pages: { from: 2, to: 2 } });
+  };
+
+  it("takes the index's title where it differs by O and Oh, or & and and", () => {
+    const oh = indexed("CHANGE MY HEART OH GOD", "Change my heart O God");
+    expect(oh.hymns[0].title).toBe("Change my heart O God");
+    expect(oh.notes.filter((n) => n.kind === "index")).toEqual([]);
+    const and = indexed("COME YE SINNERS, POOR AND NEEDY", "Come ye sinners, poor & needy");
+    expect(and.hymns[0].title).toBe("Come ye sinners, poor & needy");
+    expect(and.notes.filter((n) => n.kind === "index")).toEqual([]);
+  });
+
+  it("keeps a bracketed subtitle the index leaves out, without a note", () => {
+    const d = indexed("SOME GLAD MORNING (I’LL FLY AWAY)", "Some glad morning");
+    expect(d.hymns[0].title).toBe("Some glad morning (I’ll fly away)");
+    expect(d.notes.filter((n) => n.kind === "index")).toEqual([]);
+  });
+
+  it("takes the index's title where one begins with all the other's words", () => {
+    const longer = indexed("ONLY BY GRACE", "Only by grace can we enter");
+    expect(longer.hymns[0].title).toBe("Only by grace can we enter");
+    expect(longer.notes.filter((n) => n.kind === "index")).toEqual([]);
+    const shorter = indexed("BE STILL, FOR THE PRESENCE OF THE LORD", "Be still, for the presence");
+    expect(shorter.hymns[0].title).toBe("Be still, for the presence");
+    expect(shorter.notes.filter((n) => n.kind === "index")).toEqual([]);
+  });
+
+  it("doesn't take a single shared word for the same song", () => {
+    const d = indexed("HOLY", "Holy holy holy");
+    expect(d.hymns[0].title).toBe("Holy");
+    expect(d.notes.filter((n) => n.kind === "index")).toHaveLength(1);
+  });
+
+  it("still notes a heading that differs from the index in its words", () => {
+    const d = indexed("WHO HOLD THE HEAVENS", "Who holds the heavens");
+    expect(d.notes.filter((n) => n.kind === "index").map((n) => n.message)).toEqual([
+      `headed "WHO HOLD THE HEAVENS", listed as "Who holds the heavens"; titled "Who hold the heavens"`,
+    ]);
+  });
+});
+
 describe("a label within a block", () => {
   const sung = (lines: string[]) => {
     const { hymns } = draftBook([page(1, lines, [])], {
