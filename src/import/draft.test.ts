@@ -406,7 +406,7 @@ describe("directions, cues and fonts", () => {
       ...profile,
       index: undefined,
       pages: { from: 1, to: 1 },
-      labels: { ...profile.labels, cho: "chorus" },
+      labels: { ...profile.labels, cho: "chorus", end: "outro" },
       directions: ["ladies", "men", "women", "together", "echo", "descant"],
     });
     const [h] = hymns;
@@ -487,6 +487,40 @@ describe("directions, cues and fonts", () => {
       drafted(["# (1) ONE SONG", "First verse here", "Goes on now…Cho…", "_ Sing it, sing it"])
         .sequence,
     ).toBe("s1 c");
+  });
+
+  it("reads a chorus's first line alone, trailing off, as that chorus", () => {
+    const { parts, sequence } = drafted([
+      "# (1) ONE SONG",
+      "First verse here",
+      "",
+      "_ Jesus Messiah, name above all",
+      "_ Lord of all",
+      "",
+      "Second verse here",
+      "",
+      "_ Jesus Messiah …..",
+    ]);
+    expect(parts).toHaveLength(3);
+    expect(sequence).toBe("s1 c s2 c");
+  });
+
+  it("sings the chorus after a bridge, by the rule, and an ending last", () => {
+    const { sequence } = drafted([
+      "# (1) ONE SONG",
+      "First verse here",
+      "",
+      "_ Sing it, sing it",
+      "",
+      "Second verse here",
+      "",
+      "Bridge:",
+      "Over and over",
+      "",
+      "End:",
+      "Amen, amen",
+    ]);
+    expect(sequence).toBe("s1 c s2 c b c o");
   });
 
   it("gives a block in two fonts the kind of the font it starts in", () => {

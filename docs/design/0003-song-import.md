@@ -126,8 +126,9 @@ The rules the stages apply with it:
 - **Cues**: a block's last line that is the chorus's first line, in quotes or in
   `chorus.font` ("Bind us together, Lord ...") stands for the chorus sung again.
   Trailing off alone doesn't make a cue: a stanza's own last line often leads
-  into the chorus with its words. A label or cue just before the chorus printed
-  is that chorus.
+  into the chorus with its words. A chorus's first line printed as a block of
+  its own and trailing off ("Jesus Messiah …..") is a cue too. A label or cue
+  just before the chorus printed is that chorus.
 - **Kind**, unlabelled: a block starting in `chorus.font` is a chorus, else a
   stanza (a chorus's italic can stop partway). A block printed again word for
   word is the same part.
@@ -139,7 +140,8 @@ The rules the stages apply with it:
   printed more than once. Otherwise
   [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)'s rule: the
   chorus, printed once (several blocks in a row count as one), is sung first if
-  printed first, and after every stanza.
+  printed first, and after every stanza and bridge; an ending is sung where
+  printed.
 - **Title**: the index's, where it names the same song as the heading (indexes
   are set in the book's case, headings often in capitals); else the heading, its
   capitalised words recased as the song's lines set them within a line (a line's

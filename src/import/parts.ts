@@ -135,10 +135,10 @@ function blocks(lines: FlowLine[], profile: Profile): Block[] {
  * Labels, as the profile words them: "Chorus:", "(chorus)", "Bridge", "End:".
  * Heading lines, a label gives them their kind; alone, or closing a block,
  * it stands for that part sung again, as it does ending a line after an
- * ellipsis or before one ("covered me…Cho….", "today. Ch…"). Within a block, a chorus label heads
- * what follows only if that is set in the chorus font: otherwise it closes
- * the lines before it, and a new block starts (the printer left no gap
- * between "Cho…" and the next stanza).
+ * ellipsis or before one ("covered me…Cho….", "today. Ch…"). Within a
+ * block, a chorus label heads what follows only if that is set in the
+ * chorus font: otherwise it closes the lines before it, and a new block
+ * starts (the printer left no gap between "Cho…" and the next stanza).
  */
 function labelled(
   input: Block[],
@@ -294,7 +294,8 @@ function joinBreaks(
 /**
  * A block's last line that quotes the chorus's first, in quotes or in the
  * chorus's font ("“Who is this Man?”", "Bind us together, Lord ..."), is a
- * cue: the chorus sung again, not a lyric. Before the chorus printed, a cue
+ * cue: the chorus sung again, not a lyric, as is a chorus's first line
+ * printed alone, trailing off. Before the chorus printed, a cue
  * or a label is that chorus. Every block is given its kind here, the
  * cue taken off first.
  */
@@ -320,7 +321,17 @@ function cued(
     if (!("block" in item)) continue;
     const block = item.block;
     if (kindOf(block) === "chorus") {
-      block.kind ??= kindByFont(block, profile, note);
+      // A chorus's first line alone, trailing off ("Jesus Messiah …..").
+      const only = words(block.lines[0].text);
+      const again =
+        block.lines.length === 1 &&
+        /(…|\.{2,})$/.test(block.lines[0].text.trim()) &&
+        only.includes(" ") &&
+        starts.some((start) => start.startsWith(`${only} `));
+      if (again) {
+        note("cue", `"${block.lines[0].text}"`, block.lines[0].page);
+        out[out.length - 1] = { refers: "chorus", page: block.lines[0].page };
+      } else block.kind ??= kindByFont(block, profile, note);
       continue;
     }
     const last = block.lines.at(-1) as FlowLine;
@@ -390,7 +401,8 @@ function kindByFont(
  * As printed, when the page spells it out: a label standing for a part, or
  * the chorus printed more than once. Otherwise ADR-0009's rule: the
  * chorus, printed once, is sung first if printed first, and after every
- * stanza. A chorus printed as several blocks in a row is sung whole.
+ * stanza and bridge (a band comes back to it). A chorus printed as several
+ * blocks in a row is sung whole.
  */
 function sequenceOf(
   parts: Part[],
@@ -429,13 +441,15 @@ function sequenceOf(
   for (const item of order) {
     if (typeof item === "string" || item.kind === "chorus") continue;
     ids.push(item.id);
-    if (item.kind === "stanza") ids.push(...chorus);
+    if (item.kind === "stanza" || item.kind === "bridge") ids.push(...chorus);
   }
   const others = parts.filter((p) => p.kind !== "stanza" && p.kind !== "chorus");
   if (others.length > 0) {
+    const after = others.some((p) => p.kind === "bridge") ? "stanza and bridge" : "stanza";
+    const printed = others.filter((p) => p.kind !== "bridge").map((p) => p.kind);
     note(
       "sequence",
-      `the chorus after every stanza; ${others.map((p) => p.kind).join(", ")} where printed`,
+      `the chorus after every ${after}${printed.length > 0 ? `; ${printed.join(", ")} where printed` : ""}`,
     );
   }
   return ids.map((partId) => ({ partId }));
