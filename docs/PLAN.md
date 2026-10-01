@@ -29,8 +29,9 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 ## Now
 
 **Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
-**Next: Board #27 part 5** (below), then part 6. In review: This Song's tint
-glides from part to part with the scroll (DESIGN.md § Structure, Lyrics).
+**Next: Board #27 part 6** (below): its questions wait for the user. In review:
+This Song's tint glides from part to part with the scroll (DESIGN.md §
+Structure, Lyrics).
 
 **Board #27 (song import, CLI)**: it touches no UI. Target: _Hymns of
 Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its index), the
@@ -44,18 +45,17 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 3. ~~JSON Schema for format 1 (ADR-0022): `validate.ts` reads its fields from
    it; ajv test keeps them agreed~~ — done
 4. ~~Flow, songs, parts, draft, report against a profile (SDD-0003 §3)~~ — done;
-   275 songs, 1,017 notes (1,038 now)
-5. **Next.** Review the Fellowship report by section, smallest first; wraps by
-   sample. ~~Titles~~, ~~mixed fonts~~, ~~sequences~~, ~~index~~ (42 → 10, the
-   book's own) done; ~~breaks~~ (a column's stub joins its rest; a lone chorus
-   split by a break joins; a note flags a stanza twice the usual length, for the
-   judge) done; next: a sample check of the notes for rules applied (directions,
-   repeat marks, cues), then wraps by sample. Hand fixes, applied once after the
-   last re-import: #85 (c3 is s3; c2 after every chorus), #197 (s1 is the
-   chorus, s3 the outro: `c s1 c s1 c o`), #81 (index typo "descripton")
-6. Judge, swappable by manifest; Laya first (SDD-0003 §4.1), after part 5. Found
-   so far: the kind of a short unlabelled block (bridge, tag, a split stanza; 20
-   in Fellowship). Triage and inference were dropped: case by case (ADR-0024)
+   275 songs, 1,017 notes (1,030 now)
+5. ~~Review the Fellowship report by section~~ — done: titles, fonts, sequences,
+   index, breaks; applied rules sampled clean; wraps by sample (an "I"/"&" line
+   joins only at 4 words or fewer; sure joins counted, guesses listed). Hand
+   fixes, applied once after the last re-import: #85 (c3 is s3; c2 after every
+   chorus), #197 (s1 is the chorus, s3 the outro: `c s1 c s1 c o`), #81 (index
+   typo "descripton")
+6. **Next.** Judge, swappable by manifest; Laya first (SDD-0003 §4.1), after
+   part 5. Found so far: the kind of a short unlabelled block (bridge, tag, a
+   split stanza; 20 in Fellowship). Triage and inference were dropped: case by
+   case (ADR-0024)
 
 ## State
 
@@ -131,6 +131,8 @@ only, here:
 
 ## Log
 
+- 2026-10-01 — #27 part 5 done. Decided while the user was away, by the
+  recommendation: the 4-word limit, the wraps section summarised
 - 2026-10-01 — #20 done: R, U; key hints from one table; band size a setting
 - 2026-10-01 — #27 part 5: breaks done; #152's chorus joins; long stanzas noted
   for the judge

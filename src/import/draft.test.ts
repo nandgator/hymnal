@@ -805,3 +805,33 @@ describe("directions, cues and fonts", () => {
     ]);
   });
 });
+
+describe("a wrap before a line starting with I", () => {
+  const drafted = (lines: string[]) => {
+    const { hymns, notes } = draftBook([page(1, lines, [])], {
+      ...profile,
+      index: undefined,
+      pages: { from: 1, to: 1 },
+    });
+    return {
+      lines: hymns[0].parts.flatMap((p) => p.lines),
+      wraps: notes.filter((n) => n.kind === "wrap").length,
+    };
+  };
+
+  it("joins a short one, a guess, but not a line of its own", () => {
+    const { lines, wraps } = drafted([
+      "# (1) ONE SONG",
+      "When the oceans rise and thunders roar all day", // 46 characters; the measure is the 47 below
+      "I will soar with You above the storm",
+      "In the mirror of all His word, reflections that",
+      "I see",
+    ]);
+    expect(lines).toEqual([
+      "When the oceans rise and thunders roar all day",
+      "I will soar with You above the storm",
+      "In the mirror of all His word, reflections that I see",
+    ]);
+    expect(wraps).toBe(1);
+  });
+});

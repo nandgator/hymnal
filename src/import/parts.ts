@@ -1,7 +1,7 @@
 import type { Part, PartKind, SequenceEntry } from "../domain/types.ts";
 import type { Flow, FlowLine } from "./flow.ts";
 import type { Profile } from "./profile.ts";
-import type { Note } from "./report.ts";
+import { GUESS, type Note } from "./report.ts";
 import type { FoundSong } from "./songs.ts";
 
 /** A run of lines with no stanza gap inside it. */
@@ -230,7 +230,7 @@ function unwrap(
     const prev = out.at(-1);
     const wrap = prev ? wraps(prev, line, flow) : "no";
     if (prev && wrap !== "no") {
-      const guess = wrap === "guess" ? "(a guess) " : "";
+      const guess = wrap === "guess" ? GUESS : "";
       note("wrap", `${guess}"${prev.text}" + "${line.text}"`, line.page);
       out[out.length - 1] = { ...prev, text: `${prev.text} ${line.text}`, width: line.width };
     } else out.push(line);
@@ -247,7 +247,9 @@ function wraps(prev: FlowLine, line: FlowLine, flow: Flow): Wrap {
   if (prev.width + perChar * (firstWord.length + 1) <= measure) return "no";
   const open = !/[.,;:!?)]$/.test(prev.text);
   if (/^\p{Ll}/u.test(line.text)) return open ? "sure" : "guess";
-  const remainder = line.text.split(/\s+/).length <= 2 || /^(&|I\b)/.test(line.text);
+  // "I" and "&" are capitals that don't mark a new line, so they get a little more room.
+  const words = line.text.split(/\s+/).length;
+  const remainder = words <= 2 || (words <= 4 && /^(&|I\b)/.test(line.text));
   return open && remainder ? "guess" : "no";
 }
 

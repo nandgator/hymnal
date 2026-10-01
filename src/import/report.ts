@@ -37,6 +37,9 @@ export type NoteKind =
   /** A violation of the content format. */
   | "invalid";
 
+/** How a wrap note says it was a guess. */
+export const GUESS = "(a guess) ";
+
 const HEADINGS: Record<NoteKind, string> = {
   invalid: "Not valid content",
   stray: "Text outside any song",
@@ -56,9 +59,16 @@ const HEADINGS: Record<NoteKind, string> = {
 export function renderReport(title: string, summary: string[], notes: Note[]): string {
   const out = [`# Import report: ${title}`, "", ...summary.map((line) => `- ${line}`)];
   for (const kind of Object.keys(HEADINGS) as NoteKind[]) {
-    const these = notes.filter((note) => note.kind === kind);
+    let these = notes.filter((note) => note.kind === kind);
     if (these.length === 0) continue;
+    // A sure wrap is counted; only the guesses are listed.
+    const sure = kind === "wrap" ? these.filter((note) => !note.message.startsWith(GUESS)) : [];
+    if (kind === "wrap") these = these.filter((note) => note.message.startsWith(GUESS));
     out.push("", `## ${HEADINGS[kind]} (${these.length})`, "");
+    if (sure.length > 0) {
+      out.push(`${sure.length} joined where the next line starts lowercase after open text.`);
+      if (these.length > 0) out.push("");
+    }
     for (const note of these) {
       const where = [note.hymn && `#${note.hymn}`, note.page && `p.${note.page}`]
         .filter(Boolean)

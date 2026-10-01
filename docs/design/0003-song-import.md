@@ -138,7 +138,8 @@ The rules the stages apply with it:
 - **Wraps** are joined where the next line's first word would not have fitted on
   this one, against the column's widest line. Before a lowercase word that is
   sure; before a capital, only a short remainder after unpunctuated text is
-  joined, as a guess.
+  joined, as a guess (two words or fewer; four for a line starting with "I" or
+  "&").
 - **Sequence** is as printed when the page spells it out: a label, or choruses
   printed more than once. Otherwise
   [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)'s rule: the
@@ -176,7 +177,8 @@ draft, by hymn:
 - a cue read as the chorus
 - a sequence taken from a rule beside a bridge or ending, or choruses that
   differ
-- a line wrap joined (both halves quoted; guesses marked)
+- a line wrap joined as a guess (both halves quoted); sure joins are only
+  counted
 - a repeat mark or direction taken out, the line before and after
 
 ### 4.1 The judge: an optional second opinion
