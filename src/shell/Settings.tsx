@@ -1,5 +1,7 @@
 import { createEffect, createResource, createSignal, For, onCleanup, Show } from "solid-js";
 import {
+  type BandSize,
+  bandSizeOf,
   DEFAULT_OUTPUT_THEME,
   DEFAULT_PREFERENCES,
   userState as defaultUserState,
@@ -10,6 +12,8 @@ import {
   pinChorusOf,
   type UserState,
 } from "../persistence/user-state.ts";
+import { ariaKeys, keyHint, withKey } from "./keymap.ts";
+import { createMediaQuery, EXPANDED_QUERY } from "./media.ts";
 import { isPaneShown, PANES, type PaneId } from "./panes.ts";
 import { easeThemeChange, revealWithin, shownTheme } from "./theme.ts";
 import { setSplit, workspaceOf } from "./workspace.ts";
@@ -41,6 +45,11 @@ export const OUTPUT_CUES: {
   { id: "hymnbook", name: "Hymnbook", example: "the book's title" },
   { id: "part", name: "Part", example: "Verse 2, Chorus" },
   { id: "repeat", name: "Repeat count", example: "×2, on a repeat" },
+];
+
+const BAND_SIZES: { value: BandSize; label: string }[] = [
+  { value: "part", label: "Part" },
+  { value: "line", label: "Line" },
 ];
 
 let nextId = 0;
@@ -147,6 +156,8 @@ export function Settings(props: SettingsProps) {
   const { preferences, update, adjustScale, setPane, setCue } =
     props.controller ?? createPreferences(props.userState ?? defaultUserState);
   const id = `settings-${++nextId}`;
+  // Tooltips carry key hints only where there's a keyboard (SDD-0001 §16.5).
+  const keyboard = createMediaQuery(EXPANDED_QUERY);
 
   // A segmented button on native radios (MD3).
   const segmented = <T extends string>(
@@ -239,7 +250,8 @@ export function Settings(props: SettingsProps) {
               onClick={() => adjustScale(-1)}
               disabled={!canAdjustScale(preferences(), -1)}
               aria-label="Decrease text size"
-              title="Decrease text size (−)"
+              aria-keyshortcuts={ariaKeys("text-size", 1)}
+              title={withKey("Decrease text size", "text-size", keyboard(), 1)}
             >
               A−
             </button>
@@ -252,7 +264,8 @@ export function Settings(props: SettingsProps) {
               onClick={() => adjustScale(1)}
               disabled={!canAdjustScale(preferences(), 1)}
               aria-label="Increase text size"
-              title="Increase text size (+)"
+              aria-keyshortcuts={ariaKeys("text-size", 0)}
+              title={withKey("Increase text size", "text-size", keyboard())}
             >
               A+
             </button>
@@ -271,7 +284,7 @@ export function Settings(props: SettingsProps) {
                 Show {pane.name}
                 <span class="settings-supporting">
                   {pane.description}
-                  {pane.key ? ` (${pane.key})` : ""}
+                  {pane.shortcut ? ` (${keyHint(pane.shortcut)})` : ""}
                 </span>
               </span>
               <input
@@ -324,6 +337,21 @@ export function Settings(props: SettingsProps) {
             }
           />
         </label>
+        <div class="settings-row">
+          <span class="settings-label">
+            Reading band on the Output
+            <span class="settings-supporting">
+              While someone scrolls it by hand, what stays lit: a part, or one line
+            </span>
+          </span>
+          {segmented(
+            "Reading band on the Output",
+            "band-size",
+            BAND_SIZES,
+            () => bandSizeOf(preferences()),
+            (bandSize) => update({ ...preferences(), bandSize }),
+          )}
+        </div>
       </section>
 
       <section class="settings-section" aria-labelledby={`${id}-presentation`}>
@@ -423,7 +451,7 @@ export function Settings(props: SettingsProps) {
             </h3>
             <button type="button" class="list-row settings-link" onClick={() => show()()}>
               Keyboard Shortcuts
-              <kbd class="key-hint">?</kbd>
+              <kbd class="key-hint">{keyHint("shortcuts")}</kbd>
             </button>
           </section>
         )}

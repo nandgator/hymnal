@@ -213,4 +213,38 @@ describe("Settings", () => {
       }),
     );
   });
+
+  it("sets the Output's reading band, a part unless chosen otherwise", async () => {
+    const setPreferences = vi.fn(async () => {});
+    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
+    await screen.findByText("100%");
+
+    const workspace = within(screen.getByRole("region", { name: "Workspace" }));
+    const band = within(workspace.getByRole("group", { name: "Reading band on the Output" }));
+    expect(band.getByRole("radio", { name: "Part" })).toBeChecked();
+    fireEvent.click(band.getByRole("radio", { name: "Line" }));
+    expect(setPreferences).toHaveBeenLastCalledWith(expect.objectContaining({ bandSize: "line" }));
+    expect(band.getByRole("radio", { name: "Line" })).toBeChecked();
+  });
+
+  it("puts the text-size keys in its tooltips, derived from the keymap", async () => {
+    render(() => <Settings userState={fakeUserState()} />);
+    await screen.findByText("100%");
+    expect(screen.getByRole("button", { name: "Decrease text size" })).toHaveAttribute(
+      "title",
+      "Decrease text size (−)",
+    );
+    expect(screen.getByRole("button", { name: "Decrease text size" })).toHaveAttribute(
+      "aria-keyshortcuts",
+      "-",
+    );
+    expect(screen.getByRole("button", { name: "Increase text size" })).toHaveAttribute(
+      "aria-keyshortcuts",
+      "Plus",
+    );
+    expect(screen.getByRole("button", { name: "Increase text size" })).toHaveAttribute(
+      "title",
+      "Increase text size (+)",
+    );
+  });
 });

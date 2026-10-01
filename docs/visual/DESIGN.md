@@ -398,11 +398,11 @@ problem than a warm, devotional, legible-at-distance tool.
     every verse, so it kept returning alone. Fading as a broadcast lower third
     does, only opacity changes; margins stay reserved, so the lyrics never
     resize or move. Off, cues stay: someone arriving mid-hymn with a songbook
-    still finds the number. **Show cues now** (command menu; its key waits for
-    Board #20) brings them back for another 8s, from the Operator, since the
-    operator is the one who knows they're wanted. Not hover or touch on the
-    Output: a mouse there shows the cursor to the room, and projected screens
-    rarely take touch. Per-cue delays were left out as complexity few would use.
+    still finds the number. **Show cues now** (command menu only, no key) brings
+    them back for another 8s, from the Operator, since the operator is the one
+    who knows they're wanted. Not hover or touch on the Output: a mouse there
+    shows the cursor to the room, and projected screens rarely take touch.
+    Per-cue delays were left out as complexity few would use.
   - Sized to the screen (`cqmin`), not the fit; they fade with the lyrics when
     blanked and show in Live like everything else. All inside the safe margin,
     never on the edge, which a TV's overscan crops.
@@ -693,11 +693,12 @@ mid-service. Three rules follow:
   cursor is on a repeat, its count (×2) and **Undo repeat** (takes back one
   showing) appear after it, moving nothing, so a third Repeat is still one tap.
   From ×3, **Reset repeat** follows (back to a single showing at once); at ×2 it
-  would only do what Undo does. Both are also in the command menu, and their
-  keys wait for the keymap review (PLAN Board #20). A repeat stays on the same
-  page with its count going up (×2, ×3 …): the Output doesn't scroll to a copy,
-  Lyrics shows one block marked ×N instead of a stack, and the Output can show
-  that ×N as a cue.
+  would only do what Undo does. Repeat and Undo are also in the command menu,
+  with keys: **R** repeats, **U** undoes the last repeat, as the buttons do
+  (disabled or not applicable, the key does nothing). Reset has no key: a button
+  from ×3 and a menu item. A repeat stays on the same page with its count going
+  up (×2, ×3 …): the Output doesn't scroll to a copy, Lyrics shows one block
+  marked ×N instead of a stack, and the Output can show that ×N as a cue.
 - **Special parts first, then the keypad.** Choruses, bridges and tags
   (unnumbered) come first as full-row chips; numbered stanzas follow as a keypad
   in number order, whatever order the hymn stores its parts in — a hymn that

@@ -1,4 +1,5 @@
 import type { Preferences } from "../persistence/user-state.ts";
+import type { ShortcutId } from "./keymap.ts";
 
 /** A supporting pane the operator may hide (SDD-0001 §16.4). */
 export type PaneId = "live";
@@ -9,8 +10,8 @@ export interface Pane {
   name: string;
   /** What it is, for Settings. */
   description: string;
-  /** Its show/hide key, if it has one. */
-  key?: string;
+  /** Its show/hide shortcut in the keymap, if it has one. */
+  shortcut?: ShortcutId;
 }
 
 /**
@@ -19,7 +20,7 @@ export interface Pane {
  * part keypad and the dock aren't here: they're the controls, never hidden.
  */
 export const PANES: Pane[] = [
-  { id: "live", name: "Live", description: "What the Output shows now", key: "L" },
+  { id: "live", name: "Live", description: "What the Output shows now", shortcut: "live" },
 ];
 
 /** Absent means shown: an unknown id is ignored, a new one starts visible. */

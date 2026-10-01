@@ -1,5 +1,5 @@
 import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
-import type { OutputCues } from "../persistence/user-state.ts";
+import type { BandSize, OutputCues } from "../persistence/user-state.ts";
 import { easeThemeChange } from "../shell/theme.ts";
 import { forwardKey, type OutputMessage, requestSeek, subscribeOutput } from "./channel.ts";
 import { OutputView } from "./OutputView.tsx";
@@ -38,6 +38,7 @@ export function Output() {
   const [cues, setCues] = createSignal<OutputCues>({});
   const [reveal, setReveal] = createSignal(0);
   const [pinChorus, setPinChorus] = createSignal(false);
+  const [bandSize, setBandSize] = createSignal<BandSize>("part");
   // Theme and cues follow the Operator's Settings live (SDD-0001 §16.1).
   const receive = (next: OutputMessage) => {
     if (next.type === "blank") setBlanked(next.blanked);
@@ -51,6 +52,7 @@ export function Output() {
       else apply();
       setCues(next.cues);
       setPinChorus(next.pinChorus);
+      setBandSize(next.bandSize);
     } else setMessage(next);
   };
 
@@ -72,13 +74,14 @@ export function Output() {
 
   // Keys pressed here act as in the Operator (SDD-0001 §16.1): with the
   // Output fullscreen on the projector, a clicker's keys often land in this
-  // window. Every plain key is forwarded rather than scrolling the view;
+  // window. Every plain key is forwarded, with whether it is auto-repeating (R and
+  // U ignore a held key), rather than scrolling the view;
   // chords stay the browser's.
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key.length !== 1 && !FORWARDED_KEYS.has(event.key)) return;
     event.preventDefault();
-    forwardKey({ key: event.key, shiftKey: event.shiftKey });
+    forwardKey({ key: event.key, shiftKey: event.shiftKey, repeat: event.repeat });
   };
   onMount(() => window.addEventListener("keydown", onKeyDown));
   onCleanup(() => window.removeEventListener("keydown", onKeyDown));
@@ -101,6 +104,7 @@ export function Output() {
           cues={cues()}
           reveal={reveal()}
           pinChorus={pinChorus()}
+          bandSize={bandSize()}
           onSeek={(line, whole) =>
             requestSeek({
               hymnbookId: current().hymnbookId,

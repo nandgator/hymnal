@@ -9,7 +9,7 @@ import {
   Show,
 } from "solid-js";
 import type { LineRange } from "../domain/sequence-engine.ts";
-import type { OutputCues } from "../persistence/user-state.ts";
+import type { BandSize, OutputCues } from "../persistence/user-state.ts";
 import type { OutputMessage } from "./channel.ts";
 
 type ContentMessage = Extract<OutputMessage, { type: "content" }>;
@@ -62,9 +62,9 @@ export interface OutputViewProps {
    * the focus was a whole part. The full view only; Live never seeks. */
   onSeek?: (line: number, whole: boolean) => void;
   /** The reading band's height while scrolling by hand: the part the focus
-   * is in (the default), or one line. A future shortcut may switch it
-   * (PLAN Board #20). */
-  bandSize?: "part" | "line";
+   * is in (the default), or one line — the Operator's Workspace
+   * preference, sent in the presentation message. */
+  bandSize?: BandSize;
   /** Which cues the caption shows; none by default (DESIGN.md). */
   cues?: OutputCues;
   /** Bumped to show faded cues again for their fade time. */

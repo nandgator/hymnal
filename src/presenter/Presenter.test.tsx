@@ -795,6 +795,117 @@ describe("Presenter", () => {
     expect(onActions).toHaveBeenLastCalledWith(undefined);
   });
 
+  it("repeats with R and undoes with U, as the buttons do (SDD-0001 §16.5)", async () => {
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    await screen.findByText("Test Hymn");
+    const count = () => document.querySelector(".repeat-count");
+
+    // Nothing to undo: silent, and the part stays put.
+    fireEvent.keyDown(window, { key: "u" });
+    expect(count()).toBeEmptyDOMElement();
+
+    fireEvent.keyDown(window, { key: "r" });
+    fireEvent.keyDown(window, { key: "R" });
+    expect(count()).toHaveTextContent(/^×3/);
+    fireEvent.keyDown(window, { key: "u" });
+    expect(count()).toHaveTextContent(/^×2/);
+    expect(screen.getByRole("button", { name: "Undo repeat" })).toBeEnabled();
+    fireEvent.keyDown(window, { key: "U" });
+    expect(count()).toBeEmptyDOMElement();
+    expect(screen.getByRole("button", { name: "Undo repeat" })).toBeDisabled();
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("1");
+    // Next still carries on from the single showing.
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Chorus");
+  });
+
+  it("takes a held R or U as one press, never auto-repeating (SDD-0001 §16.5)", async () => {
+    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    await screen.findByText("Test Hymn");
+    const count = () => document.querySelector(".repeat-count");
+    const hold = (key: string) => {
+      fireEvent.keyDown(window, { key });
+      for (let i = 0; i < 20; i++) fireEvent.keyDown(window, { key, repeat: true });
+    };
+
+    hold("r");
+    expect(count()).toHaveTextContent(/^×2/);
+    hold("r");
+    expect(count()).toHaveTextContent(/^×3/);
+    hold("u");
+    expect(count()).toHaveTextContent(/^×2/);
+    // The arrows keep auto-repeating on purpose.
+    fireEvent.keyDown(window, { key: "ArrowRight", repeat: true });
+    expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Chorus");
+  });
+
+  it("leaves R and U alone in a text field, a sheet, or with a modifier", async () => {
+    render(() => (
+      <>
+        <input aria-label="Notes" />
+        <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+      </>
+    ));
+    await screen.findByText("Test Hymn");
+    const count = () => document.querySelector(".repeat-count");
+
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Notes" }), { key: "r" });
+    fireEvent.keyDown(window, { key: "r", ctrlKey: true });
+    expect(count()).toBeEmptyDOMElement();
+
+    const sheet = document.body.appendChild(document.createElement("dialog"));
+    sheet.setAttribute("open", "");
+    try {
+      fireEvent.keyDown(window, { key: "r" });
+      expect(count()).toBeEmptyDOMElement();
+    } finally {
+      sheet.remove();
+    }
+  });
+
+  it("puts the key in each tooltip and aria-keyshortcuts, but not in a phone's tooltip", async () => {
+    const tips = () =>
+      ["Repeat", "Undo repeat", "Next part", "Previous line", "Next line"].map((name) => {
+        const button = screen.getByRole("button", { name });
+        return [button.getAttribute("title"), button.getAttribute("aria-keyshortcuts")];
+      });
+    const { unmount } = render(() => (
+      <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
+    await screen.findByText("Test Hymn");
+    expect(tips()).toEqual([
+      ["Repeat this part (R)", "R"],
+      ["Undo repeat (U)", "U"],
+      ["Next part (→)", "ArrowRight PageDown Space"],
+      ["Previous line (↑)", "ArrowUp"],
+      ["Next line (↓)", "ArrowDown"],
+    ]);
+    unmount();
+
+    // Under 840px there is usually no keyboard: the tooltip is the bare label.
+    stubMedia(() => false);
+    try {
+      render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+      await screen.findByText("Test Hymn");
+      expect(tips().map(([title]) => title)).toEqual([
+        "Repeat this part",
+        "Undo repeat",
+        "Next part",
+        "Previous line",
+        "Next line",
+      ]);
+      expect(tips().map(([, keys]) => keys)).toEqual([
+        "R",
+        "U",
+        "ArrowRight PageDown Space",
+        "ArrowUp",
+        "ArrowDown",
+      ]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("tells the Output which part is up, as a congregation reads it, and its repeat count", async () => {
     publishOutput.mockClear();
     render(() => (

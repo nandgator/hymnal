@@ -28,10 +28,9 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 
 ## Now
 
-**Next: Board #27 part 5** (below), then #20 (keys follow the layout). #26, the
-Operator layout, is done: parts 1–4c, reviewed; its motion rules are DESIGN.md §
-Motion (the fold a fade-through; theme changes revealed; sheets follow the
-layout).
+**Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
+**Next: Board #27 part 5** (below), then part 6. In review: This Song's tint
+glides from part to part with the scroll (DESIGN.md § Structure, Lyrics).
 
 **Board #27 (song import, CLI)**: it touches no UI. Target: _Hymns of
 Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its index), the
@@ -79,7 +78,6 @@ Ordered. Top unblocked item is next.
 | #   | Task                                                                                     | Blocked by   |
 | --- | ---------------------------------------------------------------------------------------- | ------------ |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                         | —            |
-| 20  | Keymap review (§16.5): band size, Repeat/Undo/Reset, Show cues now                       | —            |
 | 28  | Library: load songs and books in format 1, local only; keys, duplicates (ADR-0020/21/24) | 27, 2nd book |
 | 29  | Import: PowerPoint reader; _Songs of Zion_ (.pptx, its PDF to cross-check)               | 27           |
 | 30  | Full song, landscape: printed form in columns, the highlight glides; mockup              | —            |
@@ -95,9 +93,9 @@ Ordered. Top unblocked item is next.
 | 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                               | Phase 2      |
 | 25  | Stage outputs for musicians: lyrics + chords, score, notation                            | content      |
 
-20 finishes Phase 1; 27 is a build-time tool beside it. 14–15 sit past the scope
-guard below. 16–25 are notes, not scheduled: the shell reserves room for them
-(DESIGN.md § Structure).
+Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. 14–15
+sit past the scope guard below. 16–25 are notes, not scheduled: the shell
+reserves room for them (DESIGN.md § Structure).
 
 ## Invariants
 
@@ -133,6 +131,7 @@ only, here:
 
 ## Log
 
+- 2026-10-01 — #20 done: R, U; key hints from one table; band size a setting
 - 2026-10-01 — #27 part 5: breaks done; #152's chorus joins; long stanzas noted
   for the judge
 - 2026-10-01 — #27 part 5: a stanza's stub at a column's foot joins its rest (4

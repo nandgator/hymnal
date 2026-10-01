@@ -26,6 +26,10 @@ export interface OutputCues {
   fade?: boolean;
 }
 
+/** The Output's reading band while someone scrolls by hand: the part the
+ * focus is in, or one line (SDD-0001 §16.1). */
+export type BandSize = "part" | "line";
+
 /** The Output's preset when none is chosen. */
 export const DEFAULT_OUTPUT_THEME: OutputTheme = "warm";
 
@@ -45,6 +49,8 @@ export interface Preferences {
   /** The Output's cues; absent means {@link DEFAULT_OUTPUT_CUES}, and once
    * set, missing ones are off. */
   outputCues?: OutputCues;
+  /** The Output's reading band; absent means `part` — SDD-0001 §16.1. */
+  bandSize?: BandSize;
   /** Pin the chorus where it fits; absent means off — SDD-0001 §16.1. */
   pinChorus?: boolean;
   /** The Operator's tab groups, as stored; read through `workspaceOf`, which
@@ -58,6 +64,10 @@ export const DEFAULT_OUTPUT_CUES: OutputCues = { number: true, hymnbook: true, f
 
 export const outputCuesOf = (preferences: Preferences): OutputCues =>
   preferences.outputCues ?? DEFAULT_OUTPUT_CUES;
+
+/** Anything but "line", a stored value gone wrong included, is a part. */
+export const bandSizeOf = (preferences: Preferences): BandSize =>
+  preferences.bandSize === "line" ? "line" : "part";
 
 export const pinChorusOf = (preferences: Preferences) => preferences.pinChorus ?? false;
 
@@ -148,15 +158,18 @@ export function openUserState(dbName: string): UserState {
       const {
         navigator: _retired,
         pinRefrain,
+        bandSize,
         ...stored
       } = ((await readDoc()).preferences ?? {}) as Partial<Preferences> & {
         navigator?: unknown;
         pinRefrain?: boolean;
       };
+      // A stored value that is neither is dropped: a part.
       return {
         ...DEFAULT_PREFERENCES,
         ...(pinRefrain === undefined ? {} : { pinChorus: pinRefrain }),
         ...stored,
+        ...(bandSize === "part" || bandSize === "line" ? { bandSize } : {}),
       };
     },
 

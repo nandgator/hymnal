@@ -1,6 +1,6 @@
 import type { FlatLine, LineRange } from "../domain/sequence-engine.ts";
 import type { HymnbookId, HymnNumber, PartId } from "../domain/types.ts";
-import type { OutputCues, OutputTheme } from "../persistence/user-state.ts";
+import type { BandSize, OutputCues, OutputTheme } from "../persistence/user-state.ts";
 
 /**
  * Presenter → Output, one browser, two windows (Board #11, SDD-0001 §16.1).
@@ -40,6 +40,7 @@ export type PresentationMessage = {
   theme: OutputTheme;
   cues: OutputCues;
   pinChorus: boolean;
+  bandSize: BandSize;
 };
 
 /** Output → Operator: "I'm open — send me what's showing." Sent on
@@ -68,7 +69,13 @@ export type SeekMessage = {
 
 /** Output → Operator: a plain key pressed in the Output window, replayed
  * through the Operator's keymap (SDD-0001 §16.1). */
-export type KeyMessage = { type: "key"; key: string; shiftKey: boolean };
+export type KeyMessage = {
+  type: "key";
+  key: string;
+  shiftKey: boolean;
+  /** Held down, auto-repeating: R and U ignore it (SDD-0001 §16.5). */
+  repeat?: boolean;
+};
 
 type ChannelMessage =
   | OutputMessage
@@ -118,7 +125,7 @@ export function setOutputBlanked(next: boolean): void {
   getChannel().postMessage({ type: "blank", blanked } satisfies OutputMessage);
 }
 
-/** Sends the Output's theme and cues; held and replayed to a late Output
+/** Sends the Output's theme, cues and band size; held and replayed to a late Output
  * like blank. */
 export function setOutputPresentation(settings: Omit<PresentationMessage, "type">): void {
   presentation = { type: "presentation", ...settings };

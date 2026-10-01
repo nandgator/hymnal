@@ -11,10 +11,23 @@ import {
   subscribePresence,
 } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
-import { DEFAULT_OUTPUT_THEME, outputCuesOf, pinChorusOf } from "./persistence/user-state.ts";
+import {
+  bandSizeOf,
+  DEFAULT_OUTPUT_THEME,
+  outputCuesOf,
+  pinChorusOf,
+} from "./persistence/user-state.ts";
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { titleCase } from "./shell/case.ts";
-import { ignoresShortcuts, keyHint, replayForwardedKey, SHORTCUTS } from "./shell/keymap.ts";
+import {
+  ariaKeys,
+  ignoresShortcuts,
+  keyCaps,
+  keyHint,
+  replayForwardedKey,
+  SHORTCUTS,
+  withKey,
+} from "./shell/keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { isPaneShown, PANES, type PaneId } from "./shell/panes.ts";
 import { canAdjustScale, createPreferences, OUTPUT_CUES, Settings } from "./shell/Settings.tsx";
@@ -82,6 +95,7 @@ function Operator() {
       theme: preferences.preferences().outputTheme ?? DEFAULT_OUTPUT_THEME,
       cues: outputCuesOf(preferences.preferences()),
       pinChorus: pinChorusOf(preferences.preferences()),
+      bandSize: bandSizeOf(preferences.preferences()),
     }),
   );
 
@@ -201,9 +215,19 @@ function Operator() {
       },
       ...(presenting() && presenterActions()
         ? [
-            { label: "Repeat this part", run: run(() => presenterActions()?.repeat()) },
+            {
+              label: "Repeat this part",
+              hint: keyHint("repeat"),
+              run: run(() => presenterActions()?.repeat()),
+            },
             ...(presenterActions()?.canUndoRepeat()
-              ? [{ label: "Undo repeat", run: run(() => presenterActions()?.undoRepeat()) }]
+              ? [
+                  {
+                    label: "Undo repeat",
+                    hint: keyHint("undo-repeat"),
+                    run: run(() => presenterActions()?.undoRepeat()),
+                  },
+                ]
               : []),
             ...(presenterActions()?.canResetRepeats()
               ? [{ label: "Reset repeat", run: run(() => presenterActions()?.resetRepeats()) }]
@@ -239,7 +263,7 @@ function Operator() {
         : []),
       ...PANES.map((pane) => ({
         label: `${isPaneShown(prefs, pane.id) ? "Hide" : "Show"} ${pane.name}`,
-        hint: pane.key,
+        hint: pane.shortcut && keyHint(pane.shortcut),
         run: run(() => togglePane(pane.id)),
       })),
       ...OUTPUT_CUES.map((cue) => {
@@ -253,6 +277,18 @@ function Operator() {
         ? [{ label: "Show cues now", run: run(showCues) }]
         : []),
       {
+        label:
+          bandSizeOf(prefs) === "line"
+            ? "Make the Output's reading band a part"
+            : "Make the Output's reading band a line",
+        run: run(() =>
+          preferences.update({
+            ...prefs,
+            bandSize: bandSizeOf(prefs) === "line" ? "part" : "line",
+          }),
+        ),
+      },
+      {
         label: cues.fade ? "Keep cues on the Output" : "Fade cues on the Output",
         run: run(() => preferences.setCue("fade", !cues.fade)),
       },
@@ -260,10 +296,22 @@ function Operator() {
       { label: "Library", run: run(() => go("library")) },
       { label: "Settings", hint: keyHint("settings"), run: run(() => openSheet(setSettingsOpen)) },
       ...(canAdjustScale(prefs, 1)
-        ? [{ label: "Text size up", hint: "+", run: run(() => preferences.adjustScale(1)) }]
+        ? [
+            {
+              label: "Text size up",
+              hint: keyHint("text-size"),
+              run: run(() => preferences.adjustScale(1)),
+            },
+          ]
         : []),
       ...(canAdjustScale(prefs, -1)
-        ? [{ label: "Text size down", hint: "−", run: run(() => preferences.adjustScale(-1)) }]
+        ? [
+            {
+              label: "Text size down",
+              hint: keyHint("text-size", 1),
+              run: run(() => preferences.adjustScale(-1)),
+            },
+          ]
         : []),
       {
         label: "Keyboard shortcuts",
@@ -319,7 +367,9 @@ function Operator() {
   // they do in the Operator — the shell's keys and the Presenter's alike
   // (SDD-0001 §16.1).
   onMount(() => {
-    const unsubscribe = subscribeKeys(({ key, shiftKey }) => replayForwardedKey(key, shiftKey));
+    const unsubscribe = subscribeKeys(({ key, shiftKey, repeat }) =>
+      replayForwardedKey(key, shiftKey, repeat),
+    );
     onCleanup(unsubscribe);
   });
 
@@ -348,6 +398,8 @@ function Operator() {
               type="button"
               class="rail-item"
               aria-haspopup="dialog"
+              aria-keyshortcuts={ariaKeys("settings")}
+              title={withKey("Settings", "settings", expanded())}
               onClick={() => setSettingsOpen(true)}
             >
               <span class="rail-indicator">
@@ -430,14 +482,15 @@ function Operator() {
               type="button"
               class="switcher-find"
               aria-haspopup="dialog"
-              aria-keyshortcuts="Control+K"
+              aria-keyshortcuts={ariaKeys("command-menu", 1)}
               onClick={() => openSheet(setCommandMenuOpen)}
             >
               <span class="icon icon-search" aria-hidden="true" />
               <span class="switcher-find-text">Find a song or action</span>
               <span class="key-combo switcher-find-key" aria-hidden="true">
-                <kbd class="key-hint">Ctrl</kbd>
-                <kbd class="key-hint">K</kbd>
+                <For each={keyCaps(keyHint("command-menu", 1))}>
+                  {(cap) => <kbd class="key-hint">{cap}</kbd>}
+                </For>
               </span>
             </button>
           </Show>
@@ -455,13 +508,13 @@ function Operator() {
               presenting: presentingOutput(),
               "present-blanked": presentingOutput() && blanked(),
             }}
-            aria-keyshortcuts="O"
+            aria-keyshortcuts={ariaKeys("output")}
             title={
               !presentingOutput()
-                ? "Open the Output (O)"
+                ? withKey("Open the Output", "output", expanded())
                 : blanked()
-                  ? "The Output is blanked; B restores it. Bring it forward (O)"
-                  : "Bring the Output forward (O)"
+                  ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
+                  : withKey("Bring the Output forward", "output", expanded())
             }
             onClick={openOutput}
           >
@@ -561,7 +614,7 @@ function Operator() {
                       {(key) => (
                         <span class="key-combo">
                           {/* "Ctrl+K" is two caps; a lone "+" stays one. */}
-                          <For each={key.split(/\+(?=.)/)}>
+                          <For each={keyCaps(key)}>
                             {(cap) => <kbd class="key-hint">{cap}</kbd>}
                           </For>
                         </span>

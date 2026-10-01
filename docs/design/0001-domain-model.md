@@ -1180,8 +1180,9 @@ decides.
   and becomes a band fixed to the viewport where the focus's part sat, one part
   tall by default: lines light as they pass through it, whichever part they
   belong to. Nothing jumps as a trackpad glides. The band can instead be one
-  line tall (`bandSize`); a shortcut to switch it waits for the keymap review
-  (PLAN Board #20).
+  line tall (`bandSize`): a Workspace preference in Settings,
+  `preferences.bandSize` (part by default), sent to the Output in the
+  `presentation` message and toggled from the command menu, with no key (§16.5).
 - **On rest, a seek.** Once scrolling pauses (about 200ms), the Output posts
   `{ type: "seek", hymnbookId, number, line, whole }`: the flattened line at the
   band's centre, and whether the band was part-sized. The Presenter maps it back
@@ -1210,9 +1211,9 @@ decides.
 
 **Presentation settings travel with the content.** The Output theme (Dark,
 Light, Contrast, Warm) and the cue switches are Operator preferences, sent as
-`{ type: "presentation", theme, cues }` whenever they change and held and
-replayed on late join like `blank`, so an Output window follows Settings live
-without reading storage itself.
+`{ type: "presentation", theme, cues, pinChorus, bandSize }` whenever they
+change and held and replayed on late join like `blank`, so an Output window
+follows Settings live without reading storage itself.
 
 Cursor: shown while the mouse moves, hidden after 2s idle.
 
@@ -1346,8 +1347,10 @@ Ctrl/⌘+K and Ctrl/⌘+, (Settings), which work from anywhere, including a text
 field. Other keys held with Ctrl, ⌘ or Alt are left to the browser (zoom, find,
 reload). Single keys are spent sparingly: an occasional action gets a chord or
 the command menu, not a letter, so letters stay free for what later parts need.
-The whole keymap is reviewed near completion (PLAN Board #20). Remote clickers
-send arrows, Page Up/Down, and `.` or `B` for a black screen, so those work too.
+The keymap was reviewed at Board #20: a letter goes to what's done mid-song
+(parts, repeat, blank), everything occasional to the command menu. Remote
+clickers send arrows, Page Up/Down, and `.` or `B` for a black screen, so those
+work too.
 
 | Keys                    | Action                          |
 | ----------------------- | ------------------------------- |
@@ -1357,9 +1360,11 @@ send arrows, Page Up/Down, and `.` or `B` for a black screen, so those work too.
 | Home End                | First / last part               |
 | 1–9, two digits quickly | Jump to stanza _n_ (§5.1)       |
 | C                       | Jump to the chorus              |
+| R                       | Repeat this part                |
+| U                       | Undo the last repeat            |
 | B or .                  | Blank the Output / restore      |
 | O                       | Open or focus the Output window |
-| N                       | Next tab (in the main group)    |
+| N                       | Next tab (see below)            |
 | L                       | Show or hide Live (§16.4)       |
 | / or Ctrl/⌘+K           | Command menu: hymns and actions |
 | + −                     | Operator text size              |
@@ -1367,11 +1372,27 @@ send arrows, Page Up/Down, and `.` or `B` for a black screen, so those work too.
 | Ctrl/⌘+,                | Settings                        |
 | Esc                     | Close a sheet or menu           |
 
-- **One table, two owners.** The table is data (`src/shell/keymap.ts`), rendered
-  by the `?` sheet and read by the command menu for its key hints, so the three
-  can't disagree. The shell handles the keys that work on every screen (B, O, N,
-  L, /, Ctrl/⌘+K, +, −, ?); the Presenter handles the ones that move an engine
-  (parts, lines, stanzas, chorus).
+- **One table, two owners.** The table is data (`src/shell/keymap.ts`,
+  `SHORTCUTS`), rendered by the `?` sheet and read by every other place a key
+  shows, so none can disagree: a control's tooltip and `aria-keyshortcuts`, and
+  the command menu's hints all derive from it, with no hardcoded key strings.
+  The shell handles the keys that work on every screen (B, O, L, /, Ctrl/⌘+K, +,
+  −, ?); the Presenter handles the ones that move an engine (parts, lines,
+  stanzas, chorus, R, U) and N, which switches tabs inside the Presenter's own
+  workspace.
+- **Keys follow the layout.** A control with a key shows it in its tooltip
+  ("Repeat this part (R)"); on a phone (under 840px, usually no keyboard)
+  tooltips carry no key hint, though `aria-keyshortcuts` stays. A command-menu
+  item with a key shows it as a hint, on a phone too.
+- **N** moves through the main group's tabs, or the phone's tabs (This Song,
+  Recents, Parts) on a phone: the `?` sheet says so.
+- **R and U** are the Repeat and Undo repeat buttons (§16.4), enabled exactly
+  when they are: Undo does nothing, silently, with no repeat to take back. Reset
+  repeat has no key: a button from ×3, and a command-menu item. Both keys are
+  off in text fields and sheets like all the others, and work from the Output
+  window, which forwards every plain key.
+- **No key, by choice**: Show cues now and the Output's band size (§16.1) are
+  command-menu items only, occasional enough that a letter would be wasted.
 - **Space is Next part**, even on a focused button: a clicker or a thumb on the
   space bar must never re-press whatever chip was last tapped (which would
   restart that part). Enter still activates a focused button. Radios and
@@ -1407,7 +1428,8 @@ With the box empty, the actions show, each with its key. Actions: Blank or
 Restore the Output, Go live, Next tab, Split or merge the tabs and Make the
 other tab group main (only where two groups fit, from 1400px; they glide as the
 pane toolbar's do), Show or hide each pane, Switch hymnbook, Library, Settings,
-Text size up and down, Keyboard shortcuts.
+Text size up and down, Keyboard shortcuts, and the Output's band size. Repeat
+and Undo repeat show R and U; Show cues now has no key.
 
 ### 16.6 Testing
 

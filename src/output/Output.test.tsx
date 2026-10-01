@@ -155,9 +155,21 @@ describe("Output", () => {
 
   it("takes the Operator's Output theme, live (SDD-0001 §16.1)", () => {
     render(() => <Output />);
-    channel.handler?.({ type: "presentation", theme: "contrast", cues: {}, pinChorus: false });
+    channel.handler?.({
+      type: "presentation",
+      theme: "contrast",
+      cues: {},
+      pinChorus: false,
+      bandSize: "part",
+    });
     expect(document.documentElement.getAttribute("data-output-theme")).toBe("contrast");
-    channel.handler?.({ type: "presentation", theme: "dark", cues: {}, pinChorus: false });
+    channel.handler?.({
+      type: "presentation",
+      theme: "dark",
+      cues: {},
+      pinChorus: false,
+      bandSize: "part",
+    });
     expect(document.documentElement.getAttribute("data-output-theme")).toBe("dark");
   });
 
@@ -181,6 +193,7 @@ describe("Output", () => {
       theme: "warm",
       cues: { title: true, repeat: true },
       pinChorus: false,
+      bandSize: "part",
     });
     expect(document.querySelector(".output-caption")).toHaveTextContent("Test Hymn · ×2");
     expect(document.querySelector(".output-badge")).not.toBeInTheDocument();
@@ -189,6 +202,7 @@ describe("Output", () => {
       theme: "warm",
       cues: { number: true, hymnbook: true, title: true, part: true, repeat: true },
       pinChorus: false,
+      bandSize: "part",
     });
     expect(document.querySelector(".output-caption")).toHaveTextContent(
       "Test Book · Test Hymn · Chorus · ×2",
@@ -225,7 +239,13 @@ describe("Output", () => {
       ...LINES.slice(2),
     ];
     const present = (pinChorus: boolean, focus: number) => {
-      channel.handler?.({ type: "presentation", theme: "warm", cues: {}, pinChorus });
+      channel.handler?.({
+        type: "presentation",
+        theme: "warm",
+        cues: {},
+        pinChorus,
+        bandSize: "part",
+      });
       channel.handler?.({
         type: "content",
         hymnbookId: "book",
@@ -277,6 +297,7 @@ describe("Output", () => {
       theme: "warm",
       cues: { part: true, number: true, fade: true },
       pinChorus: false,
+      bandSize: "part",
     });
     const content = (focus: number, part: string) =>
       channel.handler?.({
@@ -328,6 +349,7 @@ describe("Output", () => {
       theme: "warm",
       cues: { part: true, number: true },
       pinChorus: false,
+      bandSize: "part",
     });
     show(0);
     scrollTo.mockClear();
@@ -360,6 +382,40 @@ describe("Output", () => {
     });
   });
 
+  it("sizes the reading band as the Operator's presentation says, a line or a part", () => {
+    vi.useFakeTimers();
+    render(() => <Output />);
+    show(0);
+    const view = screen.getByText("Line 1a").closest(".output-view") as HTMLElement;
+    const scrollOnce = () => {
+      fireEvent.wheel(view);
+      fireEvent.scroll(view);
+      vi.advanceTimersByTime(500);
+    };
+
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: {},
+      pinChorus: false,
+      bandSize: "line",
+    });
+    scrollOnce();
+    expect(channel.requestSeek).toHaveBeenLastCalledWith(expect.objectContaining({ whole: false }));
+
+    // The Operator accepting the seek publishes, which ends the band.
+    show(0);
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: {},
+      pinChorus: false,
+      bandSize: "part",
+    });
+    scrollOnce();
+    expect(channel.requestSeek).toHaveBeenLastCalledWith(expect.objectContaining({ whole: true }));
+  });
+
   it("never echoes its own re-centring back as a seek", () => {
     vi.useFakeTimers();
     render(() => <Output />);
@@ -386,15 +442,23 @@ describe("Output", () => {
     window.dispatchEvent(arrow);
     fireEvent.keyDown(window, { key: " ", shiftKey: true });
     fireEvent.keyDown(window, { key: "b" });
+    // R and U (Repeat, Undo repeat) are plain keys like the rest.
+    fireEvent.keyDown(window, { key: "r" });
+    fireEvent.keyDown(window, { key: "u" });
+    fireEvent.keyDown(window, { key: "r", repeat: true });
     // Chords stay the browser's; other named keys (Tab, Escape) too.
     fireEvent.keyDown(window, { key: "r", ctrlKey: true });
     fireEvent.keyDown(window, { key: "Escape" });
 
     expect(arrow.defaultPrevented).toBe(true);
     expect(channel.forwardKey.mock.calls).toEqual([
-      [{ key: "ArrowRight", shiftKey: false }],
-      [{ key: " ", shiftKey: true }],
-      [{ key: "b", shiftKey: false }],
+      [{ key: "ArrowRight", shiftKey: false, repeat: false }],
+      [{ key: " ", shiftKey: true, repeat: false }],
+      [{ key: "b", shiftKey: false, repeat: false }],
+      [{ key: "r", shiftKey: false, repeat: false }],
+      [{ key: "u", shiftKey: false, repeat: false }],
+      // A held key says so, so the Operator can ignore the auto-repeat.
+      [{ key: "r", shiftKey: false, repeat: true }],
     ]);
   });
 

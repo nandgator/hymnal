@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Position } from "../domain/types.ts";
-import { DEFAULT_PREFERENCES, openUserState, type UserState } from "./user-state.ts";
+import { bandSizeOf, DEFAULT_PREFERENCES, openUserState, type UserState } from "./user-state.ts";
 
 const position = (hymnNumber: number): Position => ({
   hymnbookId: "mal-ymef-athmeeya-geethangal-16",
@@ -87,6 +87,23 @@ describe("preferences", () => {
   it("fills a preference saved before it existed from the defaults, without migrating", async () => {
     await state.setPreferences({ theme: "dark" } as never);
     expect(await state.getPreferences()).toEqual({ theme: "dark", fontScale: 1 });
+  });
+
+  it("keeps the Output's band size, one part when none is chosen", async () => {
+    expect(bandSizeOf(await state.getPreferences())).toBe("part");
+    await state.setPreferences({ theme: "light", fontScale: 1, bandSize: "line" });
+    expect(await state.getPreferences()).toEqual({
+      theme: "light",
+      fontScale: 1,
+      bandSize: "line",
+    });
+    expect(bandSizeOf(await state.getPreferences())).toBe("line");
+  });
+
+  it("falls back to a part for a stored band size that is neither", async () => {
+    await state.setPreferences({ theme: "light", fontScale: 1, bandSize: "paragraph" } as never);
+    expect(await state.getPreferences()).toEqual({ theme: "light", fontScale: 1 });
+    expect(bandSizeOf({ theme: "light", fontScale: 1, bandSize: 3 } as never)).toBe("part");
   });
 
   it("reads a renamed preference under its old name (ADR-0025)", async () => {

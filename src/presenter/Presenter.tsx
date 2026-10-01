@@ -30,7 +30,7 @@ import {
   type UserState,
 } from "../persistence/user-state.ts";
 import { titleCase } from "../shell/case.ts";
-import { ignoresShortcuts } from "../shell/keymap.ts";
+import { ariaKeys, ignoresShortcuts, type ShortcutId, withKey } from "../shell/keymap.ts";
 import { AfterDelay } from "../shell/Loading.tsx";
 import { Menu, type MenuItem } from "../shell/Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY, SPLIT_QUERY, STAGE_QUERY } from "../shell/media.ts";
@@ -333,9 +333,20 @@ export function Presenter(props: PresenterProps) {
     // Space is Next part even on a focused button, so a clicker never
     // re-presses the last chip tapped; radios and checkboxes keep it.
     if (event.key === " " && event.target instanceof HTMLInputElement) return;
-    if (event.key.toLowerCase() === "n" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    const key = event.key.toLowerCase();
+    if (key === "n" && !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();
       nextTab();
+      return;
+    }
+    // R and U are the Repeat and Undo buttons: Undo does nothing, silently,
+    // with no repeat to take back.
+    if (key === "r" || key === "u") {
+      event.preventDefault();
+      // A held key auto-repeats at ~30/s: one press is one repeat or undo.
+      if (event.repeat) return;
+      if (key === "r") repeat();
+      else if (canUndoRepeat()) undoRepeat();
       return;
     }
     if (/^\d$/.test(event.key)) {
@@ -357,7 +368,7 @@ export function Presenter(props: PresenterProps) {
         const chorus = e.hymn.parts.find((part) => part.kind === "chorus");
         if (chorus) e.jumpToPart(chorus.id);
       },
-    }[event.key.length === 1 ? event.key.toLowerCase() : event.key];
+    }[event.key.length === 1 ? key : event.key];
     if (!action) return;
     event.preventDefault();
     mutate(action);
@@ -534,7 +545,7 @@ export function Presenter(props: PresenterProps) {
   const dockButton = (
     name: string,
     label: string,
-    key: { aria: string; shown: string },
+    key: { id: ShortcutId; index?: number },
     icon: string,
     action: (e: SequenceEngine) => void,
     options: { filled?: boolean; iconEnd?: boolean; disabled?: () => boolean } = {},
@@ -545,8 +556,8 @@ export function Presenter(props: PresenterProps) {
       onClick={() => mutate(action)}
       disabled={options.disabled?.()}
       aria-label={name}
-      aria-keyshortcuts={key.aria}
-      title={`${name} (${key.shown})`}
+      aria-keyshortcuts={ariaKeys(key.id, key.index)}
+      title={withKey(name, key.id, expanded(), key.index)}
     >
       <Show when={!options.iconEnd}>
         <span class={`icon ${icon}`} aria-hidden="true" />
@@ -566,25 +577,21 @@ export function Presenter(props: PresenterProps) {
       {dockButton(
         "Previous part",
         "Part",
-        { aria: "ArrowLeft", shown: "←" },
+        { id: "previous-part" },
         "icon-chevron-left",
         (e) => e.previous(),
         { disabled: () => !canPrevious() },
       )}
-      {dockButton("Previous line", "Line", { aria: "ArrowUp", shown: "↑" }, "icon-arrow-up", (e) =>
+      {dockButton("Previous line", "Line", { id: "lines", index: 1 }, "icon-arrow-up", (e) =>
         e.previousLine(),
       )}
-      {dockButton("Next line", "Line", { aria: "ArrowDown", shown: "↓" }, "icon-arrow-down", (e) =>
+      {dockButton("Next line", "Line", { id: "lines", index: 0 }, "icon-arrow-down", (e) =>
         e.nextLine(),
       )}
-      {dockButton(
-        "Next part",
-        "Part",
-        { aria: "ArrowRight", shown: "→" },
-        "icon-chevron-right",
-        (e) => e.next(),
-        { iconEnd: true, disabled: () => !canNext() },
-      )}
+      {dockButton("Next part", "Part", { id: "next-part" }, "icon-chevron-right", (e) => e.next(), {
+        iconEnd: true,
+        disabled: () => !canNext(),
+      })}
     </div>
   );
 
@@ -615,8 +622,12 @@ export function Presenter(props: PresenterProps) {
       type="button"
       class="live-control"
       aria-pressed={!!props.blanked}
-      aria-keyshortcuts="B"
-      title={props.blanked ? "Restore the Output (B)" : "Blank the Output (B)"}
+      aria-keyshortcuts={ariaKeys("blank")}
+      title={withKey(
+        props.blanked ? "Restore the Output" : "Blank the Output",
+        "blank",
+        expanded(),
+      )}
       onClick={() => props.onToggleBlank?.()}
     >
       {props.blanked ? (
@@ -672,7 +683,8 @@ export function Presenter(props: PresenterProps) {
           type="button"
           class="btn-text repeat-button"
           aria-label="Repeat"
-          title="Repeat this part"
+          aria-keyshortcuts={ariaKeys("repeat")}
+          title={withKey("Repeat this part", "repeat", expanded())}
           onClick={repeat}
         >
           <span class="icon icon-repeat" aria-hidden="true" />
@@ -692,6 +704,8 @@ export function Presenter(props: PresenterProps) {
             type="button"
             class="btn-text"
             aria-label="Undo repeat"
+            aria-keyshortcuts={ariaKeys("undo-repeat")}
+            title={withKey("Undo repeat", "undo-repeat", expanded())}
             disabled={!canUndoRepeat()}
             onClick={undoRepeat}
           >

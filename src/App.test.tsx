@@ -213,6 +213,101 @@ describe("App", () => {
     expect(document.querySelector(".repeat-count")).toBeEmptyDOMElement();
   });
 
+  /** Opens a hymn in the Presenter, the way a person would. */
+  async function openHymn() {
+    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+      target: { value: "1" },
+    });
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
+    await screen.findByRole("img", { name: "Live output preview" });
+  }
+
+  it("shows each action's key in the command menu, from the keymap; Show cues now has none", async () => {
+    render(() => <App />);
+    await openHymn();
+    fireEvent.keyDown(window, { key: "r" });
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const menu = await screen.findByRole("dialog", { name: "Search" });
+    const hintOf = (name: RegExp) =>
+      within(menu).getByRole("option", { name }).querySelector("kbd")?.textContent;
+
+    expect(hintOf(/Repeat This Part/)).toBe("R");
+    expect(hintOf(/Undo Repeat/)).toBe("U");
+    expect(hintOf(/Blank the Output/)).toBe("B");
+    expect(hintOf(/Text Size Up/)).toBe("+");
+    expect(hintOf(/Text Size Down/)).toBe("−");
+    expect(hintOf(/Hide Live/)).toBe("L");
+    // Occasional actions have no key (SDD-0001 §16.5).
+    expect(hintOf(/Show Cues Now/)).toBeUndefined();
+    expect(hintOf(/Reading Band/)).toBeUndefined();
+    expect(within(menu).queryByRole("option", { name: /Reset Repeat/ })).not.toBeInTheDocument();
+  });
+
+  it("toggles the Output's reading band from the command menu, kept in preferences", async () => {
+    render(() => <App />);
+    await openHymn();
+    const choose = async (name: RegExp) => {
+      fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+      const menu = await screen.findByRole("dialog", { name: "Search" });
+      fireEvent.mouseDown(within(menu).getByRole("option", { name }));
+    };
+
+    await choose(/Reading Band a Line/);
+    await choose(/Reading Band a Part/);
+    // Back to the default: the menu offers the line again.
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    expect(
+      within(await screen.findByRole("dialog", { name: "Search" })).getByRole("option", {
+        name: /Reading Band a Line/,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("repeats and undoes with R and U pressed in the Output window (SDD-0001 §16.1)", async () => {
+    render(() => <App />);
+    await openHymn();
+    const count = () => document.querySelector(".repeat-count");
+    const outputWindow = new BroadcastChannel("hymnal-output");
+
+    outputWindow.postMessage({ type: "key", key: "r", shiftKey: false });
+    await waitFor(() => expect(count()).toHaveTextContent(/^×2/));
+    outputWindow.postMessage({ type: "key", key: "u", shiftKey: false });
+    await waitFor(() => expect(count()).toBeEmptyDOMElement());
+    outputWindow.close();
+  });
+
+  it("takes a held R or U forwarded from the Output as one press", async () => {
+    render(() => <App />);
+    await openHymn();
+    const count = () => document.querySelector(".repeat-count");
+    const outputWindow = new BroadcastChannel("hymnal-output");
+    const hold = async (key: string) => {
+      outputWindow.postMessage({ type: "key", key, shiftKey: false, repeat: false });
+      for (let i = 0; i < 20; i++) {
+        outputWindow.postMessage({ type: "key", key, shiftKey: false, repeat: true });
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    };
+
+    await hold("r");
+    await waitFor(() => expect(count()).toHaveTextContent(/^×2/));
+    await hold("u");
+    await waitFor(() => expect(count()).toBeEmptyDOMElement());
+    outputWindow.close();
+  });
+
+  it("titles Go live with its key from the keymap", async () => {
+    render(() => <App />);
+    await screen.findByRole("button", { name: "Find a Song" });
+    const settings = screen.getByRole("button", { name: "Settings" });
+    expect(settings).toHaveAttribute("title", "Settings (Ctrl+,)");
+    expect(settings).toHaveAttribute("aria-keyshortcuts", "Control+,");
+    const goLive = screen.getByRole("button", { name: "Go Live" });
+    expect(goLive).toHaveAttribute("title", "Open the Output (O)");
+    expect(goLive).toHaveAttribute("aria-keyshortcuts", "O");
+  });
+
   it("offers Split and Make main only where two tab groups fit (SDD-0001 §16.5)", async () => {
     // 1400px isn't met; every other query is.
     vi.stubGlobal(
