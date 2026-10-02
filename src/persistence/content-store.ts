@@ -2,6 +2,16 @@ import * as Comlink from "comlink";
 import type { HymnbookId } from "../domain/types.ts";
 import type { ContentAdmin, ContentStore, HymnSummary } from "./content-store.worker.ts";
 
+// A book's list of songs is read once, not on every screen that names a
+// song: it only changes when the book is installed or replaced, which drop
+// it. A failed read isn't kept. Memory only, this tab only.
+const lists = new Map<HymnbookId, Promise<HymnSummary[]>>();
+
+/** A book was replaced, restored or removed: its list of songs is read again. */
+export function forgetBook(key: HymnbookId): void {
+  lists.delete(key);
+}
+
 let store: ContentStore | undefined;
 let admin: Comlink.Remote<ContentAdmin> | undefined;
 
@@ -9,10 +19,6 @@ let admin: Comlink.Remote<ContentAdmin> | undefined;
 export function getContentStore(): ContentStore {
   if (!store) {
     const remote = connect();
-    // A book's list of songs is read once, not on every screen that names a
-    // song: it only changes when the book is installed again, which drops
-    // it. A failed read isn't kept. Memory only, this tab only.
-    const lists = new Map<HymnbookId, Promise<HymnSummary[]>>();
     const listHymns = (id: HymnbookId) => {
       let list = lists.get(id);
       if (!list) {
@@ -64,3 +70,4 @@ export type {
   SearchResult,
 } from "./content-store.worker.ts";
 export type { Choice, CommitResult, LoadReview } from "./load.ts";
+export type { BookRow } from "./registry.ts";

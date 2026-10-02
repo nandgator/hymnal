@@ -41,7 +41,9 @@ export type ContentStatus =
   | { state: "ready" }
   | { state: "missing-asset" }
   | { state: "corrupt" }
-  | { state: "schema-mismatch"; found: number; expected: number };
+  | { state: "schema-mismatch"; found: number; expected: number }
+  /** A held book that cannot be opened: the registry's state names why (SDD-0004 §6). */
+  | { state: "unreadable"; reason: "needs-reloading" | "needs-newer-app" | "unreadable" };
 
 /**
  * Runtime counterpart to scripts/build-content.ts — see SDD-0001 §10.
@@ -75,8 +77,12 @@ const SQLITE_HEADER = [
 /** Books and the registry, for the Library and the dev hook (SDD-0004 §10). */
 export interface ContentAdmin {
   listBooks(): Promise<BookRow[]>;
-  /** Reads a container and returns its summary and verdict; nothing is written (ADR-0027). */
-  review(file: File): Promise<LoadReview>;
+  /** The book held under `key`, ready to read, or why it is not: a missing file (evicted) or
+   * an unreadable package (SDD-0004 §10). Replaces `ensureInstalled` for every held book. */
+  openBook(key: string): Promise<ContentStatus>;
+  /** Reads a container and returns its summary and verdict; nothing is written (ADR-0027).
+   * `target` aims it at a held book that could not be opened (Load Again, §9). */
+  review(file: File, target?: string): Promise<LoadReview>;
   /** Writes what the verdict allows (SDD-0004 §8). */
   commit(token: string, choice?: Choice): Promise<CommitResult>;
   /** Throws the parsed book away. */
@@ -112,6 +118,9 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
   #conns = new Map<string, OpfsSAHPoolDatabase>();
   /** The registry, or null if it could not be made: the books still open without it. */
   #ready: Promise<RegistryContext | null>;
+  /** The registry and the pool once they are up, for the queries, which are not async. */
+  #liveCtx: RegistryContext | null = null;
+  #livePool: SAHPoolUtil | null = null;
   #session = new LoadSession(() => this.#registry());
   dev: DevAdmin | undefined = import.meta.env.DEV ? this.#makeDev() : undefined;
 
@@ -120,10 +129,22 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
       sqlite3.installOpfsSAHPoolVfs({ name: "hymnal" }),
     );
     // Never rejects: ensureInstalled does not depend on the registry's health.
-    this.#ready = this.#start().catch((error) => {
-      console.warn("registry unavailable:", error);
-      return null;
-    });
+    this.#ready = this.#start().then(
+      (ctx) => {
+        this.#liveCtx = ctx;
+        return ctx;
+      },
+      (error) => {
+        console.warn("registry unavailable:", error);
+        return null;
+      },
+    );
+    this.#poolReady.then(
+      (pool) => {
+        this.#livePool = pool;
+      },
+      () => {},
+    );
     // A pool that failed to start is reported by the calls that need it.
     this.#poolReady.catch(() => {});
   }
@@ -218,8 +239,25 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     return listBooks(await this.#registry());
   }
 
-  async review(file: File): Promise<LoadReview> {
-    return this.#session.review(new Uint8Array(await file.arrayBuffer()));
+  async review(file: File, target?: string): Promise<LoadReview> {
+    return this.#session.review(new Uint8Array(await file.arrayBuffer()), target);
+  }
+
+  async openBook(key: string): Promise<ContentStatus> {
+    const ctx = await this.#ready;
+    // No registry this session: only the shipped path can open a book.
+    if (!ctx) return this.ensureInstalled(key);
+    const row = listBooks(ctx).find((book) => book.key === key);
+    if (!row) return { state: "missing-asset" };
+    if (row.state !== "ok") return { state: "unreadable", reason: row.state };
+    const pool = await this.#poolReady;
+    if (!pool.getFileNames().includes(row.file)) return { state: "missing-asset" };
+    try {
+      this.#conn(pool, row.file);
+    } catch {
+      return { state: "corrupt" };
+    }
+    return { state: "ready" };
   }
 
   commit(token: string, choice?: Choice): Promise<CommitResult> {
@@ -447,10 +485,17 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     }));
   }
 
+  /** The book's file is the registry's current row for the key, so a Replace
+   * (a new file under the same key) is followed with nothing to invalidate. */
   #open(id: HymnbookId): OpfsSAHPoolDatabase {
-    const db = this.#conns.get(filenameFor(id));
-    if (!db) throw new Error(`${id}: ensureInstalled() must succeed before querying`);
-    return db;
+    const file = this.#liveCtx
+      ? (listBooks(this.#liveCtx).find((book) => book.key === id)?.file ?? filenameFor(id))
+      : filenameFor(id);
+    const pool = this.#livePool;
+    if (!pool?.getFileNames().includes(file)) {
+      throw new Error(`${id}: the book is not held (openBook() says why)`);
+    }
+    return this.#conn(pool, file);
   }
 
   #rows(db: Database, sql: string, bind?: SqlValue[]): Record<string, SqlValue>[] {

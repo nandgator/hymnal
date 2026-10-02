@@ -775,15 +775,13 @@ is single-device with no deep-linking requirement
 in favour of recents + last position), and a router is a dependency with nothing
 to spend it on yet.
 
-**Testing.** `Library` takes `hymnbookId` and `store` as optional props,
-defaulting to `BUNDLED_HYMNBOOK_ID` and `getContentStore()` — tests inject a
-fake `ContentStore` instead of touching the real Worker/OPFS, so all four states
-(pending, each error, ready, retry) are unit tested despite the underlying store
-not being (§10.5).
-
-`BUNDLED_HYMNBOOK_ID` itself lives in `src/config.ts`, not here — Finder (§13)
-needs it too, and a UI component module is the wrong place for a value other
-components import.
+**Testing.** `Library` takes the `Books` list, the current key, and an `admin`
+and `userState` as optional props, defaulting to `getContentAdmin()` and the
+`userState` singleton: tests inject fakes instead of touching the real
+Worker/OPFS, so every state (loading, installing, each failure, empty, listed,
+unreadable, each review verdict, remove) is unit tested despite the underlying
+store not being (§10.5). `BUNDLED_HYMNBOOK_ID` is gone: nothing assumes one book
+(SDD-0004 §10).
 
 ## 13. Finder
 

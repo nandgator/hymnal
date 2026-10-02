@@ -24,6 +24,10 @@ colors:
   surface-container-high: "#2f2819"
   inverse-surface: "#eae1d9"
   inverse-on-surface: "#362f26"
+  error: "#ffb4ab"
+  on-error: "#690005"
+  error-container: "#93000a"
+  on-error-container: "#ffdad6"
   output-ground: "#1b140c"
   output-ink: "#f3dfb5"
   output-ink-muted: "#9c8661"
@@ -65,6 +69,10 @@ colors-light:
   surface-container-high: "#f0e6d9"
   inverse-surface: "#362f26"
   inverse-on-surface: "#fbeee1"
+  error: "#ba1a1a"
+  on-error: "#ffffff"
+  error-container: "#ffdad6"
+  on-error-container: "#410002"
 
 typography:
   display-small:
@@ -291,6 +299,17 @@ problem than a warm, devotional, legible-at-distance tool.
 - **surface-container-low/…/-high**: the tonal-elevation ladder. A card sits on
   `-low`; nothing in this app currently needs `-high` beyond hover states.
 
+### Error
+
+- **error** / **on-error** / **error-container** / **on-error-container**: MD3's
+  baseline roles, added for the Library (Board #28 part 5): a book that is
+  refused or cannot be opened, and the one destructive button (Remove Book).
+  Distinct from On Air's red, which means "live" and nothing else; an error is
+  never drawn in it, and nothing live is drawn in an error's. Text on
+  `error-container` is `on-error-container`; the destructive button is `error`
+  with `on-error`. In forced colours the panels and the button gain a 1px
+  `CanvasText` border, as the snackbar does.
+
 ### Hairlines & Borders
 
 - **outline**: chip and outlined-button borders, the text field's resting
@@ -344,16 +363,16 @@ problem than a warm, devotional, legible-at-distance tool.
 
 ### Hierarchy
 
-| Token           | Size                                            | Weight | Line height | Use                                     |
-| --------------- | ----------------------------------------------- | ------ | ----------- | --------------------------------------- |
-| `display-small` | 36px                                            | 400    | 44px        | Library's hero hymnbook title           |
-| `title-large`   | 22px                                            | 500    | 28px        | Screen headers (hymn title in Operator) |
-| `title-medium`  | 16px                                            | 500    | 24px        | Section labels (part label, "Recent")   |
-| `label-large`   | 14px                                            | 500    | 20px        | Buttons, chips                          |
-| `label-small`   | 11px                                            | 500    | 16px        | Assist chip (recurrence cue)            |
-| `body-large`    | 16px                                            | 400    | 24px        | Running UI text                         |
-| `hymn-display`  | `clamp(1.25rem, 1.0625rem + 0.75vw, 2.1875rem)` | 400    | 1.7         | Lyric lines, Operator view              |
-| `output-line`   | `clamp(2.2rem, 6.5vw, 5rem)`                    | 500    | 1.35        | Output view, every line (lit or dimmed) |
+| Token           | Size                                            | Weight | Line height | Use                                          |
+| --------------- | ----------------------------------------------- | ------ | ----------- | -------------------------------------------- |
+| `display-small` | 36px                                            | 400    | 44px        | The Library's empty first run: "No book yet" |
+| `title-large`   | 22px                                            | 500    | 28px        | Screen headers (hymn title in Operator)      |
+| `title-medium`  | 16px                                            | 500    | 24px        | Section labels (part label, "Recent")        |
+| `label-large`   | 14px                                            | 500    | 20px        | Buttons, chips                               |
+| `label-small`   | 11px                                            | 500    | 16px        | Assist chip (recurrence cue)                 |
+| `body-large`    | 16px                                            | 400    | 24px        | Running UI text                              |
+| `hymn-display`  | `clamp(1.25rem, 1.0625rem + 0.75vw, 2.1875rem)` | 400    | 1.7         | Lyric lines, Operator view                   |
+| `output-line`   | `clamp(2.2rem, 6.5vw, 5rem)`                    | 500    | 1.35        | Output view, every line (lit or dimmed)      |
 
 ### Principles
 
@@ -570,29 +589,106 @@ view is close enough to the frame to need a smaller unit.
   its own roles in both themes. Blanked is On Air's other state: **Blanked**,
   the dot a ring.
 - **Snackbar.** The shell's one notice, for what needs a word but not a stop:
-  **Update ready** with **Restart** and a close (Later), and the Safari note
-  about keeping books, with **Got it**. MD3's inverse surface, one message, one
-  text action in the inverse primary, 8px corners, never wider than 36rem. On a
-  phone it **floats** above the dock with the soft floating shadow, centred.
-  From 840px it is an **in-flow strip** under the switcher row and above the
-  workspace, left-aligned, flat, so it never covers lyrics or the transport (it
-  does move the layout by one row, which is fine: it is never shown live). One
-  at a time, the update first, and **never while the Output is live** (On Air or
+  **Update ready** with **Restart** and a close (Later), the note about keeping
+  the book file after a first load whose storage request was refused, with **Got
+  It**, and the Safari note about keeping books, with **Got it**. MD3's inverse
+  surface, one message, one text action in the inverse primary, 8px corners,
+  never wider than 36rem. On a phone it **floats** above the dock with the soft
+  floating shadow, centred. From 840px it is an **in-flow strip** under the
+  switcher row and above the workspace, left-aligned, flat, so it never covers
+  lyrics or the transport (it does move the layout by one row, which is fine: it
+  is never shown live). One at a time, the update first, then the keep-your-file
+  note, then Safari's, and **never while the Output is live** (On Air or
   Blanked). It takes no focus; a persistent live region announces its message.
   Keyboard: Esc puts it away (Later; the note's Got it), and the command menu
-  has **Restart to update** and **Dismiss the Home Screen note**. In forced
-  colours it gains a 1px CanvasText border, and its buttons a visible focus
-  ring. Undo still stays in the Repeat row, not here. **Screen notices** are the
-  exception to "never while live": they are about the Output window itself and
-  caused by it, so they show at once, are dismissed (**Got it**) and never
-  repeat once seen. They **float at every width** (above the dock on a phone,
-  top right under the header from 840px), never in the strip, so the layout does
-  not move live, and they come before the update. Six: "Drag the Output to the
-  projector, then press F11" (a plain popup, once), "The Output is on the
-  projector screen. If it isn't fullscreen, click it or press F" (once), "The
-  browser blocked the Output window" (pop-ups), "The screen the Output was on is
-  gone" (the window stays), and "That screen is back. Move the Output to it?"
-  with **Move it** and a close (Stay).
+  has **Restart to update**, **Dismiss the storage note** and **Dismiss the Home
+  Screen note**. In forced colours it gains a 1px CanvasText border, and its
+  buttons a visible focus ring. Undo still stays in the Repeat row, not here.
+  **Screen notices** are the exception to "never while live": they are about the
+  Output window itself and caused by it, so they show at once, are dismissed
+  (**Got it**) and never repeat once seen. They **float at every width** (above
+  the dock on a phone, top right under the header from 840px), never in the
+  strip, so the layout does not move live, and they come before the update. Six:
+  "Drag the Output to the projector, then press F11" (a plain popup, once), "The
+  Output is on the projector screen. If it isn't fullscreen, click it or press
+  F" (once), "The browser blocked the Output window" (pop-ups), "The screen the
+  Output was on is gone" (the window stays), and "That screen is back. Move the
+  Output to it?" with **Move it** and a close (Stay).
+- **The Library** (Board #28 part 5; SDD-0004 §9). A list of the books held, in
+  the default width, the mockup's `Library` header sticking under the switcher
+  row as the Finder's field does (title-large, "N books on this device", and a
+  tonal **Load a Book** with a file icon, always there). Never a card per book:
+  **one panel** (`surface-container-low`, 22px, 8px inside), a row per book
+  inside it (14px), no borders, in the order added, never reordered, so the
+  current book is marked and not hoisted (§ Stability).
+  - **A row** is a 40px tile (the book icon), the title in the hymn face (500,
+    line-height 1.6 so Malayalam conjuncts are not clipped, two lines at most,
+    then an ellipsis; the full title is in the review), and one meta line,
+    `Current · Language · N songs · Shipped|Loaded`. Segments wrap whole and
+    each brings its own dot, clipped when it starts a line, so **a line never
+    starts with a dot**. From 600px the count is a right-aligned column, tabular
+    (`1,631` over `SONGS`, 4.25rem at least), so counts line up, and leaves the
+    meta line. The row is the button that chooses the book; ⋯ (the menu's icon,
+    48px) is beside it, the same on every row.
+  - **Current** is tonal and says so: `secondary-container` fill, a
+    `primary-container` tile, and the word Current (fill alone is too faint in
+    light). Neutral rows are actions at rest. A book just loaded is outlined in
+    `primary` and tagged **Added** for a few seconds, and scrolled into view.
+  - **A book that cannot be opened** is a row that does not choose: an
+    `error-container` tile (a warning icon, or an update icon for a newer app),
+    the title (or the key, if it has none), a status line in `error`, **Needs
+    reloading**, **Can't be read**, **File missing** or **Needs a newer app**,
+    one sentence, and **Load Again** (text button) where a file can fix it.
+    Remove is in its menu.
+  - **The menu** is the Menu component with its list kept for one item:
+    **Remove…** with "Drops the book and its Recents". A shipped book's is
+    disabled, "Shipped with the app".
+  - **Reading a file**: the picked file's row appears first in the list, a tile,
+    "Reading <file>", the line "Checking the file on this device. Nothing is
+    sent anywhere.", an indeterminate bar and Cancel, with Load a Book disabled.
+    No spinner. From an empty Library the empty card turns into the same lines
+    in its own shape.
+  - **Nothing held** (the first run): the card keeps the skeleton's shape,
+    display-small "No book yet", a body line (what a book is, that it is read on
+    this device and never sent), and the filled **Load a Book**. Find and Go
+    Live are disabled.
+  - **The review** is a sheet, bottom under 840px and centred from it, taller
+    than the others (88% of the height), its Cancel pinned, its content
+    scrolling and its one action bar sticky. Read-only throughout: the book's
+    title and `Language · N songs`, a facts list (language with its code and
+    script, origin, the file as `sha-256` and twelve hex digits in groups of
+    four), then the verdict's panel and its choices:
+    - **A refusal** (`error-container`; the violations listed all, by song and
+      rule, none repaired; or a newer format, naming both versions; or not a
+      hymnbook file). The only action is **Choose Another File**; the header
+      reads Close.
+    - **Same file**: a neutral panel, nothing written, **Open Book**.
+    - **Same songs**: a neutral panel naming the book, and that opening records
+      the file; **Open Book**. Cancel records nothing.
+    - **Same origin**: radios, **Keep both** first and chosen, then **Replace
+      <book>** for each loaded book (a shipped one shown, disabled, with why);
+      each says what it does, Replace that it swaps in the songs and keeps the
+      book's place, its Recents and its position; choosing one adds "Replace
+      can't be undone". One filled button whose label follows the choice (**Keep
+      Both** or **Replace**, as wide as the longer).
+    - **New**: a quiet primary-tinted panel and **Load Book**.
+    - **Load Again** (a review aimed at a book that could not be opened):
+      "Brings a book back", the held book named, and **Restore Book**; a file
+      whose title is not the book's adds a warning panel naming both titles.
+    - Songs held in other books: a quiet line under any loadable verdict, by
+      book, "They load anyway."
+    - _ADR-0029, later:_ "Not checked against a source" is the facts list's last
+      row. Not drawn yet.
+  - **Remove** is a sheet of the same shape: the book, "This removes" (its
+    songs, its Recents with their count), a note that the file is not touched
+    and the book has no other copy, and, for the current book, which book takes
+    over (or that none will). One filled destructive **Remove Book** (`error`).
+  - **Keep your file** is the snackbar's note (above), after a first load whose
+    persistent-storage request was refused; a granted request says nothing.
+  - **Choosing and loading**: a load never changes the current book, unless none
+    is (the first load); Open Book and a tap on a row do. The Finder follows the
+    current book; the hymn on screen stays until one is chosen from the new book
+    (SDD-0001 §16.4).
 - **Rhythm and states.** One 12px gap above, between and below the areas.
   Disabled is the whole control at 38%, whatever its style. Only floating things
   cast a shadow (menus, sheets, the snackbar, Back to Current); cards and panels
@@ -677,8 +773,8 @@ view is close enough to the frame to need a smaller unit.
   the left, the text following in step. A page turn fades the page out (125ms)
   and in (175ms). Reduced motion shows the end state.
 - **Loading: the shape of what's coming, in its place** (Board #26 part 4). A
-  screen still loading shows a skeleton of itself: the Library its card (title,
-  count line, button), the Operator its panels, empty, where they will sit.
+  screen still loading shows a skeleton of itself: the Library its header and
+  two rows of its list, the Operator its panels, empty, where they will sit.
   Content then fills in and nothing moves (§ Stability). The skeleton appears
   only after about 300ms, so a fast load shows nothing; while shown it carries a
   soft shimmer, static under reduced motion. No spinner, and no bare "Loading…".

@@ -382,18 +382,24 @@ then, row 3 is Replace or Keep both.
 
 Board #28 turns the Library from a provisioning gate
 ([SDD-0001 §12](0001-domain-model.md#12-library)) into the list of books held.
-How it is drawn is `visual/DESIGN.md`'s and a mockup's; this says what it shows.
+How it is drawn is [`visual/DESIGN.md`](../visual/DESIGN.md#structure)'s, § The
+Library; this says what it shows and does.
 
 - **The list**: every book held, shipped and loaded, each with its title,
-  language and script, song count, and what it is (shipped or loaded). The
-  current book is marked. A book that is missing, unreadable or needs a newer
-  app says so, in the list, and can be removed.
+  language, song count (written `1,631`), and what it is (shipped or loaded).
+  The current book is marked. Order is the registry's (added), never changed by
+  choosing. A book that is missing, unreadable or needs a newer app says so, in
+  the list, and can be removed; **Load Again** is offered where a file can fix
+  it (below).
 - **Choose**: choosing a book makes it the current book. The Finder and the
-  Operator follow it. There is no new stored field: the app's `hymnbookId`
-  signal starts as the book of the newest recent (`RecentEntry.hymnbookId`,
-  SDD-0001 §11) that is still held, else the first held book, and a chosen book
-  is remembered once a hymn from it is opened, which adds a recent.
-- **Load a book**: the file picker. While it reads, the row is a progress line;
+  Operator follow it. There is no new stored field: the app's current book
+  starts as the book of the newest recent (`RecentEntry.hymnbookId`, SDD-0001
+  §11) that is still held, else the first held book, is chosen again the same
+  way when it stops being held (a removal), and a chosen book is remembered once
+  a hymn from it is opened, which adds a recent. Choosing first asks the worker
+  to `openBook` it; a file that has gone (evicted) turns the row into **File
+  missing**, with Load Again, and the book is not chosen.
+- **Load a Book**: the file picker. While it reads, the row is a progress line;
   then the **summary** (ADR-0027): title, language and script, song count, the
   violations if any (all of them, by song and rule; none repaired), the verdict
   and its choices (§8), and how many songs are held elsewhere, by book. Nothing
@@ -414,6 +420,49 @@ book loads as before.
 
 This unblocks Board #19, the picker's hymnbook scope.
 
+**Decided in part 5, by the maintainer, after the mockup (and pinned in
+review):**
+
+1. **Load Again aims the review at the book.** A row that cannot be opened
+   (`needs-reloading`, `unreadable`, or a file found missing) offers Load Again;
+   the picked file is reviewed with that book's key as its **target**
+   (`LoadSession.review(bytes, target)`, `LoadReview.restore`). Committing
+   replaces the book **under its key**, so its recents and positions come back,
+   whatever origin the file declares: the duplicate verdict is not asked, since
+   the book it would match cannot be read. The review says it "brings a book
+   back", and a file whose title differs from the book's (when the book still
+   has one) adds a warning naming both titles. The write is Replace's (§8) with
+   one difference: `replaceBook` is given `restore: true` and accepts a book
+   whose state is not `ok`; the damaged file is then removed like the old file
+   of any Replace. The review pins the book as it was (key, file, state): the
+   commit is refused as stale unless the row still names that file and the book
+   still cannot be read (or its file is gone), so a file never goes over a book
+   that has become good or been replaced meanwhile. A shipped book, a book that
+   needs a newer app (a file does not fix that), or a key not held, is refused,
+   at the review and at the commit. Nothing else is loosened: a crash between
+   the steps leaves the damaged row and a higher-`<n>` stray, listed, never
+   preferred (§6).
+2. **A same-songs file is recorded on Open Book**, not when it is read. The
+   review of a same-songs file writes nothing (ADR-0027); **Open Book** commits
+   (`recorded`) and chooses the book; Cancel writes nothing. Same file's Open
+   Book writes nothing and chooses the book.
+3. **Error colours**: MD3's baseline error roles join the tokens, in every theme
+   block, distinct from On Air's (`visual/DESIGN.md` § Colors).
+4. **A load becomes current only when none is.** The first load makes its book
+   current (the Operator has nothing else to show); any later load leaves the
+   current book as it is, so a load can never change the book under a service,
+   and the new row is scrolled into view, tagged **Added** for a few seconds.
+   Open Book and Restore Book on a book that is not current do not choose it
+   either; Open Book does, being the user's choice of that book.
+
+Part 5 also decided, by the mockup: the choice for a same-origin file is
+**radios** (Keep both, then Replace for each loaded held book, a shipped one
+shown and disabled), with one confirm button whose label follows; Replace's text
+says what it keeps (the key, so recents and position; the added date) and drops
+(the old songs; the old file's record). The review sheet is taller than other
+sheets. A long title is clamped to two lines in the list and shown whole in the
+review. The hymnbook picker lists the readable books and a **Manage Books** row.
+
 ## 10. Several books
 
 Nothing may assume one book. `BUNDLED_HYMNBOOK_ID` and its `?book=` development
@@ -421,13 +470,29 @@ hook go, along with the defaults that read it (`Library`, `Finder`, `Presenter`,
 `App`):
 
 - The content store's methods already take a `HymnbookId`; it becomes the key.
-  `ensureInstalled(id)` becomes `openBook(key)` at part 5 (until then it stays,
-  §13); the worker adds `listBooks`, `review(file)`, `commit(token, choice)`,
+  `openBook(key)` (part 5) answers whether the book held under a key can be read
+  (`ready`, or `missing-asset`, or `unreadable` with the registry's reason), and
+  the store's queries find the book's file from the registry's **current row**
+  for the key, not from its name, so a Replace (a new file under the same key)
+  needs nothing invalidated. `ensureInstalled(id)` stays for the shipped book
+  until part 6; the Library uses it only for a shipped book not yet held. The
+  worker adds `listBooks`, `review(file, target?)`, `commit(token, choice)`,
   `cancel(token)` and `removeBook(key)`.
-- The app's existing `hymnbookId` signal (`App.tsx`) stays the current book; its
-  starting value is chosen as in §9, not from `BUNDLED_HYMNBOOK_ID`. A recents
+- The app's current book (`App.tsx`) starts as §9 says, not from
+  `BUNDLED_HYMNBOOK_ID`; the book the hymn on screen is from is kept apart, so
+  choosing another book does not blank the Output (SDD-0001 §16.4). A recents
   entry that names a key no longer held is skipped. `lastPosition` is unwired
   today (SDD-0001 §11) and is not used for this.
+- **Decided in part 5, by the orchestrator: the book on the Output cannot be
+  removed while the Output is live.** If the book being removed is the one the
+  hymn on screen is from (the presented book) and the Output is live (On Air or
+  Blanked, or not yet known to be closed), the Remove sheet says "This book is
+  on the Output now. Close the Output first, then remove it", and Remove Book is
+  disabled; the confirm is refused as well, whatever the button says. When the
+  Output is not live, removing the presented book clears the presented state
+  (hymn, number and presented key) at once, whether or not it was the current
+  book, and the sheet says the song on screen goes with the book. Choosing
+  another book still leaves the hymn on screen alone (SDD-0001 §16.4).
 - Opening a book that is held but whose file is missing (evicted) is an error
   state with Load again, not a crash (arc42 §8.6).
 - The development hook gives way to loading the file: a draft in `imports/` is
@@ -462,10 +527,14 @@ time it changes, and the check is written down in the part.
 they are driven from the browser's console: a development-only hook,
 `window.hymnalDev` (`load(file)`, `list()`, `remove(key)`, and the review and
 commit calls of §10), installed only under `import.meta.env.DEV`, so a
-production build strips it. Part 5 replaces it with the screen and deletes it.
-Everything pure in the worker's logic, the registry's SQL, the migration steps
-and the verdict, is also tested in vitest on `node:sqlite`, with no OPFS
-stand-in: what only OPFS can show is shown through the hook.
+production build strips it. Part 5 replaces its loading calls with the screen
+and deletes them. What stays, dev-only, is the inspector for the cases only OPFS
+can show: `list`, `files`, `sql`, `put`, `copy`, `del`, `reconcile`, `recents`
+and `addRecent`, which build a damaged package, a missing file or a recents
+entry to look at in the Library. Everything pure in the worker's logic, the
+registry's SQL, the migration steps and the verdict, is also tested in vitest on
+`node:sqlite`, with no OPFS stand-in: what only OPFS can show is shown through
+the hook.
 
 **The app keeps working between parts.** Until part 6 the bundled book still
 ships. Part 3 adds the registry and the new path beside `ensureInstalled` and

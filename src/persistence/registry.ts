@@ -321,11 +321,15 @@ export async function replaceBook(
   ctx: RegistryContext,
   key: string,
   read: ContainerRead,
+  /** Restoring a book that cannot be opened (SDD-0004 §9): the user picked its file again. */
+  options: { restore?: boolean } = {},
 ): Promise<BookRow> {
   const old = bookBy(ctx, "key", key);
   if (!old) throw new Error(`${key} is not held`);
   if (old.kind === "shipped") throw new Error(`${key} is a shipped book and is not replaced`);
-  if (old.state !== "ok") throw new Error(`${key} cannot be opened and is not replaced`);
+  if (old.state !== "ok" && !options.restore) {
+    throw new Error(`${key} cannot be opened and is not replaced`);
+  }
   const n =
     Math.max(
       generationOf(old.file),

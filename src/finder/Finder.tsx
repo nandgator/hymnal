@@ -7,7 +7,6 @@ import {
   onCleanup,
   Show,
 } from "solid-js";
-import { BUNDLED_HYMNBOOK_ID } from "../config.ts";
 import type { HymnbookId, HymnNumber } from "../domain/types.ts";
 import {
   type ContentStore,
@@ -24,8 +23,8 @@ const LYRIC_DEBOUNCE_MS = 200;
 const NUMBER_SUGGESTIONS = 8;
 
 export interface FinderProps {
-  /** Defaults to {@link BUNDLED_HYMNBOOK_ID}; overridable for tests. */
-  hymnbookId?: HymnbookId;
+  /** The book searched: its key (SDD-0004 §10). */
+  hymnbookId: HymnbookId;
   /** Defaults to {@link getContentStore}; overridable for tests. */
   store?: ContentStore;
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
@@ -82,7 +81,7 @@ function matchesCommand(label: string, query: string): boolean {
  * nothing else: opening it, and recording it as recent, is Presenter's job.
  */
 export function Finder(props: FinderProps) {
-  const id = () => props.hymnbookId ?? BUNDLED_HYMNBOOK_ID;
+  const id = () => props.hymnbookId;
   const store = () => props.store ?? getContentStore();
   const listId = `finder-options-${++nextId}`;
 

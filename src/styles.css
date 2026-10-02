@@ -45,6 +45,10 @@
   --md-sys-color-inverse-surface: #362f26;
   --md-sys-color-inverse-on-surface: #fbeee1;
   --md-sys-color-inverse-primary: #ffb951;
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #410002;
   /* On air: a custom colour, Material's way — red harmonised to the amber
      seed, so it belongs to the palette (live = tone 40, container 90). */
   --hymnal-live: #a83900;
@@ -108,6 +112,10 @@
     --md-sys-color-inverse-surface: #eae1d9;
     --md-sys-color-inverse-on-surface: #362f26;
     --md-sys-color-inverse-primary: #6e4500;
+    --md-sys-color-error: #ffb4ab;
+    --md-sys-color-on-error: #690005;
+    --md-sys-color-error-container: #93000a;
+    --md-sys-color-on-error-container: #ffdad6;
     --hymnal-live: #ff8c5f;
     --hymnal-live-container: #7b2e0d;
     --hymnal-on-live-container: #ffdbcf;
@@ -140,6 +148,10 @@
   --md-sys-color-inverse-surface: #eae1d9;
   --md-sys-color-inverse-on-surface: #362f26;
   --md-sys-color-inverse-primary: #6e4500;
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffdad6;
   --hymnal-live: #ff8c5f;
   --hymnal-live-container: #7b2e0d;
   --hymnal-on-live-container: #ffdbcf;
@@ -325,6 +337,46 @@ button:disabled {
 
 .icon-move {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M806-440H360q-17 0-28.5-11.5T320-480q0-17 11.5-28.5T360-520h446l-34-34q-12-12-11.5-28t11.5-28q12-12 28.5-12.5T829-611l103 103q12 12 12 28t-12 28L829-349q-12 12-28.5 11.5T772-350q-11-12-11.5-28t11.5-28l34-34ZM600-640v-120H200v560h400v-120q0-17 11.5-28.5T640-360q17 0 28.5 11.5T680-320v120q0 33-23.5 56.5T600-120H200q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h400q33 0 56.5 23.5T680-760v120q0 17-11.5 28.5T640-600q-17 0-28.5-11.5T600-640Z'/%3E%3C/svg%3E");
+}
+
+.icon-file-open {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M220-80q-24 0-42-18t-18-42v-680q0-24 18-42t42-18h315q12.44 0 23.72 5T578-862l204 204q8 8 13 19.28 5 11.28 5 23.72v215q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63-8.5-8.62-8.5-21.37v-200H550q-12.75 0-21.37-8.63Q520-617.25 520-630v-190H220v680h380q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32Q612.75-80 600-80H220Zm530-127v95q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63Q690-99.25 690-112v-168q0-12.75 8.63-21.38Q707.25-310 720-310h168q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5h-96l107 107q9 9 9 21.16t-8.61 21Q890-92 877.53-92q-12.46 0-21.53-9L750-207Zm-530 67v-680 680Z'/%3E%3C/svg%3E");
+}
+
+.icon-warning {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M92-120q-9 0-15.5-4T66-135q-4-7-4.5-14.5T66-165l388-670q5-8 11.5-11.5T480-850q8 0 14.5 3.5T506-835l388 670q5 8 4.5 15.5T894-135q-4 7-10.5 11t-15.5 4H92Zm52-60h672L480-760 144-180Zm361.5-65.5Q514-254 514-267t-8.5-21.5Q497-297 484-297t-21.5 8.5Q454-280 454-267t8.5 21.5Q471-237 484-237t21.5-8.5Zm0-111Q514-365 514-378v-164q0-13-8.5-21.5T484-572q-13 0-21.5 8.5T454-542v164q0 13 8.5 21.5T484-348q13 0 21.5-8.5ZM480-470Z'/%3E%3C/svg%3E");
+}
+
+.icon-error {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M503.5-289.48q9.5-9.48 9.5-23.5t-9.48-23.52q-9.48-9.5-23.5-9.5t-23.52 9.48q-9.5 9.48-9.5 23.5t9.48 23.52q9.48 9.5 23.5 9.5t23.52-9.48Zm1-152.15q8.5-8.62 8.5-21.37v-193q0-12.75-8.68-21.38-8.67-8.62-21.5-8.62-12.82 0-21.32 8.62-8.5 8.63-8.5 21.38v193q0 12.75 8.68 21.37 8.67 8.63 21.5 8.63 12.82 0 21.32-8.63ZM480.27-80q-82.74 0-155.5-31.5Q252-143 197.5-197.5t-86-127.34Q80-397.68 80-480.5t31.5-155.66Q143-709 197.5-763t127.34-85.5Q397.68-880 480.5-880t155.66 31.5Q709-817 763-763t85.5 127Q880-563 880-480.27q0 82.74-31.5 155.5Q817-252 763-197.68q-54 54.31-127 86Q563-80 480.27-80Zm.23-60Q622-140 721-239.5t99-241Q820-622 721.19-721T480-820q-141 0-240.5 98.81T140-480q0 141 99.5 240.5t241 99.5Zm-.5-340Z'/%3E%3C/svg%3E");
+}
+
+.icon-check-circle {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='m421-389-98-98q-9-9-22-9t-23 10q-9 9-9 22t9 22l122 123q9 9 21 9t21-9l239-239q10-10 10-23t-10-23q-10-9-23.5-8.5T635-603L421-389Zm59 309q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 31.5-156t86-127Q252-817 325-848.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 82-31.5 155T763-197.5q-54 54.5-127 86T480-80Zm0-60q142 0 241-99.5T820-480q0-142-99-241t-241-99q-141 0-240.5 99T140-480q0 141 99.5 240.5T480-140Zm0-340Z'/%3E%3C/svg%3E");
+}
+
+.icon-content-copy {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M300-200q-24 0-42-18t-18-42v-560q0-24 18-42t42-18h440q24 0 42 18t18 42v560q0 24-18 42t-42 18H300Zm0-60h440v-560H300v560ZM180-80q-24 0-42-18t-18-42v-590q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v590h470q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32Q662.75-80 650-80H180Zm120-180v-560 560Z'/%3E%3C/svg%3E");
+}
+
+.icon-info {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M504.5-288.63q8.5-8.62 8.5-21.37v-180q0-12.75-8.68-21.38-8.67-8.62-21.5-8.62-12.82 0-21.32 8.62-8.5 8.63-8.5 21.38v180q0 12.75 8.68 21.37 8.67 8.63 21.5 8.63 12.82 0 21.32-8.63Zm-1-314.57q9.5-9.2 9.5-22.8 0-14.45-9.48-24.22-9.48-9.78-23.5-9.78t-23.52 9.78Q447-640.45 447-626q0 13.6 9.48 22.8 9.48 9.2 23.5 9.2t23.52-9.2ZM480.27-80q-82.74 0-155.5-31.5Q252-143 197.5-197.5t-86-127.34Q80-397.68 80-480.5t31.5-155.66Q143-709 197.5-763t127.34-85.5Q397.68-880 480.5-880t155.66 31.5Q709-817 763-763t85.5 127Q880-563 880-480.27q0 82.74-31.5 155.5Q817-252 763-197.68q-54 54.31-127 86Q563-80 480.27-80Zm.23-60Q622-140 721-239.5t99-241Q820-622 721.19-721T480-820q-141 0-240.5 98.81T140-480q0 141 99.5 240.5t241 99.5Zm-.5-340Z'/%3E%3C/svg%3E");
+}
+
+.icon-update {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M483-120q-75 0-141-28.5T226.5-226q-49.5-49-78-115T120-482q0-75 28.5-140t78-113.5Q276-784 342-812t141-28q80 0 151.5 35T758-709v-76q0-13 8.5-21.5T788-815q13 0 21.5 8.5T818-785v148q0 13-8.5 21.5T788-607H639q-13 0-21.5-8.5T609-637q0-13 8.5-21.5T639-667h75q-44-51-103.5-82T483-780q-125 0-214 85.5T180-485q0 127 88 216t215 89q117 0 201-78t95-193q2-13 10.5-21.5T810-481q13 0 21.5 9t7.5 21q-11 140-112.5 235.5T483-120Zm28-374 115 113q9 9 9 21.5t-9 21.5q-9 9-21 9t-21-9L460-460q-5-5-7-10.5t-2-11.5v-171q0-13 8.5-21.5T481-683q13 0 21.5 8.5T511-653v159Z'/%3E%3C/svg%3E");
+}
+
+.icon-difference {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M490-610v54q0 12.75 8.68 21.37 8.67 8.63 21.5 8.63 12.82 0 21.32-8.63 8.5-8.62 8.5-21.37v-54h54q12.75 0 21.38-8.68 8.62-8.67 8.62-21.5 0-12.82-8.62-21.32-8.63-8.5-21.38-8.5h-54v-54q0-12.75-8.68-21.38-8.67-8.62-21.5-8.62-12.82 0-21.32 8.62-8.5 8.63-8.5 21.38v54h-54q-12.75 0-21.37 8.68-8.63 8.67-8.63 21.5 0 12.82 8.63 21.32 8.62 8.5 21.37 8.5h54Zm-54 240h168q12.75 0 21.38-8.68 8.62-8.67 8.62-21.5 0-12.82-8.62-21.32-8.63-8.5-21.38-8.5H436q-12.75 0-21.37 8.68-8.63 8.67-8.63 21.5 0 12.82 8.63 21.32 8.62 8.5 21.37 8.5ZM260-160q-24 0-42-18t-18-42v-640q0-24 18-42t42-18h323q12.44 0 23.72 5T626-902l196 196q8 8 13 19.28 5 11.28 5 23.72v443q0 24-18 42t-42 18H260Zm0-60h520v-442L578-860H260v640ZM140-40q-24 0-42-18t-18-42v-589q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v589h468q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32Q620.75-40 608-40H140Zm120-180v-640 640Z'/%3E%3C/svg%3E");
+}
+
+.icon-history {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M477-120q-142 0-243.5-95.5T121-451q-1-12 7.5-21t21.5-9q12 0 20.5 8.5T181-451q11 115 95 193t201 78q127 0 215-89t88-216q0-124-89-209.5T477-780q-68 0-127.5 31T246-667h75q13 0 21.5 8.5T351-637q0 13-8.5 21.5T321-607H172q-13 0-21.5-8.5T142-637v-148q0-13 8.5-21.5T172-815q13 0 21.5 8.5T202-785v76q52-61 123.5-96T477-840q75 0 141 28t115.5 76.5Q783-687 811.5-622T840-482q0 75-28.5 141t-78 115Q684-177 618-148.5T477-120Zm34-374 115 113q9 9 9 21.5t-9 21.5q-9 9-21 9t-21-9L460-460q-5-5-7-10.5t-2-11.5v-171q0-13 8.5-21.5T481-683q13 0 21.5 8.5T511-653v159Z'/%3E%3C/svg%3E");
+}
+
+.icon-delete {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M261-120q-24.75 0-42.37-17.63Q201-155.25 201-180v-570h-11q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h158q0-13 8.63-21.5 8.62-8.5 21.37-8.5h204q12.75 0 21.38 8.62Q612-822.75 612-810h158q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5h-11v570q0 24.75-17.62 42.37Q723.75-120 699-120H261Zm438-630H261v570h438v-570ZM418.5-274.63q8.5-8.62 8.5-21.37v-339q0-12.75-8.68-21.38-8.67-8.62-21.5-8.62-12.82 0-21.32 8.62-8.5 8.63-8.5 21.38v339q0 12.75 8.68 21.37 8.67 8.63 21.5 8.63 12.82 0 21.32-8.63Zm166 0q8.5-8.62 8.5-21.37v-339q0-12.75-8.68-21.38-8.67-8.62-21.5-8.62-12.82 0-21.32 8.62-8.5 8.63-8.5 21.38v339q0 12.75 8.68 21.37 8.67 8.63 21.5 8.63 12.82 0 21.32-8.63ZM261-750v570-570Z'/%3E%3C/svg%3E");
 }
 
 /* Points the other way: a move into the group on the left. */
@@ -566,7 +618,9 @@ button:disabled {
     white-space: nowrap;
   }
 
-  .crumbs > .crumb-book:first-child {
+  /* Only as the icon beside a hymn's number: a book's own title, long as
+     it can be now that anyone can load one, still shrinks to an ellipsis. */
+  .crumbs:has(.crumb-hymn) > .crumb-book:first-child {
     flex-shrink: 0;
   }
 
@@ -3070,11 +3124,6 @@ html[data-scrolling],
   padding: 0;
 }
 
-:root[data-dock-collapse="1"] .dock .dock-button .icon {
-  width: 24px;
-  height: 24px;
-}
-
 /* Screen layouts for Library and Finder (Board #12 part 2). The Operator's
    own layout is part 3. */
 .library {
@@ -3659,4 +3708,526 @@ html[data-scrolling],
   .snackbar {
     box-shadow: none;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   The Library (Board #28 part 5; DESIGN.md § The Library): the list of books, the
+   review sheet, remove. Its error roles are above, with the others.
+   ------------------------------------------------------------------------ */
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.btn-danger.btn-filled {
+  background-color: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
+}
+
+/* The Library header sticks under the switcher row, like the Finder's field */
+.lib {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.lib-head {
+  position: sticky;
+  top: var(--switcher-height, 0px);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-block: var(--space-sm);
+  background-color: var(--md-sys-color-surface);
+}
+.lib-head-text {
+  min-width: 0;
+  margin-inline-end: auto;
+}
+.lib-head-text p {
+  font-size: 0.875rem;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.lib-foot {
+  padding: var(--space-xs) var(--space-xs) 0;
+  font-size: 0.875rem;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* The empty first run: the card's own shape (title, line, button), so the
+   skeleton and the real card are the same size. */
+.lib-empty {
+  max-width: 34rem;
+}
+.lib-empty .body-large {
+  max-width: 30rem;
+}
+
+/* The list: one panel, rows inside, no borders (areas are panels) */
+.book-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: var(--space-xs);
+  list-style: none;
+  border-radius: 22px;
+  background-color: var(--md-sys-color-surface-container-low);
+}
+.book {
+  --state: transparent;
+  background-image: linear-gradient(var(--state), var(--state));
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-inline-end: 4px;
+  border-radius: 14px;
+}
+.book:has(> [aria-current="true"]) {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+.book-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: center;
+  min-height: 4rem;
+  padding: 10px 8px 10px 12px;
+  border: none;
+  border-radius: 14px;
+  background-color: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+/* The state layer is the whole row's, ⋯ included, so a tonal row is one
+   shape under the pointer (DESIGN.md § The Library). */
+.book:has(> button.book-main:hover) {
+  --state: color-mix(in srgb, currentColor 8%, transparent);
+}
+.book:has(> button.book-main:is(:focus-visible, :active)) {
+  --state: color-mix(in srgb, currentColor 10%, transparent);
+}
+fieldset.book-main {
+  margin: 0;
+  cursor: default;
+  align-items: start;
+}
+.book-tile {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--shape-md);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+}
+.book-bad .book-tile {
+  background-color: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+.reading .book-tile {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+.book:has(> [aria-current="true"]) .book-tile {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+.book-text {
+  min-width: 0;
+}
+.book-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-family: var(--font-family-hymn);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.book-key {
+  font-family: var(--font-family);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.43;
+  color: var(--md-sys-color-on-surface-variant);
+  overflow-wrap: anywhere;
+}
+.book-meta {
+  display: block;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.book[aria-current="true"] .book-meta,
+.book:has([aria-current="true"]) .book-meta {
+  color: color-mix(in srgb, var(--md-sys-color-on-secondary-container) 78%, transparent);
+}
+.book-meta b {
+  font-weight: 600;
+  color: inherit;
+}
+/* Each segment brings its own dot, drawn left of it; the row is pulled left
+   by the dot's room and clipped, so a segment that wraps to a new line leaves
+   its dot behind and a line never starts with one. */
+.book-meta-inner {
+  display: flex;
+  flex-wrap: wrap;
+  margin-inline-start: -1rem;
+}
+.seg {
+  position: relative;
+  padding-inline-start: 1rem;
+  white-space: nowrap;
+}
+.seg::before {
+  content: "·";
+  position: absolute;
+  inset-inline-start: 0.4rem;
+  opacity: 0.6;
+}
+.book-count {
+  display: none;
+  min-width: 4.25rem;
+  text-align: end;
+}
+.book-count b {
+  display: block;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.book-count span {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.book:has(> [aria-current="true"]) .book-count span {
+  color: inherit;
+  opacity: 0.78;
+}
+@media (min-width: 600px) {
+  .book-count {
+    display: block;
+  }
+  .book-songs-inline {
+    display: none;
+  }
+}
+.book-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--md-sys-color-error);
+}
+.book .book-status .icon {
+  width: 1rem;
+  height: 1rem;
+}
+.book-note {
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.book-actions {
+  display: flex;
+  gap: var(--space-xs);
+  margin: var(--space-xxs) 0 0 -0.75rem;
+}
+.book-more {
+  flex: none;
+  color: inherit;
+}
+.book-more.btn-text {
+  color: inherit;
+}
+
+/* Reading a file: a progress line in the row the book will take (no spinner) */
+.reading {
+  padding: var(--space-sm) var(--space-md) var(--space-sm) 12px;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+.reading-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* Row menu: the app's own .menu-popover */
+.book .menu-anchor {
+  flex: none;
+}
+
+/* The review sheet */
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.review-book h3 {
+  font-family: var(--font-family-hymn);
+  font-size: 1.375rem;
+  font-weight: 500;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.review-book p {
+  font-size: 0.875rem;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-xs) var(--space-lg);
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--shape-md);
+  background-color: var(--md-sys-color-surface-container);
+  font-size: 0.875rem;
+}
+.facts dt {
+  color: var(--md-sys-color-on-surface-variant);
+}
+.facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.facts .hash {
+  letter-spacing: 0.04em;
+}
+.callout {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--shape-md);
+  background-color: var(--md-sys-color-surface-container);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+:is(.lib, .review) .callout .icon {
+  margin-top: 1px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.callout h4 {
+  margin: 0 0 2px;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.callout p + p {
+  margin-top: var(--space-xs);
+}
+:is(.lib, .review) .callout-new .icon {
+  color: var(--md-sys-color-primary);
+}
+.callout-bad {
+  background-color: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+:is(.lib, .review) .callout-bad .icon {
+  color: inherit;
+}
+.callout-quiet {
+  background: none;
+  padding-inline: var(--space-xs);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.violations {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  border-radius: var(--shape-md);
+  background-color: var(--md-sys-color-surface-container);
+}
+.violation {
+  display: grid;
+  grid-template-columns: minmax(0, 5.5rem) minmax(0, 4rem) minmax(0, 1fr);
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  line-height: 1.4;
+}
+.violation + .violation {
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+.violations .vwhere {
+  color: var(--md-sys-color-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+.violations .vrule {
+  font-weight: 600;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+.option {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--shape-md);
+  background-color: var(--md-sys-color-surface-container);
+  cursor: pointer;
+}
+.option:has(:checked) {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+.option input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0.125rem 0 0;
+  accent-color: var(--md-sys-color-primary);
+}
+.option strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.option small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.option:has(:checked) small {
+  color: inherit;
+  opacity: 0.85;
+}
+.option-off {
+  opacity: 0.6;
+  cursor: default;
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant);
+}
+
+.review-actions {
+  position: sticky;
+  bottom: calc(-1 * var(--space-xl));
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+  margin: 0 calc(-1 * var(--space-lg)) calc(-1 * var(--space-xl));
+  padding: var(--space-sm) var(--space-lg) var(--space-xl);
+  background-color: var(--md-sys-color-surface-container-low);
+}
+.review-actions .btn-filled,
+.review-actions .btn-tonal {
+  min-width: 9rem;
+}
+@media (max-width: 599px) {
+  .review-actions .btn-filled {
+    flex: 1;
+  }
+}
+
+.drops {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.drop {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+.review .drops .icon {
+  margin-top: 2px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.book-new {
+  box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
+}
+.review-file {
+  font-family: var(--font-family);
+  font-size: 1rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.review-error {
+  color: var(--md-sys-color-error);
+  font-size: 0.875rem;
+}
+.remove-heading {
+  margin-bottom: var(--space-xs);
+}
+.reading-name {
+  overflow-wrap: anywhere;
+}
+.lib-retry {
+  margin-inline-start: -0.75rem;
+}
+.facts-code {
+  opacity: 0.7;
+}
+.sheet.sheet-tall {
+  max-height: 88dvh;
+}
+.skeleton-title-sm {
+  width: 8rem;
+  height: 2.25rem;
+}
+.skeleton-row {
+  width: 100%;
+  height: 4rem;
+  border-radius: 14px;
+}
+.callout-bad,
+.review-error {
+  forced-color-adjust: auto;
+}
+@media (forced-colors: active) {
+  .callout-bad,
+  .book-bad .book-tile,
+  .btn-danger {
+    border: 1px solid CanvasText;
+  }
+  .book:has(> [aria-current="true"]) {
+    outline: 2px solid Highlight;
+  }
+}
+
+/* The dock's icon at its collapsed size: after the rules above it would
+   otherwise be read against, since its specificity is the highest of them. */
+:root[data-dock-collapse="1"] .dock .dock-button .icon {
+  width: 24px;
+  height: 24px;
 }

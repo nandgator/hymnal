@@ -10,6 +10,8 @@ export interface SheetProps {
   /** The header button's label: "Back" when the sheet was opened from
    * another, and closing returns there. Defaults to "Close". */
   closeLabel?: string;
+  /** Room for a long review: up to 88% of the height, not 75% (the Library's sheets). */
+  tall?: boolean;
   children: JSX.Element;
 }
 
@@ -69,7 +71,7 @@ export function Sheet(props: SheetProps) {
     // biome-ignore lint/a11y/useKeyWithClickEvents: scrim click; Escape is native
     <dialog
       ref={dialog}
-      class={`sheet sheet-${props.placement ?? "bottom"}`}
+      class={`sheet sheet-${props.placement ?? "bottom"}${props.tall ? " sheet-tall" : ""}`}
       aria-label={props.title}
       onClose={() => props.onClose()}
       onCancel={(event) => {

@@ -12,7 +12,6 @@ import {
   Show,
   Switch,
 } from "solid-js";
-import { BUNDLED_HYMNBOOK_ID } from "../config.ts";
 import {
   createSequenceEngine,
   flattenLines,
@@ -93,8 +92,8 @@ type ShownTab = TabId | "parts";
 
 export interface PresenterProps {
   hymnNumber: HymnNumber;
-  /** Defaults to {@link BUNDLED_HYMNBOOK_ID}; overridable for tests. */
-  hymnbookId?: HymnbookId;
+  /** The book the hymn is in: its key (SDD-0004 §10). */
+  hymnbookId: HymnbookId;
   /** Defaults to {@link getContentStore}; overridable for tests. */
   store?: ContentStore;
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
@@ -159,7 +158,7 @@ export function Presenter(props: PresenterProps) {
     return { hymnbookId: key.hymnbookId, ...source };
   };
   const [hymn] = createResource(
-    () => ({ hymnbookId: props.hymnbookId ?? BUNDLED_HYMNBOOK_ID, number: props.hymnNumber }),
+    () => ({ hymnbookId: props.hymnbookId, number: props.hymnNumber }),
     load,
   );
 

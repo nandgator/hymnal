@@ -197,6 +197,21 @@ describe("pickNotice", () => {
     ).toBe("safari-hint");
   });
 
+  it("puts the keep-your-file note after the update and before the Safari hint", () => {
+    const keep = { ...idle, keepFile: true, safariHint: true };
+    expect(pickNotice(keep)).toBe("keep-file");
+    expect(pickNotice({ ...keep, update: { ready: true, live: false } })).toBe("update");
+    expect(
+      pickNotice({ ...keep, update: { ready: true, live: false }, updateDismissed: true }),
+    ).toBe("keep-file");
+  });
+
+  it("shows nothing at all while live, the keep-your-file note included", () => {
+    expect(pickNotice({ ...idle, keepFile: true, update: { ready: false, live: true } })).toBe(
+      undefined,
+    );
+  });
+
   it("shows nothing at all while live, hint included", () => {
     expect(
       pickNotice({ update: { ready: true, live: true }, safariHint: true, updateDismissed: false }),

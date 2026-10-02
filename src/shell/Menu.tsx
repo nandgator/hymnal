@@ -14,6 +14,9 @@ export interface MenuProps {
   /** The button's accessible name, e.g. "This song options". */
   label: string;
   items: MenuItem[];
+  /** A lone item becomes its own button (the default). False keeps the list, so a
+   * row's menu looks the same whether it holds one item or several. */
+  fold?: boolean;
 }
 
 /**
@@ -28,7 +31,7 @@ export interface MenuProps {
 export function Menu(props: MenuProps) {
   return (
     <Show
-      when={props.items.length === 1 ? props.items[0] : undefined}
+      when={props.items.length === 1 && props.fold !== false ? props.items[0] : undefined}
       fallback={<MenuList {...props} />}
     >
       {(item) => (

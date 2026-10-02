@@ -30,6 +30,19 @@ export interface LoadReview {
   /** Non-empty: rejected whole, nothing repaired, and no verdict. */
   violations: Violation[];
   verdict?: Verdict;
+  /**
+   * Set when the review was aimed at a held book (Load Again, SDD-0004 §9): the
+   * file will replace that book under its key, so its recents come back. There
+   * is no verdict then; a title that differs is only a warning.
+   */
+  restore?: {
+    key: string;
+    /** The title the registry holds: the key itself when the book could not say. */
+    title: string;
+    state: string;
+    /** Undefined when the held book has no title to compare. */
+    titleMatches?: boolean;
+  };
   /** Songs of this file already held in another book. */
   held: HeldElsewhere;
 }
@@ -40,8 +53,8 @@ export type Choice = "keep-both" | { replace: string };
 export type CommitResult =
   | {
       ok: true;
-      /** `opened` and `recorded` and `loaded` and `kept-both` and `replaced`: what was done. */
-      action: "opened" | "recorded" | "loaded" | "kept-both" | "replaced";
+      /** What was done; `restored` is a Replace aimed at a book that could not be opened. */
+      action: "opened" | "recorded" | "loaded" | "kept-both" | "replaced" | "restored";
       key: string;
       /**
        * This was the first load: no loaded book was held before it. The caller
@@ -60,7 +73,17 @@ interface Pending {
   token: string;
   read: Extract<ContainerRead, { ok: true }>;
   verdict: Verdict;
+  /**
+   * The held book this file restores (Load Again), as the registry had it at
+   * review: the commit holds to that exact row (same file, still not readable,
+   * or its file gone), so a file is never written over a book that has since
+   * become good or been replaced.
+   */
+  target?: { key: string; file: string; state: string };
 }
+
+const same = (a: string, b: string) =>
+  a.normalize("NFC").trim().toLowerCase() === b.normalize("NFC").trim().toLowerCase();
 
 const NONE: HeldElsewhere = { count: 0, books: [] };
 
@@ -88,7 +111,12 @@ export class LoadSession {
     this.#newToken = newToken;
   }
 
-  async review(bytes: Uint8Array): Promise<LoadReview> {
+  /**
+   * `target` aims the review at a held, loaded book (Load Again on a book that
+   * could not be opened): committing then replaces that book under its key,
+   * whatever the file's origin, and the duplicate verdict is not asked.
+   */
+  async review(bytes: Uint8Array, target?: string): Promise<LoadReview> {
     // A second pick replaces the first at once, and only the latest review to
     // be asked for may become pending, whatever order they finish in.
     const generation = ++this.#generation;
@@ -110,13 +138,28 @@ export class LoadSession {
     }
     const { hymnbook, hymns } = read.book;
     const held = heldBooks(ctx);
+    const row = target === undefined ? undefined : listBooks(ctx).find((b) => b.key === target);
+    if (target !== undefined && (!row || row.kind === "shipped")) {
+      throw new Error(`${target} is not a loaded book that is held`);
+    }
+    // A newer app is what it needs, not another file (§9): refused here too.
+    if (row?.state === "needs-newer-app") {
+      throw new Error(`${target} needs a newer app, and a file does not restore it`);
+    }
     const verdict = verdictOf(
       { sourceHash: read.sourceHash, origin: hymnbook.id, songHashes: read.songHashes },
       held,
     );
     // A review that was overtaken is shown but not kept: its token is empty.
     const token = generation === this.#generation ? this.#newToken() : "";
-    if (token) this.#pending = { token, read, verdict };
+    if (token) {
+      this.#pending = {
+        token,
+        read,
+        verdict,
+        ...(row ? { target: { key: row.key, file: row.file, state: row.state } } : {}),
+      };
+    }
     return {
       token,
       sourceHash: read.sourceHash,
@@ -126,8 +169,20 @@ export class LoadSession {
       origin: hymnbook.id,
       songCount: hymns.length,
       violations: [],
-      verdict,
-      held: heldElsewhere(read.songHashes, held),
+      ...(row
+        ? {
+            restore: {
+              key: row.key,
+              title: row.title,
+              state: row.state,
+              ...(row.title === row.key ? {} : { titleMatches: same(row.title, hymnbook.title) }),
+            },
+          }
+        : { verdict }),
+      held: heldElsewhere(
+        read.songHashes,
+        held.filter((b) => b.key !== target),
+      ),
     };
   }
 
@@ -172,6 +227,7 @@ export class LoadSession {
     const keep = () => {
       if (generation === this.#generation && !this.#pending) this.#pending = pending;
     };
+    if (pending.target !== undefined) return this.#restore(ctx, pending, keep);
     // The registry may have changed since the review (another tab, a removal).
     const now = verdictOf(
       { sourceHash: read.sourceHash, origin: hymnbook.id, songHashes: read.songHashes },
@@ -214,6 +270,37 @@ export class LoadSession {
         case "new":
           return await this.#load(ctx, read, "loaded");
       }
+    } catch (error) {
+      keep();
+      return {
+        ok: false,
+        reason: "failed",
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /** Load Again: the file replaces the held book under its key (SDD-0004 §9). */
+  async #restore(ctx: RegistryContext, pending: Pending, keep: () => void): Promise<CommitResult> {
+    const pinned = pending.target as NonNullable<Pending["target"]>;
+    const key = pinned.key;
+    const row = listBooks(ctx).find((b) => b.key === key);
+    if (!row || row.kind === "shipped") {
+      return { ok: false, reason: "stale", message: "the books held changed; read the file again" };
+    }
+    // The book as it was reviewed: the same file, and still one that cannot be
+    // read (or whose file is gone). Anything else is a different book now.
+    const gone = !ctx.files.list().includes(row.file);
+    if (
+      row.file !== pinned.file ||
+      row.state === "needs-newer-app" ||
+      (row.state === "ok" && !gone)
+    ) {
+      return { ok: false, reason: "stale", message: "the book changed since the file was read" };
+    }
+    try {
+      const written = await replaceBook(ctx, key, pending.read, { restore: true });
+      return { ok: true, action: row.state === "ok" ? "replaced" : "restored", key: written.key };
     } catch (error) {
       keep();
       return {

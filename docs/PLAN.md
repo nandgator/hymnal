@@ -31,10 +31,11 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 **Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
 **Next: Board #28**: ADR-0026/0027 are accepted; its parts are in SDD-0004.
 Parts 1 (`bun run pack`), 2 (the reader, hashes, keys), 3 (schema 3, the
-registry) and 4 (the verdict, review and commit, Replace, remove) are done; part
-5, the Library, next. It needs #27's parts 1–5, not the judge. #27 part 6, the
-Laya judge, runs last, on another machine or a Codespace (this one is short of
-memory).
+registry), 4 (the verdict, review and commit, Replace, remove) and 5 (the
+Library) are done; part 6, the songs leave, next, once the Malayalam container
+has been loaded through the Library. It needs #27's parts 1–5, not the judge.
+#27 part 6, the Laya judge, runs last, on another machine or a Codespace (this
+one is short of memory).
 
 **Board #27 (song import, CLI)**: it touches no UI. Target: _Hymns of
 Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its index), the
@@ -135,6 +136,9 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — #28 part 5: the Library (list, choose, load with the review,
+  remove, Load Again aimed at a book, the keep-your-file note), `openBook`,
+  error colours; `hymnalDev` keeps only its OPFS inspector; SDD-0004 §9
 - 2026-10-02 — #35 done: `bun run text` (parser `src/import/songtext.ts`, source
   check `src/import/sourcecheck.ts`, both pure) writes a format 1 directory for
   `pack`; #34's app part waits for the Library

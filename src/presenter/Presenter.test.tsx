@@ -99,6 +99,7 @@ describe("Presenter", () => {
   it("shows nothing for a fast load, then its panels empty in place (DESIGN.md § Structure)", async () => {
     render(() => (
       <Presenter
+        hymnbookId="book"
         hymnNumber={7}
         store={fakeStore({ getHymn: () => new Promise(() => {}) })}
         userState={fakeUserState()}
@@ -129,6 +130,7 @@ describe("Presenter", () => {
     const onBack = vi.fn();
     render(() => (
       <Presenter
+        hymnbookId="book"
         hymnNumber={9999}
         store={fakeStore({
           getHymn: async () => {
@@ -146,7 +148,9 @@ describe("Presenter", () => {
   });
 
   it("doesn't cue ordinary verse-chorus recurrence as a repeat (SDD-0001 §16.2)", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
 
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
@@ -157,7 +161,9 @@ describe("Presenter", () => {
   });
 
   it("moves through lines within a part, focusing one at a time", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
 
     fireEvent.click(screen.getByRole("button", { name: "Next line" }));
@@ -172,7 +178,9 @@ describe("Presenter", () => {
   });
 
   it("jumps straight to any part, overriding the stored order (R6)", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
 
     const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
@@ -182,7 +190,9 @@ describe("Presenter", () => {
   });
 
   it("disables Previous part on the first occurrence and Next part on the last", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
 
     expect(screen.getByRole("button", { name: "Previous part" })).toBeDisabled();
@@ -194,7 +204,9 @@ describe("Presenter", () => {
   });
 
   it("widens line focus to the whole part at either end, from the keys or the dock", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
     const line1a = () => screen.getByRole("button", { name: "Line 1a" });
 
@@ -216,7 +228,9 @@ describe("Presenter", () => {
   });
 
   it("navigates by keyboard, for remotes/clickers as well as arrow keys (arc42 §8.8)", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
 
     fireEvent.keyDown(window, { key: "ArrowRight" });
@@ -267,7 +281,9 @@ describe("Presenter", () => {
   });
 
   it("keeps Next and Previous meaningful after jumping to a part", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
     const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
 
@@ -282,7 +298,9 @@ describe("Presenter", () => {
   });
 
   it("shows the whole sung order and goes to a block, or a line, when tapped (SDD-0001 §16.4)", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
     const sequence = within(screen.getByRole("region", { name: "Lyrics" }));
 
@@ -303,7 +321,9 @@ describe("Presenter", () => {
   });
 
   it("mirrors the Output in the Live pane", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
 
     const live = within(screen.getByRole("img", { name: "Live output preview" }));
@@ -316,7 +336,9 @@ describe("Presenter", () => {
   });
 
   it("from 840px: This song and Recents side by side, What they see beside (SDD-0001 §16.4)", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
 
     expect(
@@ -336,6 +358,7 @@ describe("Presenter", () => {
     const onWorkspaceChange = vi.fn();
     render(() => (
       <Presenter
+        hymnbookId="book"
         hymnNumber={7}
         store={fakeStore()}
         userState={fakeUserState()}
@@ -374,10 +397,11 @@ describe("Presenter", () => {
       render(() => (
         <Presenter
           hymnNumber={7}
+          hymnbookId="book"
           store={fakeStore()}
           userState={fakeUserState({
             getRecents: async () => [
-              { hymnbookId: "mal-ymef-athmeeya-geethangal-16", hymnNumber: 7, viewedAt: 2 },
+              { hymnbookId: "book", hymnNumber: 7, viewedAt: 2 },
               { hymnbookId: "other-book", hymnNumber: 9, viewedAt: 1 },
             ],
           })}
@@ -413,7 +437,14 @@ describe("Presenter", () => {
   it("on a phone: the Live strip, then the tabs merged with Parts, opening on Parts", async () => {
     stubMedia(() => false);
     try {
-      render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+      render(() => (
+        <Presenter
+          hymnbookId="book"
+          hymnNumber={7}
+          store={fakeStore()}
+          userState={fakeUserState()}
+        />
+      ));
       await screen.findByText("Test Hymn");
 
       const strip = screen.getByRole("button", { name: /^Live/ });
@@ -449,7 +480,14 @@ describe("Presenter", () => {
   it("on a phone, N steps through the tabs, Parts included", async () => {
     stubMedia(() => false);
     try {
-      render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+      render(() => (
+        <Presenter
+          hymnbookId="book"
+          hymnNumber={7}
+          store={fakeStore()}
+          userState={fakeUserState()}
+        />
+      ));
       await screen.findByText("Test Hymn");
       const selected = () => screen.getByRole("tab", { selected: true }).textContent;
 
@@ -474,6 +512,7 @@ describe("Presenter", () => {
     };
     render(() => (
       <Presenter
+        hymnbookId="book"
         hymnNumber={7}
         store={fakeStore({ getHymn: async () => hymn })}
         userState={fakeUserState()}
@@ -499,7 +538,14 @@ describe("Presenter", () => {
       })),
     );
     try {
-      render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+      render(() => (
+        <Presenter
+          hymnbookId="book"
+          hymnNumber={7}
+          store={fakeStore()}
+          userState={fakeUserState()}
+        />
+      ));
       await screen.findByText("Test Hymn");
 
       expect(screen.getByRole("button", { name: /^Live/ })).toHaveAttribute(
@@ -517,7 +563,12 @@ describe("Presenter", () => {
     render(() => (
       <>
         <input aria-label="Some field" />
-        <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+        <Presenter
+          hymnbookId="book"
+          hymnNumber={7}
+          store={fakeStore()}
+          userState={fakeUserState()}
+        />
       </>
     ));
     await screen.findByText("Test Hymn");
@@ -541,6 +592,7 @@ describe("Presenter", () => {
     };
     render(() => (
       <Presenter
+        hymnbookId="book"
         hymnNumber={7}
         store={fakeStore({ getHymn: async () => hymn })}
         userState={fakeUserState()}
@@ -554,7 +606,14 @@ describe("Presenter", () => {
   it("keeps its shortcuts when a phone's tab has focus", async () => {
     stubMedia(() => false);
     try {
-      render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+      render(() => (
+        <Presenter
+          hymnbookId="book"
+          hymnNumber={7}
+          store={fakeStore()}
+          userState={fakeUserState()}
+        />
+      ));
       await screen.findByText("Test Hymn");
 
       const tab = screen.getByRole("tab", { name: "This Song" });
@@ -568,7 +627,9 @@ describe("Presenter", () => {
   });
 
   it("restarts the current part when its chip is tapped again, adding no repeat", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
     const jumpList = within(screen.getByRole("region", { name: "Jump to part" }));
 
@@ -584,7 +645,9 @@ describe("Presenter", () => {
   });
 
   it("takes the rest of the keymap: Space, Home/End, stanza digits, C (SDD-0001 §16.5)", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
     const heading = () => currentPart().getByRole("heading", { level: 3 });
 
@@ -608,7 +671,9 @@ describe("Presenter", () => {
   });
 
   it("makes Space Next part even on a focused chip, never re-pressing it", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
     const chip = within(screen.getByRole("region", { name: "Jump to part" })).getByRole("button", {
       name: "1",
@@ -635,6 +700,7 @@ describe("Presenter", () => {
     };
     render(() => (
       <Presenter
+        hymnbookId="book"
         hymnNumber={7}
         store={fakeStore({ getHymn: async () => twelve })}
         userState={fakeUserState()}
@@ -664,6 +730,7 @@ describe("Presenter", () => {
     const onToggleBlank = vi.fn();
     render(() => (
       <Presenter
+        hymnbookId="book"
         hymnNumber={7}
         store={fakeStore()}
         userState={fakeUserState()}
@@ -683,6 +750,7 @@ describe("Presenter", () => {
   it("hides Live when preferences hide it, keeping Parts", async () => {
     render(() => (
       <Presenter
+        hymnbookId="book"
         hymnNumber={7}
         store={fakeStore()}
         userState={fakeUserState()}
@@ -747,7 +815,9 @@ describe("Presenter", () => {
 
   it("repeats in place: a count, Undo, one Lyrics block, the Output unmoved (SDD-0001 §5.1)", async () => {
     publishOutput.mockClear();
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
     const published = () => publishOutput.mock.lastCall?.[0];
     const before = published();
@@ -792,6 +862,7 @@ describe("Presenter", () => {
     const onActions = vi.fn();
     const { unmount } = render(() => (
       <Presenter
+        hymnbookId="book"
         hymnNumber={7}
         store={fakeStore()}
         userState={fakeUserState()}
@@ -811,7 +882,9 @@ describe("Presenter", () => {
   });
 
   it("repeats with R and undoes with U, as the buttons do (SDD-0001 §16.5)", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
     const count = () => document.querySelector(".repeat-count");
 
@@ -835,7 +908,9 @@ describe("Presenter", () => {
   });
 
   it("takes a held R or U as one press, never auto-repeating (SDD-0001 §16.5)", async () => {
-    render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
     await screen.findByText("Test Hymn");
     const count = () => document.querySelector(".repeat-count");
     const hold = (key: string) => {
@@ -858,7 +933,12 @@ describe("Presenter", () => {
     render(() => (
       <>
         <input aria-label="Notes" />
-        <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+        <Presenter
+          hymnbookId="book"
+          hymnNumber={7}
+          store={fakeStore()}
+          userState={fakeUserState()}
+        />
       </>
     ));
     await screen.findByText("Test Hymn");
@@ -885,7 +965,7 @@ describe("Presenter", () => {
         return [button.getAttribute("title"), button.getAttribute("aria-keyshortcuts")];
       });
     const { unmount } = render(() => (
-      <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
     ));
     await screen.findByText("Test Hymn");
     expect(tips()).toEqual([
@@ -900,7 +980,14 @@ describe("Presenter", () => {
     // Under 840px there is usually no keyboard: the tooltip is the bare label.
     stubMedia(() => false);
     try {
-      render(() => <Presenter hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />);
+      render(() => (
+        <Presenter
+          hymnbookId="book"
+          hymnNumber={7}
+          store={fakeStore()}
+          userState={fakeUserState()}
+        />
+      ));
       await screen.findByText("Test Hymn");
       expect(tips().map(([title]) => title)).toEqual([
         "Repeat this part",
@@ -925,6 +1012,7 @@ describe("Presenter", () => {
     publishOutput.mockClear();
     render(() => (
       <Presenter
+        hymnbookId="book"
         hymnNumber={7}
         store={fakeStore()}
         userState={fakeUserState()}
@@ -963,6 +1051,7 @@ describe("Presenter", () => {
     const [number, setNumber] = createSignal(3);
     render(() => (
       <Presenter
+        hymnbookId="book"
         hymnNumber={number()}
         store={fakeStore({ getHymn: async (_book, n) => (n === 3 ? long : short) })}
         userState={fakeUserState()}
@@ -980,6 +1069,7 @@ describe("Presenter", () => {
     const [number, setNumber] = createSignal(7);
     render(() => (
       <Presenter
+        hymnbookId="book"
         hymnNumber={number()}
         store={fakeStore({ getHymn: async (_book, n) => (n === 7 ? HYMN : other) })}
         userState={fakeUserState()}

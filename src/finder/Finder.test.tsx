@@ -50,7 +50,14 @@ const submit = (value: string) => {
 
 describe("Finder", () => {
   it("shows an empty recents message when there are none", async () => {
-    render(() => <Finder store={fakeStore()} userState={fakeUserState()} onSelect={vi.fn()} />);
+    render(() => (
+      <Finder
+        hymnbookId="book"
+        store={fakeStore()}
+        userState={fakeUserState()}
+        onSelect={vi.fn()}
+      />
+    ));
     expect(await screen.findByText("No recent songs yet.")).toBeInTheDocument();
   });
 
@@ -86,7 +93,14 @@ describe("Finder", () => {
 
   it("hands an exact hymn number straight to onSelect", async () => {
     const onSelect = vi.fn();
-    render(() => <Finder store={fakeStore()} userState={fakeUserState()} onSelect={onSelect} />);
+    render(() => (
+      <Finder
+        hymnbookId="book"
+        store={fakeStore()}
+        userState={fakeUserState()}
+        onSelect={onSelect}
+      />
+    ));
     await screen.findByText("No recent songs yet.");
 
     submit("42");
@@ -102,13 +116,18 @@ describe("Finder", () => {
       ],
     );
     render(() => (
-      <Finder store={fakeStore({ searchLyrics })} userState={fakeUserState()} onSelect={onSelect} />
+      <Finder
+        hymnbookId="book"
+        store={fakeStore({ searchLyrics })}
+        userState={fakeUserState()}
+        onSelect={onSelect}
+      />
     ));
     await screen.findByText("No recent songs yet.");
 
     submit("grace");
 
-    expect(searchLyrics).toHaveBeenCalledWith("mal-ymef-athmeeya-geethangal-16", "grace");
+    expect(searchLyrics).toHaveBeenCalledWith("book", "grace");
     fireEvent.mouseDown(await screen.findByRole("option", { name: /Forty-Second Hymn/ }));
     expect(onSelect).toHaveBeenCalledWith(42);
   });
@@ -121,7 +140,12 @@ describe("Finder", () => {
       ],
     );
     render(() => (
-      <Finder store={fakeStore({ searchLyrics })} userState={fakeUserState()} onSelect={vi.fn()} />
+      <Finder
+        hymnbookId="book"
+        store={fakeStore({ searchLyrics })}
+        userState={fakeUserState()}
+        onSelect={vi.fn()}
+      />
     ));
     await screen.findByText("No recent songs yet.");
 
@@ -134,7 +158,14 @@ describe("Finder", () => {
   });
 
   it("reports no matches for a lyric search with no results", async () => {
-    render(() => <Finder store={fakeStore()} userState={fakeUserState()} onSelect={vi.fn()} />);
+    render(() => (
+      <Finder
+        hymnbookId="book"
+        store={fakeStore()}
+        userState={fakeUserState()}
+        onSelect={vi.fn()}
+      />
+    ));
     await screen.findByText("No recent songs yet.");
 
     submit("nothing like this");
@@ -161,7 +192,13 @@ describe("Finder", () => {
   it("offers a way back to hymnbook selection", async () => {
     const onBack = vi.fn();
     render(() => (
-      <Finder store={fakeStore()} userState={fakeUserState()} onSelect={vi.fn()} onBack={onBack} />
+      <Finder
+        hymnbookId="book"
+        store={fakeStore()}
+        userState={fakeUserState()}
+        onSelect={vi.fn()}
+        onBack={onBack}
+      />
     ));
 
     fireEvent.click(await screen.findByRole("button", { name: "Back to hymnbooks" }));
@@ -172,6 +209,7 @@ describe("Finder", () => {
     const onSelect = vi.fn();
     render(() => (
       <Finder
+        hymnbookId="book"
         store={fakeStore({
           listHymns: async () => [
             { number: 4, title: "Four" },
@@ -206,17 +244,29 @@ describe("Finder", () => {
       ],
     );
     render(() => (
-      <Finder store={fakeStore({ searchLyrics })} userState={fakeUserState()} onSelect={vi.fn()} />
+      <Finder
+        hymnbookId="book"
+        store={fakeStore({ searchLyrics })}
+        userState={fakeUserState()}
+        onSelect={vi.fn()}
+      />
     ));
     await screen.findByText("No recent songs yet.");
 
     fireEvent.input(find(), { target: { value: "grace" } });
     expect(await screen.findByRole("option", { name: /Forty-Second Hymn/ })).toBeInTheDocument();
-    expect(searchLyrics).toHaveBeenCalledWith("mal-ymef-athmeeya-geethangal-16", "grace");
+    expect(searchLyrics).toHaveBeenCalledWith("book", "grace");
   });
 
   it("clears the query on Escape", async () => {
-    render(() => <Finder store={fakeStore()} userState={fakeUserState()} onSelect={vi.fn()} />);
+    render(() => (
+      <Finder
+        hymnbookId="book"
+        store={fakeStore()}
+        userState={fakeUserState()}
+        onSelect={vi.fn()}
+      />
+    ));
     await screen.findByText("No recent songs yet.");
     fireEvent.input(find(), { target: { value: "42" } });
     fireEvent.keyDown(find(), { key: "Escape" });
@@ -227,6 +277,7 @@ describe("Finder", () => {
     const onSelect = vi.fn();
     render(() => (
       <Finder
+        hymnbookId="book"
         store={fakeStore({
           listHymns: async () => [
             { number: 121, title: "One-Two-One" },
@@ -262,6 +313,7 @@ describe("Finder", () => {
     const onSelect = vi.fn();
     render(() => (
       <Finder
+        hymnbookId="book"
         store={fakeStore()}
         userState={fakeUserState()}
         onSelect={onSelect}

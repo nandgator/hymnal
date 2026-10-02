@@ -12,6 +12,14 @@ describe("Menu", () => {
     expect(run).toHaveBeenCalled();
   });
 
+  it("keeps the list for a lone item when asked, so a row's menu looks the same with one", () => {
+    render(() => (
+      <Menu label="Options" fold={false} items={[{ label: "Remove…", run: () => {} }]} />
+    ));
+    fireEvent.click(screen.getByRole("button", { name: "Options" }));
+    expect(screen.getByRole("menuitem", { name: "Remove…" })).toBeInTheDocument();
+  });
+
   it("opens a menu of several, moves with arrows, closes on Escape, pausing shortcuts", async () => {
     const second = vi.fn();
     render(() => (

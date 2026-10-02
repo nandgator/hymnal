@@ -1,8 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App.tsx";
-import type { ContentStore } from "./persistence/content-store.ts";
+import type { BookRow, ContentAdmin, ContentStore } from "./persistence/content-store.ts";
 import type { UserState } from "./persistence/user-state.ts";
+
+const mocks = vi.hoisted(() => ({
+  rows: [] as import("./persistence/content-store.ts").BookRow[],
+  recents: [] as import("./persistence/user-state.ts").RecentEntry[],
+  admin: {} as Record<string, unknown>,
+}));
 
 vi.mock("./persistence/content-store.ts", () => {
   const store: ContentStore = {
@@ -24,14 +30,56 @@ vi.mock("./persistence/content-store.ts", () => {
     }),
     searchLyrics: async () => [],
   };
-  return { getContentStore: () => store };
+  const row: BookRow = {
+    key: "mal-ymef-athmeeya-geethangal-16",
+    origin: "mal-ymef-athmeeya-geethangal-16",
+    kind: "shipped",
+    file: "/mal-ymef-athmeeya-geethangal-16.sqlite3",
+    title: "Mocked Hymnbook",
+    language: "ml",
+    script: "Mlym",
+    songs: 1,
+    addedAt: 1,
+    state: "ok",
+  };
+  mocks.rows = [row];
+  const admin: Partial<ContentAdmin> = {
+    listBooks: async () => mocks.rows,
+    openBook: async () => ({ state: "ready" }),
+    review: async () => ({
+      token: "t",
+      sourceHash: "a".repeat(64),
+      title: "Hymns of Fellowship",
+      language: "en",
+      script: "Latn",
+      origin: "hof",
+      songCount: 3,
+      violations: [],
+      verdict: { kind: "new" },
+      held: { count: 0, books: [] },
+    }),
+    commit: async () => {
+      mocks.rows = [
+        ...mocks.rows,
+        { ...row, key: "k1", kind: "loaded", title: "Hymns of Fellowship", songs: 3 },
+      ];
+      return { ok: true, action: "loaded", key: "k1", firstLoad: true };
+    },
+    cancel: async () => true,
+    removeBook: async (key: string) => {
+      mocks.rows = mocks.rows.filter((book) => book.key !== key);
+      return true;
+    },
+  };
+  mocks.admin = admin;
+  return { getContentStore: () => store, getContentAdmin: () => admin, forgetBook: () => {} };
 });
 
 vi.mock("./persistence/user-state.ts", async (importOriginal) => {
   const userState: UserState = {
     getLastPosition: async () => undefined,
     setLastPosition: async () => {},
-    getRecents: async () => [],
+    getRecents: async () => mocks.recents,
     addRecent: async () => {},
     dropRecents: async () => {},
     getPreferences: async () => ({ theme: "system", fontScale: 1 }),
@@ -40,21 +88,177 @@ vi.mock("./persistence/user-state.ts", async (importOriginal) => {
   return { ...(await importOriginal<typeof import("./persistence/user-state.ts")>()), userState };
 });
 
-describe("App", () => {
-  it("renders the Library, wired to the default content store", async () => {
+/** The Library has listed the books: the first run's wait is over. */
+const booksReady = () => screen.findByRole("heading", { name: "Library" });
+
+/** Present, from the rail: the Finder of the current book. */
+async function openFinder() {
+  await booksReady();
+  const present = within(screen.getByRole("navigation", { name: "Sections" })).getByRole("button", {
+    name: "Present",
+  });
+  await waitFor(() => expect(present).toBeEnabled());
+  fireEvent.click(present);
+}
+
+describe("App: the books held (SDD-0004 §9, §10)", () => {
+  const second = (over: Partial<BookRow> = {}): BookRow => ({
+    key: "k1",
+    origin: "hof",
+    kind: "loaded",
+    file: "/k1.1.sqlite3",
+    title: "Hymns of Fellowship",
+    language: "en",
+    script: "Latn",
+    songs: 275,
+    addedAt: 2,
+    state: "ok",
+    ...over,
+  });
+  const first = () => ({ ...(mocks.rows[0] as BookRow) });
+
+  afterEach(() => {
+    mocks.recents = [];
+    mocks.rows = [first()];
+  });
+
+  it("starts on the book of the newest recent that is still held", async () => {
+    mocks.rows = [first(), second()];
+    mocks.recents = [
+      { hymnbookId: "gone", hymnNumber: 1, viewedAt: 3 },
+      { hymnbookId: "k1", hymnNumber: 4, viewedAt: 2 },
+    ];
     render(() => <App />);
-    expect(await screen.findByRole("heading", { name: "Mocked Hymnbook" })).toBeInTheDocument();
+    const crumbs = within(await screen.findByRole("navigation", { name: "Hymnbook and song" }));
+    expect(await crumbs.findByText("Hymns of Fellowship")).toBeInTheDocument();
+  });
+
+  it("starts on the first held book with no recents", async () => {
+    mocks.rows = [first(), second()];
+    render(() => <App />);
+    const crumbs = within(await screen.findByRole("navigation", { name: "Hymnbook and song" }));
+    expect(await crumbs.findByText("Mocked Hymnbook")).toBeInTheDocument();
+  });
+
+  it("lists every readable book in the hymnbook picker, and chooses one", async () => {
+    mocks.rows = [
+      first(),
+      second(),
+      second({ key: "bad", title: "Broken", state: "needs-reloading" }),
+    ];
+    render(() => <App />);
+    const crumbs = within(await screen.findByRole("navigation", { name: "Hymnbook and song" }));
+    fireEvent.click(await crumbs.findByRole("button", { name: /Mocked Hymnbook/ }));
+    const books = within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
+    expect(books.queryByRole("button", { name: /Broken/ })).not.toBeInTheDocument();
+    fireEvent.click(books.getByRole("button", { name: /Hymns of Fellowship/ }));
+    expect(await crumbs.findByText("Hymns of Fellowship")).toBeInTheDocument();
+  });
+
+  it("removing the book the hymn on screen is from, with the Output closed, clears the hymn", async () => {
+    mocks.rows = [first(), second()];
+    mocks.recents = [{ hymnbookId: "k1", hymnNumber: 1, viewedAt: 2 }];
+    render(() => <App />);
+    await openFinder();
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+      target: { value: "1" },
+    });
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
+    await within(screen.getByRole("navigation", { name: "Hymnbook and song" })).findByRole(
+      "button",
+      { name: /#1/ },
+    );
+
+    const sections = within(screen.getByRole("navigation", { name: "Sections" }));
+    fireEvent.click(sections.getByRole("button", { name: "Library" }));
+    fireEvent.click(await screen.findByRole("button", { name: "More for Hymns of Fellowship" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Remove/ }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Remove Book" }));
+    // The Output has not answered yet, so it counts as live: wait for it to be heard from.
+    await waitFor(() => expect(dialog.getByRole("button", { name: "Remove Book" })).toBeEnabled(), {
+      timeout: 5000,
+    });
+    fireEvent.click(dialog.getByRole("button", { name: "Remove Book" }));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "More for Hymns of Fellowship" }),
+      ).not.toBeInTheDocument(),
+    );
+    fireEvent.click(sections.getByRole("button", { name: "Present" }));
+    // No hymn is left up: the Finder, not the Presenter.
+    expect(await screen.findByRole("combobox", { name: "Find a song" })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("navigation", { name: "Hymnbook and song" })).queryByRole("button", {
+        name: /#1/,
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("refuses to remove the book on the Output while it is live (the Output has not answered yet)", async () => {
+    mocks.rows = [first(), second()];
+    mocks.recents = [{ hymnbookId: "k1", hymnNumber: 1, viewedAt: 2 }];
+    render(() => <App />);
+    await openFinder();
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+      target: { value: "1" },
+    });
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
+    await within(screen.getByRole("navigation", { name: "Hymnbook and song" })).findByRole(
+      "button",
+      { name: /#1/ },
+    );
+    const sections = within(screen.getByRole("navigation", { name: "Sections" }));
+    fireEvent.click(sections.getByRole("button", { name: "Library" }));
+    fireEvent.click(await screen.findByRole("button", { name: "More for Hymns of Fellowship" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Remove/ }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Remove Book" }));
+    expect(dialog.getByRole("button", { name: "Remove Book" })).toBeDisabled();
+    expect(dialog.getByRole("alert")).toHaveTextContent(/Close the Output first/);
+  });
+
+  it("shows the keep-your-file note after a first load when storage was refused, and Got it puts it away", async () => {
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      storage: { persist: async () => false, persisted: async () => false },
+    });
+    try {
+      render(() => <App />);
+      await booksReady();
+      const input = screen.getByTestId("book-file");
+      fireEvent.change(input, { target: { files: [new File(["x"], "hof.hymnbook.json.gz")] } });
+      const dialog = within(await screen.findByRole("dialog", { name: "Load a Book" }));
+      fireEvent.click(dialog.getByRole("button", { name: "Load Book" }));
+      const note = await screen.findAllByText(/Your browser may clear stored books/);
+      expect(note.length).toBeGreaterThan(0);
+      fireEvent.click(screen.getByRole("button", { name: "Got it" }));
+      await waitFor(() =>
+        expect(screen.queryByText(/Your browser may clear stored books/)).not.toBeInTheDocument(),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe("App", () => {
+  it("renders the Library, listing the books held, the current one marked", async () => {
+    render(() => <App />);
+    expect(await screen.findByRole("heading", { name: "Library" })).toBeInTheDocument();
+    const list = within(await screen.findByRole("list", { name: "Books" }));
+    const book = list.getByRole("button", { name: /^Mocked Hymnbook/ });
+    await waitFor(() => expect(book).toHaveAttribute("aria-current", "true"));
   });
 
   it("moves to Finder once the user chooses to find a hymn", async () => {
     render(() => <App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    await openFinder();
     expect(await screen.findByPlaceholderText("Song number or lyrics")).toBeInTheDocument();
   });
 
   it("switches sections from the rail: Present, then back to the Library", async () => {
     render(() => <App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    await openFinder();
     const sections = within(screen.getByRole("navigation", { name: "Sections" }));
     expect(sections.getByRole("button", { name: "Present" })).toHaveAttribute(
       "aria-current",
@@ -62,12 +266,12 @@ describe("App", () => {
     );
 
     fireEvent.click(sections.getByRole("button", { name: "Library" }));
-    expect(await screen.findByRole("heading", { name: "Mocked Hymnbook" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Library" })).toBeInTheDocument();
   });
 
   it("opens the Presenter once a hymn is picked in Finder", async () => {
     render(() => <App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    await openFinder();
 
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
@@ -79,7 +283,7 @@ describe("App", () => {
 
   it("hot-swaps to another hymn from the switcher row, staying in the Presenter (SDD-0001 §16.4)", async () => {
     render(() => <App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    await openFinder();
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
@@ -99,7 +303,7 @@ describe("App", () => {
 
   it("choosing a hymnbook with no hymn up shows one Finder, not a picker over it", async () => {
     render(() => <App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    await openFinder();
     fireEvent.click(await screen.findByRole("button", { name: /Mocked Hymnbook/ }));
     const books = within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
     fireEvent.click(books.getByRole("button", { name: /Mocked Hymnbook/ }));
@@ -107,9 +311,9 @@ describe("App", () => {
     expect(await screen.findAllByRole("combobox", { name: "Find a song" })).toHaveLength(1);
   });
 
-  it("'Find a Song' with a hymn already up opens the picker over it", async () => {
+  it("Present with a hymn already up returns to it, and Manage Books in the picker goes to the Library", async () => {
     render(() => <App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    await openFinder();
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
@@ -118,10 +322,14 @@ describe("App", () => {
 
     const sections = within(screen.getByRole("navigation", { name: "Sections" }));
     fireEvent.click(sections.getByRole("button", { name: "Library" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    await booksReady();
+    fireEvent.click(sections.getByRole("button", { name: "Present" }));
+    expect(await screen.findByRole("button", { name: /#1\s*Mocked Hymn/ })).toBeInTheDocument();
 
-    expect(await screen.findByRole("dialog", { name: "Go to a Song" })).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Find a song" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Mocked Hymnbook/ }));
+    const books = within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
+    fireEvent.click(books.getByRole("button", { name: "Manage Books" }));
+    expect(await screen.findByRole("heading", { name: "Library" })).toBeInTheDocument();
   });
 
   it("opens the Output as a named window, so a second click reuses it", async () => {
@@ -148,7 +356,7 @@ describe("App", () => {
   it("opens the command menu with Ctrl+K or /, and the shortcut sheet with ? (SDD-0001 §16.5)", async () => {
     render(() => <App />);
     // The menu waits for a hymnbook to search.
-    await screen.findByRole("button", { name: "Find a Song" });
+    await booksReady();
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const menu = await screen.findByRole("dialog", { name: "Search" });
@@ -168,7 +376,7 @@ describe("App", () => {
 
   it("steps with keys pressed in the Output window, even with a sheet open here", async () => {
     render(() => <App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    await openFinder();
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
@@ -193,7 +401,7 @@ describe("App", () => {
 
   it("offers Repeat, then Undo repeat, in the command menu while presenting", async () => {
     render(() => <App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    await openFinder();
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
@@ -216,7 +424,7 @@ describe("App", () => {
 
   /** Opens a hymn in the Presenter, the way a person would. */
   async function openHymn() {
-    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    await openFinder();
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
@@ -319,7 +527,7 @@ describe("App", () => {
 
   it("titles Go live with its key from the keymap", async () => {
     render(() => <App />);
-    await screen.findByRole("button", { name: "Find a Song" });
+    await booksReady();
     const settings = screen.getByRole("button", { name: "Settings" });
     expect(settings).toHaveAttribute("title", "Settings (Ctrl+,)");
     expect(settings).toHaveAttribute("aria-keyshortcuts", "Control+,");
@@ -340,7 +548,7 @@ describe("App", () => {
       })),
     );
     render(() => <App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    await openFinder();
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
@@ -357,7 +565,7 @@ describe("App", () => {
 
   it("blanks the Output with B and restores it with a second press (.)", async () => {
     render(() => <App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    await openFinder();
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
@@ -374,7 +582,7 @@ describe("App", () => {
 
   it("opens Settings with Ctrl+,; its shortcut sheet goes Back to it, not closed", async () => {
     render(() => <App />);
-    await screen.findByRole("button", { name: "Find a Song" });
+    await booksReady();
 
     fireEvent.keyDown(window, { key: ",", ctrlKey: true });
     const settings = await screen.findByRole("dialog", { name: "Settings" });
@@ -398,7 +606,7 @@ describe("App", () => {
 
   it("hides Live with L, remembered in preferences, and shows it again (SDD-0001 §16.4)", async () => {
     render(() => <App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+    await openFinder();
     fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
       target: { value: "1" },
     });
@@ -423,7 +631,7 @@ describe("App", () => {
 
   it("replays keys pressed in the Output window, as if pressed here (SDD-0001 §16.1)", async () => {
     render(() => <App />);
-    await screen.findByRole("button", { name: "Find a Song" });
+    await booksReady();
 
     const outputWindow = new BroadcastChannel("hymnal-output");
     outputWindow.postMessage({ type: "key", key: "?", shiftKey: true });

@@ -611,3 +611,109 @@ describe("overlapping calls", () => {
     ).toBe(false);
   });
 });
+
+describe("Load Again: a review aimed at a held book (SDD-0004 §9)", () => {
+  /** A loaded book that cannot be opened: its package lost its hymnbook table. */
+  async function damaged() {
+    const { ctx, files } = setup();
+    const s = session(ctx);
+    await load(s, bytesOf("a", hymns));
+    files.open("/key-1.1.sqlite3", (sql) => sql.exec("DROP TABLE hymnbook"));
+    await reconcile(ctx);
+    expect(listBooks(ctx)).toMatchObject([{ key: "key-1", state: "unreadable" }]);
+    return { ctx, files, s };
+  }
+
+  it("restores the book under its key, whatever the file's origin, and says so", async () => {
+    const { ctx, files, s } = await damaged();
+    const before = listBooks(ctx)[0];
+    const review = await s.review(bytesOf("another-origin", v2), "key-1");
+    expect(review.verdict).toBeUndefined();
+    expect(review.restore).toEqual({
+      key: "key-1",
+      title: "A Book",
+      state: "unreadable",
+      titleMatches: true,
+    });
+    expect(await s.commit(review.token)).toEqual({ ok: true, action: "restored", key: "key-1" });
+    expect(files.list()).toEqual(["/key-1.2.sqlite3"]);
+    expect(listBooks(ctx)).toMatchObject([
+      { key: "key-1", origin: "another-origin", state: "ok", songs: 2, addedAt: before.addedAt },
+    ]);
+    expect(sources(ctx, "key-1")).toEqual([review.sourceHash]);
+  });
+
+  it("warns when the file's title is not the held book's, and not when it is, or when the book has none", async () => {
+    const { ctx, s } = await damaged();
+    ctx.registry.run("UPDATE book SET title = 'A Different Book' WHERE key = 'key-1'");
+    expect((await s.review(bytesOf("a"), "key-1")).restore).toMatchObject({ titleMatches: false });
+    ctx.registry.run("UPDATE book SET title = ' a book ' WHERE key = 'key-1'");
+    expect((await s.review(bytesOf("a"), "key-1")).restore).toMatchObject({ titleMatches: true });
+    ctx.registry.run("UPDATE book SET title = key WHERE key = 'key-1'");
+    expect((await s.review(bytesOf("a"), "key-1")).restore).not.toHaveProperty("titleMatches");
+  });
+
+  it("does not ask the duplicate verdict, so a file held in another book can still restore", async () => {
+    const { ctx, s } = await damaged();
+    await load(s, bytesOf("b", other));
+    const review = await s.review(bytesOf("b", other), "key-1");
+    expect(review.verdict).toBeUndefined();
+    expect(await s.commit(review.token)).toMatchObject({ ok: true, action: "restored" });
+    expect(listBooks(ctx).map((b) => b.state)).toEqual(["ok", "ok"]);
+  });
+
+  it("refuses a target that is not held, or is shipped", async () => {
+    const { ctx, files } = setup(["a"]);
+    files.put("/a.sqlite3", "a", hymns);
+    await reconcile(ctx);
+    const s = session(ctx);
+    await expect(s.review(bytesOf("a", v2), "a")).rejects.toThrow(/not a loaded book/);
+    await expect(s.review(bytesOf("a", v2), "nobody")).rejects.toThrow(/not a loaded book/);
+  });
+
+  it("is refused as stale when the target is removed before the commit, and writes nothing", async () => {
+    const { ctx, files, s } = await damaged();
+    const review = await s.review(bytesOf("a", v2), "key-1");
+    removeBook(ctx, "key-1");
+    expect(await s.commit(review.token)).toMatchObject({ ok: false, reason: "stale" });
+    expect(files.list()).toEqual([]);
+  });
+
+  it("refuses when the target became readable between the review and the commit, and writes nothing", async () => {
+    const { ctx, files, s } = await damaged();
+    const review = await s.review(bytesOf("a", v2), "key-1");
+    files.open("/key-1.1.sqlite3", (sql) => sql.exec("CREATE TABLE hymnbook (id TEXT)"));
+    ctx.registry.run("UPDATE book SET state = 'ok' WHERE key = 'key-1'");
+    expect(await s.commit(review.token)).toMatchObject({ ok: false, reason: "stale" });
+    expect(files.list()).toEqual(["/key-1.1.sqlite3"]);
+  });
+
+  it("refuses when the target's file changed between the review and the commit", async () => {
+    const { ctx, files, s } = await damaged();
+    const review = await s.review(bytesOf("a", v2), "key-1");
+    ctx.registry.run("UPDATE book SET file = '/key-1.2.sqlite3' WHERE key = 'key-1'");
+    expect(await s.commit(review.token)).toMatchObject({ ok: false, reason: "stale" });
+    expect(files.list()).toEqual(["/key-1.1.sqlite3"]);
+  });
+
+  it("restores a book whose registry state is ok but whose file has gone", async () => {
+    const { ctx, files } = setup();
+    const s = session(ctx);
+    await load(s, bytesOf("a", hymns));
+    const review = await s.review(bytesOf("a", v3), "key-1");
+    files.remove("/key-1.1.sqlite3");
+    expect(await s.commit(review.token)).toMatchObject({ ok: true, action: "replaced" });
+    expect(listBooks(ctx)[0].file).toBe("/key-1.2.sqlite3");
+  });
+
+  it("refuses a book that needs a newer app, at the review and at the commit", async () => {
+    const { ctx, files, s } = await damaged();
+    ctx.registry.run("UPDATE book SET state = 'needs-newer-app' WHERE key = 'key-1'");
+    await expect(s.review(bytesOf("a", v2), "key-1")).rejects.toThrow(/needs a newer app/);
+    ctx.registry.run("UPDATE book SET state = 'unreadable' WHERE key = 'key-1'");
+    const review = await s.review(bytesOf("a", v2), "key-1");
+    ctx.registry.run("UPDATE book SET state = 'needs-newer-app' WHERE key = 'key-1'");
+    expect(await s.commit(review.token)).toMatchObject({ ok: false, reason: "stale" });
+    expect(files.list()).toEqual(["/key-1.1.sqlite3"]);
+  });
+});

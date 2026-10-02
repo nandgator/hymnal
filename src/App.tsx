@@ -9,9 +9,9 @@ import {
   Show,
   Switch,
 } from "solid-js";
-import { BUNDLED_HYMNBOOK_ID } from "./config.ts";
-import type { Hymn, Hymnbook, HymnbookId, HymnNumber } from "./domain/types.ts";
+import type { Hymn, HymnbookId, HymnNumber } from "./domain/types.ts";
 import { type Command, Finder } from "./finder/Finder.tsx";
+import { createBooks } from "./library/books.ts";
 import { Library } from "./library/Library.tsx";
 import {
   revealCues,
@@ -31,12 +31,14 @@ import {
   sameKey,
   screenAt,
 } from "./output/screens.ts";
+import { getContentAdmin, getContentStore } from "./persistence/content-store.ts";
 import {
   bandSizeOf,
   DEFAULT_OUTPUT_THEME,
   highlightOf,
   outputCuesOf,
   pinChorusOf,
+  userState,
   wholeSongOf,
 } from "./persistence/user-state.ts";
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
@@ -123,8 +125,43 @@ function Operator() {
   // Scrollbars fade in while a pane scrolls (DESIGN.md § Register).
   installScrollReveal();
   const [section, setSection] = createSignal<Section>("library");
-  const [hymnbook, setHymnbook] = createSignal<Hymnbook>();
-  const [hymnbookId, setHymnbookId] = createSignal<HymnbookId>(BUNDLED_HYMNBOOK_ID);
+  // The books held (SDD-0004 §9, §10). The current book is the one the Finder
+  // and the crumb follow; the presented book is the one the hymn on screen is
+  // from, which stays until a hymn is chosen from another (§16.4).
+  const books = createBooks(getContentAdmin(), getContentStore());
+  const [currentKey, setCurrentKey] = createSignal<HymnbookId>();
+  const [presentedKey, setPresentedKey] = createSignal<HymnbookId>();
+  const readable = () => (books.rows() ?? []).filter((book) => book.state === "ok");
+  const hymnbook = () => readable().find((book) => book.key === currentKey());
+  const presentedBook = () => readable().find((book) => book.key === presentedKey());
+  // The current book starts as the book of the newest recent still held,
+  // else the first held book, and is chosen again if it stops being held
+  // (a removal), SDD-0004 §9. Nothing held: none.
+  createEffect(() => {
+    const rows = books.rows();
+    if (!rows) return;
+    const held = rows.filter((book) => book.state === "ok").map((book) => book.key);
+    // The book the hymn on screen is from is gone: so is the hymn, whatever
+    // the current book is (the Library refuses this while the Output is live).
+    if (presentedKey() !== undefined && !held.includes(presentedKey() as string)) {
+      setPresentedKey(undefined);
+      setHymnNumber(undefined);
+      setHymn(undefined);
+    }
+    if (currentKey() !== undefined && held.includes(currentKey() as string)) return;
+    void userState.getRecents().then((recents) => {
+      const now = books.rows()?.filter((book) => book.state === "ok") ?? [];
+      const alive = (key: string | undefined) => now.some((book) => book.key === key);
+      if (alive(currentKey())) return;
+      setCurrentKey(recents.find((entry) => alive(entry.hymnbookId))?.hymnbookId ?? now[0]?.key);
+    });
+  });
+  // Present needs a book: with none, the Library is where to be.
+  createEffect(() => {
+    if (books.rows() && !hymnbook() && section() === "present") setSection("library");
+  });
+  // The first load's request to keep storage was refused (SDD-0004 §9).
+  const [keepFile, setKeepFile] = createSignal(false);
   const [hymnNumber, setHymnNumber] = createSignal<HymnNumber>();
   const [hymn, setHymn] = createSignal<Hymn>();
 
@@ -328,6 +365,7 @@ function Operator() {
         !preferences.preferences().homeScreenHintDismissed,
       updateDismissed: updateDismissed(),
       screen: screenNotice(),
+      keepFile: keepFile(),
     });
   const restartApp = () =>
     restartIfAllowed({ ready: appUpdates.ready(), live: presence.live() }, appUpdates.restart);
@@ -336,6 +374,7 @@ function Operator() {
   const dismissNotice = () => {
     const shown = notice();
     if (shown === "update") setUpdateDismissed(true);
+    else if (shown === "keep-file") setKeepFile(false);
     else if (shown === "safari-hint") dismissHomeScreenHint();
     else if (isScreenNotice(shown)) {
       if (shown === "back") setGoneFrom(undefined);
@@ -346,6 +385,8 @@ function Operator() {
     const shown = notice();
     if (shown === "update") return "Update ready";
     if (isScreenNotice(shown)) return SCREEN_NOTICES[shown];
+    if (shown === "keep-file")
+      return "Your browser may clear stored books if space runs low. Keep the book file, so you can load it again.";
     if (shown === "safari-hint")
       return `Safari clears saved books after 7 days unused. Add Hymnal to your ${
         homeScreen === "home-screen" ? "Home Screen" : "Dock"
@@ -362,6 +403,9 @@ function Operator() {
           dismissLabel="Later"
           onDismiss={() => setUpdateDismissed(true)}
         />
+      </Match>
+      <Match when={notice() === "keep-file"}>
+        <Snackbar message={noticeMessage()} action="Got it" onAction={() => setKeepFile(false)} />
       </Match>
       <Match when={notice() === "safari-hint"}>
         <Snackbar message={noticeMessage()} action="Got it" onAction={dismissHomeScreenHint} />
@@ -396,6 +440,7 @@ function Operator() {
   // Presenter already on screen. Nothing is reopened or repositioned.
   const chooseHymn = (number: HymnNumber) => {
     setHymnNumber(number);
+    setPresentedKey(currentKey());
     setHymnPickerOpen(false);
     setSection("present");
   };
@@ -409,17 +454,12 @@ function Operator() {
     if (hymnNumber()) setHymnPickerOpen(true);
   };
 
-  // Phase 1 installs one bundled hymnbook; the picker lists what's installed,
-  // so a second book is data, not a change here (arc42 §2.3).
-  const installed = () => {
-    const book = hymnbook();
-    return book ? [book] : [];
-  };
+  const installed = readable;
   const chooseHymnbook = (id: HymnbookId) => {
     setBookPickerOpen(false);
     // The current hymn stays up until one is chosen from the new book, so
     // the audience never sees an empty screen mid-swap (§16.4).
-    if (id !== hymnbookId()) setHymnbookId(id);
+    if (id !== currentKey()) setCurrentKey(id);
     findHymn();
   };
 
@@ -446,9 +486,11 @@ function Operator() {
     return [
       ...(shownNotice === "update"
         ? [{ label: "Restart to update", run: run(restartApp) }]
-        : shownNotice === "safari-hint"
-          ? [{ label: "Dismiss the Home Screen note", run: run(dismissHomeScreenHint) }]
-          : []),
+        : shownNotice === "keep-file"
+          ? [{ label: "Dismiss the storage note", run: run(() => setKeepFile(false)) }]
+          : shownNotice === "safari-hint"
+            ? [{ label: "Dismiss the Home Screen note", run: run(dismissHomeScreenHint) }]
+            : []),
       {
         label: blanked() ? "Restore the Output" : "Blank the Output",
         hint: keyHint("blank"),
@@ -805,38 +847,43 @@ function Operator() {
         >
           <Switch>
             <Match when={section() === "library"}>
-              <Library onLoaded={setHymnbook} onReady={findHymn} />
+              <Library
+                books={books}
+                currentKey={currentKey()}
+                presentedKey={presentedKey()}
+                outputLive={presence.live()}
+                onChoose={setCurrentKey}
+                onStorageRefused={() => setKeepFile(true)}
+              />
             </Match>
             <Match when={section() === "present" && !hymnNumber()}>
-              <Finder hymnbookId={hymnbookId()} onSelect={chooseHymn} />
+              {hymnbook() && <Finder hymnbookId={currentKey() as string} onSelect={chooseHymn} />}
             </Match>
-            <Match when={section() === "present" && hymnNumber()}>
-              {(number) => (
-                <Presenter
-                  hymnNumber={number()}
-                  hymnbookId={hymnbookId()}
-                  onLoaded={setHymn}
-                  onBack={() => setHymnPickerOpen(true)}
-                  blanked={blanked()}
-                  onToggleBlank={toggleBlank}
-                  presenting={presentingOutput()}
-                  panes={preferences.preferences().panes}
-                  workspace={preferences.preferences().workspace}
-                  onWorkspaceChange={(workspace) =>
-                    preferences.update({ ...preferences.preferences(), workspace })
-                  }
-                  onSelectHymn={chooseHymn}
-                  scrollSync={preferences.preferences().scrollSync ?? true}
-                  onActions={(actions) => setPresenterActions(() => actions)}
-                  hymnbookTitle={hymnbook()?.title}
-                  cues={outputCuesOf(preferences.preferences())}
-                  revealCues={cuesRevealed()}
-                  pinChorus={pinChorusOf(preferences.preferences())}
-                  wholeSong={wholeSongOf(preferences.preferences())}
-                  liveLandscape={outputLandscape()}
-                  highlight={highlightOf(preferences.preferences())}
-                />
-              )}
+            <Match when={section() === "present" && hymnNumber() && presentedKey()}>
+              <Presenter
+                hymnNumber={hymnNumber() as HymnNumber}
+                hymnbookId={presentedKey() as string}
+                onLoaded={setHymn}
+                onBack={() => setHymnPickerOpen(true)}
+                blanked={blanked()}
+                onToggleBlank={toggleBlank}
+                presenting={presentingOutput()}
+                panes={preferences.preferences().panes}
+                workspace={preferences.preferences().workspace}
+                onWorkspaceChange={(workspace) =>
+                  preferences.update({ ...preferences.preferences(), workspace })
+                }
+                onSelectHymn={chooseHymn}
+                scrollSync={preferences.preferences().scrollSync ?? true}
+                onActions={(actions) => setPresenterActions(() => actions)}
+                hymnbookTitle={presentedBook()?.title}
+                cues={outputCuesOf(preferences.preferences())}
+                revealCues={cuesRevealed()}
+                pinChorus={pinChorusOf(preferences.preferences())}
+                wholeSong={wholeSongOf(preferences.preferences())}
+                liveLandscape={outputLandscape()}
+                highlight={highlightOf(preferences.preferences())}
+              />
             </Match>
           </Switch>
         </main>
@@ -848,7 +895,13 @@ function Operator() {
         title="Go to a Song"
         placement={expanded() ? "center" : "bottom"}
       >
-        <Finder hymnbookId={hymnbookId()} current={hymnNumber()} onSelect={chooseHymn} />
+        <Show when={hymnbook()}>
+          <Finder
+            hymnbookId={currentKey() as string}
+            current={hymnNumber()}
+            onSelect={chooseHymn}
+          />
+        </Show>
       </Sheet>
 
       <Sheet
@@ -858,7 +911,7 @@ function Operator() {
         placement={expanded() ? "center" : "bottom"}
       >
         <Finder
-          hymnbookId={hymnbookId()}
+          hymnbookId={currentKey() as string}
           current={hymnNumber()}
           onSelect={(number) => {
             setCommandMenuOpen(false);
@@ -913,15 +966,30 @@ function Operator() {
                 <button
                   type="button"
                   class="list-row"
-                  aria-current={book.id === hymnbookId() ? "true" : undefined}
-                  onClick={() => chooseHymnbook(book.id)}
+                  aria-current={book.key === currentKey() ? "true" : undefined}
+                  onClick={() => chooseHymnbook(book.key)}
                 >
                   {book.title}
-                  <span class="list-row-supporting"> — {book.hymnCount} songs</span>
+                  <span class="list-row-supporting">
+                    {" "}
+                    — {book.songs.toLocaleString("en-US")} songs
+                  </span>
                 </button>
               </li>
             )}
           </For>
+          <li>
+            <button
+              type="button"
+              class="list-row"
+              onClick={() => {
+                setBookPickerOpen(false);
+                go("library");
+              }}
+            >
+              Manage Books
+            </button>
+          </li>
         </ul>
       </Sheet>
 
