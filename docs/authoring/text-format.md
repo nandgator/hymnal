@@ -194,7 +194,7 @@ nothing if there is any. It never repairs, guesses or skips. The errors:
 | the part's line | a part that no sequence entry names (its first line)           |
 | the `---` line  | an empty song between two separators, or before the first one  |
 | line 1          | a file with no song in it                                      |
-| the title line  | a number that is not a whole number from 1 to 999999999999999  |
+| the title line  | a number that is not a whole number, 1 or more (and below 2⁵³) |
 
 Then the book-level rules of SDD-0002 section 4 apply to the result, as they do
 to any format 1 book.

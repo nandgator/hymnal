@@ -71,7 +71,7 @@ describe("the file", () => {
 
   it("counts lines of the file as given, comments and blanks included", () => {
     expect(errors("# a\n\n# b\n0. T\n\nline")).toEqual([
-      { line: 4, message: "the number must be a whole number from 1 to 999999999999999" },
+      { line: 4, message: "the number must be a whole number, 1 or more" },
     ]);
   });
 });
@@ -114,7 +114,7 @@ describe("the title line", () => {
 
   it("errors on number 0, a number used twice and an empty title", () => {
     expect(errors("0. A\n\nx\n---\n3. B\n\ny\n---\n3. C\n\nz\n---\n4.\n\nw")).toEqual([
-      { line: 1, message: "the number must be a whole number from 1 to 999999999999999" },
+      { line: 1, message: "the number must be a whole number, 1 or more" },
       { line: 9, message: "number 3 is also used on line 5" },
       { line: 13, message: "the title is empty" },
     ]);

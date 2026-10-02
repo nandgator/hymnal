@@ -161,14 +161,14 @@ function parseSong(
     number = Number(m[1]);
     name = m[2].trim();
     if (!(number >= 1 && Number.isSafeInteger(number))) {
-      err(title.no, "the number must be a whole number from 1 to 999999999999999");
+      err(title.no, "the number must be a whole number, 1 or more");
     } else if (numbers.has(number)) {
       err(title.no, `number ${number} is also used on line ${numbers.get(number)}`);
     } else numbers.set(number, title.no);
   } else if (single && options.number !== undefined) {
     number = options.number;
     if (!(Number.isSafeInteger(number) && number >= 1)) {
-      err(title.no, "the number must be a whole number from 1 to 999999999999999");
+      err(title.no, "the number must be a whole number, 1 or more");
     }
   } else {
     err(title.no, single ? "no number: write one on the title line or give it" : "no number");

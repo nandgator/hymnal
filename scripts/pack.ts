@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { gzipSync } from "fflate";
 import type { Violation } from "../src/domain/validate.ts";
+import { containerBytes, gzipContainer } from "../src/import/container.ts";
 import { bookViolations, loadContent } from "./build-content.ts";
 
 const USAGE = `Usage: bun run pack <dir> [--out <dir>]
@@ -11,6 +11,8 @@ const USAGE = `Usage: bun run pack <dir> [--out <dir>]
 Writes <id>.hymnbook.json.gz (SDD-0002 §1) from a hymnbook directory,
 content/<id>/ or imports/<id>/, by default into imports/. The book is
 validated first; any violation is listed and nothing is written.`;
+
+export { gzipContainer };
 
 export type PackResult =
   | { ok: false; violations: Violation[] }
@@ -23,18 +25,6 @@ export type PackResult =
       sha256: string;
     };
 
-/**
- * Gzip at level 9 with fflate (pure JS, its version pinned by bun.lock, so the
- * deflate body is the same on Bun, Node and any machine; node:zlib's differs
- * between runtimes). No timestamp, no file name, and the OS byte is set to 255
- * ("unknown"), which fflate otherwise sets to Unix (SDD-0004 §2).
- */
-export function gzipContainer(text: string): Uint8Array {
-  const bytes = gzipSync(new TextEncoder().encode(text), { level: 9, mtime: 0 });
-  bytes[9] = 255;
-  return bytes;
-}
-
 /** Loads, validates and (only if nothing is wrong) packs one hymnbook directory. */
 export function packBook(dir: string, outDir: string): PackResult {
   const loaded = loadContent(dir);
@@ -42,10 +32,8 @@ export function packBook(dir: string, outDir: string): PackResult {
   if (violations.length > 0) return { ok: false, violations };
 
   const id = (loaded.hymnbook as { id: string }).id;
-  const hymns = loaded.files
-    .map((f) => f.hymn as { number: number })
-    .sort((a, b) => a.number - b.number);
-  const bytes = gzipContainer(JSON.stringify({ hymnbook: loaded.hymnbook, hymns }));
+  const hymns = loaded.files.map((f) => f.hymn as { number: number });
+  const bytes = containerBytes(loaded.hymnbook, hymns);
   const outFile = join(outDir, `${id}.hymnbook.json.gz`);
   mkdirSync(outDir, { recursive: true });
   writeFileSync(outFile, bytes);

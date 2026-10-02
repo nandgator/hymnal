@@ -22,7 +22,7 @@ content format 1. A change to either is a new version.
 
 1. Get your songs into the text format: type or paste them by hand, or use an AI
    of your own choosing with the prompt in `ai-prompt.md`.
-2. Run it through `bun run text` (the Library will take it too) and read the
+2. Run it through `bun run text` (or the Library's From Text) and read the
    review: every song, every part, the sung order. Fix the text, never the
    result, and run it again.
 3. Keep your source text next to the result, so the source check can compare
@@ -35,8 +35,8 @@ and there is no public catalogue
 ## How to check it
 
 **In the command line.** `bun run text` runs the parser and the source check
-(the same code the app will run). Give it your song text and the book's own
-fields, which are never guessed from the text:
+(the same code the app runs). Give it your song text and the book's own fields,
+which are never guessed from the text:
 
 ```sh
 bun run text my-songs.txt --id my-book --title "My book" \
@@ -60,9 +60,16 @@ and nothing is written; a good one becomes `<id>.hymnbook.json.gz` in
 what will be stored before anything is. If you wrote the format 1 files by hand,
 skip the first step and pack their directory.
 
-**In the app (coming, Board #34).** Paste or load the song text in the Library.
-The app parses it, lists every error with its line number, and, when there are
-none, shows the same review.
+**In the app.** In the Library, **From Text** opens a sheet. Fill in the book's
+title, language and script (they are never guessed; the id is made from the
+title and you can change it), then paste the song text or open a `.txt`. If you
+have the text the songs came from, put it in the second area, or open it from a
+file. **Review the Book** parses the text: every error is listed with its line
+number and nothing is stored. When there are none you get the same review a
+loaded file gets, with the source check in it ("not checked against a source",
+"checked against a source: no differences", or the lines that differ), and the
+same buttons. Nothing is stored until you press one, and nothing leaves your
+device.
 
 **The source check.** A local check, with no model, that compares the text you
 started from with the result and lists two things:

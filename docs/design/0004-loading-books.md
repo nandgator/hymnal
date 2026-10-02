@@ -463,6 +463,27 @@ says what it keeps (the key, so recents and position; the added date) and drops
 sheets. A long title is clamped to two lines in the list and shown whole in the
 review. The hymnbook picker lists the readable books and a **Manage Books** row.
 
+**A book from text (Board #34, ADR-0029).** Beside Load a Book, **From Text**
+opens a sheet with the book's own fields (title, language and script, all
+required and never guessed; the id, made from the title as a slug and editable;
+an optional song number for one song whose first line has none), an area for the
+song text (pasted, or opened from a `.txt`), and an optional area for the source
+text. **Review the Book** runs `parseSongText` and nothing else: its errors are
+listed with their line numbers, or the fields that are missing, and nothing is
+written. When there are none, `textBook` builds the book and `containerBytes`
+(`src/import/container.ts`, the writer `bun run pack` uses, so the same text is
+the same bytes) gzips it in memory; the bytes go to `review` as a file named
+`<id>.hymnbook.json.gz`, exactly as a picked container would, so the validator,
+the hashes and the verdict (§8) are the one code path. The review shows a
+**Source check** row: "Not checked against a source" when no source text was
+given (ADR-0029, open point 3), "Checked against a source: no differences", or
+"Checked: N to look at" with the lines the book added or altered and the source
+lines it dropped, listed for a person to judge (`sourceCheck`; nothing is
+decided). The buttons are the same: Load Book, Keep Both, Replace, Open Book.
+Nothing is written before one is pressed, there is no network, and the text
+never leaves the page. Cancel in that review, or Edit the Text after a refusal,
+returns to the sheet with everything typed kept; a successful load clears it.
+
 ## 10. Several books
 
 Nothing may assume one book. `BUNDLED_HYMNBOOK_ID` and its `?book=` development

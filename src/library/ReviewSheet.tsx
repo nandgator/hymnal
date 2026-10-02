@@ -1,8 +1,10 @@
 import { createEffect, createSignal, For, type JSX, Match, Show, Switch } from "solid-js";
+import type { SourceCheck } from "../import/sourcecheck.ts";
 import type { Choice, LoadReview } from "../persistence/content-store.ts";
 import { Sheet } from "../shell/Sheet.tsx";
 import { SwapLabel } from "../shell/SwapLabel.tsx";
 import { count, languageName, shortHash } from "./books.ts";
+import type { SourceState } from "./textbook.ts";
 
 export interface ReviewSheetProps {
   open: boolean;
@@ -13,6 +15,8 @@ export interface ReviewSheetProps {
   /** What went wrong committing, in words; the review stays so the choice can be made again. */
   error?: string;
   busy: boolean;
+  /** The book was made from song text (ADR-0029): its source check, and "back" means the text. */
+  source?: SourceState;
   placement: "bottom" | "center";
   onCancel: () => void;
   onCommit: (choice: Choice) => void;
@@ -59,6 +63,61 @@ const Callout = (props: {
   </div>
 );
 
+const differences = (check: SourceCheck) => check.added.length + check.dropped.length;
+
+/** The facts row: not checked, no differences, or how many lines differ. */
+const sourceSummary = (source: SourceState) => {
+  if (source.kind === "none") return "Not checked against a source";
+  const n = differences(source.check);
+  return n === 0 ? "Checked against a source: no differences" : `Checked: ${count(n)} to look at`;
+};
+
+/** What the book added or dropped against its source: a list to read, never a verdict (ADR-0029). */
+const SourceDiffs = (props: { check: SourceCheck }) => (
+  <section class="diffs" aria-label="Source check">
+    <Callout icon="icon-difference">
+      <h4>The book differs from its source</h4>
+      <p>
+        The check only lists; it can’t tell a dropped stanza from a deliberate cut. Read each line,
+        and if one is wrong, fix the text and review it again. In a book of several songs, locations
+        are approximate.
+      </p>
+    </Callout>
+    <Show when={props.check.added.length > 0}>
+      <h4 class="diffs-head">
+        Added or altered <span class="num">({count(props.check.added.length)})</span>
+      </h4>
+      <ul class="violations diff-list" aria-label="Lines not in the source">
+        <For each={props.check.added}>
+          {(a) => (
+            <li class="violation violation-line">
+              <span class="vwhere num">
+                {a.part ? `Hymn ${a.hymn}, ${a.part}, line ${a.line}` : `Hymn ${a.hymn}, title`}
+              </span>
+              <span class="diff-text">{a.text}</span>
+            </li>
+          )}
+        </For>
+      </ul>
+    </Show>
+    <Show when={props.check.dropped.length > 0}>
+      <h4 class="diffs-head">
+        Dropped <span class="num">({count(props.check.dropped.length)})</span>
+      </h4>
+      <ul class="violations diff-list" aria-label="Lines not in the book">
+        <For each={props.check.dropped}>
+          {(d) => (
+            <li class="violation violation-line">
+              <span class="vwhere num">Source line {d.line}</span>
+              <span class="diff-text">{d.text}</span>
+            </li>
+          )}
+        </For>
+      </ul>
+    </Show>
+  </section>
+);
+
 /**
  * Review without edit (ADR-0027, SDD-0004 §9): what the file is, whether it is
  * valid, and what loading it would do, all read-only. Nothing is written until
@@ -75,6 +134,10 @@ export function ReviewSheet(props: ReviewSheetProps) {
   const origin = () => {
     const verdict = props.review?.verdict;
     return verdict?.kind === "same-origin" ? verdict : undefined;
+  };
+  const sourceDiffs = () => {
+    const source = props.source;
+    return source?.kind === "checked" && differences(source.check) > 0 ? source.check : undefined;
   };
   const refused = () => ["not-a-book", "newer", "violations"].includes(panel() ?? "");
   const choice = (): Choice => {
@@ -147,9 +210,18 @@ export function ReviewSheet(props: ReviewSheetProps) {
                 <dd>
                   <span class="hash">sha-256 · {shortHash(review().sourceHash)}</span>
                 </dd>
-                {/* ADR-0029, later: a last row, "Source check · Not checked against a
-                    source", sits here when the book was loaded without one. */}
+                <Show when={props.source}>
+                  {(source) => (
+                    <>
+                      <dt>Source check</dt>
+                      <dd>{sourceSummary(source())}</dd>
+                    </>
+                  )}
+                </Show>
               </dl>
+              <Show when={!refused() && sourceDiffs()}>
+                {(check) => <SourceDiffs check={check()} />}
+              </Show>
             </Show>
 
             <Switch>
@@ -325,7 +397,7 @@ export function ReviewSheet(props: ReviewSheetProps) {
                 when={!refused()}
                 fallback={
                   <button type="button" class="btn-tonal" onClick={props.onChooseAnother}>
-                    Choose Another File
+                    {props.source ? "Edit the Text" : "Choose Another File"}
                   </button>
                 }
               >

@@ -82,7 +82,6 @@ Ordered. Top unblocked item is next.
 | --- | ------------------------------------------------------------------------------------------------ | ---------- |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                 | —          |
 | 28  | Library: load songs and books in format 1, local only; keys, duplicates (SDD-0004, ADR-0026/27)  | —          |
-| 34  | Song text in the app: the parser and source check exist (#35); the Library step (ADR-0029)       | 28         |
 | 36  | A second tab of the app: today it doesn't load (one OPFS connection); say so, or share the store | —          |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                      | —          |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                    | —          |
@@ -136,6 +135,10 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — #34 done: the Library's From Text (a sheet with the book's
+  fields, song text and optional source text; parse errors with line numbers;
+  the same review and buttons through an in-memory container; the source check
+  in the review); the container writer moved to `src/import/container.ts`
 - 2026-10-02 — #28 part 5: the Library (list, choose, load with the review,
   remove, Load Again aimed at a book, the keep-your-file note), `openBook`,
   error colours; `hymnalDev` keeps only its OPFS inspector; SDD-0004 §9

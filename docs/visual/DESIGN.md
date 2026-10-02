@@ -643,6 +643,20 @@ view is close enough to the frame to need a smaller unit.
   - **The menu** is the Menu component with its list kept for one item:
     **Remove…** with "Drops the book and its Recents". A shipped book's is
     disabled, "Shipped with the app".
+  - **From Text** (Board #34; SDD-0004 §9) is a text button left of Load a Book
+    (its icon dropped under 600px), and a tonal button under the filled one in
+    the empty card. It opens the **text sheet**, a tall sheet of the review's
+    kind: filled fields (the search field's fill, a 2px `primary` ring on focus,
+    `error` when a field is asked for), the title, language and script, the id
+    and an optional song number, then two text areas in the hymn face (the song
+    text, and an optional source text), each with **Open a .txt**. The areas
+    scroll inside themselves (at most 40% of the height); one filled button,
+    **Review the Book**, is pinned at the bottom as the review's is. Parse
+    errors are an `error-container` callout and a list, one row per error,
+    `Line N` then the message, scrolled to the top of the view. The review that
+    follows is the same sheet, with a **Source check** row in its facts and,
+    when lines differ, a neutral callout and two lists (Added or altered,
+    Dropped), each scrolling inside itself.
   - **Reading a file**: the picked file's row appears first in the list, a tile,
     "Reading <file>", the line "Checking the file on this device. Nothing is
     sent anywhere.", an indeterminate bar and Cancel, with Load a Book disabled.

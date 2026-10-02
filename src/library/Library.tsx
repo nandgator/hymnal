@@ -9,6 +9,7 @@ import {
   Show,
   Switch,
 } from "solid-js";
+import type { TextError } from "../import/songtext.ts";
 import { commitAndPersist, removeBookAndRecents } from "../persistence/books.ts";
 import {
   type BookRow,
@@ -32,6 +33,8 @@ import {
 } from "./books.ts";
 import { RemoveSheet, type RemoveTarget } from "./RemoveSheet.tsx";
 import { ReviewSheet } from "./ReviewSheet.tsx";
+import { createTextDraft, TextSheet } from "./TextSheet.tsx";
+import { buildTextBook, type FieldProblems, type SourceState } from "./textbook.ts";
 
 const megabytes = (bytes: number) => (bytes / 1_000_000).toFixed(1);
 
@@ -103,6 +106,14 @@ export function Library(props: LibraryProps) {
   const [reviewOpen, setReviewOpen] = createSignal(false);
   const [reviewError, setReviewError] = createSignal<string>();
   const [busy, setBusy] = createSignal(false);
+  // A book from song text (ADR-0029): the sheet's draft, what its last Review found wrong,
+  // and, while its review is open, the source check that goes with it.
+  const draft = createTextDraft();
+  const [textOpen, setTextOpen] = createSignal(false);
+  const [textBusy, setTextBusy] = createSignal(false);
+  const [textErrors, setTextErrors] = createSignal<TextError[]>([]);
+  const [textProblems, setTextProblems] = createSignal<FieldProblems>({});
+  const [reviewSource, setReviewSource] = createSignal<SourceState>();
   const [removing, setRemoving] = createSignal<RemoveTarget>();
   const [removeOpen, setRemoveOpen] = createSignal(false);
   const [removeRecents, setRemoveRecents] = createSignal(0);
@@ -132,6 +143,46 @@ export function Library(props: LibraryProps) {
     setReviewOpen(false);
     setReviewError(undefined);
     setBusy(false);
+    // A review of song text goes back to the text, which is kept to fix.
+    if (reviewSource()) setTextOpen(true);
+  };
+
+  const openText = () => {
+    setTextErrors([]);
+    setTextProblems({});
+    setTextOpen(true);
+  };
+
+  /** Parse the text and, when it is clean, review the book as if its container had been read. */
+  const reviewText = async () => {
+    if (textBusy()) return;
+    const built = buildTextBook(draft.fields(), draft.songText(), draft.sourceText());
+    if (!built.ok) {
+      setTextProblems(built.fields);
+      setTextErrors(built.errors);
+      return;
+    }
+    setTextProblems({});
+    setTextErrors([]);
+    setTextBusy(true);
+    const name = `${built.id}.hymnbook.json.gz`;
+    try {
+      const result = await admin().review(new File([built.bytes as BlobPart], name));
+      setReview(result);
+      setReviewFile(name);
+      setReviewSource(built.source);
+      setReviewError(undefined);
+      setTextOpen(false);
+      setReviewOpen(true);
+    } catch (error) {
+      setTextErrors([
+        {
+          line: 0,
+          message: `Couldn’t review the book${error instanceof Error && error.message ? `: ${error.message}` : "."}`,
+        },
+      ]);
+    }
+    setTextBusy(false);
   };
 
   const onPicked = async (file: File | undefined) => {
@@ -139,6 +190,7 @@ export function Library(props: LibraryProps) {
     const target = pickTarget;
     const id = ++nextId;
     setReadError(undefined);
+    setReviewSource(undefined);
     setReading({ id, fileName: file.name, target });
     try {
       const result = await admin().review(file, target);
@@ -196,6 +248,10 @@ export function Library(props: LibraryProps) {
       return;
     }
     setReviewOpen(false);
+    if (reviewSource()) {
+      draft.reset();
+      setReviewSource(undefined);
+    }
     forgetBook(result.key);
     // A book that was written, restored or opened has its file: no longer missing.
     setMissing((now) => {
@@ -214,8 +270,10 @@ export function Library(props: LibraryProps) {
 
   const chooseAnother = () => {
     const target = review()?.restore?.key;
+    const fromText = !!reviewSource();
     dropReview();
-    pick(target);
+    // A refused book from text goes back to the text; dropReview has reopened it.
+    if (!fromText) pick(target);
   };
 
   const choose = async (book: BookRow) => {
@@ -291,6 +349,13 @@ export function Library(props: LibraryProps) {
     <button type="button" class={variant} disabled={!!reading()} onClick={() => pick()}>
       <span class="icon icon-file-open" aria-hidden="true" />
       Load a Book
+    </button>
+  );
+
+  const textButton = (variant: "btn-text" | "btn-tonal") => (
+    <button type="button" class={variant} disabled={!!reading()} onClick={openText}>
+      <span class="icon icon-edit-note" aria-hidden="true" />
+      From Text
     </button>
   );
 
@@ -417,7 +482,10 @@ export function Library(props: LibraryProps) {
             {rows().length} {rows().length === 1 ? "book" : "books"} on this device
           </p>
         </div>
-        {loadButton("btn-tonal")}
+        <div class="lib-head-actions">
+          {textButton("btn-text")}
+          {loadButton("btn-tonal")}
+        </div>
       </div>
       <Show when={props.books.problem()}>
         {(message) => (
@@ -474,7 +542,10 @@ export function Library(props: LibraryProps) {
                 </p>
               )}
             </Show>
-            {loadButton("btn-filled")}
+            <div class="lib-empty-actions">
+              {loadButton("btn-filled")}
+              {textButton("btn-tonal")}
+            </div>
           </>
         }
       >
@@ -552,10 +623,21 @@ export function Library(props: LibraryProps) {
         fileName={reviewFile()}
         error={reviewError()}
         busy={busy()}
+        source={reviewSource()}
         placement={placement()}
         onCancel={dropReview}
         onCommit={(choice) => void commit(choice)}
         onChooseAnother={chooseAnother}
+      />
+      <TextSheet
+        open={textOpen()}
+        draft={draft}
+        errors={textErrors()}
+        problems={textProblems()}
+        busy={textBusy()}
+        placement={placement()}
+        onCancel={() => setTextOpen(false)}
+        onReview={() => void reviewText()}
       />
       <RemoveSheet
         open={removeOpen()}
