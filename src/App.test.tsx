@@ -245,6 +245,25 @@ describe("App", () => {
     expect(within(menu).queryByRole("option", { name: /Reset Repeat/ })).not.toBeInTheDocument();
   });
 
+  it("lists actions as you type in the command menu, ahead of hymns (SDD-0001 §16.5)", async () => {
+    render(() => <App />);
+    await openHymn();
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const menu = await screen.findByRole("dialog", { name: "Search" });
+    const box = within(menu).getByRole("combobox");
+
+    fireEvent.input(box, { target: { value: "bl" } });
+    expect(within(menu).getByRole("option", { name: /Blank the Output/ })).toBeInTheDocument();
+
+    fireEvent.input(box, { target: { value: "go li" } });
+    expect(within(menu).getByRole("option", { name: /Go Live/ })).toBeInTheDocument();
+
+    // Cleared, the actions and Recents are back.
+    fireEvent.input(box, { target: { value: "" } });
+    expect(within(menu).getByRole("option", { name: /Blank the Output/ })).toBeInTheDocument();
+    expect(within(menu).getByRole("heading", { name: "Recents" })).toBeInTheDocument();
+  });
+
   it("toggles the Output's reading band from the command menu, kept in preferences", async () => {
     render(() => <App />);
     await openHymn();
