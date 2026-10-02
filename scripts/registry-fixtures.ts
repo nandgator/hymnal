@@ -55,7 +55,12 @@ export async function container(id = "test-book", h = hymns, hash = "f".repeat(6
 /** Pool stand-in: package files are in-memory databases by name. */
 export class FakeFiles implements PackageFiles {
   dbs = new Map<string, DatabaseSync>();
-  list = () => [...this.dbs.keys()];
+  /** Small non-database files (journals) by name, with their bytes. */
+  bytes = new Map<string, Uint8Array>();
+  list = () => [...this.dbs.keys(), ...this.bytes.keys()];
+  read(file: string) {
+    return this.bytes.get(file) ?? null;
+  }
   /** Files whose open throws, and files whose queries throw, with the error. */
   failOpen = new Map<string, Error>();
   failQuery = new Map<string, Error>();
@@ -90,9 +95,39 @@ export class FakeFiles implements PackageFiles {
     }
     return fn(sqlOf(db));
   }
+  /** Builds the package in a scratch database and installs it whole, as the pool's importDb does. */
+  write(file: string, fn: (sql: Sql) => void) {
+    if (this.dbs.has(file)) throw new Error(`${file} already exists`);
+    const fail = this.failOpen.get(file);
+    if (fail) throw fail;
+    const query = this.failQuery.get(file);
+    const scratch = new DatabaseSync(":memory:");
+    try {
+      fn(
+        query
+          ? {
+              all: () => {
+                throw query;
+              },
+              run: () => {
+                throw query;
+              },
+              exec: () => {
+                throw query;
+              },
+            }
+          : sqlOf(scratch),
+      );
+    } catch (error) {
+      scratch.close();
+      throw error;
+    }
+    this.dbs.set(file, scratch);
+  }
   remove(file: string) {
     this.dbs.get(file)?.close();
     this.dbs.delete(file);
+    this.bytes.delete(file);
   }
   async reserve() {}
   /** A v3 package of a book, as the worker would write it. */
@@ -121,4 +156,15 @@ export function setup(shipped: string[] = []) {
   let t = 0;
   const ctx: RegistryContext = { registry: sql, files, shipped, now: () => ++t };
   return { files, ctx, sql };
+}
+
+/** A rollback journal's header: the magic, nRec, the nonce, then the initial size in pages (SQLite file format §4). */
+export function journalHeader(initialPages: number): Uint8Array {
+  const bytes = new Uint8Array(512);
+  bytes.set([0xd9, 0xd5, 0x05, 0xf9, 0x20, 0xa1, 0x63, 0xd7]);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(16, initialPages);
+  view.setUint32(20, 512);
+  view.setUint32(24, 4096);
+  return bytes;
 }

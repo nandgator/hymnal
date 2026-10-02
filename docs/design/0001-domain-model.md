@@ -643,6 +643,38 @@ content" (re-run this same step) instead of crashing — consistent with
 [arc42 §8.6](../architecture/arc42.md#86-handling-imperfect-content): never
 silently repair, never guess.
 
+**Decided: the pool is started behind three guards.** sqlite-wasm's
+`installOpfsSAHPoolVfs` has a destructive failure path: when it cannot take a
+handle on every pool file (the tab's previous worker is still dying after a
+reload, another tab holds them) it calls `removeVfs()`, which runs
+`removeEntry(".opaque", { recursive: true })` and deletes every book if no
+handle is held by then. A reload during a write reached the first half of this
+(ten `NoModificationAllowedError`s, then a registry unavailable for the page
+load); only the old worker's locks stopped the delete. The library has no option
+to turn this off, so `pool-init.ts` guards it, in the worker, before the
+install:
+
+1. `removeEntry` of `.hymnal` or `.opaque` is refused. Nothing legitimate
+   removes a directory (the pool removes single files by their random names), so
+   a failed install can never become a delete. A future "reset all data" must go
+   around this guard on purpose (a wipe through the pool's own `wipeFiles`, or
+   lifting the guard for that one call), never by removing the directory with it
+   in place.
+2. The worker holds the Web Lock `hymnal-pool` for its life, so a new worker
+   waits for the old one; it waits at most 20 s and then the store is
+   unavailable this session ("another tab or worker still holds the books"), as
+   it is when the browser refuses the request. The tab holds `hymnal-store` on
+   the main thread (tabs, Board #36): the tab owns `hymnal-store`, the worker
+   owns `hymnal-pool`. On release the worker ends, freeing `hymnal-pool`, before
+   the tab drops `hymnal-store`; the names differ because a worker that asked
+   for the tab's own name would wait for it for ever.
+3. The lock is released a moment before the old worker's handles are, so the
+   worker takes and drops a handle on every pool file until all can be taken (20
+   s at most; any error reads as "not free"). Only when they are free does it
+   call the install. If they are not by the cap it does not install: the store
+   is unavailable this session, with that message, and the next start tries
+   again.
+
 ### 10.3 Query surface
 
 Read-only — content is immutable at runtime (an invariant, §4). The worker

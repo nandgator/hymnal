@@ -78,6 +78,15 @@ export interface PackageFiles {
   list(): string[];
   /** Opens `file` (made if missing), runs `fn`, closes it unless it was already open. */
   open<T>(file: string, fn: (sql: Sql) => T): T;
+  /**
+   * Makes a new package: `fn` fills a scratch database, and the finished file
+   * is installed under `file` in one step, the name taken last. A write that
+   * is killed halfway (the page reloads) leaves nothing under `file`, never a
+   * torn package (SDD-0004 §6). Throws if `file` exists.
+   */
+  write(file: string, fn: (sql: Sql) => void): void;
+  /** The bytes of a small file (a journal), or null if it is not there or cannot be read. */
+  read(file: string): Uint8Array | null;
   /** Closes and deletes `file`. */
   remove(file: string): void;
   /** Makes room for another package file (the pool's capacity is fixed). */
@@ -222,7 +231,7 @@ interface ContainerRead {
   songHashes: ReadonlyMap<number, string>;
 }
 
-/** Writes a container's package to a new file, removing it again if the write fails. */
+/** Writes a container's package to a new file, whole or not at all. */
 async function writeNewPackage(
   ctx: RegistryContext,
   file: string,
@@ -241,16 +250,8 @@ async function writeNewPackage(
     contentHash: read.sourceHash,
     schemaVersion: SCHEMA_VERSION,
   });
-  try {
-    ctx.files.open(file, (sql) => writePackage(sql, rows));
-  } catch (error) {
-    try {
-      ctx.files.remove(file);
-    } catch {
-      // nothing was committed to the registry; the leftover is not a package and is removed at start
-    }
-    throw error;
-  }
+  // Atomic: a failure, or a kill, leaves nothing under `file`, so there is nothing to remove.
+  ctx.files.write(file, (sql) => writePackage(sql, rows));
 }
 
 function rowOf(
@@ -574,8 +575,14 @@ async function reconcileFile(ctx: RegistryContext, file: string): Promise<void> 
   if (probe.kind !== "package") {
     // A file that is or may be a book is never deleted: only a provably empty
     // leftover (no tables at all, no row) goes. A damaged one is listed.
-    if (probe.kind === "empty" && !row) return ctx.files.remove(file);
+    if (probe.kind === "empty" && !row) return removeLeftover(ctx, file);
     if (row) return setState(ctx, row.key, "unreadable");
+    // A write killed halfway leaves a torn file and its hot journal, which no
+    // reader can roll back (SQLite spills pages of a new file past the journal).
+    // The pair is provably an aborted first write, never a book: removed.
+    if (probe.kind === "unreadable" && isAbortedFirstWrite(ctx, file)) {
+      return removeLeftover(ctx, file);
+    }
     if (probe.kind === "unreadable") insertUnreadable(ctx, file, "unreadable");
     return; // a transient error: skipped, tried again at the next start
   }
@@ -643,6 +650,38 @@ async function reconcileFile(ctx: RegistryContext, file: string): Promise<void> 
   await indexPackage(ctx, file, kind);
 }
 
+const JOURNAL_MAGIC = [0xd9, 0xd5, 0x05, 0xf9, 0x20, 0xa1, 0x63, 0xd7];
+
+/**
+ * True when `journal` is a rollback journal whose header says the database
+ * had no pages when the transaction began (SQLite file format §4: the 8-byte
+ * magic, then at offset 16 the initial size in pages, big-endian). Only the
+ * first write of a file starts there; a crashed UPDATE or migration of a book
+ * that exists has a size above zero, and a short or foreign journal proves
+ * nothing.
+ */
+export function journalProvesFirstWrite(bytes: Uint8Array | null): boolean {
+  if (!bytes || bytes.length < 20) return false;
+  if (!JOURNAL_MAGIC.every((b, i) => bytes[i] === b)) return false;
+  return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(16) === 0;
+}
+
+function isAbortedFirstWrite(ctx: RegistryContext, file: string): boolean {
+  const journal = `${file}-journal`;
+  return ctx.files.list().includes(journal) && journalProvesFirstWrite(ctx.files.read(journal));
+}
+
+/** Removes a package file and the journal beside it, if any. */
+function removeLeftover(ctx: RegistryContext, file: string): void {
+  const journal = `${file}-journal`;
+  ctx.files.remove(file);
+  try {
+    if (ctx.files.list().includes(journal)) ctx.files.remove(journal);
+  } catch (error) {
+    console.warn(`registry: ${journal}:`, error);
+  }
+}
+
 /**
  * Brings the registry and the pool into step at start (SDD-0004 §6): drops
  * rows whose file is gone, adopts packages with no row (highest `<n>` first,
@@ -657,6 +696,16 @@ export async function reconcile(ctx: RegistryContext): Promise<void> {
     .filter(isPackageFile)
     .sort((a, b) => generationOf(b) - generationOf(a) || (a < b ? -1 : 1));
   const present = new Set(names);
+  // A journal with no file beside it is what an aborted write left: nothing to roll back.
+  for (const name of ctx.files.list()) {
+    if (!name.endsWith("-journal") || name === `${REGISTRY_FILE}-journal`) continue;
+    if (present.has(name.slice(0, -"-journal".length))) continue;
+    try {
+      ctx.files.remove(name);
+    } catch (error) {
+      console.warn(`registry: ${name}:`, error);
+    }
+  }
   for (const row of listBooks(ctx)) {
     try {
       if (!present.has(row.file)) ctx.registry.run("DELETE FROM book WHERE key = ?", [row.key]);

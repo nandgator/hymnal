@@ -254,6 +254,34 @@ it starts:
   merged: the union is kept in both, so a crash between the two writes (§8)
   heals.
 
+**Decided: a package is installed whole, and an aborted first write is healed
+only on proof.** A package written in place under its final name was torn when
+the page reloaded mid-write: the pool takes a file's name at its first
+statement, and SQLite spills the pages of a new file past a journal it has not
+synced, so the next start found a malformed file and its journal, which no
+reader rolls back. It was listed unreadable for good (reproduced by ending the
+page 3.3 to 4.5 s into a 1,631-song load). So `PackageFiles.write(file, fn)`
+builds the package in a scratch in-memory database, serializes it, and installs
+it with the pool's `importDb`, which writes into a spare slot and takes the name
+last (header, then flush): a kill leaves nothing under the name, and
+`writeNewPackage` never opens a new package's file. Limits: if `importDb` throws
+(storage quota) the write fails cleanly and says so, but the spare slot may hold
+the partial bytes, unassociated, until it is reused or the next start truncates
+it; and on an operating-system crash (not a worker kill) the order in which the
+data and the header reach the disk is the platform's, so "whole" is the pool's
+best effort, not a guarantee.
+
+For files torn before this, reconcile removes a file with no row that SQLite
+calls malformed or not a database **only when its `-journal` proves a first
+write**: it reads the rollback journal's header (the magic `d9d505f920a163d7`,
+then the record count, a nonce, and at offset 16 the database's size in pages
+when the transaction began, big-endian: file format §4) and requires that size
+to be 0, which only a file's first write has. Both files go, as the empty
+leftover does. A journal with a size above zero (a crashed UPDATE or migration
+of a book that exists), a short or unreadable journal, a garbage one, or none,
+leaves the file kept and listed unreadable: it may be a book. A journal with no
+file beside it is removed; there is nothing to roll back.
+
 The pool's capacity is raised as books are added
 (`SAHPoolUtil.reserveMinimumCapacity`), since each package, the registry, and
 any journal take a file slot, and the default is small. The worker keeps the

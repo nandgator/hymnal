@@ -1,5 +1,5 @@
 import type { Database, OpfsSAHPoolDatabase, SAHPoolUtil, SqlValue } from "@sqlite.org/sqlite-wasm";
-import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
+import sqlite3InitModule, { type Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 import * as Comlink from "comlink";
 import { SCHEMA_VERSION } from "../../scripts/content-schema.ts";
 import { SHIPPED_BOOK_IDS } from "../config.ts";
@@ -14,6 +14,7 @@ import type {
 import { download, type InstallProgress } from "./download.ts";
 import { type Choice, type CommitResult, type LoadReview, LoadSession } from "./load.ts";
 import type { Sql, Value } from "./package-io.ts";
+import { guardPoolDirectories, poolHandlesFree, startPool } from "./pool-init.ts";
 import {
   type BookRow,
   indexPackage,
@@ -114,6 +115,9 @@ const INSTALL_SPARE_SLOTS = 2; // beyond the files present, before importing a p
 
 class ContentStoreWorker implements ContentStore, ContentAdmin {
   #poolReady: Promise<SAHPoolUtil>;
+  #sqlite3: Sqlite3Static | undefined;
+  /** Why the store could not start this session, for the error callers see. */
+  #unavailable: string | undefined;
   /** Open connections by file name; a file is opened once and shared. */
   #conns = new Map<string, OpfsSAHPoolDatabase>();
   /** The registry, or null if it could not be made: the books still open without it. */
@@ -125,9 +129,7 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
   dev: DevAdmin | undefined = import.meta.env.DEV ? this.#makeDev() : undefined;
 
   constructor() {
-    this.#poolReady = sqlite3InitModule().then((sqlite3) =>
-      sqlite3.installOpfsSAHPoolVfs({ name: "hymnal" }),
-    );
+    this.#poolReady = this.#initPool();
     // Never rejects: ensureInstalled does not depend on the registry's health.
     this.#ready = this.#start().then(
       (ctx) => {
@@ -136,6 +138,7 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
       },
       (error) => {
         console.warn("registry unavailable:", error);
+        this.#unavailable = error instanceof Error ? error.message : String(error);
         return null;
       },
     );
@@ -147,6 +150,26 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     );
     // A pool that failed to start is reported by the calls that need it.
     this.#poolReady.catch(() => {});
+  }
+
+  /**
+   * Starts the pool without risking the books (SDD-0001 §10.2): sqlite-wasm
+   * deletes the whole pool directory when its init fails, so the directories
+   * are made undeletable here, one worker at a time holds the store lock, and
+   * the pool's handles must be free before the install is tried.
+   */
+  async #initPool(): Promise<SAHPoolUtil> {
+    guardPoolDirectories(FileSystemDirectoryHandle.prototype);
+    const loading = sqlite3InitModule();
+    return startPool({
+      locks: navigator.locks,
+      free: async () => poolHandlesFree(await navigator.storage.getDirectory()),
+      install: async () => {
+        const sqlite3 = await loading;
+        this.#sqlite3 = sqlite3;
+        return sqlite3.installOpfsSAHPoolVfs({ name: "hymnal" });
+      },
+    });
   }
 
   /** Opens the registry and reconciles it with the pool (SDD-0004 §6). A corrupt
@@ -182,7 +205,13 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
 
   async #registry(): Promise<RegistryContext> {
     const ctx = await this.#ready;
-    if (!ctx) throw new Error("the registry is unavailable");
+    if (!ctx) {
+      throw new Error(
+        this.#unavailable
+          ? `the books are unavailable this session: ${this.#unavailable}`
+          : "the registry is unavailable",
+      );
+    }
     return ctx;
   }
 
@@ -217,6 +246,37 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
           return fn(this.#sql(db));
         } finally {
           if (!wasOpen) this.#close(file);
+        }
+      },
+      write: (file, fn) => {
+        const sqlite3 = this.#sqlite3;
+        if (!sqlite3) throw new Error("sqlite is not loaded");
+        if (pool.getFileNames().includes(file)) throw new Error(`${file} already exists`);
+        const scratch = new sqlite3.oo1.DB(":memory:");
+        try {
+          fn(this.#sql(scratch));
+          const bytes = sqlite3.capi.sqlite3_js_db_export(scratch.pointer as number);
+          // The pool writes the bytes into a spare slot and takes the name last.
+          try {
+            void pool.importDb(file, bytes);
+          } catch (error) {
+            console.warn(`${file}: not stored:`, error);
+            throw new Error(
+              `could not store the book (${error instanceof Error ? error.message : String(error)})`,
+            );
+          }
+        } finally {
+          scratch.close();
+        }
+      },
+      read: (file) => {
+        try {
+          // exportFile is synchronous (the typings say Promise); a journal is a few KB.
+          return pool.getFileNames().includes(file)
+            ? (pool.exportFile(file) as unknown as Uint8Array)
+            : null;
+        } catch {
+          return null;
         }
       },
       remove: (file) => {

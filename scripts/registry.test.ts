@@ -24,7 +24,15 @@ import {
   startRegistry,
 } from "../src/persistence/registry.ts";
 import { SCHEMA_SQL } from "./content-schema.ts";
-import { container, FakeFiles, hymn, hymns, setup, sqlOf } from "./registry-fixtures.ts";
+import {
+  container,
+  FakeFiles,
+  hymn,
+  hymns,
+  journalHeader,
+  setup,
+  sqlOf,
+} from "./registry-fixtures.ts";
 
 const V2_SQL = SCHEMA_SQL.replace(
   "  origin         TEXT NOT NULL,       -- the id the file declared\n",
@@ -184,15 +192,15 @@ describe("the registry", () => {
     });
   });
 
-  it("removes a package whose write failed and writes no row", async () => {
+  it("leaves no file and no row when the package write fails", async () => {
     const { ctx, files } = setup();
     const read = await container();
-    const open = files.open.bind(files);
-    files.open = ((file: string, fn: (s: Sql) => unknown) =>
-      open(file, (sql) => {
+    const write = files.write.bind(files);
+    files.write = (file, fn) =>
+      write(file, (sql) => {
         sql.exec("CREATE TABLE hymnbook (x)"); // the schema then clashes
-        return fn(sql);
-      })) as typeof files.open;
+        fn(sql);
+      });
     await expect(addBook(ctx, "k", read)).rejects.toThrow();
     expect(files.list()).toEqual([]);
     expect(listBooks(ctx)).toEqual([]);
@@ -305,14 +313,14 @@ describe("reconcile", () => {
     expect(ctx.registry.all("SELECT * FROM song")).toHaveLength(2);
   });
 
-  it("removes only a provably empty leftover, and ignores the registry and journals", async () => {
+  it("removes only a provably empty leftover and a journal with no file; ignores the registry", async () => {
     const { ctx, files } = setup();
     files.open("/empty.sqlite3", () => {}); // no tables at all: an aborted first write
     files.open("/other.sqlite3", (sql) => sql.exec("CREATE TABLE t (x)")); // a database, not ours
     files.open(REGISTRY_FILE, (sql) => sql.exec("CREATE TABLE t (x)"));
     files.open("/k.1.sqlite3-journal", (sql) => sql.exec("CREATE TABLE t (x)"));
     await reconcile(ctx);
-    expect(files.list().sort()).toEqual(["/k.1.sqlite3-journal", "/other.sqlite3", REGISTRY_FILE]);
+    expect(files.list().sort()).toEqual(["/other.sqlite3", REGISTRY_FILE]);
     expect(listBooks(ctx)).toMatchObject([{ key: "other", state: "unreadable", kind: "loaded" }]);
   });
 
@@ -683,40 +691,34 @@ describe("writes and removes", () => {
 
 describe("a package write killed halfway (browser reload while the worker writes)", () => {
   /**
-   * Models the pool as OPFS shows it: a file's name is taken at its first
-   * open, so killing the writer (the page reloads, the worker is terminated:
-   * no `catch` runs) leaves whatever the pool held at that instant. `killAt`
-   * counts statements on the book's package.
+   * Kills the writer (the page reloads, the worker is terminated: no `catch`
+   * runs) at statement `killAt` of the book's package and keeps what the pool
+   * held at that instant. Writing through `open` took the name at the first
+   * statement and left a torn file; `write` installs the file whole.
    */
   class KilledMidWrite extends FakeFiles {
     statements = 0;
-    killAt = 40;
+    killAt = 5;
     atKill: string[] | null = null;
-    override open<T>(file: string, fn: (sql: Sql) => T): T {
-      if (!file.endsWith(".1.sqlite3")) return super.open(file, fn);
-      return super.open(file, (sql) =>
+    override write(file: string, fn: (sql: Sql) => void) {
+      super.write(file, (sql) =>
         fn({
           all: (q, b) => sql.all(q, b),
           run: (q, b) => {
-            this.#tick(file);
+            this.#tick();
             sql.run(q, b);
           },
           exec: (q) => {
-            this.#tick(file);
+            this.#tick();
             sql.exec(q);
           },
         }),
       );
     }
-    #tick(file: string) {
+    #tick() {
       if (++this.statements !== this.killAt) return;
-      // SQLite has spilled pages to the file beyond its original size without a
-      // synced journal: the file is there, and no hot journal can undo it.
+      // The pool as it is the instant the worker dies: no `catch` runs after this.
       this.atKill = this.list();
-      this.failOpen.set(
-        file,
-        new Error("SQLITE_CORRUPT: sqlite3 result code 11: database disk image is malformed"),
-      );
       throw new Error("killed");
     }
   }
@@ -724,7 +726,7 @@ describe("a package write killed halfway (browser reload while the worker writes
   it("leaves no file under the package's name until the package is whole", async () => {
     const files = new KilledMidWrite();
     const { ctx } = setup();
-    (ctx as { files: FakeFiles }).files = files;
+    (ctx as unknown as { files: FakeFiles }).files = files;
     await expect(addBook(ctx, "k", await container())).rejects.toThrow("killed");
     // What the pool held when the worker died: a torn package under its final
     // name. Reconcile can only keep it and list it unreadable, for ever.
@@ -733,9 +735,10 @@ describe("a package write killed halfway (browser reload while the worker writes
 
   it("does not list an aborted write as a damaged book at the next start", async () => {
     const { ctx, files } = setup();
-    // The pool after the kill: a package SQLite calls malformed, its journal beside it, no row.
+    // The pool after the kill: a package SQLite calls malformed, its journal
+    // beside it saying the database had no pages when the write began, no row.
     files.dbs.set("/k.1.sqlite3", new DatabaseSync(":memory:"));
-    files.dbs.set("/k.1.sqlite3-journal", new DatabaseSync(":memory:"));
+    files.bytes.set("/k.1.sqlite3-journal", journalHeader(0));
     files.failOpen.set(
       "/k.1.sqlite3",
       new Error("SQLITE_CORRUPT: sqlite3 result code 11: database disk image is malformed"),
@@ -743,5 +746,80 @@ describe("a package write killed halfway (browser reload while the worker writes
     await reconcile(ctx);
     expect(listBooks(ctx)).toEqual([]);
     expect(files.list()).toEqual([]);
+  });
+
+  it.each([
+    ["a journal of a database that had pages (a crashed UPDATE or migration)", journalHeader(160)],
+    ["a garbage journal", new Uint8Array(512).fill(7)],
+    ["a journal too short to read", journalHeader(0).slice(0, 12)],
+  ])("keeps and lists a malformed no-row file beside %s", async (_name, journal) => {
+    const { ctx, files } = setup();
+    files.dbs.set("/k.1.sqlite3", new DatabaseSync(":memory:"));
+    files.bytes.set("/k.1.sqlite3-journal", journal);
+    files.failOpen.set(
+      "/k.1.sqlite3",
+      new Error("SQLITE_CORRUPT: database disk image is malformed"),
+    );
+    await reconcile(ctx);
+    expect(files.list().sort()).toEqual(["/k.1.sqlite3", "/k.1.sqlite3-journal"]);
+    expect(listBooks(ctx)).toMatchObject([{ key: "k", state: "unreadable" }]);
+  });
+
+  it("never opens a new package's file: it is written aside and installed whole", async () => {
+    const files = new FakeFiles();
+    const { ctx } = setup();
+    (ctx as unknown as { files: FakeFiles }).files = files;
+    const opened: string[] = [];
+    const open = files.open.bind(files);
+    files.open = ((file: string, fn: (s: Sql) => unknown) => {
+      opened.push(file);
+      return open(file, fn);
+    }) as typeof files.open;
+    await addBook(ctx, "k", await container());
+    expect(opened).toEqual([]);
+    expect(files.list()).toEqual(["/k.1.sqlite3"]);
+  });
+
+  it("keeps and lists a malformed file with no journal beside it: it may be a book", async () => {
+    const { ctx, files } = setup();
+    files.dbs.set("/k.1.sqlite3", new DatabaseSync(":memory:"));
+    files.failOpen.set(
+      "/k.1.sqlite3",
+      new Error("SQLITE_CORRUPT: database disk image is malformed"),
+    );
+    await reconcile(ctx);
+    expect(files.list()).toEqual(["/k.1.sqlite3"]);
+    expect(listBooks(ctx)).toMatchObject([{ key: "k", state: "unreadable" }]);
+  });
+
+  it("keeps a held book that reads as malformed even with a journal beside it", async () => {
+    const { ctx, files } = setup();
+    await addBook(ctx, "k", await container());
+    files.dbs.set("/k.1.sqlite3-journal", new DatabaseSync(":memory:"));
+    files.failOpen.set(
+      "/k.1.sqlite3",
+      new Error("SQLITE_CORRUPT: database disk image is malformed"),
+    );
+    await reconcile(ctx);
+    expect(files.list().sort()).toEqual(["/k.1.sqlite3", "/k.1.sqlite3-journal"]);
+    expect(listBooks(ctx)).toMatchObject([{ key: "k", state: "unreadable" }]);
+  });
+
+  it("removes a journal whose file is gone, and one beside an empty leftover", async () => {
+    const { ctx, files } = setup();
+    await addBook(ctx, "k", await container());
+    files.dbs.set("/gone.1.sqlite3-journal", new DatabaseSync(":memory:"));
+    files.dbs.set("/e.1.sqlite3", new DatabaseSync(":memory:"));
+    files.dbs.set("/e.1.sqlite3-journal", new DatabaseSync(":memory:"));
+    await reconcile(ctx);
+    expect(files.list()).toEqual(["/k.1.sqlite3"]);
+  });
+
+  it("leaves the journal of a readable book alone", async () => {
+    const { ctx, files } = setup();
+    await addBook(ctx, "k", await container());
+    files.dbs.set("/k.1.sqlite3-journal", new DatabaseSync(":memory:"));
+    await reconcile(ctx);
+    expect(files.list().sort()).toEqual(["/k.1.sqlite3", "/k.1.sqlite3-journal"]);
   });
 });
