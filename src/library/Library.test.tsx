@@ -90,6 +90,7 @@ function setup(options: Setup = {}) {
     dropRecents: vi.fn(async () => {}),
   };
   const onChoose = vi.fn();
+  const onOpen = vi.fn();
   const onStorageRefused = vi.fn();
   const persist = vi.fn(async () => "refused" as const);
   const view = (
@@ -109,6 +110,7 @@ function setup(options: Setup = {}) {
           presentedKey={props.presentedKey}
           outputLive={props.outputLive}
           onChoose={onChoose}
+          onOpen={onOpen}
           onStorageRefused={onStorageRefused}
           admin={admin}
           userState={userState}
@@ -121,12 +123,18 @@ function setup(options: Setup = {}) {
     store,
     userState,
     onChoose,
+    onOpen,
     onStorageRefused,
     persist,
     view,
     setRows: (r: BookRow[]) => (rows = r),
   };
 }
+
+const pickFiles = (...names: string[]) => {
+  const input = screen.getByTestId("book-file");
+  fireEvent.change(input, { target: { files: names.map((name) => new File(["x"], name)) } });
+};
 
 const pickFile = (name = "hof.hymnbook.json.gz") => {
   const input = screen.getByTestId("book-file");
@@ -273,6 +281,23 @@ describe("Library: the books held (SDD-0004 §9)", () => {
     fireEvent.click(await screen.findByRole("button", { name: /^Hymns of Fellowship/ }));
     await waitFor(() => expect(s.onChoose).toHaveBeenCalledWith("k1"));
     expect(s.admin.openBook).toHaveBeenCalledWith("k1");
+  });
+
+  it("tapping a book makes it current and goes to Present, as does tapping the current one", async () => {
+    const s = setup({ rows: [row(), loaded()] });
+    s.view({ currentKey: "mal" });
+    fireEvent.click(await screen.findByRole("button", { name: /^Hymns of Fellowship/ }));
+    await waitFor(() => expect(s.onOpen).toHaveBeenCalledWith("k1"));
+    fireEvent.click(screen.getByRole("button", { name: /^Athmeeya Geethangal/ }));
+    await waitFor(() => expect(s.onOpen).toHaveBeenCalledWith("mal"));
+  });
+
+  it("a book that cannot be chosen does not go to Present", async () => {
+    const s = setup({ rows: [row(), loaded()], openBook: { state: "missing-asset" } });
+    s.view({ currentKey: "mal" });
+    fireEvent.click(await screen.findByRole("button", { name: /^Hymns of Fellowship/ }));
+    await screen.findByText("File missing");
+    expect(s.onOpen).not.toHaveBeenCalled();
   });
 
   it("a book whose file is gone says so, with Load Again, and is not chosen", async () => {
@@ -716,5 +741,101 @@ describe("Library: the review sheet (ADR-0027)", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Couldn’t read hof.hymnbook.json.gz: boom",
     );
+  });
+});
+
+describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", () => {
+  /** A review per file, named after it, with its own token. */
+  const queueSetup = () => {
+    const s = setup({ rows: [row()] });
+    s.admin.review.mockImplementation(async (file: File) => {
+      if (file.name.startsWith("bad")) throw new Error("not readable");
+      const n = file.name.slice(0, 1);
+      return review({ token: `t-${n}`, title: `Book ${n}` });
+    });
+    s.admin.commit.mockImplementation(async (token: string) => ({
+      ok: true as const,
+      action: "loaded" as const,
+      key: token,
+    }));
+    s.view({ currentKey: "mal" });
+    return s;
+  };
+  const sheet = () => screen.findByRole("dialog", { name: "Load a Book" });
+
+  it("accepts several files at once, but one for Load Again", async () => {
+    queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    expect(screen.getByTestId("book-file")).toHaveAttribute("multiple");
+  });
+
+  it("reviews them one after another: Book 1 of 3, then the next after Load Book", async () => {
+    const s = queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles("1.hymnbook.json.gz", "2.hymnbook.json.gz", "3.hymnbook.json.gz");
+    const first = within(await sheet());
+    expect(await first.findByText("Book 1 of 3")).toBeInTheDocument();
+    expect(first.getByRole("heading", { name: "Book 1" })).toBeInTheDocument();
+    expect(s.admin.review).toHaveBeenCalledTimes(1);
+    fireEvent.click(first.getByRole("button", { name: "Load Book" }));
+    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t-1", "keep-both"));
+    expect(await screen.findByText("Book 2 of 3")).toBeInTheDocument();
+    expect(s.admin.review.mock.calls.map(([file]) => file.name)).toEqual([
+      "1.hymnbook.json.gz",
+      "2.hymnbook.json.gz",
+    ]);
+  });
+
+  it("Skip throws this one away, writes nothing for it, and moves on; the last has no Skip", async () => {
+    const s = queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles("1.hymnbook.json.gz", "2.hymnbook.json.gz");
+    const first = within(await sheet());
+    await first.findByText("Book 1 of 2");
+    fireEvent.click(first.getByRole("button", { name: "Skip" }));
+    await waitFor(() => expect(s.admin.cancel).toHaveBeenCalledWith("t-1"));
+    expect(await screen.findByText("Book 2 of 2")).toBeInTheDocument();
+    expect(s.admin.commit).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Skip" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Load Book" }));
+    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t-2", "keep-both"));
+    await waitFor(() => expect(screen.queryByText(/Book \d of 2/)).not.toBeInTheDocument());
+    expect(s.admin.review).toHaveBeenCalledTimes(2);
+  });
+
+  it("closing the sheet asks nothing and drops the rest of the queue", async () => {
+    const s = queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles("1.hymnbook.json.gz", "2.hymnbook.json.gz", "3.hymnbook.json.gz");
+    const first = within(await sheet());
+    await first.findByText("Book 1 of 3");
+    fireEvent.click(first.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(s.admin.cancel).toHaveBeenCalledWith("t-1"));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(s.admin.review).toHaveBeenCalledTimes(1);
+    expect(s.admin.commit).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Book \d of 3/)).not.toBeInTheDocument();
+  });
+
+  it("a file that cannot be read is said, and the queue goes on", async () => {
+    const s = queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles("bad.hymnbook.json.gz", "2.hymnbook.json.gz");
+    expect(await screen.findByText("Book 2 of 2")).toBeInTheDocument();
+    expect(s.admin.review).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(
+      await screen.findByText(/Couldn’t read bad\.hymnbook\.json\.gz: not readable/),
+    ).toBeInTheDocument();
+  });
+
+  it("one file is not a queue: no position, no Skip", async () => {
+    queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles("1.hymnbook.json.gz");
+    const only = within(await sheet());
+    await only.findByRole("button", { name: "Load Book" });
+    expect(only.queryByText(/Book 1 of 1/)).not.toBeInTheDocument();
+    expect(only.queryByRole("button", { name: "Skip" })).not.toBeInTheDocument();
   });
 });

@@ -659,17 +659,34 @@ view is close enough to the frame to need a smaller unit.
   - **From Text** (Board #34; SDD-0004 §9) is a text button left of Load a Book
     (its icon dropped under 600px), and a tonal button under the filled one in
     the empty card. It opens the **text sheet**, a tall sheet of the review's
-    kind: filled fields (the search field's fill, a 2px `primary` ring on focus,
-    `error` when a field is asked for), the title, language and script, the id
-    and an optional song number, then two text areas in the hymn face (the song
-    text, and an optional source text), each with **Open a .txt**. The areas
-    scroll inside themselves (at most 40% of the height); one filled button,
-    **Review the Book**, is pinned at the bottom as the review's is. Parse
-    errors are an `error-container` callout and a list, one row per error,
-    `Line N` then the message, scrolled to the top of the view. The review that
-    follows is the same sheet, with a **Source check** row in its facts and,
-    when lines differ, a neutral callout and two lists (Added or altered,
-    Dropped), each scrolling inside itself.
+    kind: filled fields (the search field's fill, a 2px `primary` ring on
+    focus), the title; the **language**, a searchable picker of languages by
+    name, each in its own name and in English ("മലയാളം — Malayalam"), in the
+    menu's surface and rows, opening in the flow under its field (never over the
+    keyboard), ending in **Other…** to type a code; under it a quiet line,
+    "Script: Malayalam (Mlym) · Change", the script derived from the language
+    and a field only after Change; then two text areas in the hymn face (the
+    song text, with **Open .txt files**, several at once, and an optional source
+    text, with **Open a .txt**). The id and the optional song number sit under
+    an **Advanced** disclosure, which opens by itself when one of them is asked
+    for. The areas scroll inside themselves (at most 40% of the height); one
+    filled button, **Review the Book**, is pinned at the bottom as the review's
+    is. **Every error is a field error**: the field gets the `error` outline and
+    its helper text turns `error`, under the field. Parse errors are listed
+    under the song text, one line each, "Line 12: message"; "There is no song
+    text." is that field's error too. No callout, no table. The first field in
+    error is scrolled into view. The review that follows is the same sheet, with
+    a **Source check** row in its facts and, when lines differ, a neutral
+    callout and two lists (Added or altered, Dropped), each scrolling inside
+    itself.
+  - **Several books**: Load a Book takes several files at once (Load Again one),
+    and **Open .txt files** joins several `.txt` files into one song text with
+    `---` between. The review of several is a queue: the sheet says **Book 2 of
+    5** and the file's name, with **Skip** (throws this one away, writes
+    nothing, shows the next) beside the usual buttons, none on the last; the
+    header reads Close. Finishing or skipping one reads the next; a file that
+    cannot be read is said in the list and passed over. Closing the sheet asks
+    nothing and drops the rest.
   - **Reading a file**: the picked file's row appears first in the list, a tile,
     "Reading <file>", the line "Checking the file on this device. Nothing is
     sent anywhere.", an indeterminate bar and Cancel, with Load a Book disabled.
@@ -713,9 +730,10 @@ view is close enough to the frame to need a smaller unit.
   - **Keep your file** is the snackbar's note (above), after a first load whose
     persistent-storage request was refused; a granted request says nothing.
   - **Choosing and loading**: a load never changes the current book, unless none
-    is (the first load); Open Book and a tap on a row do. The Finder follows the
-    current book; the hymn on screen stays until one is chosen from the new book
-    (SDD-0001 §16.4).
+    is (the first load); Open Book and a tap on a row do, and a tap on a row
+    goes on to Present, the Operator, as it used to. ⋯ stays in the row. The
+    Finder follows the current book; the hymn on screen stays until one is
+    chosen from the new book (SDD-0001 §16.4).
 - **Rhythm and states.** One 12px gap above, between and below the areas.
   Disabled is the whole control at 38%, whatever its style. Only floating things
   cast a shadow (menus, sheets, the snackbar, Back to Current); cards and panels
@@ -811,8 +829,11 @@ view is close enough to the frame to need a smaller unit.
   size is known, else indeterminate. Go Live holds the right edge from the first
   frame, loaded or not. A hot-swap needs none: the song on screen stays until
   the next has loaded (SDD-0001 §16.4).
-- **Sheets** keep their title and Close pinned to the card's top. Every sheet is
-  a centred card from 840px and a bottom sheet under it, following the window as
+- **Sheets** keep their title and Close pinned to the card's top: the header is
+  a fixed row of the card and only the content below it scrolls (so nothing, not
+  even a scroll into view, can move it away), and the card ends a space (16px,
+  or the safe area) after the last control, with no empty slab. Every sheet is a
+  centred card from 840px and a bottom sheet under it, following the window as
   it's resized (fading through with the page). The command menu is called
   **Search**; Settings has its own search, which hides rows (and empty sections)
   that don't match.

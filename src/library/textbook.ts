@@ -1,6 +1,7 @@
 import { containerBytes } from "../import/container.ts";
 import { parseSongText, type TextError, type TextNote, textBook } from "../import/songtext.ts";
 import { type SourceCheck, sourceCheck } from "../import/sourcecheck.ts";
+import { isLanguageCode } from "./languages.ts";
 
 /** What the review says about the source check (ADR-0029): never run, or run. */
 export type SourceState = { kind: "none" } | { kind: "checked"; check: SourceCheck };
@@ -37,6 +38,19 @@ export function slugify(title: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/** Several text files as one song text: a `---` line between them, as the format allows (text-format.md §1). */
+export function joinSongTexts(texts: string[]): string {
+  return texts
+    .map((text) =>
+      text
+        .replace(/\r\n?/g, "\n")
+        .replace(/(\n\s*-{3,}\s*)+$/, "")
+        .trimEnd(),
+    )
+    .filter((text) => text.trim() !== "")
+    .join("\n\n---\n\n");
+}
+
 export const ID_RULE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
 /**
@@ -51,8 +65,15 @@ export function buildTextBook(fields: TextFields, songText: string, sourceText: 
   const id = fields.id.trim();
   const problems: FieldProblems = {};
   if (!title) problems.title = "Give the book a title.";
-  if (!language) problems.language = "Give the language code, such as en or ml.";
-  if (!script) problems.script = "Give the script code, such as Latn or Mlym.";
+  if (!language) problems.language = "Choose the book’s language.";
+  else if (!isLanguageCode(language)) {
+    problems.language = "That isn’t a language code. Choose from the list, or type one such as sd.";
+  }
+  if (!language) {
+    // The script follows the language; nothing to say about it yet.
+  } else if (!script) problems.script = "Give the script code, such as Latn or Mlym.";
+  else if (!/^[A-Za-z]{4}$/.test(script))
+    problems.script = "A script code is four letters, such as Latn.";
   if (!id) problems.id = "Give the book an id: letters, digits, - and _.";
   else if (!ID_RULE.test(id)) {
     problems.id = "The id is letters, digits, - and _, starting with a letter or digit.";
@@ -77,7 +98,12 @@ export function buildTextBook(fields: TextFields, songText: string, sourceText: 
   if (!parsed.ok) return { ok: false, fields: problems, errors: parsed.errors };
   if (Object.keys(problems).length > 0) return { ok: false, fields: problems, errors: [] };
 
-  const { hymnbook } = textBook(parsed.songs, { id, title, language, script });
+  const { hymnbook } = textBook(parsed.songs, {
+    id,
+    title,
+    language: Intl.getCanonicalLocales(language)[0] ?? language,
+    script: script[0]?.toUpperCase() + script.slice(1).toLowerCase(),
+  });
   return {
     ok: true,
     id,

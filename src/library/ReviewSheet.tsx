@@ -4,6 +4,7 @@ import type { Choice, LoadReview } from "../persistence/content-store.ts";
 import { Sheet } from "../shell/Sheet.tsx";
 import { SwapLabel } from "../shell/SwapLabel.tsx";
 import { count, languageName, shortHash } from "./books.ts";
+import type { QueuePosition } from "./Library.tsx";
 import type { SourceState } from "./textbook.ts";
 
 export interface ReviewSheetProps {
@@ -17,8 +18,12 @@ export interface ReviewSheetProps {
   busy: boolean;
   /** The book was made from song text (ADR-0029): its source check, and "back" means the text. */
   source?: SourceState;
+  /** Several files were picked: which one this is. */
+  position?: QueuePosition;
   placement: "bottom" | "center";
   onCancel: () => void;
+  /** Throw this book away and review the next one. */
+  onSkip?: () => void;
   onCommit: (choice: Choice) => void;
   /** After a refusal: the picker again. */
   onChooseAnother: () => void;
@@ -139,6 +144,10 @@ export function ReviewSheet(props: ReviewSheetProps) {
     const source = props.source;
     return source?.kind === "checked" && differences(source.check) > 0 ? source.check : undefined;
   };
+  const queued = () => {
+    const at = props.position;
+    return at && at.total > 1 ? at : undefined;
+  };
   const refused = () => ["not-a-book", "newer", "violations"].includes(panel() ?? "");
   const choice = (): Choice => {
     const key = replace();
@@ -172,13 +181,23 @@ export function ReviewSheet(props: ReviewSheetProps) {
       open={props.open}
       onClose={props.onCancel}
       title={panel() === "restore" ? "Load Again" : "Load a Book"}
-      closeLabel={panel() === "same-file" || refused() ? "Close" : "Cancel"}
+      closeLabel={panel() === "same-file" || refused() || queued() ? "Close" : "Cancel"}
       placement={props.placement}
       tall
     >
       <Show when={props.review}>
         {(review) => (
           <div class="review">
+            <Show when={queued()}>
+              {(at) => (
+                <p class="review-position">
+                  <b class="num">
+                    Book {at().index} of {at().total}
+                  </b>
+                  <span class="review-position-file">{props.fileName}</span>
+                </p>
+              )}
+            </Show>
             <Show
               when={review().title}
               fallback={
@@ -393,6 +412,11 @@ export function ReviewSheet(props: ReviewSheetProps) {
             </Show>
 
             <div class="review-actions">
+              <Show when={(queued()?.index ?? 0) < (queued()?.total ?? 0)}>
+                <button type="button" class="btn-text" disabled={props.busy} onClick={props.onSkip}>
+                  Skip
+                </button>
+              </Show>
               <Show
                 when={!refused()}
                 fallback={

@@ -44,6 +44,8 @@ export interface LibraryProps {
   currentKey?: string;
   /** Choosing a book makes it the current one (SDD-0004 §9). */
   onChoose: (key: string) => void;
+  /** A tap on a book's row: it is the current book, and the Operator is where to go (SDD-0004 §9). */
+  onOpen?: (key: string) => void;
   /** The book the hymn on screen is from, and whether the Output is live: that book
    * cannot be removed while it is on the Output (SDD-0004 §10). */
   presentedKey?: string;
@@ -63,6 +65,20 @@ interface Reading {
   id: number;
   fileName: string;
   target?: string;
+}
+
+/** Files picked together: read and reviewed one after another (SDD-0004 §9). */
+interface Batch {
+  files: File[];
+  /** The next one to read. */
+  next: number;
+  target?: string;
+}
+
+/** Where the review in view is in its batch: "Book 2 of 5". */
+export interface QueuePosition {
+  index: number;
+  total: number;
 }
 
 const rowTitle = (book: BookRow) => book.title || book.key;
@@ -98,6 +114,8 @@ export function Library(props: LibraryProps) {
   let input: HTMLInputElement | undefined;
   let pickTarget: string | undefined;
   let nextId = 0;
+  // The files still to review; closing the review sheet drops them (nothing was written for them).
+  let batch: Batch | undefined;
 
   const [reading, setReading] = createSignal<Reading>();
   // The review sheet keeps its last review while it sinks away.
@@ -118,7 +136,9 @@ export function Library(props: LibraryProps) {
   const [removeOpen, setRemoveOpen] = createSignal(false);
   const [removeRecents, setRemoveRecents] = createSignal(0);
   const [removeError, setRemoveError] = createSignal<string>();
-  const [readError, setReadError] = createSignal<string>();
+  const [position, setPosition] = createSignal<QueuePosition>();
+  // Files that could not be read, each said in words.
+  const [readErrors, setReadErrors] = createSignal<string[]>([]);
   // Books whose file turned out to be gone when they were chosen (evicted).
   const [missing, setMissing] = createSignal<ReadonlySet<string>>(new Set());
   const [justAdded, setJustAdded] = createSignal<string>();
@@ -130,9 +150,16 @@ export function Library(props: LibraryProps) {
   const pick = (target?: string) => {
     pickTarget = target;
     if (input) {
+      // Several at once, except to bring one book back.
+      input.multiple = target === undefined;
       input.value = "";
       input.click();
     }
+  };
+
+  const endBatch = () => {
+    batch = undefined;
+    setPosition(undefined);
   };
 
   const dropReview = () => {
@@ -143,8 +170,20 @@ export function Library(props: LibraryProps) {
     setReviewOpen(false);
     setReviewError(undefined);
     setBusy(false);
+    // Closing asks nothing and drops what was still to come.
+    endBatch();
     // A review of song text goes back to the text, which is kept to fix.
     if (reviewSource()) setTextOpen(true);
+  };
+
+  /** Skip: this book is not loaded, and the next one is read. */
+  const skipReview = () => {
+    if (busy()) return;
+    const token = review()?.token;
+    if (token) void admin().cancel(token);
+    setReviewOpen(false);
+    setReviewError(undefined);
+    void readNext();
   };
 
   const openText = () => {
@@ -164,6 +203,7 @@ export function Library(props: LibraryProps) {
     }
     setTextProblems({});
     setTextErrors([]);
+    endBatch();
     setTextBusy(true);
     const name = `${built.id}.hymnbook.json.gz`;
     try {
@@ -185,11 +225,9 @@ export function Library(props: LibraryProps) {
     setTextBusy(false);
   };
 
-  const onPicked = async (file: File | undefined) => {
-    if (!file) return;
-    const target = pickTarget;
+  /** Reads one file into a review. Resolves to whether a review is open for it. */
+  const readFile = async (file: File, target?: string): Promise<boolean> => {
     const id = ++nextId;
-    setReadError(undefined);
     setReviewSource(undefined);
     setReading({ id, fileName: file.name, target });
     try {
@@ -197,23 +235,46 @@ export function Library(props: LibraryProps) {
       // Cancelled, or another file picked, while it read: throw this one away.
       if (reading()?.id !== id) {
         if (result.token) void admin().cancel(result.token);
-        return;
+        return false;
       }
       setReading(undefined);
       setReview(result);
       setReviewFile(file.name);
       setReviewError(undefined);
       setReviewOpen(true);
+      return true;
     } catch (error) {
-      if (reading()?.id !== id) return;
+      if (reading()?.id !== id) return false;
       setReading(undefined);
-      setReadError(
-        `Couldn’t read ${file.name}${error instanceof Error && error.message ? `: ${error.message}` : "."}`,
-      );
+      const said = `Couldn’t read ${file.name}${error instanceof Error && error.message ? `: ${error.message}` : "."}`;
+      setReadErrors((now) => [...now, said]);
+      return false;
     }
   };
 
+  /** The next picked file, or the end of the batch. A file that cannot be read is said and passed over. */
+  const readNext = async () => {
+    const now = batch;
+    if (!now || now.next >= now.files.length) {
+      endBatch();
+      return;
+    }
+    const file = now.files[now.next++] as File;
+    setPosition({ index: now.next, total: now.files.length });
+    const opened = await readFile(file, now.target);
+    if (opened || batch !== now) return;
+    void readNext();
+  };
+
+  const onPicked = (files: File[]) => {
+    if (files.length === 0) return;
+    setReadErrors([]);
+    batch = { files, next: 0, target: pickTarget };
+    void readNext();
+  };
+
   const cancelReading = () => {
+    endBatch();
     setReading(undefined);
   };
 
@@ -266,6 +327,7 @@ export function Library(props: LibraryProps) {
     if (opened || props.currentKey === undefined) props.onChoose(result.key);
     if (!opened) scrollTo(result.key);
     if (result.persist === "refused") props.onStorageRefused?.();
+    void readNext();
   };
 
   const chooseAnother = () => {
@@ -277,7 +339,10 @@ export function Library(props: LibraryProps) {
   };
 
   const choose = async (book: BookRow) => {
-    if (book.key === props.currentKey) return;
+    if (book.key === props.currentKey) {
+      props.onOpen?.(book.key);
+      return;
+    }
     const status = await admin().openBook(book.key);
     if (status.state === "ready") {
       setMissing((now) => {
@@ -286,6 +351,7 @@ export function Library(props: LibraryProps) {
         return next;
       });
       props.onChoose(book.key);
+      props.onOpen?.(book.key);
     } else if (status.state === "missing-asset") {
       setMissing((now) => new Set(now).add(book.key));
     } else {
@@ -366,7 +432,15 @@ export function Library(props: LibraryProps) {
       </span>
       <div class="reading-body">
         <div>
-          <div class="title-medium reading-name">Reading {now.fileName}</div>
+          <div class="title-medium reading-name">
+            Reading {now.fileName}
+            <Show when={position() && (position()?.total ?? 0) > 1}>
+              {" "}
+              <span class="reading-count">
+                ({position()?.index} of {position()?.total})
+              </span>
+            </Show>
+          </div>
           <div class="book-meta">Checking the file on this device. Nothing is sent anywhere.</div>
         </div>
         <ProgressBar label="Reading the book" />
@@ -504,15 +578,13 @@ export function Library(props: LibraryProps) {
           </div>
         )}
       </Show>
-      <Show when={readError()}>
-        {(message) => (
-          <div class="callout callout-bad" role="alert">
-            <span class="icon icon-error" aria-hidden="true" />
-            <div>
-              <p>{message()}</p>
-            </div>
+      <Show when={readErrors().length > 0}>
+        <div class="callout callout-bad" role="alert">
+          <span class="icon icon-error" aria-hidden="true" />
+          <div>
+            <For each={readErrors()}>{(message) => <p>{message}</p>}</For>
           </div>
-        )}
+        </div>
       </Show>
       <ul class="book-list" aria-label="Books">
         <Show when={reading()}>{(now) => readingRow(now())}</Show>
@@ -535,13 +607,13 @@ export function Library(props: LibraryProps) {
               Hymnal shows the songs you bring. A book is a file made with the importer; it is read
               on this device and never sent anywhere.
             </p>
-            <Show when={readError()}>
+            <For each={readErrors()}>
               {(message) => (
                 <p class="review-error" role="alert">
-                  {message()}
+                  {message}
                 </p>
               )}
-            </Show>
+            </For>
             <div class="lib-empty-actions">
               {loadButton("btn-filled")}
               {textButton("btn-tonal")}
@@ -591,8 +663,9 @@ export function Library(props: LibraryProps) {
         accept=".gz,application/gzip,application/x-gzip"
         tabIndex={-1}
         aria-hidden="true"
+        multiple
         data-testid="book-file"
-        onChange={(event) => void onPicked(event.currentTarget.files?.[0])}
+        onChange={(event) => onPicked([...(event.currentTarget.files ?? [])])}
       />
       <Switch
         fallback={
@@ -624,8 +697,10 @@ export function Library(props: LibraryProps) {
         error={reviewError()}
         busy={busy()}
         source={reviewSource()}
+        position={position()}
         placement={placement()}
         onCancel={dropReview}
+        onSkip={skipReview}
         onCommit={(choice) => void commit(choice)}
         onChooseAnother={chooseAnother}
       />

@@ -1,4 +1,4 @@
-import { createEffect, createSignal, type JSX, onCleanup, Show } from "solid-js";
+import { createEffect, createSignal, type JSX, Show } from "solid-js";
 
 export interface SheetProps {
   open: boolean;
@@ -85,26 +85,16 @@ export function Sheet(props: SheetProps) {
       {/* `props.open` too: the content must exist when showModal() runs, or the
           browser finds no [autofocus] field and focuses the dialog. */}
       <Show when={props.open || shown()}>
-        <div class="sheet-content">
-          <div
-            class="sheet-header"
-            ref={(header) => {
-              // Anything else pinned inside (the Finder's field) sticks just
-              // under the header, whatever the text size makes its height.
-              if (typeof ResizeObserver !== "function") return;
-              const observer = new ResizeObserver(() =>
-                dialog?.style.setProperty("--sheet-header-height", `${header.offsetHeight}px`),
-              );
-              observer.observe(header);
-              onCleanup(() => observer.disconnect());
-            }}
-          >
+        <div class="sheet-frame">
+          {/* The header is not part of what scrolls: it cannot be scrolled away,
+              by a wheel or by scrollIntoView, and the card ends at the last control. */}
+          <div class="sheet-header">
             <h2 class="title-medium">{props.title}</h2>
             <button type="button" class="btn-text" onClick={() => props.onClose()}>
               {props.closeLabel ?? "Close"}
             </button>
           </div>
-          {props.children}
+          <div class="sheet-content">{props.children}</div>
         </div>
       </Show>
     </dialog>

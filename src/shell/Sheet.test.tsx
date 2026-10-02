@@ -26,4 +26,17 @@ describe("Sheet", () => {
     expect(focused).not.toBeNull();
     expect(document.activeElement).toBe(focused);
   });
+
+  it("keeps the title and Close outside what scrolls, so no sheet can scroll them away", () => {
+    const { container } = render(() => (
+      <Sheet open onClose={() => {}} title="Settings">
+        <p>Body</p>
+      </Sheet>
+    ));
+    const header = container.querySelector(".sheet-header");
+    const scroller = container.querySelector(".sheet-content");
+    expect(header).not.toBeNull();
+    expect(scroller?.contains(header)).toBe(false);
+    expect(scroller).toHaveTextContent("Body");
+  });
 });

@@ -2,13 +2,17 @@ import { createEffect, createSignal, For, type JSX, Show } from "solid-js";
 import type { TextError } from "../import/songtext.ts";
 import { Sheet } from "../shell/Sheet.tsx";
 import { count } from "./books.ts";
-import { type FieldProblems, slugify, type TextFields } from "./textbook.ts";
+import { LanguagePicker } from "./LanguagePicker.tsx";
+import { scriptName, scriptOf } from "./languages.ts";
+import { type FieldProblems, joinSongTexts, slugify, type TextFields } from "./textbook.ts";
 
 /** What has been typed in the text sheet; kept by the Library so a Cancel in the review comes back to it. */
 export function createTextDraft() {
   const [title, setTitle] = createSignal("");
   const [language, setLanguage] = createSignal("");
-  const [script, setScript] = createSignal("");
+  // The script follows the language ("ml" is Mlym) until it is changed by hand.
+  const [scriptEdit, setScriptEdit] = createSignal<string>();
+  const script = () => scriptEdit() ?? scriptOf(language());
   const [id, setId] = createSignal("");
   const [number, setNumber] = createSignal("");
   const [songText, setSongText] = createSignal("");
@@ -27,8 +31,13 @@ export function createTextDraft() {
       setTitle(value);
       if (!idEdited()) setId(slugify(value));
     },
-    setLanguage,
-    setScript,
+    setLanguage: (code: string) => {
+      setLanguage(code);
+      setScriptEdit(undefined);
+    },
+    setScript: (code: string) => setScriptEdit(code),
+    resetScript: () => setScriptEdit(undefined),
+    scriptEdited: () => scriptEdit() !== undefined,
     setId: (value: string) => {
       setIdEdited(value !== "");
       setId(value === "" ? slugify(title()) : value);
@@ -37,18 +46,11 @@ export function createTextDraft() {
     setSongText,
     setSourceText,
     reset: () => {
-      for (const set of [
-        setTitle,
-        setLanguage,
-        setScript,
-        setId,
-        setNumber,
-        setSongText,
-        setSourceText,
-      ]) {
+      for (const set of [setTitle, setLanguage, setId, setNumber, setSongText, setSourceText]) {
         set("");
       }
       setIdEdited(false);
+      setScriptEdit(undefined);
     },
     fields: (): TextFields => ({
       title: title(),
@@ -103,51 +105,79 @@ const Field = (props: {
   );
 };
 
-/** Reads a picked text file into a setter; a file that cannot be read says nothing is changed. */
-async function readText(file: File | undefined, into: (text: string) => void) {
-  if (!file) return;
+/** Reads picked text files, in the order picked; a file that cannot be read says nothing is changed. */
+async function readTexts(files: FileList | null | undefined): Promise<string[] | undefined> {
+  if (!files || files.length === 0) return undefined;
   try {
-    into((await file.text()).replace(/^﻿/, ""));
+    return await Promise.all(
+      [...files].map(async (file) => (await file.text()).replace(/^\uFEFF/, "")),
+    );
   } catch {
     // The area keeps what it had; the person can paste instead.
+    return undefined;
   }
 }
+
+/** A parse error as a field error: "Line 12: …", or the message alone when it has no line. */
+const errorText = (e: TextError) => (e.line > 0 ? `Line ${e.line}: ${e.message}` : e.message);
 
 /**
  * A book from song text (ADR-0029, SDD-0004 §9): the book's own fields, which
  * are required and never guessed, the song text, and optionally the source text
- * to check it against. Review parses; the errors are listed with their lines
- * and nothing is written. Everything stays on this device.
+ * to check it against. Review parses; every error is a field error under its
+ * field and nothing is written. Everything stays on this device.
  */
 export function TextSheet(props: TextSheetProps) {
   const d = props.draft;
-  let errorBox: HTMLDivElement | undefined;
+  let form: HTMLFormElement | undefined;
   const [songFile, setSongFile] = createSignal<HTMLInputElement>();
   const [sourceFile, setSourceFile] = createSignal<HTMLInputElement>();
+  const [changingScript, setChangingScript] = createSignal(false);
+  const [advanced, setAdvanced] = createSignal(false);
 
-  // After a Review that found something wrong, bring it into view (the button is below).
+  const hasProblem = () => props.errors.length + Object.keys(props.problems).length > 0;
+
+  // After a Review that found something wrong, bring the first thing wrong into view.
   createEffect(() => {
-    const shown = props.errors.length + Object.keys(props.problems).length;
-    if (props.open && shown > 0)
-      queueMicrotask(() => errorBox?.scrollIntoView?.({ block: "start" }));
+    if (!props.open || !hasProblem()) return;
+    if (props.problems.id || props.problems.number) setAdvanced(true);
+    queueMicrotask(() => {
+      const first = form?.querySelector<HTMLElement>('[aria-invalid="true"]');
+      if (!first) return;
+      // The field takes focus where it is; what is shown is its error, under it.
+      // (The language list opens on focus, so that field is only scrolled to.)
+      if (first.getAttribute("role") !== "combobox") first.focus({ preventScroll: true });
+      const shown =
+        first.id === "song-text" ? form?.querySelector<HTMLElement>("#song-text-errors") : first;
+      shown?.scrollIntoView?.({ block: "center" });
+    });
   });
 
-  const picker = (setRef: (el: HTMLInputElement) => void, into: (text: string) => void) => (
+  const picker = (
+    setRef: (el: HTMLInputElement) => void,
+    into: (texts: string[]) => void,
+    several: boolean,
+  ) => (
     <input
       ref={setRef}
       type="file"
       class="visually-hidden"
       accept=".txt,.text,text/plain"
+      multiple={several}
       tabIndex={-1}
       aria-hidden="true"
       onChange={(event) => {
-        void readText(event.currentTarget.files?.[0], into);
-        event.currentTarget.value = "";
+        const input = event.currentTarget;
+        void readTexts(input.files).then((texts) => texts && into(texts));
+        input.value = "";
       }}
     />
   );
 
   const lineCount = (text: string) => (text.trim() ? text.split(/\r\n|\r|\n/).length : 0);
+  const script = () => d.script();
+  // A language the platform has no default script for, or a script being changed.
+  const scriptOpen = () => changingScript() || (!!d.language() && !script());
 
   return (
     <Sheet
@@ -159,6 +189,7 @@ export function TextSheet(props: TextSheetProps) {
       tall
     >
       <form
+        ref={form}
         class="textsheet"
         novalidate
         onSubmit={(event) => {
@@ -186,95 +217,82 @@ export function TextSheet(props: TextSheetProps) {
             />
           )}
         </Field>
-        <div class="field-row">
-          <Field
+
+        <div class="field">
+          <label class="field-label" for="book-language">
+            Language
+          </label>
+          <LanguagePicker
             id="book-language"
-            label="Language"
-            hint="en, ml, ta…"
-            problem={props.problems.language}
-            class="field-short"
-          >
-            {(by) => (
-              <input
-                class="field-input"
-                type="text"
-                autocomplete="off"
-                autocapitalize="off"
-                spellcheck={false}
-                id="book-language"
-                value={d.language()}
-                aria-invalid={!!props.problems.language}
-                aria-describedby={by}
-                onInput={(e) => d.setLanguage(e.currentTarget.value)}
-              />
-            )}
-          </Field>
-          <Field
-            id="book-script"
-            label="Script"
-            hint="Latn, Mlym, Taml…"
-            problem={props.problems.script}
-            class="field-short"
-          >
-            {(by) => (
-              <input
-                class="field-input"
-                type="text"
-                autocomplete="off"
-                autocapitalize="off"
-                spellcheck={false}
-                id="book-script"
-                value={d.script()}
-                aria-invalid={!!props.problems.script}
-                aria-describedby={by}
-                onInput={(e) => d.setScript(e.currentTarget.value)}
-              />
-            )}
-          </Field>
-        </div>
-        <div class="field-row">
-          <Field
-            id="book-id"
-            label="Id"
-            hint="Made from the title; change it if you like."
-            problem={props.problems.id}
-          >
-            {(by) => (
-              <input
-                class="field-input"
-                type="text"
-                autocomplete="off"
-                autocapitalize="off"
-                spellcheck={false}
-                id="book-id"
-                value={d.id()}
-                aria-invalid={!!props.problems.id}
-                aria-describedby={by}
-                onInput={(e) => d.setId(e.currentTarget.value)}
-              />
-            )}
-          </Field>
-          <Field
-            id="book-number"
-            label="Song number"
-            hint="One song, no number."
-            problem={props.problems.number}
-            class="field-short"
-          >
-            {(by) => (
-              <input
-                class="field-input"
-                type="text"
-                inputmode="numeric"
-                autocomplete="off"
-                id="book-number"
-                value={d.number()}
-                aria-invalid={!!props.problems.number}
-                aria-describedby={by}
-                onInput={(e) => d.setNumber(e.currentTarget.value)}
-              />
-            )}
-          </Field>
+            value={d.language()}
+            invalid={!!props.problems.language}
+            describedBy={props.problems.language ? "book-language-hint" : undefined}
+            onPick={d.setLanguage}
+          />
+          <Show when={props.problems.language}>
+            <span class="field-hint field-problem" id="book-language-hint" role="alert">
+              {props.problems.language}
+            </span>
+          </Show>
+          <Show when={d.language()}>
+            <div class="script-line">
+              <Show
+                when={scriptOpen()}
+                fallback={
+                  <>
+                    <span>
+                      Script: {scriptName(script())} <span class="facts-code">({script()})</span>
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <button
+                      type="button"
+                      class="script-change"
+                      onClick={() => setChangingScript(true)}
+                    >
+                      Change
+                    </button>
+                  </>
+                }
+              >
+                <label class="script-label" for="book-script">
+                  Script code
+                </label>
+                <input
+                  class="field-input script-input"
+                  type="text"
+                  id="book-script"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck={false}
+                  placeholder="Latn, Mlym, Taml…"
+                  value={script()}
+                  aria-invalid={!!props.problems.script}
+                  aria-describedby={props.problems.script ? "book-script-hint" : undefined}
+                  onInput={(e) => d.setScript(e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (script()) setChangingScript(false);
+                    }
+                  }}
+                />
+                <Show when={script()}>
+                  <button
+                    type="button"
+                    class="script-change"
+                    onClick={() => setChangingScript(false)}
+                  >
+                    Done
+                  </button>
+                </Show>
+              </Show>
+            </div>
+          </Show>
+          <Show when={props.problems.script}>
+            <span class="field-hint field-problem" id="book-script-hint" role="alert">
+              {props.problems.script}
+            </span>
+          </Show>
         </div>
 
         <div class="field">
@@ -284,9 +302,9 @@ export function TextSheet(props: TextSheetProps) {
             </label>
             <button type="button" class="btn-text" onClick={() => songFile()?.click()}>
               <span class="icon icon-file-open" aria-hidden="true" />
-              Open a .txt
+              Open .txt files
             </button>
-            {picker(setSongFile, d.setSongText)}
+            {picker(setSongFile, (texts) => d.setSongText(joinSongTexts(texts)), true)}
           </div>
           <textarea
             id="song-text"
@@ -298,35 +316,25 @@ export function TextSheet(props: TextSheetProps) {
               "1. Amazing Grace\n\nAmazing grace! how sweet the sound,\nThat saved a wretch like me!"
             }
             value={d.songText()}
+            aria-invalid={props.errors.length > 0}
+            aria-describedby={props.errors.length > 0 ? "song-text-errors" : "song-text-hint"}
             onInput={(e) => d.setSongText(e.currentTarget.value)}
           />
-          <span class="field-hint num">{count(lineCount(d.songText()))} lines</span>
-        </div>
-
-        <Show when={props.errors.length > 0}>
-          <div class="parse-errors" ref={errorBox} tabIndex={-1}>
-            <div class="callout callout-bad" role="alert">
-              <span class="icon icon-error" aria-hidden="true" />
-              <div>
-                <h4>
-                  {count(props.errors.length)} {props.errors.length === 1 ? "error" : "errors"} in
-                  the text
-                </h4>
-                <p>Nothing is repaired or stored. Fix the text and review it again.</p>
-              </div>
-            </div>
-            <ul class="violations" aria-label="Parse errors">
+          <Show
+            when={props.errors.length > 0}
+            fallback={
+              <span class="field-hint num" id="song-text-hint">
+                {count(lineCount(d.songText()))} lines. Several files are joined with --- between.
+              </span>
+            }
+          >
+            <ul class="field-problems" id="song-text-errors" aria-label="Parse errors" role="alert">
               <For each={props.errors}>
-                {(e) => (
-                  <li class="violation violation-line violation-parse">
-                    <span class="vwhere num">{e.line > 0 ? `Line ${e.line}` : "Text"}</span>
-                    <span>{e.message}</span>
-                  </li>
-                )}
+                {(e) => <li class="field-hint field-problem">{errorText(e)}</li>}
               </For>
             </ul>
-          </div>
-        </Show>
+          </Show>
+        </div>
 
         <div class="field">
           <div class="field-top">
@@ -337,7 +345,7 @@ export function TextSheet(props: TextSheetProps) {
               <span class="icon icon-file-open" aria-hidden="true" />
               Open a .txt
             </button>
-            {picker(setSourceFile, d.setSourceText)}
+            {picker(setSourceFile, (texts) => d.setSourceText(texts.join("\n")), false)}
           </div>
           <textarea
             id="source-text"
@@ -353,6 +361,60 @@ export function TextSheet(props: TextSheetProps) {
             The text the songs started from. The review lists lines the book added or dropped.
           </span>
         </div>
+
+        <details
+          class="advanced"
+          open={advanced()}
+          onToggle={(e) => setAdvanced(e.currentTarget.open)}
+        >
+          <summary class="advanced-summary">
+            <span class="icon icon-chevron-right advanced-chevron" aria-hidden="true" />
+            Advanced
+          </summary>
+          <div class="advanced-body">
+            <Field
+              id="book-id"
+              label="Id"
+              hint="Made from the title; change it if you like."
+              problem={props.problems.id}
+            >
+              {(by) => (
+                <input
+                  class="field-input"
+                  type="text"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck={false}
+                  id="book-id"
+                  value={d.id()}
+                  aria-invalid={!!props.problems.id}
+                  aria-describedby={by}
+                  onInput={(e) => d.setId(e.currentTarget.value)}
+                />
+              )}
+            </Field>
+            <Field
+              id="book-number"
+              label="Song number"
+              hint="For one song whose first line has no number."
+              problem={props.problems.number}
+            >
+              {(by) => (
+                <input
+                  class="field-input"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  id="book-number"
+                  value={d.number()}
+                  aria-invalid={!!props.problems.number}
+                  aria-describedby={by}
+                  onInput={(e) => d.setNumber(e.currentTarget.value)}
+                />
+              )}
+            </Field>
+          </div>
+        </details>
 
         <div class="review-actions">
           <button type="submit" class="btn-filled" disabled={props.busy}>

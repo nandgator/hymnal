@@ -127,15 +127,18 @@ const openSheet = async () => {
 
 type Dialog = Awaited<ReturnType<typeof openSheet>>["dialog"];
 
-const fill = (
-  dialog: Dialog,
-  over: { title?: string; language?: string; script?: string } = {},
-) => {
-  const set = (label: string, value: string) =>
-    fireEvent.input(dialog.getByLabelText(label), { target: { value } });
-  set("Title", over.title ?? "Public Domain Sample");
-  set("Language", over.language ?? "en");
-  set("Script", over.script ?? "Latn");
+/** Picks a language from the list by typing part of its name, then choosing the first row. */
+const chooseLanguage = (dialog: Dialog, search: string) => {
+  const box = dialog.getByRole("combobox", { name: "Language" });
+  fireEvent.focus(box);
+  fireEvent.input(box, { target: { value: search } });
+  fireEvent.click(dialog.getAllByRole("option")[0] as HTMLElement);
+};
+const fill = (dialog: Dialog, over: { title?: string; language?: string } = {}) => {
+  fireEvent.input(dialog.getByLabelText("Title"), {
+    target: { value: over.title ?? "Public Domain Sample" },
+  });
+  chooseLanguage(dialog, over.language ?? "English");
 };
 const type = (dialog: Dialog, label: RegExp | string, value: string) =>
   fireEvent.input(dialog.getByLabelText(label), { target: { value } });
@@ -145,11 +148,15 @@ const review = (dialog: Dialog) =>
 describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
   it("opens an empty sheet: the fields, two text areas, nothing written", async () => {
     const { s, dialog } = await openSheet();
-    for (const label of ["Title", "Language", "Script", "Id", "Song text"]) {
+    for (const label of ["Title", "Language", "Id", "Song text"]) {
       expect(dialog.getByLabelText(label)).toHaveValue("");
     }
+    // The script is not asked for until a language says what it is.
+    expect(dialog.queryByLabelText("Script code")).not.toBeInTheDocument();
+    expect(dialog.queryByText(/^Script:/)).not.toBeInTheDocument();
     expect(dialog.getByLabelText(/Source text/)).toBeInTheDocument();
-    expect(dialog.getAllByRole("button", { name: /Open a \.txt/ })).toHaveLength(2);
+    expect(dialog.getByRole("button", { name: /Open \.txt files/ })).toBeInTheDocument();
+    expect(dialog.getByRole("button", { name: /Open a \.txt/ })).toBeInTheDocument();
     expect(s.admin.review).not.toHaveBeenCalled();
     expect(s.admin.commit).not.toHaveBeenCalled();
   });
@@ -168,8 +175,9 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     type(dialog, "Song text", SAMPLE);
     review(dialog);
     expect(await dialog.findByText("Give the book a title.")).toBeInTheDocument();
-    expect(dialog.getByText(/Give the language code/)).toBeInTheDocument();
-    expect(dialog.getByText(/Give the script code/)).toBeInTheDocument();
+    expect(dialog.getByText("Choose the book’s language.")).toBeInTheDocument();
+    expect(dialog.getByLabelText("Title")).toBeInvalid();
+    expect(dialog.getByRole("combobox", { name: "Language" })).toBeInvalid();
     expect(s.admin.review).not.toHaveBeenCalled();
   });
 
@@ -178,10 +186,13 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     fill(dialog);
     type(dialog, "Song text", "# a comment\n0. Bad number\n\nA line\n");
     review(dialog);
-    const list = await dialog.findByRole("list", { name: "Parse errors" });
-    expect(dialog.getByText(/in the text/)).toBeInTheDocument();
+    // Field errors under the field, in its own error style: no callout, no table.
+    const list = await dialog.findByRole("alert", { name: "Parse errors" });
     const first = within(list).getAllByRole("listitem")[0];
-    expect(first).toHaveTextContent(/^Line 2/);
+    expect(first).toHaveTextContent(/^Line 2: /);
+    expect(first).toHaveClass("field-problem");
+    expect(dialog.getByLabelText("Song text")).toBeInvalid();
+    expect(dialog.queryByText(/in the text/)).not.toBeInTheDocument();
     expect(s.admin.review).not.toHaveBeenCalled();
     expect(s.admin.commit).not.toHaveBeenCalled();
     // The text is kept to fix.
@@ -247,5 +258,130 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     expect(dialog.getByLabelText("Song text")).toHaveValue(SAMPLE);
     expect(s.admin.commit).not.toHaveBeenCalled();
     await waitFor(() => expect(s.admin.cancel).toHaveBeenCalledWith("t1"));
+  });
+
+  it("no song text is the Song text field's error", async () => {
+    const { s, dialog } = await openSheet();
+    fill(dialog);
+    review(dialog);
+    const list = await dialog.findByRole("alert", { name: "Parse errors" });
+    expect(list).toHaveTextContent("There is no song text.");
+    expect(dialog.getByLabelText("Song text")).toBeInvalid();
+    expect(s.admin.review).not.toHaveBeenCalled();
+  });
+});
+
+describe("Library: the language of a book from text", () => {
+  it("lists languages by their own name and English, searchable by either", async () => {
+    const { dialog } = await openSheet();
+    const box = dialog.getByRole("combobox", { name: "Language" });
+    fireEvent.focus(box);
+    // Once under Common, once among all of them.
+    expect(dialog.getAllByRole("option", { name: /മലയാളം — Malayalam/ })).toHaveLength(2);
+    fireEvent.input(box, { target: { value: "tamil" } });
+    expect(dialog.getAllByRole("option")).toHaveLength(2); // Tamil, and Other…
+    fireEvent.input(box, { target: { value: "മല" } });
+    expect(dialog.getByRole("option", { name: /Malayalam/ })).toBeInTheDocument();
+    fireEvent.input(box, { target: { value: "zzzz" } });
+    expect(dialog.getByText(/No language matches/)).toBeInTheDocument();
+    expect(dialog.getByRole("option", { name: "Other…" })).toBeInTheDocument();
+  });
+
+  it("derives the script from the language and shows it as a quiet line", async () => {
+    const { dialog } = await openSheet();
+    chooseLanguage(dialog, "Malayalam");
+    expect(dialog.getByRole("combobox", { name: "Language" })).toHaveValue("മലയാളം — Malayalam");
+    expect(dialog.getByText(/^Script: Malayalam/)).toHaveTextContent("Script: Malayalam (Mlym)");
+    expect(dialog.queryByLabelText("Script code")).not.toBeInTheDocument();
+  });
+
+  it("Change opens the script code; the choice of another language derives it again", async () => {
+    const { dialog } = await openSheet();
+    chooseLanguage(dialog, "Malayalam");
+    fireEvent.click(dialog.getByRole("button", { name: "Change" }));
+    const code = dialog.getByLabelText("Script code");
+    expect(code).toHaveValue("Mlym");
+    fireEvent.input(code, { target: { value: "Latn" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Done" }));
+    expect(dialog.getByText(/^Script: Latin/)).toBeInTheDocument();
+    chooseLanguage(dialog, "Tamil");
+    expect(dialog.getByText(/^Script: Tamil/)).toHaveTextContent("(Taml)");
+  });
+
+  it("Other… types a code, and a code that is no language is a field error", async () => {
+    const { s, dialog } = await openSheet();
+    fireEvent.focus(dialog.getByRole("combobox", { name: "Language" }));
+    fireEvent.click(dialog.getByRole("option", { name: "Other…" }));
+    const code = dialog.getByLabelText("Language");
+    fireEvent.input(code, { target: { value: "sd" } });
+    expect(dialog.getByText(/^Script: Arabic/)).toBeInTheDocument();
+    fireEvent.input(code, { target: { value: "not a code" } });
+    fireEvent.input(dialog.getByLabelText("Title"), { target: { value: "T" } });
+    type(dialog, "Song text", SAMPLE);
+    review(dialog);
+    expect(await dialog.findByText(/isn’t a language code/)).toBeInTheDocument();
+    expect(s.admin.review).not.toHaveBeenCalled();
+  });
+
+  it("keeps the id under Advanced", async () => {
+    const { dialog } = await openSheet();
+    const summary = dialog.getByText("Advanced");
+    expect(summary.closest("details")).not.toHaveAttribute("open");
+    expect(summary.closest("details")).toContainElement(dialog.getByLabelText("Id"));
+  });
+
+  it("several .txt files become one song text with --- between them", async () => {
+    const { dialog } = await openSheet();
+    const input = document.querySelectorAll<HTMLInputElement>('input[type="file"]')[1];
+    expect(input?.multiple).toBe(true);
+    fireEvent.change(input as HTMLInputElement, {
+      target: {
+        files: [
+          new File(["1. One\n\nLine a\n---\n"], "a.txt"),
+          new File(["2. Two\n\nLine b\n"], "b.txt"),
+        ],
+      },
+    });
+    await waitFor(() =>
+      expect(dialog.getByLabelText("Song text")).toHaveValue(
+        "1. One\n\nLine a\n\n---\n\n2. Two\n\nLine b",
+      ),
+    );
+  });
+});
+
+describe("Library: the text sheet's picker and errors, in view", () => {
+  it("opens with Common languages first, then all of them; search covers both", async () => {
+    const { dialog } = await openSheet();
+    const box = dialog.getByRole("combobox", { name: "Language" });
+    fireEvent.focus(box);
+    const names = dialog.getAllByRole("option").map((o) => o.textContent ?? "");
+    expect(names.slice(0, 4)).toEqual([
+      expect.stringMatching(/^English/),
+      expect.stringMatching(/^മലയാളം/),
+      expect.stringMatching(/^தமிழ்/),
+      expect.stringMatching(/^हिन्दी/),
+    ]);
+    expect(dialog.getByText("Common")).toBeInTheDocument();
+    expect(dialog.getByText("All languages")).toBeInTheDocument();
+    // A language outside Common is only in the full list, and search finds it.
+    expect(names.some((n) => n.includes("Afrikaans"))).toBe(true);
+    fireEvent.input(box, { target: { value: "afri" } });
+    expect(dialog.getAllByRole("option")).toHaveLength(2);
+    expect(dialog.queryByText("Common")).not.toBeInTheDocument();
+  });
+
+  it("after Review with errors, scrolls the first error into the sheet's view and focuses its field", async () => {
+    const scrolled: Element[] = [];
+    Element.prototype.scrollIntoView = function scrollIntoView(this: Element) {
+      scrolled.push(this);
+    };
+    const { dialog } = await openSheet();
+    fill(dialog);
+    type(dialog, "Song text", "0. Bad number\n\nA line\n");
+    review(dialog);
+    const list = await dialog.findByRole("alert", { name: "Parse errors" });
+    await waitFor(() => expect(scrolled).toContain(list));
+    expect(dialog.getByLabelText("Song text")).toHaveFocus();
   });
 });

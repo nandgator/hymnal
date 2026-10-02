@@ -419,14 +419,15 @@ Library; this says what it shows and does.
   choosing. A book that is missing, unreadable or needs a newer app says so, in
   the list, and can be removed; **Load Again** is offered where a file can fix
   it (below).
-- **Choose**: choosing a book makes it the current book. The Finder and the
-  Operator follow it. There is no new stored field: the app's current book
-  starts as the book of the newest recent (`RecentEntry.hymnbookId`, SDD-0001
-  §11) that is still held, else the first held book, is chosen again the same
-  way when it stops being held (a removal), and a chosen book is remembered once
-  a hymn from it is opened, which adds a recent. Choosing first asks the worker
-  to `openBook` it; a file that has gone (evicted) turns the row into **File
-  missing**, with Load Again, and the book is not chosen.
+- **Choose**: choosing a book makes it the current book, and a tap on its row
+  goes on to Present (the Operator). The Finder and the Operator follow it.
+  There is no new stored field: the app's current book starts as the book of the
+  newest recent (`RecentEntry.hymnbookId`, SDD-0001 §11) that is still held,
+  else the first held book, is chosen again the same way when it stops being
+  held (a removal), and a chosen book is remembered once a hymn from it is
+  opened, which adds a recent. Choosing first asks the worker to `openBook` it;
+  a file that has gone (evicted) turns the row into **File missing**, with Load
+  Again, and the book is not chosen.
 - **Load a Book**: the file picker. While it reads, the row is a progress line;
   then the **summary** (ADR-0027): title, language and script, song count, the
   violations if any (all of them, by song and rule; none repaired), the verdict
@@ -511,6 +512,34 @@ decided). The buttons are the same: Load Book, Keep Both, Replace, Open Book.
 Nothing is written before one is pressed, there is no network, and the text
 never leaves the page. Cancel in that review, or Edit the Text after a refusal,
 returns to the sheet with everything typed kept; a successful load clears it.
+
+**Decided after the first look (Board #34 and #28, by the maintainer):**
+
+1. **The language is picked by name.** Codes are too technical. The language is
+   a searchable list of languages by name, each in its own name and English
+   ("മലയാളം — Malayalam", from `Intl.DisplayNames` over a fixed list:
+   `en ml ta hi te kn bn mr gu pa or ur ne si` and others), with **Other…** to
+   type a code. The script is derived
+   (`new Intl.Locale(code).maximize().script`) and shown as a quiet line,
+   "Script: Malayalam (Mlym) · Change", editable only on Change; choosing
+   another language derives it again. The id (still from the title) and the song
+   number move under **Advanced**.
+2. **Errors are field errors.** Each is under its field, in the field-error
+   style (outline and helper text in `error`). "There is no song text." is the
+   Song text field's; the parser's errors are listed under it as "Line 12:
+   message". No callout, no table.
+3. **Sheets pin their header.** In the shared Sheet, the title and Close are a
+   fixed row and only the content scrolls; the card ends after the last control.
+4. **Choosing a book goes to Present.** A tap on a row makes the book current
+   and shows the Operator; ⋯ stays.
+5. **Several at once.** Load a Book takes several files; **Open .txt files**
+   joins several text files into one song text with `---` between them (the
+   format allows it). The review of several is a queue, read one at a time (each
+   after the one before is settled, so a later file is judged against the books
+   then held): the sheet says "Book 2 of 5", **Skip** throws the current one
+   away, finishing or skipping moves on, and closing the sheet drops the rest
+   with nothing written for them. A file that cannot be read is said and passed
+   over. Load Again takes one file.
 
 ## 10. Several books
 

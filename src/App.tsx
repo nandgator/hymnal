@@ -852,6 +852,7 @@ function Operator(props: Shared) {
                 presentedKey={presentedKey()}
                 outputLive={presence.live()}
                 onChoose={setCurrentKey}
+                onOpen={() => go("present")}
                 onStorageRefused={() => setKeepFile(true)}
               />
             </Match>
