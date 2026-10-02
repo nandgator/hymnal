@@ -1,5 +1,6 @@
 import { SCHEMA_VERSION } from "../../scripts/content-schema.ts";
 import type { ContainerBook } from "../domain/container.ts";
+import type { HeldBook } from "../domain/duplicates.ts";
 import { songHash } from "../domain/hash.ts";
 import { packageRows } from "../domain/package-rows.ts";
 import {
@@ -162,6 +163,9 @@ const stemOfFile = (file: string) => file.replace(/^\//, "").replace(/\.sqlite3$
 /** `<key>.<n>.sqlite3` or `<slug>.sqlite3` to the key: how an unreadable file is named. */
 export const keyOfFile = (file: string) => stemOfFile(file).replace(/\.\d+$/, "");
 
+/** The `<n>` of `<key>.<n>.sqlite3`; 0 for a file without one. */
+const generationOf = (file: string) => Number(/\.(\d+)\.sqlite3$/.exec(file)?.[1] ?? 0);
+
 const isPackageFile = (name: string) => name !== REGISTRY_FILE && !/-(journal|wal|shm)$/.test(name);
 
 function insertBook(
@@ -169,12 +173,14 @@ function insertBook(
   row: BookRow,
   sources: readonly string[],
   hashes: ReadonlyMap<number, string>,
+  over?: string,
 ): void {
   const { registry } = ctx;
   transaction(registry, () => {
-    // Replacing a row is for the same book's file; another file's row is never overwritten.
+    // Replacing a row is for the same book's file, or the one a Replace
+    // supersedes (`over`); another file's row is never overwritten.
     const held = bookBy(ctx, "key", row.key);
-    if (held && held.file !== row.file) {
+    if (held && held.file !== row.file && held.file !== over) {
       throw new Error(`${row.key} is held by ${held.file}; ${row.file} is not indexed over it`);
     }
     registry.run("DELETE FROM book WHERE key = ?", [row.key]);
@@ -210,19 +216,23 @@ function insertBook(
   });
 }
 
-/**
- * Writes a loaded book: its package first, then the registry rows, whose
- * transaction is the commit (SDD-0004 §7). A failed package write is removed;
- * a crash between the two leaves a package that reconcile adopts.
- */
-export async function addBook(
+interface ContainerRead {
+  sourceHash: string;
+  book: ContainerBook;
+  songHashes: ReadonlyMap<number, string>;
+}
+
+/** Writes a container's package to a new file, removing it again if the write fails. */
+async function writeNewPackage(
   ctx: RegistryContext,
+  file: string,
   key: string,
-  read: { sourceHash: string; book: ContainerBook; songHashes: ReadonlyMap<number, string> },
-  n = 1,
-): Promise<BookRow> {
+  read: ContainerRead,
+): Promise<void> {
   await ctx.files.reserve();
-  const file = `/${key}.${n}.sqlite3`;
+  // Never open over a file that is there: it is another write's, or a kept leftover,
+  // and a failed write below removes only the file this call made.
+  if (ctx.files.list().includes(file)) throw new Error(`${file} already exists`);
   const { hymnbook, hymns } = read.book;
   const rows = packageRows(hymnbook, hymns, {
     key,
@@ -241,7 +251,17 @@ export async function addBook(
     }
     throw error;
   }
-  const row: BookRow = {
+}
+
+function rowOf(
+  ctx: RegistryContext,
+  key: string,
+  file: string,
+  read: ContainerRead,
+  addedAt = ctx.now(),
+): BookRow {
+  const { hymnbook, hymns } = read.book;
+  return {
     key,
     origin: hymnbook.id,
     kind: "loaded",
@@ -250,27 +270,131 @@ export async function addBook(
     language: hymnbook.language,
     script: hymnbook.script,
     songs: hymns.length,
-    addedAt: ctx.now(),
+    addedAt,
     state: "ok",
   };
+}
+
+/** Registers a written package; if that fails the file goes too, since nothing holds it. */
+function commitRow(ctx: RegistryContext, row: BookRow, read: ContainerRead, over?: string) {
   try {
-    insertBook(ctx, row, [read.sourceHash], read.songHashes);
+    insertBook(ctx, row, [read.sourceHash], read.songHashes, over);
   } catch (error) {
     // Not committed: the book is not held, so its file must not linger to be adopted.
     try {
-      ctx.files.remove(file);
+      ctx.files.remove(row.file);
     } catch {
       // reconcile adopts it at the next start if it is still there
     }
     throw error;
   }
+}
+
+/**
+ * Writes a loaded book: its package first, then the registry rows, whose
+ * transaction is the commit (SDD-0004 §7). A failed package write is removed;
+ * a crash between the two leaves a package that reconcile adopts.
+ */
+export async function addBook(
+  ctx: RegistryContext,
+  key: string,
+  read: ContainerRead,
+  n = 1,
+): Promise<BookRow> {
+  const file = `/${key}.${n}.sqlite3`;
+  await writeNewPackage(ctx, file, key, read);
+  const row = rowOf(ctx, key, file, read);
+  commitRow(ctx, row, read);
   return row;
+}
+
+/**
+ * Replace (SDD-0004 §8): the new package is written under the same key as
+ * `<key>.<n+1>`, past every generation of that key in the pool; then one
+ * registry transaction swaps the row, song rows and source rows, and that is
+ * the commit; then the old file goes. A crash before the commit leaves a
+ * higher-`<n>` copy that reconcile prefers (§8, decided in part 4); one after
+ * it leaves a lower, superseded copy that reconcile lists. The key, and so the
+ * recents and positions that name it, never change, nor does `added_at`.
+ */
+export async function replaceBook(
+  ctx: RegistryContext,
+  key: string,
+  read: ContainerRead,
+): Promise<BookRow> {
+  const old = bookBy(ctx, "key", key);
+  if (!old) throw new Error(`${key} is not held`);
+  if (old.kind === "shipped") throw new Error(`${key} is a shipped book and is not replaced`);
+  if (old.state !== "ok") throw new Error(`${key} cannot be opened and is not replaced`);
+  const n =
+    Math.max(
+      generationOf(old.file),
+      ...ctx.files
+        .list()
+        .filter((f) => isPackageFile(f) && keyOfFile(f) === key)
+        .map(generationOf),
+    ) + 1;
+  const file = `/${key}.${n}.sqlite3`;
+  await writeNewPackage(ctx, file, key, read);
+  const row = rowOf(ctx, key, file, read, old.addedAt);
+  commitRow(ctx, row, read, old.file);
+  try {
+    ctx.files.remove(old.file);
+  } catch {
+    // the row no longer names it; reconcile keeps and lists it
+  }
+  return row;
+}
+
+/**
+ * Row 2 of §8: records a container's hash in a book it matched. Two writes in
+ * this order: the package's `sources`, then the registry's `source` row; a
+ * crash between leaves the package ahead and reconcile copies the hash over.
+ */
+export function recordSource(ctx: RegistryContext, key: string, hash: string): void {
+  const row = bookBy(ctx, "key", key);
+  if (row?.state !== "ok") throw new Error(`${key} is not a book that is held and readable`);
+  const head = ctx.files.open(row.file, (sql) => {
+    const version = packageVersion(sql);
+    return version === null ? null : readHead(sql, version);
+  });
+  mergeIntoPackage(ctx, row.file, union(head?.sources ?? [], [hash]));
+  ctx.registry.run("INSERT OR IGNORE INTO source (hash, book_key, added_at) VALUES (?, ?, ?)", [
+    hash,
+    key,
+    ctx.now(),
+  ]);
+}
+
+/** Every readable book with its sources and song hashes, for the verdict (§8). */
+export function heldBooks(ctx: RegistryContext): HeldBook[] {
+  const sources = new Map<string, string[]>();
+  for (const r of ctx.registry.all("SELECT book_key, hash FROM source ORDER BY added_at, hash")) {
+    const list = sources.get(r.book_key as string) ?? [];
+    list.push(r.hash as string);
+    sources.set(r.book_key as string, list);
+  }
+  const songs = new Map<string, Map<number, string>>();
+  for (const r of ctx.registry.all("SELECT book_key, number, hash FROM song")) {
+    const map = songs.get(r.book_key as string) ?? new Map<number, string>();
+    map.set(r.number as number, r.hash as string);
+    songs.set(r.book_key as string, map);
+  }
+  return listBooks(ctx).map((b) => ({
+    key: b.key,
+    title: b.title,
+    origin: b.origin,
+    kind: b.kind,
+    state: b.state,
+    sources: sources.get(b.key) ?? [],
+    songs: songs.get(b.key) ?? new Map(),
+  }));
 }
 
 /**
  * Removes a loaded book: the file first (closing any open connection to it),
  * so a crash leaves a row reconcile drops, not a file it adopts. A shipped
- * book is refused (SDD-0004 §9); part 4 may revisit.
+ * book is refused (SDD-0004 §9).
  */
 export function removeBook(ctx: RegistryContext, key: string): boolean {
   const row = bookBy(ctx, "key", key);
@@ -291,6 +415,7 @@ export async function indexPackage(
   ctx: RegistryContext,
   file: string,
   kind: BookKind,
+  over?: string,
 ): Promise<BookRow | null> {
   const read = ctx.files.open(file, (sql) => {
     const version = packageVersion(sql);
@@ -306,8 +431,9 @@ export async function indexPackage(
   // The hashing above awaited: the file may have been removed meanwhile.
   if (!ctx.files.list().includes(file)) return null;
   const held = bookBy(ctx, "key", head.key);
-  if (held && held.file !== file) return null; // another file's book: not indexed over it
-  const sources = union(head.sources, held ? registrySources(ctx, head.key) : []);
+  if (held && held.file !== file && held.file !== over) return null; // another file's book: not indexed over it
+  // A Replace's sources are the new file's alone; the superseded book's go with its rows.
+  const sources = union(head.sources, held && !over ? registrySources(ctx, head.key) : []);
   const row: BookRow = {
     key: head.key,
     origin: head.origin,
@@ -320,7 +446,7 @@ export async function indexPackage(
     addedAt: held?.addedAt ?? ctx.now(),
     state: "ok",
   };
-  insertBook(ctx, row, sources, hashes);
+  insertBook(ctx, row, sources, hashes, over);
   if (sources.length > head.sources.length) mergeIntoPackage(ctx, file, sources);
   return row;
 }
@@ -384,6 +510,59 @@ function probeFile(ctx: RegistryContext, file: string): Probe {
   }
 }
 
+/**
+ * True when `file` (a readable package with no row, its key held) is a Replace
+ * that finished writing but was never committed: the book is loaded and
+ * readable, its file is a lower <n> that still exists, and both read as the
+ * same origin.
+ */
+async function finishedReplace(
+  ctx: RegistryContext,
+  file: string,
+  version: number,
+  head: { origin: string },
+  held: BookRow,
+): Promise<boolean> {
+  if (held.kind !== "loaded" || held.state !== "ok") return false;
+  if (generationOf(file) <= generationOf(held.file)) return false;
+  if (!ctx.files.list().includes(held.file)) return false;
+  if (stateOfVersion(version) !== "ok") return false;
+  const current = ctx.files.open(held.file, (sql) => {
+    const v = packageVersion(sql);
+    return v === null ? null : readHead(sql, v);
+  });
+  return current !== null && current.origin === head.origin;
+}
+
+/**
+ * True when `file`, a readable package with no row, is provably a superseded
+ * copy of the book the row holds: the row's file is a higher <n>, still there,
+ * a readable package of the same key and origin. Only then is it deleted
+ * (SDD-0004 §6, decided in part 4).
+ */
+function isSuperseded(
+  ctx: RegistryContext,
+  file: string,
+  version: number,
+  head: { key: string; origin: string },
+  held: BookRow,
+): boolean {
+  if (held.state !== "ok" || held.key !== head.key) return false;
+  if (generationOf(held.file) <= generationOf(file)) return false;
+  if (stateOfVersion(version) !== "ok" || !ctx.files.list().includes(held.file)) return false;
+  const current = ctx.files.open(held.file, (sql) => {
+    const v = packageVersion(sql);
+    return v === null ? null : readHead(sql, v);
+  });
+  return (
+    current !== null &&
+    current.key === head.key &&
+    current.origin === head.origin &&
+    current.songs > 0 &&
+    current.songs === held.songs
+  );
+}
+
 async function reconcileFile(ctx: RegistryContext, file: string): Promise<void> {
   const row = bookBy(ctx, "file", file);
   const probe = probeFile(ctx, file);
@@ -430,18 +609,35 @@ async function reconcileFile(ctx: RegistryContext, file: string): Promise<void> 
   const head = ctx.files.open(file, (sql) => readHead(sql, version));
   if (!head) return insertUnreadable(ctx, file, "unreadable");
   const kind: BookKind = ctx.shipped.includes(head.key) ? "shipped" : "loaded";
-  // Its key is held by another file (a stale copy left by a crashed Replace,
-  // say): kept and listed under its file name, never deleted. Files are taken
-  // highest <n> first, so the newest is the one that holds the key.
-  if (bookBy(ctx, "key", head.key)) return insertUnreadable(ctx, file, "unreadable");
+  // Its key is held by another file. A Replace that crashed between writing
+  // `<key>.<n+1>` and the row's commit left this copy: if the row's file is a
+  // lower <n> and both read as the same origin, this one is the finished
+  // Replace and takes the row (SDD-0004 §8, decided in part 4); the old file
+  // is then a stale copy. Any other copy is kept and listed under its file
+  // name, never deleted. Files are taken highest <n> first.
+  const held = bookBy(ctx, "key", head.key);
+  if (held) {
+    if (await finishedReplace(ctx, file, version, head, held)) {
+      const oldFile = held.file;
+      if (!(await indexPackage(ctx, file, held.kind, oldFile))) {
+        return insertUnreadable(ctx, file, "unreadable");
+      }
+      // The old file was read as the same book and origin: provably superseded.
+      try {
+        ctx.files.remove(oldFile);
+      } catch {
+        // kept; it is listed at the next start
+      }
+      return;
+    }
+    if (isSuperseded(ctx, file, version, head, held)) return ctx.files.remove(file);
+    return insertUnreadable(ctx, file, "unreadable");
+  }
   if (kind === "loaded" && !bringCurrent(ctx, file, version)) {
     return insertUnreadable(ctx, file, "unreadable");
   }
   await indexPackage(ctx, file, kind);
 }
-
-/** The `<n>` of `<key>.<n>.sqlite3`; 0 for a file without one. */
-const generationOf = (file: string) => Number(/\.(\d+)\.sqlite3$/.exec(file)?.[1] ?? 0);
 
 /**
  * Brings the registry and the pool into step at start (SDD-0004 §6): drops
@@ -468,6 +664,8 @@ export async function reconcile(ctx: RegistryContext): Promise<void> {
     }
   }
   for (const file of names) {
+    // A file can go while others are handled, and opening it would make it again.
+    if (!ctx.files.list().includes(file)) continue;
     try {
       await reconcileFile(ctx, file);
     } catch (error) {

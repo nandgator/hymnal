@@ -116,3 +116,19 @@ describe("preferences", () => {
     expect(await state.getPreferences()).toEqual({ theme: "dark", fontScale: 1 });
   });
 });
+
+describe("dropRecents", () => {
+  it("forgets one book's recents and keeps the others", async () => {
+    await state.addRecent("a", 1);
+    await state.addRecent("b", 2);
+    await state.addRecent("a", 3);
+    await state.dropRecents("a");
+    expect((await state.getRecents()).map((r) => [r.hymnbookId, r.hymnNumber])).toEqual([["b", 2]]);
+  });
+
+  it("is a no-op for a book with none", async () => {
+    await state.addRecent("b", 2);
+    await state.dropRecents("a");
+    expect(await state.getRecents()).toHaveLength(1);
+  });
+});

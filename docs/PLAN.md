@@ -30,10 +30,11 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 
 **Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
 **Next: Board #28**: ADR-0026/0027 are accepted; its parts are in SDD-0004.
-Parts 1 (`bun run pack`), 2 (the reader, hashes, keys) and 3 (schema 3, the
-registry) are done; part 4 next. It needs #27's parts 1–5, not the judge. #27
-part 6, the Laya judge, runs last, on another machine or a Codespace (this one
-is short of memory).
+Parts 1 (`bun run pack`), 2 (the reader, hashes, keys), 3 (schema 3, the
+registry) and 4 (the verdict, review and commit, Replace, remove) are done; part
+5, the Library, next. It needs #27's parts 1–5, not the judge. #27 part 6, the
+Laya judge, runs last, on another machine or a Codespace (this one is short of
+memory).
 
 **Board #27 (song import, CLI)**: it touches no UI. Target: _Hymns of
 Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its index), the
@@ -137,6 +138,9 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — #28 part 4: the verdict (§8), review, commit, cancel, Replace
+  (the row's swap is the commit; reconcile finishes a crashed one), remove with
+  its recents, persistent storage at the first load, no network
 - 2026-10-02 — Board #32 built: `registerType` prompt, Update ready snackbar
   (never while live, hourly check; strip from 840px), Safari Home Screen note;
   SDD-0001 §15

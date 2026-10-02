@@ -1,6 +1,9 @@
 import type * as Comlink from "comlink";
+import { commitAndPersist, removeBookAndRecents } from "../persistence/books.ts";
 import { getContentAdmin, getContentStore } from "../persistence/content-store.ts";
 import type { DevAdmin } from "../persistence/content-store.worker.ts";
+import type { Choice } from "../persistence/load.ts";
+import { userState } from "../persistence/user-state.ts";
 
 /**
  * The development harness for loading books, before the Library's screen
@@ -19,10 +22,22 @@ export function installHymnalDev(): void {
   // Comlink proxies a nested object's methods: admin.dev.files() reaches the worker's dev.files().
   const worker = admin.dev as unknown as Comlink.Remote<DevAdmin>;
   const dev = {
-    /** Loads a container: a File, or a URL the dev server serves. */
-    load: async (source: File | string) => admin.loadContainer(await asFile(source)),
+    /** Reads a container (a File, or a URL the dev server serves): summary and verdict, nothing written. */
+    review: async (source: File | string) => admin.review(await asFile(source)),
+    /** Writes what the verdict allows; `choice` is "keep-both" (default) or `{ replace: key }`. A first load asks for persistent storage. */
+    commit: (token: string, choice?: Choice) => commitAndPersist(admin, token, choice),
+    cancel: (token: string) => admin.cancel(token),
+    /** Review, then commit with the default choice, when the file can be loaded. */
+    load: async (source: File | string, choice?: Choice) => {
+      const review = await admin.review(await asFile(source));
+      if (review.violations.length > 0) return { ok: false as const, review };
+      return { ...(await commitAndPersist(admin, review.token, choice)), review };
+    },
     list: () => admin.listBooks(),
-    remove: (key: string) => admin.removeBook(key),
+    /** Removes a loaded book and drops its recents. */
+    remove: (key: string) => removeBookAndRecents(admin, userState, key),
+    addRecent: (key: string, number: number) => userState.addRecent(key, number),
+    recents: () => userState.getRecents(),
     reconcile: () => worker.reconcile(),
     files: () => worker.files(),
     sql: (file: string, sql: string, bind?: (string | number | null)[]) =>

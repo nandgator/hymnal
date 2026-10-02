@@ -3,8 +3,6 @@ import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
 import * as Comlink from "comlink";
 import { SCHEMA_VERSION } from "../../scripts/content-schema.ts";
 import { SHIPPED_BOOK_IDS } from "../config.ts";
-import { type ContainerRead, readContainer } from "../domain/container.ts";
-import { uuidv7 } from "../domain/key.ts";
 import type {
   Hymnbook,
   HymnbookId,
@@ -14,9 +12,9 @@ import type {
   SequenceEntry,
 } from "../domain/types.ts";
 import { download, type InstallProgress } from "./download.ts";
+import { type Choice, type CommitResult, type LoadReview, LoadSession } from "./load.ts";
 import type { Sql, Value } from "./package-io.ts";
 import {
-  addBook,
   type BookRow,
   indexPackage,
   listBooks,
@@ -77,9 +75,13 @@ const SQLITE_HEADER = [
 /** Books and the registry, for the Library and the dev hook (SDD-0004 §10). */
 export interface ContentAdmin {
   listBooks(): Promise<BookRow[]>;
-  /** Part 3: reads a container and writes it as a new book. No verdict yet (part 4). */
-  loadContainer(file: File): Promise<LoadResult>;
-  /** A loaded book only; a shipped one is refused. */
+  /** Reads a container and returns its summary and verdict; nothing is written (ADR-0027). */
+  review(file: File): Promise<LoadReview>;
+  /** Writes what the verdict allows (SDD-0004 §8). */
+  commit(token: string, choice?: Choice): Promise<CommitResult>;
+  /** Throws the parsed book away. */
+  cancel(token: string): Promise<boolean>;
+  /** A loaded book only; a shipped one is refused. Its recents go with it: see `removeBookAndRecents`. */
   removeBook(key: string): Promise<boolean>;
   /** Development only (undefined in a production build): see {@link DevAdmin}. */
   dev?: DevAdmin;
@@ -99,10 +101,6 @@ export interface DevAdmin {
   delete(file: string): Promise<void>;
 }
 
-export type LoadResult =
-  | { ok: true; key: string; songs: number; sourceHash: string }
-  | { ok: false; violations: Extract<ContainerRead, { ok: false }>["violations"] };
-
 /** The pool has a fixed number of file slots (a package, the registry and any journal each take one). */
 const START_SPARE_SLOTS = 8; // beyond the files present, at start
 const ADD_BOOK_SPARE_SLOTS = 8; // beyond the files present, before writing a book
@@ -114,6 +112,7 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
   #conns = new Map<string, OpfsSAHPoolDatabase>();
   /** The registry, or null if it could not be made: the books still open without it. */
   #ready: Promise<RegistryContext | null>;
+  #session = new LoadSession(() => this.#registry());
   dev: DevAdmin | undefined = import.meta.env.DEV ? this.#makeDev() : undefined;
 
   constructor() {
@@ -219,12 +218,16 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     return listBooks(await this.#registry());
   }
 
-  async loadContainer(file: File): Promise<LoadResult> {
-    const ctx = await this.#registry();
-    const read = await readContainer(new Uint8Array(await file.arrayBuffer()));
-    if (!read.ok) return { ok: false, violations: read.violations };
-    const row = await addBook(ctx, uuidv7(), read);
-    return { ok: true, key: row.key, songs: row.songs, sourceHash: read.sourceHash };
+  async review(file: File): Promise<LoadReview> {
+    return this.#session.review(new Uint8Array(await file.arrayBuffer()));
+  }
+
+  commit(token: string, choice?: Choice): Promise<CommitResult> {
+    return this.#session.commit(token, choice);
+  }
+
+  async cancel(token: string): Promise<boolean> {
+    return this.#session.cancel(token);
   }
 
   async removeBook(key: string): Promise<boolean> {

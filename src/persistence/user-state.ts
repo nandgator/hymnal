@@ -87,6 +87,8 @@ export interface UserState {
   setLastPosition(position: Position): Promise<void>;
   getRecents(): Promise<RecentEntry[]>;
   addRecent(hymnbookId: HymnbookId, hymnNumber: HymnNumber): Promise<void>;
+  /** Forgets a book's recents: removing a loaded book drops them (SDD-0004 §9). */
+  dropRecents(hymnbookId: HymnbookId): Promise<void>;
   getPreferences(): Promise<Preferences>;
   setPreferences(preferences: Preferences): Promise<void>;
 }
@@ -149,6 +151,14 @@ export function openUserState(dbName: string): UserState {
         MAX_RECENTS,
       );
       await writeDoc({ ...doc, recents });
+    },
+
+    async dropRecents(hymnbookId) {
+      const doc = await readDoc();
+      await writeDoc({
+        ...doc,
+        recents: doc.recents.filter((entry) => entry.hymnbookId !== hymnbookId),
+      });
     },
 
     async getPreferences() {

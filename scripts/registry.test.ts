@@ -6,8 +6,6 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { songHash } from "../src/domain/hash.ts";
-import { insertRows, packageRows } from "../src/domain/package-rows.ts";
-import type { HymnbookSource, HymnSource } from "../src/domain/types.ts";
 import {
   migratePackage,
   packageVersion,
@@ -20,125 +18,13 @@ import {
   indexPackage,
   listBooks,
   openRegistry,
-  type PackageFiles,
   REGISTRY_FILE,
-  type RegistryContext,
   reconcile,
   removeBook,
   startRegistry,
 } from "../src/persistence/registry.ts";
-import { SCHEMA_SQL, SCHEMA_VERSION } from "./content-schema.ts";
-
-const sqlOf = (db: DatabaseSync): Sql => ({
-  all: (sql, bind = []) => db.prepare(sql).all(...bind) as Record<string, never>[],
-  run: (sql, bind = []) => {
-    db.prepare(sql).run(...bind);
-  },
-  exec: (sql) => db.exec(sql),
-});
-
-const book = (id = "test-book", count = 2): HymnbookSource => ({
-  format: 1,
-  id,
-  title: "A Book",
-  language: "en",
-  script: "Latn",
-  hymnCount: count,
-});
-
-// File order (s1, c, s2) differs from first-appearance order (c, s1, s2).
-const hymn = (number: number): HymnSource => ({
-  number,
-  title: `Song ${number}`,
-  parts: [
-    { id: "s1", kind: "stanza", label: "1", lines: [`one ${number}`, "two"] },
-    { id: "c", kind: "chorus", lines: [`chorus ${number}`] },
-    { id: "s2", kind: "stanza", label: "2", lines: ["three"] },
-  ],
-  sequence: [{ partId: "c" }, { partId: "s1" }, { partId: "c" }, { partId: "s2" }],
-  meta: { author: "A" },
-});
-const hymns = [hymn(1), hymn(2)];
-
-async function container(id = "test-book", h = hymns, hash = "f".repeat(64)) {
-  const hashes = await Promise.all(h.map(songHash));
-  return {
-    sourceHash: hash,
-    book: { hymnbook: book(id, h.length), hymns: h },
-    songHashes: new Map(h.map((x, i) => [x.number, hashes[i]] as const)),
-  };
-}
-
-/** Pool stand-in: package files are in-memory databases by name. */
-class FakeFiles implements PackageFiles {
-  dbs = new Map<string, DatabaseSync>();
-  list = () => [...this.dbs.keys()];
-  /** Files whose open throws, and files whose queries throw, with the error. */
-  failOpen = new Map<string, Error>();
-  failQuery = new Map<string, Error>();
-  /** Files whose open throws from the second call on. */
-  failAfterFirst = new Set<string>();
-  #opens = new Map<string, number>();
-  open<T>(file: string, fn: (sql: Sql) => T): T {
-    const n = (this.#opens.get(file) ?? 0) + 1;
-    this.#opens.set(file, n);
-    const fail =
-      this.failOpen.get(file) ??
-      (n > 1 && this.failAfterFirst.has(file) ? new Error("boom") : undefined);
-    if (fail) throw fail;
-    const query = this.failQuery.get(file);
-    if (query) {
-      return fn({
-        all: () => {
-          throw query;
-        },
-        run: () => {
-          throw query;
-        },
-        exec: () => {
-          throw query;
-        },
-      });
-    }
-    let db = this.dbs.get(file);
-    if (!db) {
-      db = new DatabaseSync(":memory:");
-      this.dbs.set(file, db);
-    }
-    return fn(sqlOf(db));
-  }
-  remove(file: string) {
-    this.dbs.get(file)?.close();
-    this.dbs.delete(file);
-  }
-  async reserve() {}
-  /** A v3 package of a book, as the worker would write it. */
-  put(file: string, id: string, h = hymns, sources: string[] = []) {
-    this.open(file, (sql) => {
-      sql.exec(SCHEMA_SQL);
-      insertRows(
-        (s, b) => sql.run(s, b),
-        packageRows(book(id, h.length), h, {
-          key: id,
-          origin: id,
-          sources,
-          contentHash: "c",
-          schemaVersion: SCHEMA_VERSION,
-        }),
-      );
-    });
-  }
-}
-
-function setup(shipped: string[] = []) {
-  const files = new FakeFiles();
-  const registry = new DatabaseSync(":memory:");
-  const sql = sqlOf(registry);
-  openRegistry(sql);
-  let t = 0;
-  const ctx: RegistryContext = { registry: sql, files, shipped, now: () => ++t };
-  return { files, ctx, sql };
-}
+import { SCHEMA_SQL } from "./content-schema.ts";
+import { container, type FakeFiles, hymn, hymns, setup, sqlOf } from "./registry-fixtures.ts";
 
 const V2_SQL = SCHEMA_SQL.replace(
   "  origin         TEXT NOT NULL,       -- the id the file declared\n",
@@ -596,16 +482,93 @@ describe("reconcile never deletes what may be a book", () => {
     expect(files.list().sort()).toEqual(["/a.sqlite3", "/b.sqlite3"]);
   });
 
-  it("of two no-row files with one key, keeps the higher <n>, whatever the order", async () => {
+  it("of two no-row files with one key and origin, keeps the higher <n> and deletes the superseded lower, whatever the order", async () => {
     const { ctx, files } = setup();
     files.put("/k.1.sqlite3", "k", [hymn(1)]);
     files.put("/k.2.sqlite3", "k", hymns);
     await reconcile(ctx);
-    expect(files.list().sort()).toEqual(["/k.1.sqlite3", "/k.2.sqlite3"]);
+    expect(files.list()).toEqual(["/k.2.sqlite3"]);
     expect(listBooks(ctx).map((b) => [b.key, b.file, b.songs, b.state])).toEqual([
       ["k", "/k.2.sqlite3", 2, "ok"],
-      ["k.1", "/k.1.sqlite3", 0, "unreadable"],
     ]);
+  });
+
+  describe("a lower copy is deleted only when provably superseded", () => {
+    const held = async () => {
+      const s = setup();
+      await addBook(s.ctx, "k", await container("o"), 2);
+      return s;
+    };
+    const kept = (files: { list(): string[] }) => [...files.list()].sort();
+
+    it("deletes it: the row's file is a higher <n>, readable, same key and origin", async () => {
+      const { ctx, files } = await held();
+      files.put("/k.1.sqlite3", "k");
+      files.open("/k.1.sqlite3", (sql) => sql.run("UPDATE hymnbook SET origin = 'o'"));
+      await reconcile(ctx);
+      expect(files.list()).toEqual(["/k.2.sqlite3"]);
+      expect(listBooks(ctx).map((b) => [b.key, b.file])).toEqual([["k", "/k.2.sqlite3"]]);
+    });
+
+    it("keeps it when its origin differs", async () => {
+      const { ctx, files } = await held();
+      files.put("/k.1.sqlite3", "k"); // origin "k", the row's is "o"
+      await reconcile(ctx);
+      expect(kept(files)).toEqual(["/k.1.sqlite3", "/k.2.sqlite3"]);
+      expect(listBooks(ctx).map((b) => [b.key, b.state])).toEqual([
+        ["k", "ok"],
+        ["k.1", "unreadable"],
+      ]);
+    });
+
+    it("keeps it when the row's file is unreadable", async () => {
+      const { ctx, files } = await held();
+      files.put("/k.1.sqlite3", "k");
+      files.open("/k.1.sqlite3", (sql) => sql.run("UPDATE hymnbook SET origin = 'o'"));
+      files.open("/k.2.sqlite3", (sql) => sql.exec("DROP TABLE hymnbook"));
+      await reconcile(ctx);
+      expect(kept(files)).toEqual(["/k.1.sqlite3", "/k.2.sqlite3"]);
+    });
+
+    it("keeps it when the row's file has a different song count than the row", async () => {
+      const { ctx, files } = await held();
+      files.put("/k.1.sqlite3", "k");
+      files.open("/k.1.sqlite3", (sql) => sql.run("UPDATE hymnbook SET origin = 'o'"));
+      ctx.registry.run("UPDATE book SET songs = 5 WHERE key = 'k'");
+      await reconcile(ctx);
+      expect([...files.list()].sort()).toEqual(["/k.1.sqlite3", "/k.2.sqlite3"]);
+    });
+
+    it("keeps it when the row's file holds no songs", async () => {
+      const { ctx, files } = await held();
+      files.put("/k.1.sqlite3", "k");
+      files.open("/k.1.sqlite3", (sql) => sql.run("UPDATE hymnbook SET origin = 'o'"));
+      files.open("/k.2.sqlite3", (sql) => {
+        sql.exec("PRAGMA foreign_keys = OFF");
+        for (const t of ["sequence_entry", "line", "part", "hymn"]) sql.exec(`DELETE FROM ${t}`);
+      });
+      ctx.registry.run("UPDATE book SET songs = 0 WHERE key = 'k'");
+      await reconcile(ctx);
+      expect([...files.list()].sort()).toEqual(["/k.1.sqlite3", "/k.2.sqlite3"]);
+    });
+
+    it("keeps it when the lower one holds the row (the higher is the stray)", async () => {
+      const { ctx, files } = setup();
+      await addBook(ctx, "k", await container("o"), 1);
+      files.put("/k.2.sqlite3", "k"); // another origin: not a finished Replace
+      await reconcile(ctx);
+      expect(kept(files)).toEqual(["/k.1.sqlite3", "/k.2.sqlite3"]);
+      expect(listBooks(ctx)[0].file).toBe("/k.1.sqlite3");
+    });
+
+    it("keeps it when the <n> is equal (no <n>: the same generation)", async () => {
+      const { ctx, files } = setup(["k"]);
+      files.put("/k.sqlite3", "k");
+      await reconcile(ctx);
+      files.put("/k.0.sqlite3", "k");
+      await reconcile(ctx);
+      expect(kept(files)).toEqual(["/k.0.sqlite3", "/k.sqlite3"]);
+    });
   });
 
   it("lists, never deletes, a no-row newer-version file whose key is held", async () => {

@@ -61,6 +61,6 @@ export type {
   ContentStore,
   HymnSummary,
   InstallProgress,
-  LoadResult,
   SearchResult,
 } from "./content-store.worker.ts";
+export type { Choice, CommitResult, LoadReview } from "./load.ts";

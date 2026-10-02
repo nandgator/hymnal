@@ -33,6 +33,7 @@ vi.mock("./persistence/user-state.ts", async (importOriginal) => {
     setLastPosition: async () => {},
     getRecents: async () => [],
     addRecent: async () => {},
+    dropRecents: async () => {},
     getPreferences: async () => ({ theme: "system", fontScale: 1 }),
     setPreferences: async () => {},
   };

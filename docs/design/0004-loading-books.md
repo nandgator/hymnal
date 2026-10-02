@@ -107,9 +107,10 @@ interface LoadReview {
   title: string;
   language: string;
   script: string;
+  sourceHash: string; // the file's hash (§4)
   origin: string; // the file's `id`
   songCount: number;
-  violations: Violation[]; // non-empty: rejected, and no verdict
+  violations: Violation[]; // non-empty: rejected, no verdict, no token
   verdict?: Verdict; // §8
   /** Songs of this file already held in another book. */
   held: {
@@ -237,13 +238,15 @@ it starts:
   database with no tables at all (an aborted first write). Everything else
   without a row is kept and listed: a database SQLite calls not a database or
   malformed, or one with other tables but no `hymnbook`, is listed unreadable; a
-  readable package whose key another row holds (a stale copy left by a crashed
-  Replace, say) is listed unreadable under its file name (`k.2`), never
-  overwriting the held row. A transient error (busy, I/O) keeps the file and
-  skips it until the next start. Of two files with one key, the higher `<n>`
-  takes the key. The registry file itself is discarded and rebuilt only when
-  SQLite calls it not a database or malformed; on any other error the app runs
-  without a registry that session.
+  readable package whose key another row holds (a stale copy, say) is listed
+  unreadable under its file name (`k.2`), never overwriting the held row, unless
+  it is a Replace that finished writing, or an older copy that is provably
+  superseded by the row's file, which is deleted (**clarified, decided in part
+  4**, §8: the one exception to "never deletes"). A transient error (busy, I/O)
+  keeps the file and skips it until the next start. Of two files with one key,
+  the higher `<n>` takes the key. The registry file itself is discarded and
+  rebuilt only when SQLite calls it not a database or malformed; on any other
+  error the app runs without a registry that session.
 - A `shipped` book the app no longer bundles becomes `loaded`, key unchanged.
   When the songs leave (§13, part 6), this keeps the Malayalam book on every
   device that has it.
@@ -330,6 +333,34 @@ row, `song` rows and `source` rows are swapped in one transaction, then the old
 file is removed. Its sources become the new file's hash alone, so the old file,
 loaded again, is a row-3 case, not row 1. **Replace is not offered for a shipped
 book**, which the bundle would overwrite; Keep both is.
+
+**Clarified, decided in part 4: Replace's write order, and what a crash
+leaves.** Replace is three steps, in this order:
+
+1. the new package is written as `<key>.<n+1>.sqlite3`, where `n+1` is past
+   every `<n>` of that key in the pool (a kept leftover is never opened over);
+2. **one registry transaction swaps the row, its `song` rows and its `source`
+   rows: this is the commit.** The row keeps its key and its `added_at`;
+3. the old file is removed.
+
+A crash before step 2 leaves the old row and a higher `<n>` copy with no row; a
+crash after it leaves the new row and a lower, superseded copy with no row. At
+start, reconcile treats a no-row, readable package whose key a row holds as a
+**finished Replace** when the held book is `loaded` and readable, its file is a
+lower `<n>` that still exists, and both packages read as the same origin: the
+higher copy takes the row (its sources are its own, as after a Replace; the
+registry's old ones go with the old rows), `added_at` kept. The lower file is
+then provably superseded and **is deleted**: that is the one amendment to part
+3's rule that reconcile never deletes a file that is or may be a book, and
+nothing else is loosened. A file with no row is deleted only when all of these
+hold: it is a readable package (SQLite says so); the row's file is a readable
+package of the same key and the same origin; and the row's file has a strictly
+higher `<n>` and holds the row (after the finished-Replace rule above, the
+higher copy does). Anything short of that (a different origin, an unreadable
+file on either side, the lower file holding the row, an equal `<n>`) is a stray:
+kept, listed under its file name, never preferred. A crash before step 2
+therefore completes the Replace the user chose, and one after it leaves the
+Replace done, with no leftover either way.
 
 **Recording a hash (row 2)** is two writes in this order: the package's
 `sources` (one small transaction in the book's own file), then the registry's

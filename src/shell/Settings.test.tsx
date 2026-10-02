@@ -9,6 +9,7 @@ function fakeUserState(overrides: Partial<UserState> = {}): UserState {
     setLastPosition: async () => {},
     getRecents: async () => [],
     addRecent: async () => {},
+    dropRecents: async () => {},
     getPreferences: async () => DEFAULT_PREFERENCES,
     setPreferences: async () => {},
     ...overrides,
