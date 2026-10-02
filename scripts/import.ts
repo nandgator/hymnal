@@ -1,19 +1,21 @@
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { extname, join } from "node:path";
 import { parseArgs } from "node:util";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import { hymnFileName } from "../src/domain/validate.ts";
 import { type Draft, draftBook } from "../src/import/draft.ts";
 import { parseProfile } from "../src/import/profile.ts";
 import { type PageRange, readPdf } from "../src/import/read/pdf.ts";
+import { readPptx } from "../src/import/read/pptx.ts";
 import { renderReport } from "../src/import/report.ts";
 import { ImportError, type SourcePage } from "../src/import/source.ts";
 
-const USAGE = `Usage: bun run import <file.pdf> [--pages <from>[-<to>]]
-       bun run import <file.pdf> --profile <profile.json> [--out <dir>]
+const USAGE = `Usage: bun run import <file.pdf|file.pptx> [--pages <from>[-<to>]]
+       bun run import <file.pdf|file.pptx> --profile <profile.json> [--out <dir>]
 
-Without a profile, prints each line of the PDF with its position, size and
-font, then the fonts it uses: what a book's profile is written from.
+Without a profile, prints each line of the PDF or deck (a slide is a page) with
+its position, size and font, then the fonts it uses: what a book's profile is
+written from.
 With one, writes a draft hymnbook and report.md to <dir>, by default
 imports/<id>/ (SDD-0003 §3, §5).`;
 
@@ -89,6 +91,24 @@ export function writeDraft(dir: string, draft: Draft) {
   );
 }
 
+/** Picks the reader by the file's extension. */
+async function readPages(file: string, range: PageRange): Promise<SourcePage[]> {
+  const extension = extname(file).toLowerCase();
+  if (extension !== ".pdf" && extension !== ".pptx") {
+    throw new ImportError(`Can't import "${file}": only .pdf and .pptx files are supported.`);
+  }
+  const data = new Uint8Array(readFileSync(file));
+  const pages = extension === ".pdf" ? await readPdf(data, pdfjs, range) : readPptx(data, range);
+  if (pages.every((page) => page.lines.length === 0)) {
+    throw new ImportError(
+      extension === ".pdf"
+        ? "No text found: the PDF looks scanned. Scans need OCR, which isn't supported yet."
+        : "No text found: the deck's slides hold no text, perhaps only pictures.",
+    );
+  }
+  return pages;
+}
+
 async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
@@ -110,12 +130,7 @@ async function main() {
   if (profile && values.pages)
     throw new ImportError("--pages and --profile don't mix: the profile names its pages.");
   const range = values.pages ? parsePages(values.pages) : {};
-  const pages = await readPdf(new Uint8Array(readFileSync(positionals[0])), pdfjs, range);
-  if (pages.every((page) => page.lines.length === 0)) {
-    throw new ImportError(
-      "No text found: the PDF looks scanned. Scans need OCR, which isn't supported yet.",
-    );
-  }
+  const pages = await readPages(positionals[0], range);
   if (!profile) return print(pages);
 
   const draft = draftBook(pages, profile);
