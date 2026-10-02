@@ -81,6 +81,7 @@ Ordered. Top unblocked item is next.
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                | —          |
 | 28  | Library: load songs and books in format 1, local only; keys, duplicates (SDD-0004, ADR-0026/27) | —          |
 | 30  | Full song, landscape: printed form in columns, the highlight glides; mockup                     | —          |
+| 32  | App updates: prompt to restart when one is ready, never while live; Safari install hint         | —          |
 | 31  | Output on the projector screen: pick and remember it, fullscreen (ADR-0028; Chromium)           | 30         |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                     | —          |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                   | —          |
@@ -134,6 +135,10 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — Board #32, decided: an app update waits for a restart the
+  operator chooses, never while the Output is live (today it takes over at once
+  and deletes the old version's files); books and settings are untouched by
+  updates, as before
 - 2026-10-02 — #28 part 3: package schema 3 (origin, sources, part position),
   one `packageRows` builder, the registry in OPFS and its reconcile, `hymnalDev`
 - 2026-10-02 — ADR-0028 accepted: the Output on the projector screen, in Chrome
