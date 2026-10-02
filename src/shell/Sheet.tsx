@@ -35,6 +35,9 @@ export function Sheet(props: SheetProps) {
         if (typeof dialog.showModal === "function") dialog.showModal();
         else dialog.setAttribute("open", "");
       }
+      // Fallback where showModal's own autofocus pass misses the field.
+      const field = dialog.querySelector<HTMLElement>("[autofocus]");
+      if (field && document.activeElement !== field) field.focus();
     } else if (dialog.open) {
       // Motion explains the change (PRINCIPLES.md): the sheet sinks away and
       // the page comes back into focus, then the dialog closes. Reduced
@@ -77,7 +80,9 @@ export function Sheet(props: SheetProps) {
         if (event.target === event.currentTarget) props.onClose();
       }}
     >
-      <Show when={shown()}>
+      {/* `props.open` too: the content must exist when showModal() runs, or the
+          browser finds no [autofocus] field and focuses the dialog. */}
+      <Show when={props.open || shown()}>
         <div class="sheet-content">
           <div
             class="sheet-header"
