@@ -36,6 +36,14 @@ export const screensSupported = () =>
 export const screenIsExtended = () =>
   !!(globalThis.screen as { isExtended?: boolean } | undefined)?.isExtended;
 
+/**
+ * Whether "drag the Output to the projector" is worth saying: only when a
+ * second screen may exist. `screen.isExtended` is the browser's own word for
+ * it, with or without the Window Management API; where it is undefined
+ * (Firefox, Safari) we cannot tell, and a single-screen user is not nagged.
+ */
+export const mayHaveSecondScreen = () => screenIsExtended();
+
 export type ScreenStatus = "unknown" | "ready" | "denied" | "error";
 
 export interface OutputScreens {

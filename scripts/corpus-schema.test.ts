@@ -2,8 +2,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
-import hymnSchema from "../public/schema/1/hymn.schema.json" with { type: "json" };
-import hymnbookSchema from "../public/schema/1/hymnbook.schema.json" with { type: "json" };
+import hymnSchema from "../src/schema/1/hymn.schema.json" with { type: "json" };
+import hymnbookSchema from "../src/schema/1/hymnbook.schema.json" with { type: "json" };
 
 /** The committed corpus follows the published schema (ADR-0022), every file. */
 describe("the committed corpus", () => {

@@ -31,6 +31,7 @@ import {
   wholeSongOf,
 } from "../persistence/user-state.ts";
 import { ariaKeys, keyHint, withKey } from "./keymap.ts";
+import { Menu } from "./Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "./media.ts";
 import { createOutputScreens, type OutputScreens } from "./outputScreens.ts";
 import { isPaneShown, PANES, type PaneId } from "./panes.ts";
@@ -235,6 +236,12 @@ export function Settings(props: SettingsProps) {
     const wanted = remembered();
     return wanted ? String(screenList().findIndex((entry) => sameKey(entry.key, wanted))) : "auto";
   };
+  const chosenText = () => {
+    const at = chosenScreen();
+    return at === "auto" ? "Automatic" : (screenList()[Number(at)]?.text ?? "Automatic");
+  };
+  // One screen attached: nothing to choose, so no list is offered.
+  const oneScreen = () => screens.screens().length === 1 && screenList().length <= 1;
   const chooseScreenAt = (value: string) => {
     const { outputScreen: _previous, ...rest } = preferences();
     const entry = value === "auto" ? undefined : screenList()[Number(value)];
@@ -247,7 +254,7 @@ export function Settings(props: SettingsProps) {
     if (screens.screens().length === 0)
       return "Automatic picks the projector once the screens are known; Detect screens asks the browser";
     if (screens.screens().length === 1)
-      return "One screen is attached, so there is nothing to choose";
+      return "Connect a projector or second screen, then detect again";
     return "Automatic picks an external screen that is not your main one";
   };
 
@@ -424,29 +431,33 @@ export function Settings(props: SettingsProps) {
         </h3>
         <Show when={screens.supported}>
           <div class="settings-row">
-            <label class="settings-label" for={`${id}-output-screen`}>
+            <span class="settings-label">
               Output screen
               <span class="settings-supporting">{screenNote()}</span>
-            </label>
+            </span>
             <div class="settings-screen-control">
-              <select
-                id={`${id}-output-screen`}
-                class="settings-select"
-                aria-label="Output screen"
-                value={chosenScreen()}
-                onChange={(event) => chooseScreenAt(event.currentTarget.value)}
+              <Show
+                when={!oneScreen()}
+                fallback={<span class="settings-screen-text">One screen attached</span>}
               >
-                <option value="auto" selected={chosenScreen() === "auto"}>
-                  Automatic
-                </option>
-                <For each={screenList()}>
-                  {(entry, index) => (
-                    <option value={String(index())} selected={chosenScreen() === String(index())}>
-                      {entry.text}
-                    </option>
-                  )}
-                </For>
-              </select>
+                <Menu
+                  id={`${id}-output-screen`}
+                  label="Output screen"
+                  choice={chosenText()}
+                  items={[
+                    {
+                      label: "Automatic",
+                      current: chosenScreen() === "auto",
+                      run: () => chooseScreenAt("auto"),
+                    },
+                    ...screenList().map((entry, index) => ({
+                      label: entry.text,
+                      current: chosenScreen() === String(index),
+                      run: () => chooseScreenAt(String(index)),
+                    })),
+                  ]}
+                />
+              </Show>
               <button type="button" class="btn-text" onClick={() => void screens.detect()}>
                 Detect screens
               </button>

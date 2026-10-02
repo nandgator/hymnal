@@ -7,10 +7,10 @@ import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import containerSchema from "../public/schema/1/container.schema.json" with { type: "json" };
-import hymnSchema from "../public/schema/1/hymn.schema.json" with { type: "json" };
-import hymnbookSchema from "../public/schema/1/hymnbook.schema.json" with { type: "json" };
 import { hymnFileName } from "../src/domain/validate.ts";
+import containerSchema from "../src/schema/1/container.schema.json" with { type: "json" };
+import hymnSchema from "../src/schema/1/hymn.schema.json" with { type: "json" };
+import hymnbookSchema from "../src/schema/1/hymnbook.schema.json" with { type: "json" };
 import { loadContent } from "./build-content.ts";
 import { gzipContainer, packBook } from "./pack.ts";
 

@@ -1,9 +1,10 @@
 // @vitest-environment node
+import { readFileSync } from "node:fs";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
-import containerSchema from "../../public/schema/1/container.schema.json" with { type: "json" };
-import hymnSchema from "../../public/schema/1/hymn.schema.json" with { type: "json" };
-import hymnbookSchema from "../../public/schema/1/hymnbook.schema.json" with { type: "json" };
+import containerSchema from "../schema/1/container.schema.json" with { type: "json" };
+import hymnSchema from "../schema/1/hymn.schema.json" with { type: "json" };
+import hymnbookSchema from "../schema/1/hymnbook.schema.json" with { type: "json" };
 import type { PartKind } from "./types.ts";
 import { PART_KINDS, validateCorpus, validateHymn } from "./validate.ts";
 
@@ -61,7 +62,7 @@ const validAccepts = {
 describe("the schema and validate.ts agree", () => {
   const hymns: [string, unknown][] = [
     ["a valid hymn", hymn()],
-    ["one naming its schema", hymn({ $schema: "../../public/schema/1/hymn.schema.json" })],
+    ["one naming its schema", hymn({ $schema: "../schema/1/hymn.schema.json" })],
     ["no metadata", hymn({ meta: {} })],
     ["an unknown field", hymn({ tags: [] })],
     ["an unknown part field", withPart({ chords: [] })],
@@ -144,5 +145,33 @@ describe("the container schema", () => {
     expect(schemaAccepts.container({ hymnbook: book(), hymns: [hymn()] })).toBe(true);
     expect(schemaAccepts.container({ hymnbook: book(), hymns: [hymn({ tags: [] })] })).toBe(false);
     expect(schemaAccepts.container({ hymnbook: book({ format: 2 }), hymns: [] })).toBe(false);
+  });
+});
+
+describe("the published schemas", () => {
+  it("are emitted by the build plugin at their public URLs", async () => {
+    const { default: config } = await import("../../vite.config.ts");
+    const resolved =
+      typeof config === "function" ? config({ command: "build", mode: "production" }) : config;
+    const plugin = (resolved.plugins as { name?: string }[]).find(
+      (p) => p?.name === "hymnal-publish-schemas",
+    ) as {
+      generateBundle: (this: {
+        emitFile: (f: { fileName: string; source: Buffer }) => void;
+      }) => void;
+    };
+    const emitted: { fileName: string; source: Buffer }[] = [];
+    plugin.generateBundle.call({ emitFile: (f) => emitted.push(f) });
+    expect(emitted.map((f) => f.fileName).sort()).toEqual([
+      "schema/1/container.schema.json",
+      "schema/1/hymn.schema.json",
+      "schema/1/hymnbook.schema.json",
+    ]);
+    for (const f of emitted) {
+      const source = readFileSync(
+        new URL(`../schema/1/${f.fileName.split("/").pop()}`, import.meta.url),
+      );
+      expect(f.source.equals(source)).toBe(true);
+    }
   });
 });

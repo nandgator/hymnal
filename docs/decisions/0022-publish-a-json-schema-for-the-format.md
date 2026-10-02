@@ -33,8 +33,11 @@ Chosen: **the schema is the single definition of which fields exist, and
 `validate.ts` enforces everything.**
 
 - Hand-written JSON Schema (2020-12), one set per format version, committed
-  under `public/schema/<format>/` and served with the site at
-  `<site>/schema/1/`: the book, a hymn, and the single-file container.
+  under `src/schema/<format>/` and served with the site at `<site>/schema/1/`:
+  the book, a hymn, and the single-file container. They sit in `src/` because
+  code imports them (Vite refuses imports from `public/`); a small Vite plugin
+  (`vite.config.ts`) serves them in dev and emits them into the build at the
+  same URLs.
 - **No host is written into them.** The domain may change, so the schemas carry
   no absolute `$id` and refer to each other by relative path. They work wherever
   they are served, or straight from a checkout.

@@ -1,4 +1,6 @@
 import { createEffect, createSignal, For, onCleanup, Show } from "solid-js";
+import { hoverGlide } from "./hoverGlide.ts";
+import { placeMenu } from "./menuPlacement.ts";
 
 export interface MenuItem {
   label: string;
@@ -8,6 +10,8 @@ export interface MenuItem {
   supporting?: string;
   /** Icon classes, for when a lone item folds into its own button. */
   icon?: string;
+  /** The chosen one of a choice menu: marked with a check, and focused on open. */
+  current?: boolean;
 }
 
 export interface MenuProps {
@@ -17,6 +21,11 @@ export interface MenuProps {
   /** A lone item becomes its own button (the default). False keeps the list, so a
    * row's menu looks the same whether it holds one item or several. */
   fold?: boolean;
+  /** A choice menu (a select, in the app's own dress): the trigger is a button
+   * showing this, the chosen item's text, and the items are radio items. */
+  choice?: string;
+  /** The choice button's id, so a label can point at it. */
+  id?: string;
 }
 
 /**
@@ -31,7 +40,11 @@ export interface MenuProps {
 export function Menu(props: MenuProps) {
   return (
     <Show
-      when={props.items.length === 1 && props.fold !== false ? props.items[0] : undefined}
+      when={
+        props.items.length === 1 && props.fold !== false && props.choice === undefined
+          ? props.items[0]
+          : undefined
+      }
       fallback={<MenuList {...props} />}
     >
       {(item) => (
@@ -50,11 +63,16 @@ export function Menu(props: MenuProps) {
   );
 }
 
+/** Where the Popover API is missing, the menu is fixed in place, not in the top layer. */
+const topLayer = typeof HTMLElement !== "undefined" && "showPopover" in HTMLElement.prototype;
+
 function MenuList(props: MenuProps) {
   const [open, setOpen] = createSignal(false);
-  // Opens under the button's end, leftwards; flips to open rightwards when
-  // that would cross the scrolling pane's edge (the first area's menu).
-  const [flip, setFlip] = createSignal(false);
+  // The popover is in the top layer, placed from the trigger's rect (never
+  // clipped by a scrolling ancestor): under it, or above when there is no
+  // room below. A choice menu lines up with the trigger's start, the rest
+  // with its end.
+  const [above, setAbove] = createSignal(false);
   let wrapper: HTMLDivElement | undefined;
   let button: HTMLButtonElement | undefined;
   let list: HTMLDivElement | undefined;
@@ -65,13 +83,35 @@ function MenuList(props: MenuProps) {
     if (refocus) button?.focus();
   };
 
+  const onResize = () => close(false);
+
   createEffect(() => {
     if (!open()) return;
-    setFlip(false);
     queueMicrotask(() => {
-      const edge = list?.closest(".shell-main")?.getBoundingClientRect().left ?? 0;
-      if (list && list.getBoundingClientRect().left < edge + 8) setFlip(true);
-      items()[0]?.focus();
+      if (!list || !button) return;
+      if (typeof list.showPopover === "function") list.showPopover();
+      const box = list.getBoundingClientRect();
+      const place = placeMenu({
+        trigger: button.getBoundingClientRect(),
+        menu: { w: box.width, h: list.scrollHeight + (box.height - list.clientHeight) },
+        viewport: { w: window.innerWidth, h: window.innerHeight },
+        align: props.choice === undefined ? "end" : "start",
+      });
+      list.style.top = `${place.top}px`;
+      list.style.left = `${place.left}px`;
+      list.style.maxHeight = place.maxHeight === undefined ? "" : `${place.maxHeight}px`;
+      setAbove(place.above);
+      (items().find((el) => el.getAttribute("aria-checked") === "true") ?? items()[0])?.focus();
+    });
+    // Fixed in the top layer, it would stay behind if its container scrolled.
+    const onScroll = (event: Event) => {
+      if (!list?.contains(event.target as Node)) close(false);
+    };
+    document.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    onCleanup(() => {
+      document.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
     });
     const onPointerDown = (event: PointerEvent) => {
       if (!wrapper?.contains(event.target as Node)) close(false);
@@ -79,6 +119,12 @@ function MenuList(props: MenuProps) {
     document.addEventListener("pointerdown", onPointerDown);
     onCleanup(() => document.removeEventListener("pointerdown", onPointerDown));
   });
+
+  const onButtonKeyDown = (event: KeyboardEvent) => {
+    if (open() || (event.key !== "ArrowDown" && event.key !== "ArrowUp")) return;
+    event.preventDefault();
+    setOpen(true);
+  };
 
   const onKeyDown = (event: KeyboardEvent) => {
     const all = items();
@@ -100,41 +146,76 @@ function MenuList(props: MenuProps) {
 
   return (
     <div class="menu-anchor" ref={wrapper}>
-      <button
-        type="button"
-        class="icon-button menu-button"
-        aria-label={props.label}
-        aria-haspopup="menu"
-        aria-expanded={open()}
-        ref={button}
-        onClick={() => setOpen((was) => !was)}
+      <Show
+        when={props.choice !== undefined}
+        fallback={
+          <button
+            type="button"
+            class="icon-button menu-button"
+            aria-label={props.label}
+            aria-haspopup="menu"
+            aria-expanded={open()}
+            ref={button}
+            onClick={() => setOpen((was) => !was)}
+          >
+            <span class="icon icon-more-horiz" aria-hidden="true" />
+          </button>
+        }
       >
-        <span class="icon icon-more-horiz" aria-hidden="true" />
-      </button>
+        <button
+          type="button"
+          id={props.id}
+          class="menu-select"
+          aria-label={`${props.label}: ${props.choice}`}
+          aria-haspopup="menu"
+          aria-expanded={open()}
+          ref={button}
+          onClick={() => setOpen((was) => !was)}
+          onKeyDown={onButtonKeyDown}
+        >
+          <span class="menu-select-text">{props.choice}</span>
+          <span class="icon icon-expand" aria-hidden="true" />
+        </button>
+      </Show>
       <Show when={open()}>
         <div
           class="menu-popover"
-          classList={{ "menu-popover-start": flip() }}
+          popover={topLayer ? "manual" : undefined}
+          classList={{
+            "menu-popover-above": above(),
+            "menu-popover-choice": props.choice !== undefined,
+          }}
           role="menu"
           aria-label={props.label}
-          ref={list}
+          ref={(el) => {
+            list = el;
+            onCleanup(hoverGlide(el));
+          }}
           onKeyDown={onKeyDown}
         >
           <For each={props.items}>
             {(item) => (
               <button
                 type="button"
-                role="menuitem"
+                {...(props.choice === undefined
+                  ? { role: "menuitem" }
+                  : { role: "menuitemradio", "aria-checked": !!item.current })}
                 class="menu-popover-item"
+                classList={{ "menu-popover-current": item.current }}
                 disabled={item.disabled}
                 onClick={() => {
                   close(true);
                   item.run();
                 }}
               >
-                {item.label}
-                <Show when={item.supporting}>
-                  <span class="menu-popover-supporting">{item.supporting}</span>
+                <span class="menu-popover-label">
+                  {item.label}
+                  <Show when={item.supporting}>
+                    <span class="menu-popover-supporting">{item.supporting}</span>
+                  </Show>
+                </span>
+                <Show when={item.current}>
+                  <span class="icon icon-check menu-popover-check" aria-hidden="true" />
                 </Show>
               </button>
             )}

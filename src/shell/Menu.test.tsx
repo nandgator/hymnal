@@ -49,4 +49,29 @@ describe("Menu", () => {
     expect(second).toHaveBeenCalled();
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
+
+  it("a choice menu shows the choice, marks it, and opens on the arrow keys", async () => {
+    const pick = vi.fn();
+    render(() => (
+      <Menu
+        label="Output screen"
+        choice="Automatic"
+        items={[
+          { label: "Automatic", current: true, run: () => {} },
+          { label: "Projector", run: pick },
+        ]}
+      />
+    ));
+    const button = screen.getByRole("button", { name: "Output screen: Automatic" });
+    expect(button).toHaveTextContent("Automatic");
+    fireEvent.keyDown(button, { key: "ArrowDown" });
+    await Promise.resolve();
+    expect(screen.getByRole("menuitemradio", { name: "Automatic" })).toBeChecked();
+    expect(screen.getByRole("menuitemradio", { name: "Automatic" })).toHaveFocus();
+    expect(document.querySelector(".hover-glide")).not.toBeNull();
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "ArrowDown" });
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Enter" });
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Projector" }));
+    expect(pick).toHaveBeenCalled();
+  });
 });

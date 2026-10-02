@@ -1,5 +1,5 @@
-import hymnSchema from "../../public/schema/1/hymn.schema.json" with { type: "json" };
-import hymnbookSchema from "../../public/schema/1/hymnbook.schema.json" with { type: "json" };
+import hymnSchema from "../schema/1/hymn.schema.json" with { type: "json" };
+import hymnbookSchema from "../schema/1/hymnbook.schema.json" with { type: "json" };
 import type { Hymnbook, PartKind } from "./types.ts";
 
 export interface Violation {

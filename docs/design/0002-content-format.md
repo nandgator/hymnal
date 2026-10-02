@@ -116,7 +116,7 @@ the package; they change independently.
 ## 6. Schema
 
 JSON Schema (2020-12) for each form, one set per format version, in
-`public/schema/1/` and served with the site under `schema/1/`:
+`src/schema/1/` and served with the site under `schema/1/`:
 
 | File                    | Describes                         |
 | ----------------------- | --------------------------------- |
@@ -132,7 +132,7 @@ which also reads its allowed fields from these files
 names its schema, relative or absolute, in `$schema`:
 
 ```json
-{ "$schema": "../../public/schema/1/hymn.schema.json", "number": 1 }
+{ "$schema": "../../src/schema/1/hymn.schema.json", "number": 1 }
 ```
 
 ## 7. What a file can't promise

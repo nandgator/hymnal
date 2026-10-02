@@ -1,10 +1,43 @@
-import { defineConfig } from "vite";
+import { readdirSync, readFileSync } from "node:fs";
+import { defineConfig, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import solid from "vite-plugin-solid";
 
 // GitHub Pages serves a project page from /<repo>/, never the domain root —
 // only the production build needs that; dev and preview stay at "/".
 const BASE = "/hymnal/";
+
+// The JSON Schemas' source of truth is src/schema/1/ (code imports them; Vite
+// forbids importing from public/). The published URLs stay /schema/1/<file>:
+// served in dev, emitted into the build (ADR-0022).
+const SCHEMA_DIR = new URL("./src/schema/1/", import.meta.url);
+const schemaFiles = () => readdirSync(SCHEMA_DIR).filter((name) => name.endsWith(".schema.json"));
+function publishSchemas(): Plugin {
+  let base = "/";
+  return {
+    name: "hymnal-publish-schemas",
+    configResolved: (config) => {
+      base = config.base;
+    },
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const name = req.url?.split("?")[0]?.slice(`${base}schema/1/`.length);
+        if (!req.url?.startsWith(`${base}schema/1/`) || !name || !schemaFiles().includes(name))
+          return next();
+        res.setHeader("Content-Type", "application/schema+json");
+        res.end(readFileSync(new URL(name, SCHEMA_DIR)));
+      });
+    },
+    generateBundle() {
+      for (const name of schemaFiles())
+        this.emitFile({
+          type: "asset",
+          fileName: `schema/1/${name}`,
+          source: readFileSync(new URL(name, SCHEMA_DIR)),
+        });
+    },
+  };
+}
 
 export default defineConfig(({ command, isPreview }) => ({
   // isPreview, not just command === "build" — `vite preview` also reports
@@ -13,6 +46,7 @@ export default defineConfig(({ command, isPreview }) => ({
   base: command === "build" || isPreview ? BASE : "/",
   plugins: [
     solid(),
+    publishSchemas(),
     VitePWA({
       // "prompt", not "autoUpdate": a new version downloads and waits; the
       // shell offers Restart, never while the Output is live (SDD-0001 §15,

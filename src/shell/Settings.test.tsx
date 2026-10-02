@@ -285,22 +285,23 @@ describe("Settings: Output screen (ADR-0028)", () => {
     expect(screen.queryByLabelText("Output screen")).not.toBeInTheDocument();
   });
 
+  const choice = () => screen.getByRole("button", { name: /^Output screen/ });
+  const options = () => screen.getAllByRole("menuitemradio").map((item) => item.textContent);
+
   it("lists Automatic, then the screens after Detect screens, built-in named as such", async () => {
     const { getScreenDetails } = attach([panel, projector]);
     render(() => <Settings userState={fakeUserState()} />);
-    const select = (await screen.findByLabelText("Output screen")) as HTMLSelectElement;
-    expect([...select.options].map((option) => option.text)).toEqual(["Automatic"]);
+    await screen.findByRole("button", { name: "Detect screens" });
+    expect(choice()).toHaveTextContent("Automatic");
     expect(getScreenDetails).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Detect screens" }));
 
-    await screen.findByRole("option", { name: "EPSON PJ, 1280×800" });
-    expect([...select.options].map((option) => option.text)).toEqual([
-      "Automatic",
-      "Built-in, 1440×900",
-      "EPSON PJ, 1280×800",
-    ]);
-    expect(select.value).toBe("auto");
+    await vi.waitFor(() => expect(getScreenDetails).toHaveBeenCalled());
+    fireEvent.click(choice());
+    await screen.findByRole("menuitemradio", { name: "EPSON PJ, 1280×800" });
+    expect(options()).toEqual(["Automatic", "Built-in, 1440×900", "EPSON PJ, 1280×800"]);
+    expect(screen.getByRole("menuitemradio", { name: "Automatic" })).toBeChecked();
   });
 
   it("stores the pick by label and size, and Automatic clears it", async () => {
@@ -308,19 +309,47 @@ describe("Settings: Output screen (ADR-0028)", () => {
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);
     fireEvent.click(await screen.findByRole("button", { name: "Detect screens" }));
-    await screen.findByRole("option", { name: "EPSON PJ, 1280×800" });
-    const select = screen.getByLabelText("Output screen") as HTMLSelectElement;
+    await vi.waitFor(() =>
+      expect(screen.getByRole("button", { name: /^Output screen/ })).toBeTruthy(),
+    );
+    await vi.waitFor(() => {
+      fireEvent.click(choice());
+      expect(screen.getAllByRole("menuitemradio")).toHaveLength(3);
+    });
 
-    fireEvent.change(select, { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "EPSON PJ, 1280×800" }));
     expect(setPreferences).toHaveBeenLastCalledWith(
       expect.objectContaining({ outputScreen: { label: "EPSON PJ", width: 1280, height: 800 } }),
     );
-    await vi.waitFor(() => expect(select.value).toBe("1"));
+    await vi.waitFor(() => expect(choice()).toHaveTextContent("EPSON PJ, 1280×800"));
 
-    fireEvent.change(select, { target: { value: "auto" } });
+    fireEvent.click(choice());
+    expect(screen.getByRole("menuitemradio", { name: "EPSON PJ, 1280×800" })).toBeChecked();
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Automatic" }));
     expect((setPreferences.mock.lastCall as unknown[] | undefined)?.[0]).not.toHaveProperty(
       "outputScreen",
     );
+  });
+
+  it("is keyboard operable: arrows move, Enter picks, Escape closes", async () => {
+    attach([panel, projector]);
+    const setPreferences = vi.fn(async () => {});
+    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Detect screens" }));
+    await vi.waitFor(() => {
+      fireEvent.click(choice());
+      expect(screen.getAllByRole("menuitemradio")).toHaveLength(3);
+    });
+    await Promise.resolve();
+    const menu = screen.getByRole("menu");
+    expect(screen.getByRole("menuitemradio", { name: "Automatic" })).toHaveFocus();
+    fireEvent.keyDown(menu, { key: "ArrowDown" });
+    fireEvent.keyDown(menu, { key: "ArrowDown" });
+    expect(screen.getByRole("menuitemradio", { name: "EPSON PJ, 1280×800" })).toHaveFocus();
+    fireEvent.keyDown(menu, { key: "Escape" });
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(choice()).toHaveFocus();
+    expect(setPreferences).not.toHaveBeenCalled();
   });
 
   it("keeps a remembered screen that is not attached in the list, marked", async () => {
@@ -335,9 +364,13 @@ describe("Settings: Output screen (ADR-0028)", () => {
         })}
       />
     ));
+    await vi.waitFor(() =>
+      expect(choice()).toHaveTextContent("EPSON PJ, 1280×800 (not connected)"),
+    );
+    fireEvent.click(choice());
     expect(
-      await screen.findByRole("option", { name: "EPSON PJ, 1280×800 (not connected)" }),
-    ).toBeInTheDocument();
+      screen.getByRole("menuitemradio", { name: "EPSON PJ, 1280×800 (not connected)" }),
+    ).toBeChecked();
   });
 
   it("explains a blocked permission", async () => {
@@ -347,15 +380,21 @@ describe("Settings: Output screen (ADR-0028)", () => {
     expect(await screen.findByText(/blocked screen access/)).toBeInTheDocument();
   });
 
-  it("follows screenschange", async () => {
+  it("follows screenschange, offering no list for one screen", async () => {
     const { details } = attach([panel]);
     render(() => <Settings userState={fakeUserState()} />);
     fireEvent.click(await screen.findByRole("button", { name: "Detect screens" }));
-    await screen.findByText(/One screen is attached/);
+    await screen.findByText("One screen attached");
+    expect(screen.queryByRole("button", { name: /^Output screen/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Detect screens" })).toBeInTheDocument();
 
     (details.screens as object[]).push(projector);
     details.dispatchEvent(new Event("screenschange"));
 
-    expect(await screen.findByRole("option", { name: "EPSON PJ, 1280×800" })).toBeInTheDocument();
+    await vi.waitFor(() => expect(choice()).toBeInTheDocument());
+    fireEvent.click(choice());
+    expect(
+      await screen.findByRole("menuitemradio", { name: "EPSON PJ, 1280×800" }),
+    ).toBeInTheDocument();
   });
 });

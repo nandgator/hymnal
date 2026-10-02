@@ -789,7 +789,9 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     (details.screens as object[]).push(projector);
     details.dispatchEvent(new Event("screenschange"));
   };
-  const noticeText = (pattern: RegExp) => screen.queryAllByText(pattern).length;
+  // A notice sliding away (aria-hidden, .snackbar-leaving) is already put away.
+  const noticeText = (pattern: RegExp) =>
+    screen.queryAllByText(pattern).filter((el) => !el.closest(".snackbar-leaving")).length;
 
   it("lets Escape put away every screen notice", async () => {
     // blocked
@@ -802,7 +804,8 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     first.unmount();
     vi.restoreAllMocks();
 
-    // drag (a plain popup once)
+    // drag (a plain popup once, with a second screen around)
+    Object.defineProperty(window.screen, "isExtended", { value: true, configurable: true });
     vi.spyOn(window, "open").mockReturnValue({} as Window);
     const second = render(() => <App />);
     await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
@@ -870,24 +873,48 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     win.moveTo.mockImplementation(() => {});
     win.screenX = 50;
     fireEvent.click(screen.getByRole("button", { name: "Move it" }));
-    await screen.findAllByText(/could not move/);
+    await screen.findAllByText(/could not move/, {}, { timeout: 5000 });
   });
 
   it("moves an open Output when a screen is picked in Settings", async () => {
     const monitor = { ...projector, label: "DELL", width: 2560, height: 1440, left: 2720 };
     const { win } = await goLive([laptop, projector, monitor]);
     fireEvent.click(screen.getByRole("button", { name: /^(Settings|Menu)$/ }));
-    const select = (await screen.findByLabelText("Output screen")) as HTMLSelectElement;
-    await screen.findByRole("option", { name: "DELL, 2560×1440" });
+    await waitFor(() => {
+      fireEvent.click(screen.getByRole("button", { name: /^Output screen/ }));
+      expect(screen.getAllByRole("menuitemradio")).toHaveLength(4);
+    });
 
-    fireEvent.change(select, { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "DELL, 2560×1440" }));
 
     await waitFor(() => expect(win.moveTo).toHaveBeenCalledWith(2720, 0));
   });
 
-  it("puts a hint away by itself, so it cannot hold the update notice back", async () => {
+  it("gives no drag hint to a single-screen user, with the API or without it", async () => {
     attach([laptop]);
     Object.defineProperty(window.screen, "isExtended", { value: false, configurable: true });
+    const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
+    render(() => <App />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await waitFor(() => expect(open).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(noticeText(/Drag the Output to the projector/)).toBe(0);
+  });
+
+  it("gives no drag hint where the browser cannot say (Firefox, Safari)", async () => {
+    Reflect.deleteProperty(window, "getScreenDetails");
+    Reflect.deleteProperty(window.screen, "isExtended");
+    const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
+    render(() => <App />);
+    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await waitFor(() => expect(open).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(noticeText(/Drag the Output to the projector/)).toBe(0);
+  });
+
+  it("puts a hint away by itself, so it cannot hold the update notice back", async () => {
+    attach([laptop]);
     vi.spyOn(window, "open").mockReturnValue({} as Window);
     render(() => <App />);
     await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());

@@ -42,6 +42,7 @@ import {
 } from "./persistence/user-state.ts";
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { titleCase } from "./shell/case.ts";
+import { hoverGlide } from "./shell/hoverGlide.ts";
 import {
   ariaKeys,
   ignoresShortcuts,
@@ -53,11 +54,11 @@ import {
 } from "./shell/keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { moveOutputTo, openOutputWindow } from "./shell/openOutput.ts";
-import { createOutputScreens } from "./shell/outputScreens.ts";
+import { createOutputScreens, mayHaveSecondScreen } from "./shell/outputScreens.ts";
 import { isPaneShown, PANES, type PaneId } from "./shell/panes.ts";
 import { canAdjustScale, createPreferences, OUTPUT_CUES, Settings } from "./shell/Settings.tsx";
 import { Sheet } from "./shell/Sheet.tsx";
-import { Snackbar } from "./shell/Snackbar.tsx";
+import { SnackbarHost, type SnackbarProps } from "./shell/Snackbar.tsx";
 import { SwapLabel } from "./shell/SwapLabel.tsx";
 import { installScrollReveal } from "./shell/scrollReveal.ts";
 import { type Shared, TabGate } from "./shell/TabGate.tsx";
@@ -285,7 +286,7 @@ function Operator(props: Shared) {
         } catch {}
         if (!fullscreen) showHintOnce("fullscreen");
       }, FULLSCREEN_GRACE_MS);
-    } else showHintOnce("drag");
+    } else if (mayHaveSecondScreen()) showHintOnce("drag");
   };
   // The screens change under an open Output: it stays where it is. A screen it
   // was on going is a hint; its return is an offer, never a jump.
@@ -392,25 +393,39 @@ function Operator(props: Shared) {
       } to keep them.`;
     return "";
   };
-  const noticeView = () => (
-    <Switch>
-      <Match when={notice() === "update"}>
-        <Snackbar
-          message={noticeMessage()}
-          action="Restart"
-          onAction={restartApp}
-          dismissLabel="Later"
-          onDismiss={() => setUpdateDismissed(true)}
-        />
-      </Match>
-      <Match when={notice() === "keep-file"}>
-        <Snackbar message={noticeMessage()} action="Got it" onAction={() => setKeepFile(false)} />
-      </Match>
-      <Match when={notice() === "safari-hint"}>
-        <Snackbar message={noticeMessage()} action="Got it" onAction={dismissHomeScreenHint} />
-      </Match>
-    </Switch>
-  );
+  // The one notice on screen: a screen notice (about the Output, shown even
+  // live) wins; the rest are the picked one (DESIGN.md § Snackbar).
+  const snackbar = (): SnackbarProps | undefined => {
+    const shown = screenNotice();
+    if (shown)
+      return {
+        message: SCREEN_NOTICES[shown],
+        action: shown === "back" ? "Move it" : "Got it",
+        onAction: shown === "back" ? moveBack : () => setScreenNotice(undefined),
+        dismissLabel: shown === "back" ? "Stay" : undefined,
+        onDismiss:
+          shown === "back"
+            ? () => {
+                setGoneFrom(undefined);
+                setScreenNotice(undefined);
+              }
+            : undefined,
+      };
+    const picked = notice();
+    if (picked === "update")
+      return {
+        message: noticeMessage(),
+        action: "Restart",
+        onAction: restartApp,
+        dismissLabel: "Later",
+        onDismiss: () => setUpdateDismissed(true),
+      };
+    if (picked === "keep-file")
+      return { message: noticeMessage(), action: "Got it", onAction: () => setKeepFile(false) };
+    if (picked === "safari-hint")
+      return { message: noticeMessage(), action: "Got it", onAction: dismissHomeScreenHint };
+    return undefined;
+  };
   const presenting = () => section() === "present" && !!hymnNumber();
   const togglePane = (id: PaneId) =>
     preferences.setPane(id, !isPaneShown(preferences.preferences(), id));
@@ -838,7 +853,6 @@ function Operator(props: Shared) {
             />
           </button>
         </header>
-        <Show when={expanded()}>{noticeView()}</Show>
 
         <main
           class="workspace"
@@ -959,7 +973,7 @@ function Operator(props: Shared) {
         title="Hymnbooks"
         placement={expanded() ? "center" : "bottom"}
       >
-        <ul class="list">
+        <ul class="list glide-list" ref={(el) => onCleanup(hoverGlide(el, ".list-row:enabled"))}>
           <For each={installed()}>
             {(book) => (
               <li>
@@ -974,6 +988,9 @@ function Operator(props: Shared) {
                     {" "}
                     — {book.songs.toLocaleString("en-US")} songs
                   </span>
+                  <Show when={book.key === currentKey()}>
+                    <span class="icon icon-check list-row-check" aria-hidden="true" />
+                  </Show>
                 </button>
               </li>
             )}
@@ -998,26 +1015,7 @@ function Operator(props: Shared) {
       <div class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
         {noticeMessage()}
       </div>
-      <Show when={!expanded()}>{noticeView()}</Show>
-      <Show when={screenNotice()} keyed>
-        {(shown) => (
-          <Snackbar
-            floating
-            message={SCREEN_NOTICES[shown]}
-            action={shown === "back" ? "Move it" : "Got it"}
-            onAction={shown === "back" ? moveBack : () => setScreenNotice(undefined)}
-            dismissLabel={shown === "back" ? "Stay" : undefined}
-            onDismiss={
-              shown === "back"
-                ? () => {
-                    setGoneFrom(undefined);
-                    setScreenNotice(undefined);
-                  }
-                : undefined
-            }
-          />
-        )}
-      </Show>
+      <SnackbarHost notice={snackbar()} />
 
       <Sheet open={menuOpen()} onClose={() => setMenuOpen(false)} title="Menu">
         <nav aria-label="Sections">

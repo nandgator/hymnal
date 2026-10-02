@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { createSignal } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
-import { Snackbar } from "./Snackbar.tsx";
+import { Snackbar, SnackbarHost, type SnackbarProps } from "./Snackbar.tsx";
 
 describe("Snackbar", () => {
   it("shows its message and runs its action", () => {
@@ -27,5 +28,21 @@ describe("Snackbar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Later" }));
     expect(onDismiss).toHaveBeenCalledOnce();
     expect(onAction).not.toHaveBeenCalled();
+  });
+
+  it("the host keeps a notice on screen while it leaves, then removes it", async () => {
+    const [notice, setNotice] = createSignal<SnackbarProps | undefined>({
+      message: "Update ready",
+      action: "Restart",
+      onAction: () => {},
+    });
+    render(() => <SnackbarHost notice={notice()} />);
+    expect(screen.getByText("Update ready")).toBeInTheDocument();
+    setNotice(undefined);
+    await Promise.resolve();
+    expect(document.querySelector(".snackbar-region")).toHaveClass("snackbar-leaving");
+    await vi.waitFor(() => expect(screen.queryByText("Update ready")).toBeNull(), {
+      timeout: 1000,
+    });
   });
 });

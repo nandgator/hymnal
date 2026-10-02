@@ -1044,20 +1044,9 @@ button:disabled {
   font-size: 1rem;
 }
 
-/* The Output screen's picker: a native select dressed as the text field. */
-.settings-select {
-  min-height: 3rem;
-  max-width: 100%;
-  padding: 0 var(--space-md);
-  border: none;
-  border-radius: var(--button-shape);
-  background-color: var(--md-sys-color-surface-container);
-  color: var(--md-sys-color-on-surface);
-  font: inherit;
-}
-
-.settings-select:hover {
-  background-color: var(--md-sys-color-surface-container-high);
+.settings-screen-text {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.875rem;
 }
 
 .settings-screen-control {
@@ -1928,30 +1917,31 @@ input[type="checkbox"].switch:checked::before {
 }
 
 .menu-popover {
-  position: absolute;
-  top: calc(100% + var(--space-xxs));
-  right: 0;
+  position: fixed;
+  inset: auto;
   z-index: 5;
   min-width: 15rem;
   margin: 0;
   padding: var(--space-xs) 0;
+  border: none;
   border-radius: var(--shape-md);
   background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
   box-shadow: var(--elevation-3);
-  transform-origin: top right;
+  overflow-y: auto;
+  transform-origin: top left;
   animation: menu-in var(--motion-short) var(--motion-emphasized);
 }
 
-.menu-popover-start {
-  right: auto;
-  left: 0;
-  transform-origin: top left;
+.menu-popover-above {
+  transform-origin: bottom left;
 }
 
 .menu-popover-item {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
   width: 100%;
   min-height: 3rem;
   padding: var(--space-xs) var(--space-md);
@@ -1963,8 +1953,101 @@ input[type="checkbox"].switch:checked::before {
   cursor: pointer;
 }
 
-.menu-popover-item:enabled:is(:hover, :focus-visible) {
-  background-color: color-mix(in srgb, currentColor 8%, transparent);
+.menu-popover-item:focus-visible {
+  outline-offset: -3px;
+}
+
+.menu-popover-label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* The chosen item of a choice menu: a check, and the accent colour. */
+.menu-popover-current {
+  color: var(--md-sys-color-primary);
+}
+
+.menu-popover-check {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* A choice menu's trigger: the select it replaces, in the app's own dress. */
+.menu-select {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 3rem;
+  max-width: 100%;
+  padding: 0 var(--space-xs) 0 var(--space-md);
+  border: none;
+  border-radius: var(--button-shape);
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  font: inherit;
+  cursor: pointer;
+}
+
+.menu-select:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.menu-select-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-popover-choice {
+  max-width: min(24rem, calc(100vw - 2 * var(--space-md)));
+}
+
+/* The one highlight layer of a list (hoverGlide.ts): under the rows, glides
+   to the one pointed at or focused. The rows paint no hover of their own. */
+.menu-popover {
+  isolation: isolate;
+}
+
+.glide-list {
+  position: relative;
+  isolation: isolate;
+}
+
+.hover-glide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  border-radius: var(--glide-radius, 0);
+  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, height, opacity;
+}
+
+.glide-list {
+  --glide-radius: var(--shape-md);
+}
+
+.menu-popover-item:enabled:active {
+  background-color: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.glide-list .list-row:is(:hover, :focus-visible):not(:disabled) {
+  --state: transparent;
+}
+
+.list-row-check {
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--md-sys-color-primary);
+}
+
+.list-row[aria-current="true"] {
+  color: var(--md-sys-color-primary);
 }
 
 .menu-popover-supporting {
@@ -3607,45 +3690,44 @@ html[data-scrolling],
   inset: 0;
 }
 
-/* The snackbar (DESIGN.md § Snackbar): the shell's one floating notice, MD3's
-   inverse surface, centred over the workspace — above the dock on a phone,
-   beside the rail from 840px. The region ignores the pointer so it never
-   blocks what lies around the bar. */
+/* The notice (DESIGN.md § Snackbar): the shell's one floating card, on the
+   theme's own raised surface, top-centre of the workspace just under the top
+   bar (beside the rail from 840px). Fixed, so it never moves the layout; the
+   region ignores the pointer so it never blocks what lies around the card. */
 .snackbar-region {
   position: fixed;
+  top: calc(var(--switcher-height, 3.5rem) + var(--space-xs));
   right: 0;
-  bottom: calc(var(--dock-height, 0px) + var(--space-sm));
   left: 0;
-  z-index: 2;
+  z-index: 6;
   display: flex;
   justify-content: center;
   padding: 0 var(--space-md);
   pointer-events: none;
+  animation: notice-in var(--motion-medium) var(--motion-emphasized) both;
 }
 
-/* From 840px it is a strip in the flow, under the switcher row and above the
-   workspace, so it never covers lyrics or the transport; the rail is beside
-   it already. */
 @media (min-width: 840px) {
   .snackbar-region {
-    position: static;
-    justify-content: flex-start;
-    flex: none;
-    padding: var(--space-xs) var(--space-md) 0;
+    left: 80px;
   }
 }
 
-/* A notice that appears while live floats from 840px too, top right under the
-   header, so the layout never moves. */
-@media (min-width: 840px) {
-  .snackbar-region.snackbar-floating {
-    position: fixed;
-    top: 4rem;
-    right: 0;
-    bottom: auto;
-    left: auto;
-    justify-content: flex-end;
-    padding: 0 var(--space-md);
+.snackbar-region.snackbar-leaving {
+  animation: notice-out var(--motion-short) var(--motion-exit) both;
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes notice-out {
+  to {
+    opacity: 0;
+    transform: translateY(-12px);
   }
 }
 
@@ -3657,13 +3739,17 @@ html[data-scrolling],
   width: min(100%, 36rem);
   min-height: 3rem;
   padding: var(--space-xxs) var(--space-xxs) var(--space-xxs) var(--space-md);
-  border-radius: var(--shape-sm);
-  background-color: var(--md-sys-color-inverse-surface);
-  color: var(--md-sys-color-inverse-on-surface);
+  border-radius: var(--shape-md);
+  background-color: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
   box-shadow: var(--elevation-3);
   font-size: 0.875rem;
   line-height: 1.25rem;
   pointer-events: auto;
+}
+
+.snackbar-leaving .snackbar {
+  pointer-events: none;
 }
 
 .snackbar-message {
@@ -3673,7 +3759,7 @@ html[data-scrolling],
 
 .snackbar-action.btn-text {
   flex: none;
-  color: var(--md-sys-color-inverse-primary);
+  color: var(--md-sys-color-primary);
 }
 
 .snackbar-close {
@@ -3687,7 +3773,7 @@ html[data-scrolling],
   border: none;
   border-radius: var(--button-shape);
   background-color: transparent;
-  color: var(--md-sys-color-inverse-on-surface);
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .snackbar-close:hover {
@@ -3700,7 +3786,7 @@ html[data-scrolling],
 }
 
 .snackbar :is(.snackbar-action, .snackbar-close):focus-visible {
-  outline: 2px solid var(--md-sys-color-inverse-on-surface);
+  outline: 2px solid var(--md-sys-color-primary);
   outline-offset: -2px;
 }
 
@@ -3714,9 +3800,18 @@ html[data-scrolling],
   }
 }
 
-@media (min-width: 840px) {
-  .snackbar {
-    box-shadow: none;
+/* Reduced motion: it fades, it does not travel. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes notice-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes notice-out {
+    to {
+      opacity: 0;
+    }
   }
 }
 

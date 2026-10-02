@@ -563,10 +563,14 @@ view is close enough to the frame to need a smaller unit.
     (switches). **Keyboard**: opens the shortcut sheet, whose Close then reads
     Back and returns to Settings. **Presentation** (part 4): the Output theme
     (Dark | Light | Contrast | Warm) and one switch per cue; and, in Chrome and
-    Edge only, **Output screen**: a select of Automatic and the screens by label
-    and size ("Built-in" for the laptop's panel, a remembered one not attached
-    marked "not connected"), with a text **Detect screens** button that asks the
-    browser to list them; its supporting line says what Automatic picks, or that
+    Edge only, **Output screen**: a choice menu (the Menu component with its
+    trigger a button showing the choice, a chevron after it, never a native
+    select) of Automatic and the screens by label and size ("Built-in" for the
+    laptop's panel, a remembered one not attached marked "not connected"; the
+    chosen one carries a check; arrows, Enter and Esc work, and ArrowDown opens
+    it). With one screen attached there is no list: the text "One screen
+    attached" instead. A text **Detect screens** button asks the browser to list
+    the screens; its supporting line says what Automatic picks, or that
     permission is blocked. Hidden where the browser cannot place a window.
   - **Show/hide**: Live, remembered, and the tab layout (SDD-0001 §16.4). This
     hymn and the dock never hide.
@@ -604,29 +608,34 @@ view is close enough to the frame to need a smaller unit.
 - **Snackbar.** The shell's one notice, for what needs a word but not a stop:
   **Update ready** with **Restart** and a close (Later), the note about keeping
   the book file after a first load whose storage request was refused, with **Got
-  It**, and the Safari note about keeping books, with **Got it**. MD3's inverse
-  surface, one message, one text action in the inverse primary, 8px corners,
-  never wider than 36rem. On a phone it **floats** above the dock with the soft
-  floating shadow, centred. From 840px it is an **in-flow strip** under the
-  switcher row and above the workspace, left-aligned, flat, so it never covers
-  lyrics or the transport (it does move the layout by one row, which is fine: it
-  is never shown live). One at a time, the update first, then the keep-your-file
+  It**, and the Safari note about keeping books, with **Got it**. One pattern at
+  every width, for every notice: a **floating card** on the current theme's
+  `surface-container-highest` (text `on-surface`, the action in `primary`),
+  elevation 3, 12px corners, never wider than 36rem, **top-centre of the
+  workspace just below the top bar** (beside the rail from 840px; on a phone the
+  full width less the 16px gutters). It is fixed, so it never moves the layout
+  and covers only the top of the panes briefly. It **enters** with a short slide
+  down and fade (250ms, emphasised easing) and **leaves** the same way reversed
+  (150ms); with reduced motion it only fades. In forced colours it gains a 1px
+  CanvasText border. One at a time, the update first, then the keep-your-file
   note, then Safari's, and **never while the Output is live** (On Air or
   Blanked). It takes no focus; a persistent live region announces its message.
   Keyboard: Esc puts it away (Later; the note's Got it), and the command menu
   has **Restart to update**, **Dismiss the storage note** and **Dismiss the Home
-  Screen note**. In forced colours it gains a 1px CanvasText border, and its
-  buttons a visible focus ring. Undo still stays in the Repeat row, not here.
-  **Screen notices** are the exception to "never while live": they are about the
-  Output window itself and caused by it, so they show at once, are dismissed
-  (**Got it**) and never repeat once seen. They **float at every width** (above
-  the dock on a phone, top right under the header from 840px), never in the
-  strip, so the layout does not move live, and they come before the update. Six:
-  "Drag the Output to the projector, then press F11" (a plain popup, once), "The
-  Output is on the projector screen. If it isn't fullscreen, click it or press
-  F" (once), "The browser blocked the Output window" (pop-ups), "The screen the
-  Output was on is gone" (the window stays), and "That screen is back. Move the
-  Output to it?" with **Move it** and a close (Stay).
+  Screen note**. Its buttons have a visible focus ring. Undo still stays in the
+  Repeat row, not here. **Screen notices** are the exception to "never while
+  live": they are about the Output window itself and caused by it, so they show
+  at once, are dismissed (**Got it**) and never repeat once seen. They use the
+  same card, in the same place, so the layout does not move live, and they come
+  before the update. Six: "Drag the Output to the projector, then press F11" (a
+  plain popup, once, and **only when a second screen may exist**:
+  `screen.isExtended` is true, with or without the Window Management API; where
+  the browser cannot say (Firefox, Safari) or says one screen, it is not shown,
+  so a single-screen user is never nagged), "The Output is on the projector
+  screen. If it isn't fullscreen, click it or press F" (once), "The browser
+  blocked the Output window" (pop-ups), "The screen the Output was on is gone"
+  (the window stays), and "That screen is back. Move the Output to it?" with
+  **Move it** and a close (Stay).
 - **The Library** (Board #28 part 5; SDD-0004 §9). A list of the books held, in
   the default width, the mockup's `Library` header sticking under the switcher
   row as the Finder's field does (title-large, "N books on this device", and a
@@ -998,6 +1007,18 @@ container for filled components, 38% content alone otherwise. Keyboard focus
 also gets a 3px `secondary` ring, offset 2px, visible only via `:focus-visible`
 — the Operator is keyboard- and remote-driven (arc42 §8.8), so focus must always
 be findable.
+
+**List highlight.** A list of rows that open or choose (a menu, the hymnbooks
+sheet) has one highlight layer, the hover colour above, that **glides**
+(translate and height, 250ms (the medium duration), emphasised easing;
+`hoverGlide.ts`, reusing the geometry of the Lyrics tint) to the row under the
+pointer or the keyboard's focus. When the pointer enters the list the layer
+slides in from the side it came from, fading up; when it leaves, it fades out
+(150ms), unless a row has keyboard focus. The rows paint no hover of their own.
+The **current** row keeps a mark of its own (a check, and the accent colour) and
+still takes the highlight, so it shows both. Touch has no hover: no layer there.
+Reduced motion: the layer jumps, no glide. The command menu keeps its own
+highlight.
 
 `list-row` covers what the component list above otherwise lacks: a Finder search
 result or recent hymn is one full-width, tappable row, the title in `on-surface`
