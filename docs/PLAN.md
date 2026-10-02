@@ -30,9 +30,10 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 
 **Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
 **Next: Board #28**: ADR-0026/0027 are accepted; its parts are in SDD-0004.
-Parts 1 (`bun run pack`) and 2 (the reader, hashes, keys) are done; part 3 next.
-It needs #27's parts 1–5, not the judge. #27 part 6, the Laya judge, runs last,
-on another machine or a Codespace (this one is short of memory).
+Parts 1 (`bun run pack`), 2 (the reader, hashes, keys) and 3 (schema 3, the
+registry) are done; part 4 next. It needs #27's parts 1–5, not the judge. #27
+part 6, the Laya judge, runs last, on another machine or a Codespace (this one
+is short of memory).
 
 **Board #27 (song import, CLI)**: it touches no UI. Target: _Hymns of
 Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its index), the
@@ -133,6 +134,8 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — #28 part 3: package schema 3 (origin, sources, part position),
+  one `packageRows` builder, the registry in OPFS and its reconcile, `hymnalDev`
 - 2026-10-02 — ADR-0028 accepted: the Output on the projector screen, in Chrome
   and Edge (Window Management API); elsewhere the window as today. Board #31.
   #30 decided: the tint in Full Song only, an overlapped fade between columns,

@@ -3,7 +3,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } 
 import { basename, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
-import type { Hymnbook, HymnSource } from "../src/domain/types.ts";
+import { insertRows, packageRows } from "../src/domain/package-rows.ts";
+import type { HymnbookSource, HymnSource } from "../src/domain/types.ts";
 import { type HymnFile, type Violation, validateCorpus } from "../src/domain/validate.ts";
 import { SCHEMA_SQL, SCHEMA_VERSION } from "./content-schema.ts";
 
@@ -72,7 +73,7 @@ export function hashContent(sources: SourceFile[]): string {
 }
 
 interface PackageInput {
-  hymnbook: Hymnbook;
+  hymnbook: HymnbookSource;
   hymns: HymnSource[];
   contentHash: string;
   outFile: string;
@@ -88,40 +89,28 @@ export function buildPackage({ hymnbook, hymns, contentHash, outFile }: PackageI
   try {
     db.exec("PRAGMA foreign_keys = ON");
     db.exec(SCHEMA_SQL);
-    const insertBook = db.prepare("INSERT INTO hymnbook VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    const insertHymn = db.prepare("INSERT INTO hymn VALUES (?, ?, ?, ?, ?)");
-    const insertPart = db.prepare("INSERT INTO part VALUES (?, ?, ?, ?)");
-    const insertLine = db.prepare("INSERT INTO line VALUES (?, ?, ?, ?)");
-    const insertEntry = db.prepare("INSERT INTO sequence_entry VALUES (?, ?, ?)");
-    const insertFts = db.prepare("INSERT INTO hymn_fts (rowid, title, body) VALUES (?, ?, ?)");
+    const statements = new Map<string, ReturnType<DatabaseSync["prepare"]>>();
+    const run = (sql: string, bind: (string | number | null)[]) => {
+      let statement = statements.get(sql);
+      if (!statement) {
+        statement = db.prepare(sql);
+        statements.set(sql, statement);
+      }
+      statement.run(...bind);
+    };
 
     db.exec("BEGIN");
-    insertBook.run(
-      hymnbook.id,
-      hymnbook.title,
-      hymnbook.language,
-      hymnbook.script,
-      hymnbook.publisher ?? null,
-      hymnbook.edition ?? null,
-      hymnbook.isbn ?? null,
-      SCHEMA_VERSION,
-      contentHash,
+    insertRows(
+      run,
+      // A shipped book's key and origin are its slug; it has matched no container.
+      packageRows(hymnbook, hymns, {
+        key: hymnbook.id,
+        origin: hymnbook.id,
+        sources: [],
+        contentHash,
+        schemaVersion: SCHEMA_VERSION,
+      }),
     );
-    for (const hymn of hymns) {
-      const { author, tune, meter } = hymn.meta;
-      insertHymn.run(hymn.number, hymn.title, author ?? null, tune ?? null, meter ?? null);
-      for (const part of hymn.parts) {
-        insertPart.run(hymn.number, part.id, part.kind, part.label ?? null);
-        part.lines.forEach((text, idx) => {
-          insertLine.run(hymn.number, part.id, idx, text);
-        });
-      }
-      hymn.sequence.forEach((entry, idx) => {
-        insertEntry.run(hymn.number, idx, entry.partId);
-      });
-      const body = hymn.parts.flatMap((part) => part.lines).join("\n");
-      insertFts.run(hymn.number, hymn.title, body);
-    }
     db.exec("COMMIT");
   } finally {
     db.close();
@@ -186,7 +175,7 @@ export function buildContent({
   const contentHash = hashContent(loaded.sources);
   const outFile = join(outDir, `${basename(contentDir)}.sqlite`);
   buildPackage({
-    hymnbook: loaded.hymnbook as Hymnbook,
+    hymnbook: loaded.hymnbook as HymnbookSource,
     hymns: loaded.files.map((f) => f.hymn as HymnSource),
     contentHash,
     outFile,

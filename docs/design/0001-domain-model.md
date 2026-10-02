@@ -349,7 +349,8 @@ One SQLite database per hymnbook
 
 ```sql
 CREATE TABLE hymnbook (
-  id             TEXT PRIMARY KEY,
+  id             TEXT PRIMARY KEY,   -- the key (SDD-0004 §7)
+  origin         TEXT NOT NULL,      -- the id the file declared (SDD-0004 §7)
   title          TEXT NOT NULL,
   language       TEXT NOT NULL,   -- BCP-47
   script         TEXT NOT NULL,   -- ISO 15924
@@ -357,7 +358,8 @@ CREATE TABLE hymnbook (
   edition        TEXT,
   isbn           TEXT,
   schema_version INTEGER NOT NULL,
-  content_hash   TEXT NOT NULL    -- SHA-256 of the source files, see §9
+  content_hash   TEXT NOT NULL,   -- SHA-256 of the source files, see §9
+  sources        TEXT NOT NULL    -- JSON array of container hashes (SDD-0004 §7)
 ) STRICT;
 
 CREATE TABLE hymn (
@@ -371,9 +373,11 @@ CREATE TABLE hymn (
 CREATE TABLE part (
   hymn_number INTEGER NOT NULL REFERENCES hymn(number),
   id          TEXT NOT NULL,
+  position    INTEGER NOT NULL,   -- printed order (SDD-0004 §7)
   kind        TEXT NOT NULL CHECK (kind IN ('intro','stanza','pre-chorus','chorus','post-chorus','bridge','outro','tag')),
   label       TEXT,
-  PRIMARY KEY (hymn_number, id)
+  PRIMARY KEY (hymn_number, id),
+  UNIQUE (hymn_number, position)
 ) STRICT;
 
 CREATE TABLE line (

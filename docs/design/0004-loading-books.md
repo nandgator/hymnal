@@ -202,6 +202,20 @@ CREATE INDEX song_hash ON song (hash);
 The registry has its own version, in `PRAGMA user_version`, migrated by the same
 rules as a package (§7).
 
+**Clarified, decided in part 3: an unreadable package is a row with a state.**
+`book` has one more column, `state TEXT NOT NULL DEFAULT 'ok'` with
+`CHECK (state IN ('ok','needs-reloading','needs-newer-app','unreadable'))`; the
+registry's `user_version` is 1. A package that is kept but cannot be opened (a
+newer version, no migration step, a failed migration, a damaged file that has a
+row) is a `loaded` row whose key is read from the file name (`<key>.<n>.sqlite3`
+or `<slug>.sqlite3`) and whose `origin` is that key. Its `title` is read from
+the package's `hymnbook` table if that still answers, else it is the key;
+`language` and `script` are `''`, `songs` is 0, and it has no `song` or `source`
+rows. Reconcile recomputes `state` at every start, so a package that becomes
+readable (the app gains a migration step) is indexed afresh. A registry whose
+version is not the app's is dropped and rebuilt from the packages, since it is
+an index.
+
 **It can be rebuilt from the books.** Each package records its key, origin and
 source hashes (§7), and a song's hash is computed from its lines. So the
 registry is an index, not the only copy, and the worker reconciles the two when
@@ -217,9 +231,19 @@ it starts:
   with the slug as key: the one exception to a UUIDv7 key, which stays opaque
   ([ADR-0021](../decisions/0021-identify-books-by-the-store-that-holds-them.md)
   revised). A file that can't be read (a newer version, a failed migration) is
-  **kept**, as a row listed unreadable (§7), never deleted. Only a file that is
-  not a package at all, or whose key is held already (a stale copy left by a
-  crashed Replace), is removed.
+  **kept**, as a row listed unreadable (§7), never deleted. **Clarified, decided
+  in part 3: reconcile never deletes a file that is or may be a book.** It
+  deletes only a provably empty leftover with no row: a zero-byte file, or a
+  database with no tables at all (an aborted first write). Everything else
+  without a row is kept and listed: a database SQLite calls not a database or
+  malformed, or one with other tables but no `hymnbook`, is listed unreadable; a
+  readable package whose key another row holds (a stale copy left by a crashed
+  Replace, say) is listed unreadable under its file name (`k.2`), never
+  overwriting the held row. A transient error (busy, I/O) keeps the file and
+  skips it until the next start. Of two files with one key, the higher `<n>`
+  takes the key. The registry file itself is discarded and rebuilt only when
+  SQLite calls it not a database or malformed; on any other error the app runs
+  without a registry that session.
 - A `shipped` book the app no longer bundles becomes `loaded`, key unchanged.
   When the songs leave (§13, part 6), this keeps the Malayalam book on every
   device that has it.
@@ -244,10 +268,18 @@ took it to 2). The `hymnbook` row of
 | `origin`  | none            | the `id` the file declared; for a shipped book, the slug       |
 | `sources` | none            | JSON array of the container files' hashes the book has matched |
 
-`content_hash` stays as it is: a hash of the source files, not of a container
-(§4), so it is never put in `sources`. For a loaded book it is the first
-container's file hash. The other tables are unchanged. Search, `hymn_fts` and
-every query are as before.
+`part` gains **`position INTEGER NOT NULL`**, with
+`UNIQUE (hymn_number, position)`: the part's place in the printed order, as the
+file has it (0, 1, ...). **Clarified, decided in part 3:** a song hash (§4)
+needs the file's part order, which a package must keep without relying on
+`rowid` (SQLite may change the rowids of such a table on `VACUUM`). In the
+Malayalam book 270 of 1,631 songs list their parts in an order other than first
+appearance in the sequence, which is how the Operator reads them, so `getHymn`
+keeps its own order and the hashing reader orders by `position`. `content_hash`
+stays as it is: a hash of the source files, not of a container (§4), so it is
+never put in `sources`. For a loaded book it is the first container's file hash.
+The other tables are unchanged. Search, `hymn_fts` and every query are as
+before.
 
 **One builder.** The rows a package holds are produced by one pure function,
 `packageRows(book, hymns)`, which `build:content` (`node:sqlite`) and the worker
@@ -271,9 +303,12 @@ be replaced from. **A version bump never deletes a loaded book.** A migration
 that fails leaves the file as it was and the book listed as unreadable. The
 steps go from version 2: 2 → 3 adds `origin` (filled from `id`) and `sources`
 (left empty: no container has been loaded, so the first container of that book
-is "the same songs" by its song hashes, and records its hash then). A version 1
-package (with `refrain`, which `CHECK` cannot be altered to allow) has no step
-and is the "no step known" row.
+is "the same songs" by its song hashes, and records its hash then), and
+`position`, filled once from `rowid` order, the best a version 2 file has (the
+app has never vacuumed one), all in one transaction. A migrated package gets a
+unique index in place of the table constraint, which `ALTER` cannot add. A
+version 1 package (with `refrain`, which `CHECK` cannot be altered to allow) has
+no step and is the "no step known" row.
 
 ## 8. Duplicates
 

@@ -1,16 +1,14 @@
 import * as Comlink from "comlink";
 import type { HymnbookId } from "../domain/types.ts";
-import type { ContentStore, HymnSummary } from "./content-store.worker.ts";
+import type { ContentAdmin, ContentStore, HymnSummary } from "./content-store.worker.ts";
 
 let store: ContentStore | undefined;
+let admin: Comlink.Remote<ContentAdmin> | undefined;
 
 /** The one content-store instance for this tab. Owns a dedicated Worker — see SDD-0001 §10.1. */
 export function getContentStore(): ContentStore {
   if (!store) {
-    const worker = new Worker(new URL("./content-store.worker.ts", import.meta.url), {
-      type: "module",
-    });
-    const remote = Comlink.wrap<ContentStore>(worker);
+    const remote = connect();
     // A book's list of songs is read once, not on every screen that names a
     // song: it only changes when the book is installed again, which drops
     // it. A failed read isn't kept. Memory only, this tab only.
@@ -40,10 +38,29 @@ export function getContentStore(): ContentStore {
   return store;
 }
 
+/** The books held and the registry: the same worker as the store's (SDD-0004 §10). */
+export function getContentAdmin(): Comlink.Remote<ContentAdmin> {
+  if (!admin) admin = connect();
+  return admin;
+}
+
+let remote: Comlink.Remote<ContentStore & ContentAdmin> | undefined;
+function connect() {
+  if (!remote) {
+    const worker = new Worker(new URL("./content-store.worker.ts", import.meta.url), {
+      type: "module",
+    });
+    remote = Comlink.wrap<ContentStore & ContentAdmin>(worker);
+  }
+  return remote;
+}
+
 export type {
+  ContentAdmin,
   ContentStatus,
   ContentStore,
   HymnSummary,
   InstallProgress,
+  LoadResult,
   SearchResult,
 } from "./content-store.worker.ts";

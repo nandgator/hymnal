@@ -1,5 +1,26 @@
-/** 2: the chorus, once the refrain (ADR-0025). */
-export const SCHEMA_VERSION = 2;
+/**
+ * 2: the chorus, once the refrain (ADR-0025).
+ * 3: `hymnbook.origin` and `sources`, `part.position` (SDD-0004 §7).
+ */
+export const SCHEMA_VERSION = 3;
+
+/**
+ * Migrations in place, keyed by the version they start from (SDD-0004 §7).
+ * Each runs in one transaction. 2 to 3: position is filled from rowid order,
+ * the best a version 2 file has (the app has never vacuumed one).
+ */
+export const PACKAGE_MIGRATIONS: Readonly<Record<number, readonly string[]>> = {
+  2: [
+    "ALTER TABLE hymnbook ADD COLUMN origin TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE hymnbook ADD COLUMN sources TEXT NOT NULL DEFAULT '[]'",
+    "UPDATE hymnbook SET origin = id",
+    "ALTER TABLE part ADD COLUMN position INTEGER NOT NULL DEFAULT 0",
+    `UPDATE part SET position = (SELECT COUNT(*) FROM part AS p
+       WHERE p.hymn_number = part.hymn_number AND p.rowid < part.rowid)`,
+    "CREATE UNIQUE INDEX part_position ON part (hymn_number, position)",
+    "UPDATE hymnbook SET schema_version = 3",
+  ],
+};
 
 /**
  * Malayalam dependent vowel signs (U+0D3E-U+0D4C), virama (U+0D4D) and ZWJ/ZWNJ.
@@ -11,7 +32,8 @@ export const FTS_TOKENCHARS = "ാിീുൂൃൄെേൈൊോൌ്‌‍"
 /** Mirrors SDD-0001 §6. Keep the two in step. */
 export const SCHEMA_SQL = `
 CREATE TABLE hymnbook (
-  id             TEXT PRIMARY KEY,
+  id             TEXT PRIMARY KEY,    -- the key
+  origin         TEXT NOT NULL,       -- the id the file declared
   title          TEXT NOT NULL,
   language       TEXT NOT NULL,
   script         TEXT NOT NULL,
@@ -19,7 +41,8 @@ CREATE TABLE hymnbook (
   edition        TEXT,
   isbn           TEXT,
   schema_version INTEGER NOT NULL,
-  content_hash   TEXT NOT NULL
+  content_hash   TEXT NOT NULL,
+  sources        TEXT NOT NULL        -- JSON array of container file hashes
 ) STRICT;
 
 CREATE TABLE hymn (
@@ -33,9 +56,11 @@ CREATE TABLE hymn (
 CREATE TABLE part (
   hymn_number INTEGER NOT NULL REFERENCES hymn(number),
   id          TEXT NOT NULL,
+  position    INTEGER NOT NULL,   -- printed order, as the file has the parts
   kind        TEXT NOT NULL CHECK (kind IN ('intro','stanza','pre-chorus','chorus','post-chorus','bridge','outro','tag')),
   label       TEXT,
-  PRIMARY KEY (hymn_number, id)
+  PRIMARY KEY (hymn_number, id),
+  UNIQUE (hymn_number, position)
 ) STRICT;
 
 CREATE TABLE line (

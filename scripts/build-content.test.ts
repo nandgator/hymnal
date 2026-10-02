@@ -131,6 +131,18 @@ describe("buildContent", () => {
     const db = open(result.outFile as string);
     expect(count(db, "hymn")).toBe(2);
     expect(count(db, "part")).toBe(4);
+    expect(db.prepare("SELECT id, origin, sources, schema_version FROM hymnbook").get()).toEqual({
+      id: BOOK_ID,
+      origin: BOOK_ID,
+      sources: "[]",
+      schema_version: SCHEMA_VERSION,
+    });
+    expect(
+      db.prepare("SELECT id, position FROM part WHERE hymn_number = 1 ORDER BY position").all(),
+    ).toEqual([
+      { id: "c", position: 0 },
+      { id: "s1", position: 1 },
+    ]);
     expect(count(db, "hymn_fts")).toBe(2);
     expect(
       db.prepare("SELECT part_id FROM sequence_entry WHERE hymn_number = 1 ORDER BY idx").all(),
