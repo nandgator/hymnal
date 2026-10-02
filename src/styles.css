@@ -1311,6 +1311,17 @@ input[type="checkbox"].switch:checked::before {
   min-height: 0;
 }
 
+/* Not clipped: only an area's body scrolls, and its header's menu may
+   reach past the panel's edge. */
+.area {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 22px;
+  background-color: var(--md-sys-color-surface-container-low);
+}
+
 .operator-phone .area {
   flex: 1 1 0;
 }
@@ -1629,17 +1640,6 @@ input[type="checkbox"].switch:checked::before {
   flex: 1;
   gap: var(--space-sm);
   min-height: 0;
-}
-
-/* Not clipped: only an area's body scrolls, and its header's menu may
-   reach past the panel's edge. */
-.area {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  border-radius: 22px;
-  background-color: var(--md-sys-color-surface-container-low);
 }
 
 .area-main {

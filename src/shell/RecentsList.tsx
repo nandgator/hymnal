@@ -13,6 +13,7 @@ import {
   type UserState,
 } from "../persistence/user-state.ts";
 import { titleCase } from "./case.ts";
+import { EMPHASIZED_BEZIER, GLIDE_MS, planCrossings } from "./glide-crossings.ts";
 
 export interface RecentsListProps {
   hymnbookId: HymnbookId;
@@ -32,10 +33,7 @@ const REFRESH_MS = 30_000;
 
 type RecentRow = RecentEntry & { title: string };
 
-/** Material's emphasised easing, at the top of the 200–300ms range: a row
- * can travel the list's length. */
-const EMPHASIZED = "cubic-bezier(0.2, 0, 0, 1)";
-const GLIDE_MS = 300;
+const EMPHASIZED = `cubic-bezier(${EMPHASIZED_BEZIER.join(", ")})`;
 /** A heading whose group has emptied fades out quicker than rows travel. */
 const GHOST_FADE_MS = 150;
 
@@ -72,11 +70,16 @@ export function RecentsList(props: RecentsListProps) {
   // A song chosen moves to the top: every row, and each group heading, glides
   // from where it was to where it lands (FLIP), a new one fades in, and a
   // heading whose group emptied fades out where it stood (DESIGN.md § Motion).
-  // The song that rises passes over the rows it crosses, not under them.
-  // Reduced motion lands at once.
+  // A row that passes over another is raised above it, and the one it
+  // passes is out of sight while it does (planCrossings). A glide cut short
+  // by another starts that one from where the rows settle. Reduced motion
+  // lands at once.
   let list: HTMLDivElement | undefined;
   const glide = (apply: () => void) => {
     const keyed = () => [...(list?.querySelectorAll<HTMLElement>("[data-glide]") ?? [])];
+    for (const el of keyed()) {
+      for (const animation of el.getAnimations?.() ?? []) animation.cancel();
+    }
     const before = new Map(
       keyed().map((el) => [el.dataset.glide, { el, rect: el.getBoundingClientRect() }]),
     );
@@ -87,15 +90,24 @@ export function RecentsList(props: RecentsListProps) {
     const timing = { duration: GLIDE_MS, easing: EMPHASIZED };
     const moves = keyed().map((el) => {
       const was = before.get(el.dataset.glide);
-      return { el, was, dy: was ? was.rect.top - el.getBoundingClientRect().top : 0 };
+      const now = el.getBoundingClientRect();
+      return { el, was, dy: was ? was.rect.top - now.top : 0, top: now.top, height: now.height };
     });
-    const rising = Math.max(0, ...moves.map((move) => move.dy));
-    for (const { el, was, dy } of moves) {
-      if (!was) el.animate?.([{ opacity: 0 }, { opacity: 1 }], timing);
-      else if (dy) {
+    const plans = planCrossings(
+      moves.map(({ el, was, dy, top, height }) => ({
+        key: el.dataset.glide ?? "",
+        top,
+        height,
+        dy,
+        fresh: !was,
+      })),
+    );
+    for (const { el, dy } of moves) {
+      const plan = plans.get(el.dataset.glide ?? "");
+      if (dy) {
         // Raised only while it travels (a row's own stacking, `position:
         // relative`, is what lets it sit above the rows after it).
-        const lift = dy === rising ? { zIndex: 1 } : {};
+        const lift = plan?.lift ? { zIndex: 1 } : {};
         el.animate?.(
           [
             { transform: `translateY(${dy}px)`, ...lift },
@@ -104,6 +116,9 @@ export function RecentsList(props: RecentsListProps) {
           timing,
         );
       }
+      // Its own clock, linear: the offsets are in time, so a fade lasts as
+      // long early in the glide as late, whatever the easing is doing.
+      if (plan?.fade) el.animate?.(plan.fade, { duration: GLIDE_MS, easing: "linear" });
     }
     // A heading whose group emptied is gone from the page: a copy stays at
     // its old place and fades.
