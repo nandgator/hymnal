@@ -29,9 +29,10 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 ## Now
 
 **Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
-**Next: Board #28**: ADR-0026/0027 are accepted; its parts are in SDD-0004. It
-needs #27's parts 1–5, not the judge. #27 part 6, the Laya judge, runs last, on
-another machine or a Codespace (this one is short of memory).
+**Next: Board #28**: ADR-0026/0027 are accepted; its parts are in SDD-0004.
+Parts 1 (`bun run pack`) and 2 (the reader, hashes, keys) are done; part 3 next.
+It needs #27's parts 1–5, not the judge. #27 part 6, the Laya judge, runs last,
+on another machine or a Codespace (this one is short of memory).
 
 **Board #27 (song import, CLI)**: it touches no UI. Target: _Hymns of
 Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its index), the
@@ -78,7 +79,6 @@ Ordered. Top unblocked item is next.
 | --- | ----------------------------------------------------------------------------------------------- | ---------- |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                | —          |
 | 28  | Library: load songs and books in format 1, local only; keys, duplicates (SDD-0004, ADR-0026/27) | —          |
-| 29  | Import: PowerPoint reader; _Songs of Zion_ (.pptx, its PDF to cross-check)                      | 27         |
 | 30  | Full song, landscape: printed form in columns, the highlight glides; mockup                     | —          |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                     | —          |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                   | —          |
@@ -132,6 +132,11 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — #29 done: _Songs of Zion_'s deck matches its PDF on all 422
+  slides (6,438 lines one PDF line, 23 two). #28 parts 1–2 checked by hand:
+  Malayalam packs to 1,631 songs, 512.6 KB; _Hymns of Fellowship_ 275, 63.1 KB;
+  _Songs of Zion_ 420, 139.3 KB; each reads back clean, its source hash the
+  printed sha256
 - 2026-10-02 — The parts pad's pill blurs a little mid-glide, crisp on landing
 - 2026-10-02 — #28 part 2: a container read and checked on the device; song and
   source hashes; uuidv7 keys
