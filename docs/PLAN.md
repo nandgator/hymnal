@@ -77,24 +77,25 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                                            | Blocked by |
-| --- | ----------------------------------------------------------------------------------------------- | ---------- |
-| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                | —          |
-| 28  | Library: load songs and books in format 1, local only; keys, duplicates (SDD-0004, ADR-0026/27) | —          |
-| 33  | Authoring kit: the song text format, a prompt template, a sample (ADR-0029)                     | —          |
-| 34  | Song text in the app: parser to format 1 and the source check (ADR-0029)                        | 28, 33     |
-| 35  | The song text parser and source check in the CLI (ADR-0029)                                     | 34         |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                     | —          |
-| 15  | Transliteration: search and display across scripts (ADR-0014)                                   | —          |
-| 16  | Feedback and corrections from users — where collected: TBD                                      | —          |
-| 17  | About: acknowledgements, copyright, credits                                                     | —          |
-| 18  | Over-the-air update notices (as Supabase announces changes)                                     | —          |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                 | 28         |
-| 21  | Hold: freeze the Output on what's showing, navigate, release                                    | —          |
-| 22  | Service queue: line up hymns for a service (a supporting pane)                                  | —          |
-| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved                       | 22         |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                      | Phase 2    |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                   | content    |
+| #   | Task                                                                                             | Blocked by |
+| --- | ------------------------------------------------------------------------------------------------ | ---------- |
+| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                 | —          |
+| 28  | Library: load songs and books in format 1, local only; keys, duplicates (SDD-0004, ADR-0026/27)  | —          |
+| 33  | Authoring kit: the song text format, a prompt template, a sample (ADR-0029)                      | —          |
+| 34  | Song text in the app: parser to format 1 and the source check (ADR-0029)                         | 28, 33     |
+| 35  | The song text parser and source check in the CLI (ADR-0029)                                      | 34         |
+| 36  | A second tab of the app: today it doesn't load (one OPFS connection); say so, or share the store | —          |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                      | —          |
+| 15  | Transliteration: search and display across scripts (ADR-0014)                                    | —          |
+| 16  | Feedback and corrections from users — where collected: TBD                                       | —          |
+| 17  | About: acknowledgements, copyright, credits                                                      | —          |
+| 18  | Over-the-air update notices (as Supabase announces changes)                                      | —          |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                  | 28         |
+| 21  | Hold: freeze the Output on what's showing, navigate, release                                     | —          |
+| 22  | Service queue: line up hymns for a service (a supporting pane)                                   | —          |
+| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved                        | 22         |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                       | Phase 2    |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                    | content    |
 
 Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. Next
 phase: the songs leave the repo, and every book, `content/`'s included, comes in
