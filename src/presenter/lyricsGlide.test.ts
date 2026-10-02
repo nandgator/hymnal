@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { glideLyrics, planGlide, scrollTargetTop, watchTint } from "./lyricsGlide.ts";
+import {
+  edgeBoxes,
+  glideLyrics,
+  parseEase,
+  planGlide,
+  scrollTargetTop,
+  watchTint,
+} from "./lyricsGlide.ts";
 
 const base = { still: false, reduced: false, tintTravel: 120, scrollTravel: 120, viewport: 600 };
 
@@ -114,14 +121,82 @@ interface FakeAnim {
   finish: () => void;
 }
 
+describe("parseEase", () => {
+  it("reads a cubic-bezier, from 0 to 1 and rising", () => {
+    const ease = parseEase("cubic-bezier(0.2, 0, 0, 1)");
+    expect(ease?.(0)).toBe(0);
+    expect(ease?.(1)).toBe(1);
+    expect(ease?.(0.5)).toBeGreaterThan(0.8);
+    expect(ease?.(0.25)).toBeLessThan(ease?.(0.5) ?? 0);
+  });
+
+  it("is null for anything else", () => {
+    expect(parseEase("ease")).toBeNull();
+    expect(parseEase("linear")).toBeNull();
+    expect(parseEase("cubic-bezier(a, 0, 0, 1)")).toBeNull();
+  });
+
+  it("is null when an x is outside 0 to 1, as CSS rejects it", () => {
+    expect(parseEase("cubic-bezier(1.5, 0, 0, 1)")).toBeNull();
+    expect(parseEase("cubic-bezier(0.2, 0, -0.1, 1)")).toBeNull();
+  });
+});
+
+describe("edgeBoxes", () => {
+  const ease = parseEase("cubic-bezier(0.2, 0, 0, 1)") as (t: number) => number;
+  const from = { x: 8, y: 0, w: 300, h: 240 };
+  const to = { x: 8, y: 300, w: 300, h: 200 };
+
+  it("starts at the old box and ends at the new one", () => {
+    const boxes = edgeBoxes(from, to, ease);
+    expect(boxes[0]).toEqual(from);
+    expect(boxes.at(-1)).toEqual(to);
+  });
+
+  it("moving down, the bottom leads: it is never behind the top's own pace", () => {
+    const boxes = edgeBoxes(from, to, ease);
+    boxes.forEach((b, i) => {
+      const p = i / (boxes.length - 1);
+      const bottomOnPace = from.y + from.h + (to.y + to.h - from.y - from.h) * p;
+      expect(b.y + b.h).toBeGreaterThanOrEqual(bottomOnPace - 1e-6);
+      expect(b.y).toBeCloseTo(from.y + (to.y - from.y) * p, 6);
+    });
+  });
+
+  it("moving up, the top leads", () => {
+    const boxes = edgeBoxes(to, from, ease);
+    boxes.forEach((b, i) => {
+      const p = i / (boxes.length - 1);
+      const topOnPace = to.y + (from.y - to.y) * p;
+      expect(b.y).toBeLessThanOrEqual(topOnPace + 1e-6);
+      expect(b.y + b.h).toBeCloseTo(to.y + to.h + (from.y + from.h - to.y - to.h) * p, 6);
+    });
+  });
+
+  it("has the leading edge at its target well before the end", () => {
+    const boxes = edgeBoxes(from, to, ease);
+    const early = boxes[Math.floor(boxes.length * 0.9)];
+    expect(Math.abs(early.y + early.h - (to.y + to.h))).toBeLessThan(2);
+    expect(to.y - early.y).toBeGreaterThan(2);
+  });
+
+  it("never has a negative height", () => {
+    for (const b of edgeBoxes({ ...from, h: 20 }, { ...to, h: 500 }, ease)) {
+      expect(b.h).toBeGreaterThanOrEqual(0);
+    }
+  });
+});
+
 describe("glideLyrics", () => {
   let anims: FakeAnim[];
+  let calls: { keyframes: Keyframe[]; options: KeyframeAnimationOptions }[];
   let frames: FrameRequestCallback[];
   let observed: (() => void) | null;
   let watching: Set<Element>;
 
   beforeEach(() => {
     anims = [];
+    calls = [];
     frames = [];
     observed = null;
     watching = new Set();
@@ -153,7 +228,11 @@ describe("glideLyrics", () => {
         m42 = 0;
       },
     );
-    HTMLElement.prototype.animate = () => {
+    HTMLElement.prototype.animate = (keyframes, options) => {
+      calls.push({
+        keyframes: keyframes as Keyframe[],
+        options: options as KeyframeAnimationOptions,
+      });
       const anim: FakeAnim = {
         playState: "running",
         progress: 0,
@@ -235,6 +314,58 @@ describe("glideLyrics", () => {
     anims[0].finish();
     flush();
     expect(list.scrollTop).toBe(500);
+  });
+
+  it("animates the edges as keyframes on one animation, its easing the clock", () => {
+    const { list, current } = setup();
+    glideLyrics(list, { still: true });
+    current(1);
+    glideLyrics(list, { still: false });
+    expect(anims).toHaveLength(1);
+    const { keyframes, options } = calls[0];
+    expect(keyframes).toHaveLength(25);
+    expect(keyframes.map((k) => k.offset)).toEqual(Array.from({ length: 25 }, (_, i) => i / 24));
+    expect(options.easing).toBe("cubic-bezier(0.2, 0, 0, 1)");
+    expect(options.duration).toBe(250);
+    // The scroll follows the clock's progress, whatever the edges do.
+    anims[0].progress = 0.25;
+    flush();
+    expect(list.scrollTop).toBe(125);
+    anims[0].progress = 0.75;
+    flush();
+    expect(list.scrollTop).toBe(375);
+  });
+
+  describe("the text's colour goes with the tint", () => {
+    const watchTintMode = (list: HTMLElement) => {
+      const seen: (string | undefined)[] = [];
+      Object.defineProperty(list, "offsetHeight", {
+        get: () => {
+          seen.push(list.dataset.tint);
+          return 0;
+        },
+        configurable: true,
+      });
+      return seen;
+    };
+
+    it("snaps with a tint that snaps (a step shown again), and lets go after", () => {
+      const { list } = setup();
+      glideLyrics(list, { still: true });
+      const seen = watchTintMode(list);
+      glideLyrics(list, { still: true });
+      expect(seen).toEqual(["snap"]);
+      expect(list.dataset.tint).toBeUndefined();
+    });
+
+    it("leaves a gliding tint's text to the stylesheet", () => {
+      const { list, current } = setup();
+      glideLyrics(list, { still: true });
+      current(1);
+      const seen = watchTintMode(list);
+      glideLyrics(list, { still: false });
+      expect(seen).toEqual([]);
+    });
   });
 
   it("keeps gliding through Shift, Tab and Ctrl keys, but a wheel lets go", () => {

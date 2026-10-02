@@ -1,12 +1,16 @@
 // The Lyrics list's current-part tint, and the scroll that centres it.
 //
 // The tint is one layer (`.seq-tint`, behind the text) that slides and
-// resizes from the old part to the new one, landing together with the scroll
-// as ONE motion: a single Web Animation is the clock, and the scroll reads
-// its eased progress each frame, so the two can never drift apart (and a
-// paused, seeked animation moves both). A step far from where the tint is
-// doesn't travel through the song: the tint fades instead and the scroll
-// lands at once. A list shown anew, and reduced motion, show the end state.
+// resizes from the old part to the new one, its leading edge arriving before
+// its trailing edge (it stretches over the new part, then lets go of the
+// old), landing together with the scroll as ONE motion: a single Web
+// Animation is the clock, and the scroll reads its eased progress each
+// frame, so the two can never drift apart (and a paused, seeked animation
+// moves both). A step far from where the tint is doesn't travel through the
+// song: the tint fades instead and the scroll lands at once. A list shown
+// anew, and reduced motion, show the end state. The text's colour change
+// keeps to the tint: it eases with the glide and the fade-in (styles.css),
+// and goes at once when the tint snaps (`data-tint` on the list).
 
 export type TintMode = "snap" | "glide" | "fade";
 export type ScrollMode = "snap" | "glide";
@@ -94,6 +98,70 @@ const stateOf = (list: HTMLElement): ListState => {
 };
 
 const FALLBACK_EASING = "cubic-bezier(0.2, 0, 0, 1)";
+// The leading edge has arrived by this share of the duration.
+const LEAD = 0.65;
+const EDGE_STEPS = 24;
+
+// The x in [0,1] at which a rising f reaches y, by bisection.
+function invert(f: (x: number) => number, y: number): number {
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (f(mid) < y) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/** A CSS cubic-bezier() as a function of time; null if it is not one. */
+export function parseEase(css: string): ((t: number) => number) | null {
+  const m = /^cubic-bezier\(\s*([^,]+),([^,]+),([^,]+),([^)]+)\)$/.exec(css.trim());
+  if (!m) return null;
+  const [x1, y1, x2, y2] = m.slice(1, 5).map(Number);
+  if ([x1, y1, x2, y2].some(Number.isNaN) || x1 < 0 || x1 > 1 || x2 < 0 || x2 > 1) return null;
+  const at = (a: number, b: number, u: number) =>
+    3 * a * u * (1 - u) ** 2 + 3 * b * u * u * (1 - u) + u ** 3;
+  return (t) => {
+    if (t <= 0) return 0;
+    if (t >= 1) return 1;
+    return at(
+      y1,
+      y2,
+      invert((u) => at(x1, x2, u), t),
+    );
+  };
+}
+
+/**
+ * The tint's boxes at even steps of the animation's eased progress, as
+ * keyframes. The trailing edge follows that progress; the leading edge (the
+ * bottom moving down, the top moving up) takes the same curve over the first
+ * LEAD of the time, so it has reached the new part before the old is let go.
+ * Pure, for tests.
+ */
+export function edgeBoxes(
+  from: Box,
+  to: Box,
+  ease: (t: number) => number,
+  steps = EDGE_STEPS,
+): Box[] {
+  const down = to.y >= from.y;
+  const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
+  return Array.from({ length: steps + 1 }, (_, i) => {
+    const p = i / steps;
+    const lead = i === steps ? 1 : ease(Math.min(1, invert(ease, p) / LEAD));
+    const top = lerp(from.y, to.y, down ? p : lead);
+    const bottom = lerp(from.y + from.h, to.y + to.h, down ? lead : p);
+    return {
+      x: lerp(from.x, to.x, p),
+      y: top,
+      w: lerp(from.w, to.w, p),
+      h: Math.max(0, bottom - top),
+    };
+  });
+}
+
 const FALLBACK_MS = 250;
 
 const tintOf = (list: HTMLElement) =>
@@ -151,6 +219,15 @@ function stop(state: ListState) {
   state.stopScroll = null;
   state.anim?.cancel();
   state.anim = null;
+}
+
+// A tint that snaps takes the text's colour with it: `data-tint` on the list
+// for one style recalculation turns the colour transition off, and is taken
+// off again with the colour already changed.
+function snapColour(list: HTMLElement) {
+  list.dataset.tint = "snap";
+  void list.offsetHeight;
+  delete list.dataset.tint;
 }
 
 const prefersReducedMotion = () =>
@@ -277,9 +354,13 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean }) {
   if (plan.scroll === "snap") list.scrollTop = scrollTo;
   if (!tint || typeof tint.animate !== "function") {
     if (plan.scroll === "glide") list.scrollTop = scrollTo;
+    snapColour(list);
     return;
   }
-  if (plan.tint === "snap" && plan.scroll === "snap") return;
+  if (plan.tint === "snap" && plan.scroll === "snap") {
+    snapColour(list);
+    return;
+  }
 
   const style = getComputedStyle(list);
   const duration = Number.parseFloat(style.getPropertyValue("--motion-medium")) || FALLBACK_MS;
@@ -305,8 +386,14 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean }) {
       : tint.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing });
   } else {
     // A snapped tint with a gliding scroll still needs the clock: it holds
-    // still (start equals end).
-    anim = tint.animate([frame(start), frame(to)], { duration, easing });
+    // still (start equals end). The effect's easing stays the clock the
+    // scroll reads; the edges' own timing is in the keyframes.
+    const ease = parseEase(easing);
+    const boxes = ease && !sameBox(start, to) ? edgeBoxes(start, to, ease) : [start, to];
+    anim = tint.animate(
+      boxes.map((b, i) => ({ ...frame(b), offset: i / (boxes.length - 1) })),
+      { duration, easing },
+    );
   }
   state.anim = anim;
   const settle = () => {
@@ -314,6 +401,7 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean }) {
   };
   anim.addEventListener("finish", settle);
   anim.addEventListener("cancel", settle);
+  if (plan.tint === "snap") snapColour(list);
   if (plan.scroll === "glide") rideScroll(list, state, anim, scrollTo);
 }
 

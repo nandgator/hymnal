@@ -2552,9 +2552,7 @@ html[data-scrolling],
   padding: var(--space-md) var(--space-lg);
   border-radius: 18px;
   color: var(--md-sys-color-on-surface-variant);
-  transition:
-    background-color 150ms ease,
-    color 150ms ease;
+  transition: background-color 150ms ease;
 }
 
 /* The current part is "selected", so it wears the tonal colour that means
@@ -2621,6 +2619,29 @@ html[data-scrolling],
 
 .seq-block[aria-current="step"] .seq-head {
   color: var(--md-sys-color-primary);
+}
+
+/* Text changes colour with the tint's glide: same time, same easing, so the
+   old part dims and the new one brightens as the tint travels. Only the
+   label and the lines transition (the block's colour just passes down), or
+   a line would chase its block's changing colour and lag behind. */
+.seq-head,
+.seq-line {
+  transition:
+    color var(--motion-medium) var(--motion-emphasized),
+    background-color var(--motion-short) var(--motion-emphasized);
+}
+
+/* lyricsGlide.ts marks a list whose tint snaps: the text goes at once too. */
+.sequence[data-tint="snap"] :is(.seq-head, .seq-line) {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seq-head,
+  .seq-line {
+    transition: none;
+  }
 }
 
 .seq-block {

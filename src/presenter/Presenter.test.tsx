@@ -20,6 +20,20 @@ vi.mock("../output/channel.ts", () => ({
   },
 }));
 
+// The lyrics glide, recorded: each call's `still` says whether it landed at
+// once (a step glides; a list or song shown anew does not).
+const glides = vi.hoisted(() => ({ stills: [] as boolean[] }));
+vi.mock("./lyricsGlide.ts", async (importOriginal) => {
+  const real = await importOriginal<typeof import("./lyricsGlide.ts")>();
+  return {
+    ...real,
+    glideLyrics: (list: HTMLElement, options: { still: boolean }) => {
+      glides.stills.push(options.still);
+      real.glideLyrics(list, options);
+    },
+  };
+});
+
 const HYMN: HymnSource = {
   number: 7,
   title: "Test Hymn",
@@ -958,5 +972,29 @@ describe("Presenter", () => {
     setNumber(6);
     expect(await screen.findByText("Short Hymn")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Only line" })).toBeInTheDocument();
+  });
+
+  it("a song shown anew lands at once; only a step glides", async () => {
+    const other: HymnSource = { ...HYMN, number: 8, title: "Other Hymn" };
+    const [number, setNumber] = createSignal(7);
+    render(() => (
+      <Presenter
+        hymnNumber={number()}
+        store={fakeStore({ getHymn: async (_book, n) => (n === 7 ? HYMN : other) })}
+        userState={fakeUserState()}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    glides.stills.length = 0;
+    fireEvent.click(screen.getByRole("button", { name: "Next part" }));
+    expect(glides.stills).toEqual([false]);
+
+    // The hymn number changes first, the new engine (cursor at its start) a
+    // moment later: neither is a step.
+    glides.stills.length = 0;
+    setNumber(8);
+    await screen.findByText("Other Hymn");
+    expect(glides.stills.length).toBeGreaterThan(0);
+    expect(glides.stills.every(Boolean)).toBe(true);
   });
 });

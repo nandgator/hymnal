@@ -465,18 +465,21 @@ export function Presenter(props: PresenterProps) {
   // since gliding a whole song's lyrics every time is motion without
   // meaning (PRINCIPLES.md, motion explains change).
   let lastStep: string | undefined;
-  let lastHymn: HymnNumber | undefined;
+  let lastEngine: SequenceEngine | undefined;
   createEffect(() => {
     version();
     expanded();
     phoneTab();
     groups();
     const lineIndex = cursor()?.lineIndex;
-    const step = `${props.hymnNumber}:${cursor()?.occurrenceIndex}:${lineIndex}`;
-    // A step glides; the same step again, or another song, lands at once.
-    const still = step === lastStep || props.hymnNumber !== lastHymn;
+    const step = `${cursor()?.occurrenceIndex}:${lineIndex}`;
+    // A step glides; the same step again lands at once, and so does a song
+    // shown anew: its engine arrives after the hymn number changes, with the
+    // cursor back at the start, which is not a step.
+    const current = engine();
+    const still = step === lastStep || current !== lastEngine;
     lastStep = step;
-    lastHymn = props.hymnNumber;
+    lastEngine = current;
     for (const chip of document.querySelectorAll<HTMLElement>(
       '.chip-filter[aria-pressed="true"]',
     )) {

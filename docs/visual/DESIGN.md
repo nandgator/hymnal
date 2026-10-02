@@ -626,7 +626,11 @@ view is close enough to the frame to need a smaller unit.
   takes the top match. Reduced motion shows the end state. **The Lyrics tint**
   slides and resizes with the scroll in 250ms (`lyricsGlide.ts`: one animation
   clocks both, so they land together; translate and height, never scaleY, which
-  warps the corners); a jump of more than a screen fades it instead.
+  warps the corners). Its leading edge arrives first and the trailing edge
+  follows, so it stretches over the new part, then lets go of the old; a jump of
+  more than a screen fades it instead. The text changes colour in those same
+  250ms and easing, so the part the tint leaves dims and the one it reaches
+  brightens as the tint passes, never ahead or behind it.
 - **Loading: the shape of what's coming, in its place** (Board #26 part 4). A
   screen still loading shows a skeleton of itself: the Library its card (title,
   count line, button), the Operator its panels, empty, where they will sit.
