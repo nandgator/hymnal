@@ -18,7 +18,7 @@ record, never edited.
 | [0006](0006-defer-the-native-wrapper-decision.md)               | Defer the native wrapper decision                       | Deferred                                                             |
 | [0007](0007-bundle-the-core-hymnbook.md)                        | Bundle the core hymnbook, download additional books     | Accepted                                                             |
 | [0008](0008-sqlite-as-the-on-device-content-store.md)           | SQLite as the on-device content store                   | Superseded by [0015](0015-use-official-sqlite-wasm-not-wa-sqlite.md) |
-| [0009](0009-migrate-the-corpus-by-rule.md)                      | Migrate the corpus by rule, refine in place             | Accepted                                                             |
+| [0009](0009-migrate-the-corpus-by-rule.md)                      | Migrate the corpus by rule, refine in place             | Superseded by [0026](0026-songs-leave-the-repository.md)             |
 | [0010](0010-model-liveness-as-pluggable-follow-sources.md)      | Model "what is live" as pluggable follow sources        | Accepted                                                             |
 | [0011](0011-defer-multi-device-sync-and-projector-output.md)    | Defer multi-device sync and projector output            | Deferred                                                             |
 | [0012](0012-drop-the-bookmark-helper.md)                        | Drop the bookmark helper                                | Accepted                                                             |
@@ -35,6 +35,8 @@ record, never edited.
 | [0023](0023-recognise-the-document-and-infer-its-layout.md)     | Recognise what a document holds; infer its layout       | Superseded by [0024](0024-import-case-by-case.md)                    |
 | [0024](0024-import-case-by-case.md)                             | Import case by case; the app loads only format 1        | Accepted                                                             |
 | [0025](0025-call-it-the-chorus.md)                              | Call it the chorus: screen, key, code and format        | Accepted                                                             |
+| [0026](0026-songs-leave-the-repository.md)                      | Songs leave the repository; every book is an import     | Accepted                                                             |
+| [0027](0027-review-a-book-without-editing-it.md)                | Review a book without editing it                        | Accepted                                                             |
 
 ## Open questions
 

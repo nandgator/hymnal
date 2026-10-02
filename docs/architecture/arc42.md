@@ -150,7 +150,9 @@ the core hymnbook ships inside the application
 ### 3.3 Out of Scope
 
 No backend, no accounts, no telemetry, no inter-device communication, no audio
-input, no chord charts or sheet music, no in-app content editing.
+input, no chord charts or sheet music, no in-app content editing. A book being
+loaded is reviewed without edit: read, shown, never changed
+([ADR-0027](../decisions/0027-review-a-book-without-editing-it.md)).
 
 ---
 
@@ -523,7 +525,7 @@ clickers actually send.
 | [0006](../decisions/0006-defer-the-native-wrapper-decision.md)               | Defer the native wrapper decision                          | Deferred                                                                          |
 | [0007](../decisions/0007-bundle-the-core-hymnbook.md)                        | Bundle the core hymnbook, download additional books        | Accepted                                                                          |
 | [0008](../decisions/0008-sqlite-as-the-on-device-content-store.md)           | SQLite as the on-device content store                      | Superseded by [0015](../decisions/0015-use-official-sqlite-wasm-not-wa-sqlite.md) |
-| [0009](../decisions/0009-migrate-the-corpus-by-rule.md)                      | Migrate the corpus by rule, refine in place                | Accepted                                                                          |
+| [0009](../decisions/0009-migrate-the-corpus-by-rule.md)                      | Migrate the corpus by rule, refine in place                | Superseded by [0026](../decisions/0026-songs-leave-the-repository.md)             |
 | [0010](../decisions/0010-model-liveness-as-pluggable-follow-sources.md)      | Model liveness as pluggable follow sources                 | Accepted                                                                          |
 | [0011](../decisions/0011-defer-multi-device-sync-and-projector-output.md)    | Defer multi-device sync and projector output               | Deferred                                                                          |
 | [0012](../decisions/0012-drop-the-bookmark-helper.md)                        | Drop the bookmark helper                                   | Accepted                                                                          |
@@ -540,6 +542,8 @@ clickers actually send.
 | [0023](../decisions/0023-recognise-the-document-and-infer-its-layout.md)     | Recognise what a document holds; infer its layout          | Superseded by [0024](../decisions/0024-import-case-by-case.md)                    |
 | [0024](../decisions/0024-import-case-by-case.md)                             | Import case by case; the app loads only format 1           | Accepted                                                                          |
 | [0025](../decisions/0025-call-it-the-chorus.md)                              | Call it the chorus: screen, key, code and format           | Accepted                                                                          |
+| [0026](../decisions/0026-songs-leave-the-repository.md)                      | Songs leave the repository; every book is an import        | Accepted                                                                          |
+| [0027](../decisions/0027-review-a-book-without-editing-it.md)                | Review a book without editing it                           | Accepted                                                                          |
 
 Full index, with open questions, in [`docs/decisions/`](../decisions/README.md).
 
