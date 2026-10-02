@@ -32,10 +32,10 @@ const REFRESH_MS = 30_000;
 
 type RecentRow = RecentEntry & { title: string };
 
-/** Material's emphasised easing and a medium-long duration: a row can
- * travel the list's length. */
+/** Material's emphasised easing, at the top of the 200–300ms range: a row
+ * can travel the list's length. */
 const EMPHASIZED = "cubic-bezier(0.2, 0, 0, 1)";
-const GLIDE_MS = 400;
+const GLIDE_MS = 300;
 /** A heading whose group has emptied fades out quicker than rows travel. */
 const GHOST_FADE_MS = 150;
 
