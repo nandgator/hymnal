@@ -81,7 +81,6 @@ Ordered. Top unblocked item is next.
 | --- | ----------------------------------------------------------------------------------------------- | ---------- |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                | —          |
 | 28  | Library: load songs and books in format 1, local only; keys, duplicates (SDD-0004, ADR-0026/27) | —          |
-| 31  | Output on the projector screen: pick and remember it, fullscreen (ADR-0028; Chromium)           | —          |
 | 33  | Authoring kit: the song text format, a prompt template, a sample (ADR-0029)                     | —          |
 | 34  | Song text in the app: parser to format 1 and the source check (ADR-0029)                        | 28, 33     |
 | 35  | The song text parser and source check in the CLI (ADR-0029)                                     | 34         |
@@ -137,6 +136,11 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — Board #31 built: Output on the chosen screen in Chrome and Edge
+  (pure `chooseScreen`, `openOutputWindow`, Settings > Output screen with Detect
+  screens, `placed` Output fullscreen on first click or F, screenschange
+  notices, plain popup with a drag hint elsewhere); needs a two-screen check;
+  SDD-0001 §16.1
 - 2026-10-02 — #28 part 4: the verdict (§8), review, commit, cancel, Replace
   (the row's swap is the commit; reconcile finishes a crashed one), remove with
   its recents, persistent storage at the first load, no network

@@ -8,6 +8,9 @@ export interface SnackbarProps {
   /** Closes without acting; absent when the action itself closes. */
   dismissLabel?: string;
   onDismiss?: () => void;
+  /** Floats at every width, never in the flow: for a notice that appears while
+   * live, which must not move the layout (DESIGN.md § Snackbar). */
+  floating?: boolean;
 }
 
 /**
@@ -17,7 +20,7 @@ export interface SnackbarProps {
  */
 export function Snackbar(props: SnackbarProps) {
   return (
-    <div class="snackbar-region">
+    <div class="snackbar-region" classList={{ "snackbar-floating": props.floating }}>
       <div class="snackbar">
         <span class="snackbar-message">{props.message}</span>
         <button type="button" class="btn-text snackbar-action" onClick={props.onAction}>

@@ -1,4 +1,19 @@
-import { createEffect, createResource, createSignal, For, onCleanup, Show } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  For,
+  onCleanup,
+  Show,
+} from "solid-js";
+import {
+  describeScreen,
+  keyOf,
+  rememberedScreenOf,
+  type ScreenKey,
+  sameKey,
+} from "../output/screens.ts";
 import {
   type BandSize,
   bandSizeOf,
@@ -17,6 +32,7 @@ import {
 } from "../persistence/user-state.ts";
 import { ariaKeys, keyHint, withKey } from "./keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./media.ts";
+import { createOutputScreens, type OutputScreens } from "./outputScreens.ts";
 import { isPaneShown, PANES, type PaneId } from "./panes.ts";
 import { easeThemeChange, revealWithin, shownTheme } from "./theme.ts";
 import { setSplit, workspaceOf } from "./workspace.ts";
@@ -154,6 +170,8 @@ export interface SettingsProps {
   userState?: UserState;
   /** The shell's shared controller; without one, Settings makes its own. */
   controller?: PreferencesController;
+  /** The shell's shared screens (ADR-0028); without one, Settings makes its own. */
+  screens?: OutputScreens;
   /** Opens the shortcut sheet; without it, the Keyboard section is left out. */
   onShowShortcuts?: () => void;
 }
@@ -198,6 +216,40 @@ export function Settings(props: SettingsProps) {
       </For>
     </fieldset>
   );
+
+  // The Output screen (ADR-0028): Automatic, or one of the detected screens;
+  // a remembered one that is not attached stays listed, marked.
+  const screens = props.screens ?? createOutputScreens();
+  const remembered = () => rememberedScreenOf(preferences().outputScreen);
+  const screenList = createMemo<{ key: ScreenKey; text: string }[]>(() => {
+    const detected = screens.screens().map((screen, index) => ({
+      key: keyOf(screen),
+      text: describeScreen(screen, index),
+    }));
+    const wanted = remembered();
+    if (wanted && !detected.some((entry) => sameKey(entry.key, wanted)))
+      detected.push({ key: wanted, text: `${describeScreen(wanted)} (not connected)` });
+    return detected;
+  });
+  const chosenScreen = () => {
+    const wanted = remembered();
+    return wanted ? String(screenList().findIndex((entry) => sameKey(entry.key, wanted))) : "auto";
+  };
+  const chooseScreenAt = (value: string) => {
+    const { outputScreen: _previous, ...rest } = preferences();
+    const entry = value === "auto" ? undefined : screenList()[Number(value)];
+    update(entry ? { ...rest, outputScreen: entry.key } : rest);
+  };
+  const screenNote = () => {
+    if (screens.status() === "denied")
+      return "The browser blocked screen access. Allow window management for this site in its settings, then detect again";
+    if (screens.status() === "error") return "Could not list the screens. Detect to try again";
+    if (screens.screens().length === 0)
+      return "Automatic picks the projector once the screens are known; Detect screens asks the browser";
+    if (screens.screens().length === 1)
+      return "One screen is attached, so there is nothing to choose";
+    return "Automatic picks an external screen that is not your main one";
+  };
 
   // Search (a Settings sheet grows): rows whose text holds every word typed
   // stay, the rest hide, and a section left empty hides its heading too.
@@ -370,6 +422,37 @@ export function Settings(props: SettingsProps) {
         <h3 id={`${id}-presentation`} class="settings-heading">
           Presentation
         </h3>
+        <Show when={screens.supported}>
+          <div class="settings-row">
+            <label class="settings-label" for={`${id}-output-screen`}>
+              Output screen
+              <span class="settings-supporting">{screenNote()}</span>
+            </label>
+            <div class="settings-screen-control">
+              <select
+                id={`${id}-output-screen`}
+                class="settings-select"
+                aria-label="Output screen"
+                value={chosenScreen()}
+                onChange={(event) => chooseScreenAt(event.currentTarget.value)}
+              >
+                <option value="auto" selected={chosenScreen() === "auto"}>
+                  Automatic
+                </option>
+                <For each={screenList()}>
+                  {(entry, index) => (
+                    <option value={String(index())} selected={chosenScreen() === String(index())}>
+                      {entry.text}
+                    </option>
+                  )}
+                </For>
+              </select>
+              <button type="button" class="btn-text" onClick={() => void screens.detect()}>
+                Detect screens
+              </button>
+            </div>
+          </div>
+        </Show>
         <div class="settings-row">
           <span class="settings-label">
             Output theme

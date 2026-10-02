@@ -203,6 +203,22 @@ describe("pickNotice", () => {
     ).toBeUndefined();
   });
 
+  it("shows a screen notice first, and even while live", () => {
+    const live = { ...idle, update: { ready: true, live: true }, safariHint: true };
+    expect(pickNotice({ ...live, screen: "gone" })).toBe("gone");
+    expect(pickNotice({ ...idle, update: { ready: true, live: false }, screen: "drag" })).toBe(
+      "drag",
+    );
+  });
+
+  it("holds the update back only while a screen notice is up", () => {
+    const live = { ...idle, update: { ready: true, live: true } };
+    expect(pickNotice({ ...live, screen: "drag" })).toBe("drag");
+    expect(pickNotice({ ...live, screen: undefined })).toBeUndefined();
+    const closed = { ...live, update: { ready: true, live: false } };
+    expect(pickNotice({ ...closed, screen: undefined })).toBe("update");
+  });
+
   it("brings the update back when the Output closes", () => {
     const waiting = { ...idle, update: { ready: true, live: true } };
     expect(pickNotice(waiting)).toBeUndefined();

@@ -1,5 +1,6 @@
 import { type DBSchema, type IDBPDatabase, openDB } from "idb";
 import type { HymnbookId, HymnNumber, Position } from "../domain/types.ts";
+import type { ScreenKey } from "../output/screens.ts";
 
 export interface RecentEntry {
   hymnbookId: HymnbookId;
@@ -66,6 +67,13 @@ export interface Preferences {
   workspace?: unknown;
   /** The Safari "add to Home Screen" note was dismissed; shown once — SDD-0001 §15. */
   homeScreenHintDismissed?: boolean;
+  /** The screen the operator chose for the Output, by label and size; absent
+   * means Automatic — SDD-0001 §16.1, ADR-0028. Read through `rememberedScreenOf`. */
+  outputScreen?: ScreenKey;
+  /** "Drag it to the projector and press F11" was shown; once. */
+  dragHintDismissed?: boolean;
+  /** "Click the Output, or press F, for fullscreen" was shown; once. */
+  fullscreenHintDismissed?: boolean;
 }
 
 /** The cues when none are chosen: what a songbook congregation needs, the

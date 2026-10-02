@@ -64,17 +64,35 @@ export function restartIfAllowed(state: UpdateState, restart: () => void): boole
   return true;
 }
 
-export type NoticeId = "update" | "safari-hint";
+/** The notices about the Output window's screen (ADR-0028): shown even while
+ * live, since they are about that window and caused by it. */
+export const SCREEN_NOTICE_IDS = [
+  "drag",
+  "fullscreen",
+  "blocked",
+  "gone",
+  "back",
+  "stuck",
+] as const;
+export type ScreenNoticeId = (typeof SCREEN_NOTICE_IDS)[number];
+export const isScreenNotice = (id: string | undefined): id is ScreenNoticeId =>
+  SCREEN_NOTICE_IDS.includes(id as ScreenNoticeId);
+
+export type NoticeId = "update" | "safari-hint" | ScreenNoticeId;
 
 /**
- * Which notice the shell shows, if any — one at a time, the update first
- * (it needs a decision; the hint is advice). Nothing while the Output is live.
+ * Which notice the shell shows, if any — one at a time: a screen notice
+ * first (it is about the window that just opened or moved), then the update
+ * (it needs a decision; the hint is advice). Nothing else while the Output
+ * is live.
  */
 export function pickNotice(state: {
   update: UpdateState;
   safariHint: boolean;
   updateDismissed: boolean;
+  screen?: ScreenNoticeId;
 }): NoticeId | undefined {
+  if (state.screen) return state.screen;
   if (state.update.live) return undefined;
   if (updateGate(state.update).prompt && !state.updateDismissed) return "update";
   if (state.safariHint) return "safari-hint";

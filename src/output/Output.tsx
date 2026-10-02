@@ -76,6 +76,40 @@ export function Output() {
     clearTimeout(cursorTimer);
   });
 
+  // Placed on a screen by the Operator (ADR-0028): fullscreen there. A
+  // browser may refuse without a gesture in this window, so the first click
+  // or F key goes fullscreen instead, and neither reaches the Operator.
+  const placed = new URLSearchParams(window.location.search).has("placed");
+  const [wantsFullscreen, setWantsFullscreen] = createSignal(false);
+  const goFullscreen = () =>
+    document.documentElement.requestFullscreen?.().then(
+      () => setWantsFullscreen(false),
+      () => setWantsFullscreen(true),
+    );
+  onMount(() => {
+    if (!placed || document.fullscreenElement) return;
+    if (!document.documentElement.requestFullscreen) return;
+    setWantsFullscreen(true);
+    void goFullscreen();
+  });
+  const onFullscreenChange = () => {
+    // Leaving fullscreen (a move to another screen) re-arms the click and F.
+    setWantsFullscreen(placed && !document.fullscreenElement);
+  };
+  const onFirstClick = (event: MouseEvent) => {
+    if (!wantsFullscreen()) return;
+    event.stopPropagation();
+    void goFullscreen();
+  };
+  onMount(() => {
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    window.addEventListener("click", onFirstClick, true);
+  });
+  onCleanup(() => {
+    document.removeEventListener("fullscreenchange", onFullscreenChange);
+    window.removeEventListener("click", onFirstClick, true);
+  });
+
   // Keys pressed here act as in the Operator (SDD-0001 §16.1): with the
   // Output fullscreen on the projector, a clicker's keys often land in this
   // window. Every plain key is forwarded, with whether it is auto-repeating (R and
@@ -83,6 +117,11 @@ export function Output() {
   // chords stay the browser's.
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (wantsFullscreen() && (event.key === "f" || event.key === "F")) {
+      event.preventDefault();
+      void goFullscreen();
+      return;
+    }
     if (event.key.length !== 1 && !FORWARDED_KEYS.has(event.key)) return;
     event.preventDefault();
     forwardKey({ key: event.key, shiftKey: event.shiftKey, repeat: event.repeat });

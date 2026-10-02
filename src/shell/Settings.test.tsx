@@ -249,3 +249,113 @@ describe("Settings", () => {
     );
   });
 });
+
+describe("Settings: Output screen (ADR-0028)", () => {
+  const panel = {
+    label: "Color LCD",
+    width: 1440,
+    height: 900,
+    left: 0,
+    top: 0,
+    isPrimary: true,
+    isInternal: true,
+  };
+  const projector = {
+    ...panel,
+    label: "EPSON PJ",
+    width: 1280,
+    height: 800,
+    isPrimary: false,
+    isInternal: false,
+  };
+
+  function attach(screens: object[], reject?: Error) {
+    const details = Object.assign(new EventTarget(), { screens, currentScreen: screens[0] });
+    const getScreenDetails = vi.fn(async () => {
+      if (reject) throw reject;
+      return details;
+    });
+    Object.assign(window, { getScreenDetails });
+    return { details, getScreenDetails };
+  }
+  afterEach(() => Reflect.deleteProperty(window, "getScreenDetails"));
+
+  it("is left out where the browser has no Window Management API", () => {
+    render(() => <Settings userState={fakeUserState()} />);
+    expect(screen.queryByLabelText("Output screen")).not.toBeInTheDocument();
+  });
+
+  it("lists Automatic, then the screens after Detect screens, built-in named as such", async () => {
+    const { getScreenDetails } = attach([panel, projector]);
+    render(() => <Settings userState={fakeUserState()} />);
+    const select = (await screen.findByLabelText("Output screen")) as HTMLSelectElement;
+    expect([...select.options].map((option) => option.text)).toEqual(["Automatic"]);
+    expect(getScreenDetails).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Detect screens" }));
+
+    await screen.findByRole("option", { name: "EPSON PJ, 1280×800" });
+    expect([...select.options].map((option) => option.text)).toEqual([
+      "Automatic",
+      "Built-in, 1440×900",
+      "EPSON PJ, 1280×800",
+    ]);
+    expect(select.value).toBe("auto");
+  });
+
+  it("stores the pick by label and size, and Automatic clears it", async () => {
+    attach([panel, projector]);
+    const setPreferences = vi.fn(async () => {});
+    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Detect screens" }));
+    await screen.findByRole("option", { name: "EPSON PJ, 1280×800" });
+    const select = screen.getByLabelText("Output screen") as HTMLSelectElement;
+
+    fireEvent.change(select, { target: { value: "1" } });
+    expect(setPreferences).toHaveBeenLastCalledWith(
+      expect.objectContaining({ outputScreen: { label: "EPSON PJ", width: 1280, height: 800 } }),
+    );
+    await vi.waitFor(() => expect(select.value).toBe("1"));
+
+    fireEvent.change(select, { target: { value: "auto" } });
+    expect((setPreferences.mock.lastCall as unknown[] | undefined)?.[0]).not.toHaveProperty(
+      "outputScreen",
+    );
+  });
+
+  it("keeps a remembered screen that is not attached in the list, marked", async () => {
+    attach([panel]);
+    render(() => (
+      <Settings
+        userState={fakeUserState({
+          getPreferences: async () => ({
+            ...DEFAULT_PREFERENCES,
+            outputScreen: { label: "EPSON PJ", width: 1280, height: 800 },
+          }),
+        })}
+      />
+    ));
+    expect(
+      await screen.findByRole("option", { name: "EPSON PJ, 1280×800 (not connected)" }),
+    ).toBeInTheDocument();
+  });
+
+  it("explains a blocked permission", async () => {
+    attach([panel, projector], Object.assign(new Error("no"), { name: "NotAllowedError" }));
+    render(() => <Settings userState={fakeUserState()} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Detect screens" }));
+    expect(await screen.findByText(/blocked screen access/)).toBeInTheDocument();
+  });
+
+  it("follows screenschange", async () => {
+    const { details } = attach([panel]);
+    render(() => <Settings userState={fakeUserState()} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Detect screens" }));
+    await screen.findByText(/One screen is attached/);
+
+    (details.screens as object[]).push(projector);
+    details.dispatchEvent(new Event("screenschange"));
+
+    expect(await screen.findByRole("option", { name: "EPSON PJ, 1280×800" })).toBeInTheDocument();
+  });
+});

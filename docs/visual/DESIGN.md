@@ -543,7 +543,12 @@ view is close enough to the frame to need a smaller unit.
     Live, Split the tab groups, and Scrolling the Output moves the Operator
     (switches). **Keyboard**: opens the shortcut sheet, whose Close then reads
     Back and returns to Settings. **Presentation** (part 4): the Output theme
-    (Dark | Light | Contrast | Warm) and one switch per cue.
+    (Dark | Light | Contrast | Warm) and one switch per cue; and, in Chrome and
+    Edge only, **Output screen**: a select of Automatic and the screens by label
+    and size ("Built-in" for the laptop's panel, a remembered one not attached
+    marked "not connected"), with a text **Detect screens** button that asks the
+    browser to list them; its supporting line says what Automatic picks, or that
+    permission is blocked. Hidden where the browser cannot place a window.
   - **Show/hide**: Live, remembered, and the tab layout (SDD-0001 §16.4). This
     hymn and the dock never hide.
 - **One transport** (Board #26, PRINCIPLES.md). From 840px it sits at the
@@ -577,7 +582,17 @@ view is close enough to the frame to need a smaller unit.
   Keyboard: Esc puts it away (Later; the note's Got it), and the command menu
   has **Restart to update** and **Dismiss the Home Screen note**. In forced
   colours it gains a 1px CanvasText border, and its buttons a visible focus
-  ring. Undo still stays in the Repeat row, not here.
+  ring. Undo still stays in the Repeat row, not here. **Screen notices** are the
+  exception to "never while live": they are about the Output window itself and
+  caused by it, so they show at once, are dismissed (**Got it**) and never
+  repeat once seen. They **float at every width** (above the dock on a phone,
+  top right under the header from 840px), never in the strip, so the layout does
+  not move live, and they come before the update. Six: "Drag the Output to the
+  projector, then press F11" (a plain popup, once), "The Output is on the
+  projector screen. If it isn't fullscreen, click it or press F" (once), "The
+  browser blocked the Output window" (pop-ups), "The screen the Output was on is
+  gone" (the window stays), and "That screen is back. Move the Output to it?"
+  with **Move it** and a close (Stay).
 - **Rhythm and states.** One 12px gap above, between and below the areas.
   Disabled is the whole control at 38%, whatever its style. Only floating things
   cast a shadow (menus, sheets, the snackbar, Back to Current); cards and panels

@@ -986,6 +986,30 @@ button:disabled {
   font-size: 1rem;
 }
 
+/* The Output screen's picker: a native select dressed as the text field. */
+.settings-select {
+  min-height: 3rem;
+  max-width: 100%;
+  padding: 0 var(--space-md);
+  border: none;
+  border-radius: var(--button-shape);
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  font: inherit;
+}
+
+.settings-select:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.settings-screen-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  max-width: 100%;
+}
+
 .text-field input::placeholder {
   color: var(--md-sys-color-on-surface-variant);
 }
@@ -3549,6 +3573,20 @@ html[data-scrolling],
     justify-content: flex-start;
     flex: none;
     padding: var(--space-xs) var(--space-md) 0;
+  }
+}
+
+/* A notice that appears while live floats from 840px too, top right under the
+   header, so the layout never moves. */
+@media (min-width: 840px) {
+  .snackbar-region.snackbar-floating {
+    position: fixed;
+    top: 4rem;
+    right: 0;
+    bottom: auto;
+    left: auto;
+    justify-content: flex-end;
+    padding: 0 var(--space-md);
   }
 }
 

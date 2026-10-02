@@ -436,3 +436,257 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
   vi.restoreAllMocks();
 });
+
+describe("App: the Output on the projector screen (ADR-0028)", () => {
+  const laptop = {
+    label: "Color LCD",
+    width: 1440,
+    height: 900,
+    left: 0,
+    top: 0,
+    isPrimary: true,
+    isInternal: true,
+  };
+  const projector = {
+    label: "EPSON PJ",
+    width: 1280,
+    height: 800,
+    left: 1440,
+    top: 0,
+    isPrimary: false,
+    isInternal: false,
+  };
+
+  /** A fake second screen: the Window Management API Chromium has, and `isExtended`. */
+  function attach(screens: object[], reject?: Error) {
+    const details = Object.assign(new EventTarget(), { screens, currentScreen: screens[0] });
+    const getScreenDetails = vi.fn(async () => {
+      if (reject) throw reject;
+      return details;
+    });
+    Object.assign(window, { getScreenDetails });
+    Object.defineProperty(window.screen, "isExtended", { value: true, configurable: true });
+    return { details, getScreenDetails };
+  }
+
+  afterEach(() => {
+    Reflect.deleteProperty(window, "getScreenDetails");
+    Reflect.deleteProperty(window.screen, "isExtended");
+    vi.restoreAllMocks();
+  });
+
+  it("asks for the screens on Go live and opens the Output on the projector", async () => {
+    const { getScreenDetails } = attach([laptop, projector]);
+    const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
+    render(() => <App />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
+
+    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+
+    await waitFor(() => expect(open).toHaveBeenCalled());
+    expect(getScreenDetails).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenCalledWith(
+      expect.stringMatching(/\?output=1&placed=1$/),
+      "hymnal-output",
+      "popup,left=1440,top=0,width=1280,height=800",
+    );
+    expect(
+      (await screen.findAllByText(/click it or press F/, {}, { timeout: 3000 })).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("opens the plain popup, with a one-time drag hint, when the permission is denied", async () => {
+    attach([laptop, projector], Object.assign(new Error("no"), { name: "NotAllowedError" }));
+    const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
+    render(() => <App />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
+
+    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+
+    await waitFor(() => expect(open).toHaveBeenCalled());
+    expect(open).toHaveBeenCalledWith(
+      expect.stringMatching(/\?output=1$/),
+      "hymnal-output",
+      "popup",
+    );
+    expect((await screen.findAllByText(/Drag the Output to the projector/)).length).toBeGreaterThan(
+      0,
+    );
+  });
+
+  it("opens the plain popup with one screen, without asking", async () => {
+    const { getScreenDetails } = attach([laptop]);
+    Object.defineProperty(window.screen, "isExtended", { value: false, configurable: true });
+    const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
+    render(() => <App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+
+    await waitFor(() => expect(open).toHaveBeenCalled());
+    expect(getScreenDetails).not.toHaveBeenCalled();
+    expect(open).toHaveBeenCalledWith(
+      expect.stringMatching(/\?output=1$/),
+      "hymnal-output",
+      "popup",
+    );
+  });
+
+  it("says so when the browser blocks the window", async () => {
+    vi.spyOn(window, "open").mockReturnValue(null);
+    render(() => <App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+
+    expect((await screen.findAllByText(/blocked the Output window/)).length).toBeGreaterThan(0);
+  });
+
+  /** A popup that moves when told, as far as the test needs. */
+  const fakeWindow = () => {
+    const win = {
+      closed: false,
+      focus: vi.fn(),
+      screenX: 1440,
+      screenY: 0,
+      outerWidth: 1280,
+      outerHeight: 800,
+      document: {},
+      moveTo: vi.fn((x: number, y: number) => {
+        win.screenX = x;
+        win.screenY = y;
+      }),
+      resizeTo: vi.fn(),
+    };
+    return win;
+  };
+
+  /** Goes live on the projector and has an Output answer, so the App is On Air. */
+  async function goLive(screens: object[] = [laptop, projector]) {
+    const { details } = attach(screens);
+    const win = fakeWindow();
+    vi.spyOn(window, "open").mockReturnValue(win as unknown as Window);
+    render(() => <App />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await waitFor(() => expect(window.open).toHaveBeenCalled());
+    const output = new BroadcastChannel("hymnal-output");
+    output.postMessage({ type: "hello", id: "test-output" });
+    await screen.findByRole("button", { name: "On Air" });
+    return { details, win, output };
+  }
+  const unplug = (details: EventTarget & { screens: unknown }) => {
+    (details.screens as object[]).splice(1, 1);
+    details.dispatchEvent(new Event("screenschange"));
+  };
+  const replug = (details: EventTarget & { screens: unknown }) => {
+    (details.screens as object[]).push(projector);
+    details.dispatchEvent(new Event("screenschange"));
+  };
+  const noticeText = (pattern: RegExp) => screen.queryAllByText(pattern).length;
+
+  it("lets Escape put away every screen notice", async () => {
+    // blocked
+    vi.spyOn(window, "open").mockReturnValue(null);
+    const first = render(() => <App />);
+    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await screen.findAllByText(/blocked the Output window/);
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(noticeText(/blocked the Output window/)).toBe(0));
+    first.unmount();
+    vi.restoreAllMocks();
+
+    // drag (a plain popup once)
+    vi.spyOn(window, "open").mockReturnValue({} as Window);
+    const second = render(() => <App />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await screen.findAllByText(/Drag the Output to the projector/);
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(noticeText(/Drag the Output to the projector/)).toBe(0));
+    second.unmount();
+  });
+
+  it("lets Escape put away the fullscreen, gone and back notices", async () => {
+    const { details } = await goLive();
+    await screen.findAllByText(/click it or press F/, {}, { timeout: 3000 });
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(noticeText(/click it or press F/)).toBe(0));
+
+    unplug(details as never);
+    await screen.findAllByText(/screen the Output was on is gone/);
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(noticeText(/is gone/)).toBe(0));
+
+    // Escaping the gone notice leaves it to come back as an offer; Escape on
+    // that offer is Stay, and no more is offered.
+    replug(details as never);
+    await screen.findAllByText(/That screen is back/);
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(noticeText(/That screen is back/)).toBe(0));
+    unplug(details as never);
+    replug(details as never);
+    expect(noticeText(/That screen is back/)).toBe(0);
+  });
+
+  it("leaves the Output where it is when its screen goes, and offers it back, never jumping", async () => {
+    const { details, win } = await goLive();
+    unplug(details as never);
+    await screen.findAllByText(/is gone/);
+    expect(win.moveTo).not.toHaveBeenCalled();
+
+    replug(details as never);
+    await screen.findAllByText(/That screen is back/);
+    expect(win.moveTo).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Move it" }));
+    await waitFor(() => expect(win.moveTo).toHaveBeenCalledWith(1440, 0));
+    await waitFor(() => expect(noticeText(/That screen is back/)).toBe(0));
+  });
+
+  it("Stay leaves the Output alone", async () => {
+    const { details, win } = await goLive();
+    unplug(details as never);
+    await screen.findAllByText(/is gone/);
+    replug(details as never);
+    await screen.findAllByText(/That screen is back/);
+    fireEvent.click(screen.getByRole("button", { name: "Stay" }));
+    await waitFor(() => expect(noticeText(/That screen is back/)).toBe(0));
+    expect(win.moveTo).not.toHaveBeenCalled();
+  });
+
+  it("says so when the Output cannot be moved", async () => {
+    const { details, win } = await goLive();
+    unplug(details as never);
+    await screen.findAllByText(/is gone/);
+    replug(details as never);
+    await screen.findAllByText(/That screen is back/);
+    win.moveTo.mockImplementation(() => {});
+    win.screenX = 50;
+    fireEvent.click(screen.getByRole("button", { name: "Move it" }));
+    await screen.findAllByText(/could not move/);
+  });
+
+  it("moves an open Output when a screen is picked in Settings", async () => {
+    const monitor = { ...projector, label: "DELL", width: 2560, height: 1440, left: 2720 };
+    const { win } = await goLive([laptop, projector, monitor]);
+    fireEvent.click(screen.getByRole("button", { name: /^(Settings|Menu)$/ }));
+    const select = (await screen.findByLabelText("Output screen")) as HTMLSelectElement;
+    await screen.findByRole("option", { name: "DELL, 2560×1440" });
+
+    fireEvent.change(select, { target: { value: "2" } });
+
+    await waitFor(() => expect(win.moveTo).toHaveBeenCalledWith(2720, 0));
+  });
+
+  it("puts a hint away by itself, so it cannot hold the update notice back", async () => {
+    attach([laptop]);
+    Object.defineProperty(window.screen, "isExtended", { value: false, configurable: true });
+    vi.spyOn(window, "open").mockReturnValue({} as Window);
+    render(() => <App />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await screen.findAllByText(/Drag the Output to the projector/);
+    await waitFor(() => expect(noticeText(/Drag the Output to the projector/)).toBe(0), {
+      timeout: 10000,
+    });
+  }, 15000);
+});

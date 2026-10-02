@@ -1085,10 +1085,10 @@ the deferred multi-device/projector feature (ADR-0011), but it's actually a
 same-origin, two-_window_ mechanism — squarely inside Phase 1's single-device
 scope.
 
-**Mechanism**: a second `window.open()`, positioned and fullscreened by the
-operator manually (drag to the second display, native fullscreen) — not the
-newer Window Management API (`getScreenDetails()`), which is Chrome/Edge-only
-and needs an extra permission prompt. State flows Operator → Output over a
+**Mechanism**: a second `window.open()`. Where the browser has the Window
+Management API and a second screen is attached, the Output opens on the chosen
+screen (below); everywhere else it is a plain popup the operator drags to the
+display and makes fullscreen. State flows Operator → Output over a
 `BroadcastChannel`, a module-level singleton (the same shape as the
 `userState`/`getContentStore()` singletons elsewhere in `src/persistence/`), not
 App-level Solid state — the channel itself has no reason to be a component.
@@ -1254,16 +1254,64 @@ follows Settings live without reading storage itself.
 
 Cursor: shown while the mouse moves, hidden after 2s idle.
 
+**Opening on the projector screen** (ADR-0028, Board #31). The choice is the
+pure `chooseScreen` (`src/output/screens.ts`): screens in, a screen or none out.
+The operator's own pick, remembered as the screen's `label` plus its width and
+height (`preferences.outputScreen`; absent means Automatic), wins if it is still
+attached, and of two identical monitors the one the operator is not on.
+Automatic takes an external screen that is not primary and not the operator's
+`currentScreen`, then the largest, then the landscape one; none qualifying is
+none. `openOutputWindow` (`src/shell/openOutput.ts`) runs on Go live:
+
+1. Not `getScreenDetails` in `window`: the plain popup, at once.
+2. No screens known yet and `screen.isExtended` false: the plain popup, without
+   asking. True: `getScreenDetails()` on this click, which is the browser's
+   permission prompt the first time. A permission granted before is used at
+   start-up with no prompt (`createOutputScreens`,
+   `src/shell/outputScreens.ts`), so later opens call `window.open`
+   synchronously and the click's activation is still live. A refusal or any
+   error is the plain popup.
+3. A chosen screen:
+   `window.open(url + "&placed=1", name, "popup,left,top,width, height")` over
+   that screen. The only wait is the first permission prompt, and if the browser
+   then blocks the popup (activation spent on the prompt) a notice says to allow
+   pop-ups and press Go live again, which is now instant.
+
+A `placed` Output asks for `requestFullscreen()` on load. Where the browser
+refuses without a gesture in the Output's own window, its first click or F key
+goes fullscreen instead (that click or key is not forwarded or acted on); once
+fullscreen, F and clicks are as before. The window is already on the chosen
+screen, so a plain `requestFullscreen()` fullscreens there. The Operator cannot
+fullscreen another window's document from its own click, and does not try. The
+channel is untouched: `placed` is a URL parameter, not a message.
+
+`screenschange` (on the shared `ScreenDetails`) keeps the list live. A screen
+the Output was placed on that vanishes leaves the window where it is, with a
+notice; if it returns the notice offers to move the Output there ("Move it" or
+"Stay") and never jumps. Choosing a screen in Settings moves an open Output
+(`moveTo` and `resizeTo` on the window `open` returned, leaving fullscreen
+first, which re-arms the Output's click and F). A move that did not land (its
+`screenX`/`screenY` checked after) says so, and the placed screen is not
+updated. The screen the Output is on is read from its own position every two
+seconds, so a window the operator dragged is tracked where it is, and the
+fullscreen hint is skipped if the Output went fullscreen by itself.
+
+Hints, each shown once and marked in preferences when first shown: on a placed
+open, "click it or press F" (`fullscreenHintDismissed`); on any plain open with
+a window, "drag it to the projector and press F11" (`dragHintDismissed`).
+Notices for the window's own placement are the one kind shown while live (§15
+keeps the update notice away from a live Output); see DESIGN.md § Snackbar.
+
 **Forward compatibility, deliberately not built yet**: `window.open()` +
 `BroadcastChannel` is standard web API, per ADR-0004/0006's reversibility
 reasoning (the frontend is committed, the wrapper is late-binding). If a Tauri
 wrapper is ever adopted, its native multi-window API would replace just this
 mechanism — real browsers can't _guarantee_ a chrome-less window or reliable
-secondary-monitor placement (popup blockers, address-bar security changes on
-popups, patchy Window Management API support), which is the actual gap a native
-wrapper would close. No Tauri code exists yet; this is the seam where it would
-go, mirroring how ADR-0010 modeled liveness as a pluggable follow source for the
-same reason.
+secondary-monitor placement outside Chromium (popup blockers, address-bar
+security changes on popups, no Window Management API in Firefox or Safari),
+which is the actual gap a native wrapper would close. No Tauri code exists yet;
+this is the seam where it would go, mirroring how ADR-0010 modeled liveness as a
+pluggable follow source for the same reason.
 
 ### 16.2 Recurrence redefined: adjacent-only, not "anywhere in history"
 
@@ -1469,6 +1517,11 @@ Text size up and down, Keyboard shortcuts, and the Output's band size. Repeat
 and Undo repeat show R and U; Show cues now has no key.
 
 ### 16.6 Testing
+
+Screen choice is pure and unit-tested (`screens.test.ts`); the opening, the
+Settings row, the hints and the Output's fullscreen are tested against a mocked
+`getScreenDetails`. Placement on a real second screen, the permission prompt and
+fullscreen across screens are hand checks only (ADR-0028).
 
 The two-window mechanism (`BroadcastChannel`, `window.open`, manual fullscreen)
 has no meaningful jsdom equivalent, the same "browser-only gap" as the rest of

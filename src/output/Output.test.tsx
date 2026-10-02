@@ -557,3 +557,70 @@ describe("Output", () => {
     expect(screen.getByText("Chorus line")).toHaveClass("output-part-start");
   });
 });
+
+describe("Output placed on a screen (ADR-0028)", () => {
+  afterEach(() => {
+    window.history.replaceState(null, "", "/");
+    Reflect.deleteProperty(document.documentElement, "requestFullscreen");
+    Reflect.deleteProperty(document, "fullscreenElement");
+  });
+
+  it("tries fullscreen when the Operator placed it", async () => {
+    window.history.replaceState(null, "", "/?output=1&placed=1");
+    const request = vi.fn(async () => {});
+    Object.assign(document.documentElement, { requestFullscreen: request });
+    render(() => <Output />);
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+  });
+
+  it("goes fullscreen on the first click, once refused, and only then", async () => {
+    window.history.replaceState(null, "", "/?output=1&placed=1");
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("needs a gesture"))
+      .mockResolvedValue(undefined);
+    Object.assign(document.documentElement, { requestFullscreen: request });
+    render(() => <Output />);
+    show(0);
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByText("Line 1a"));
+    expect(request).toHaveBeenCalledTimes(2);
+
+    // Fullscreen entered: a click is just a click again.
+    await new Promise((resolve) => setTimeout(resolve));
+    Object.defineProperty(document, "fullscreenElement", {
+      value: document.documentElement,
+      configurable: true,
+    });
+    document.dispatchEvent(new Event("fullscreenchange"));
+    fireEvent.click(screen.getByText("Line 1a"));
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it("goes fullscreen on F, which is not forwarded to the Operator", async () => {
+    window.history.replaceState(null, "", "/?output=1&placed=1");
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("needs a gesture"))
+      .mockResolvedValue(undefined);
+    Object.assign(document.documentElement, { requestFullscreen: request });
+    render(() => <Output />);
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+
+    fireEvent.keyDown(window, { key: "f" });
+
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(channel.forwardKey).not.toHaveBeenCalled();
+  });
+
+  it("leaves clicks and F alone when it was not placed", () => {
+    const request = vi.fn(async () => {});
+    Object.assign(document.documentElement, { requestFullscreen: request });
+    render(() => <Output />);
+    show(0);
+    fireEvent.keyDown(window, { key: "f" });
+    expect(request).not.toHaveBeenCalled();
+    expect(channel.forwardKey).toHaveBeenCalledWith(expect.objectContaining({ key: "f" }));
+  });
+});

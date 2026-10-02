@@ -1,4 +1,14 @@
-import { createEffect, createSignal, For, Match, onCleanup, onMount, Show, Switch } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  For,
+  Match,
+  on,
+  onCleanup,
+  onMount,
+  Show,
+  Switch,
+} from "solid-js";
 import { BUNDLED_HYMNBOOK_ID } from "./config.ts";
 import type { Hymn, Hymnbook, HymnbookId, HymnNumber } from "./domain/types.ts";
 import { type Command, Finder } from "./finder/Finder.tsx";
@@ -12,6 +22,15 @@ import {
   subscribePresence,
 } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
+import {
+  chooseScreen,
+  keyOf,
+  rememberedScreenOf,
+  type ScreenInfo,
+  type ScreenKey,
+  sameKey,
+  screenAt,
+} from "./output/screens.ts";
 import {
   bandSizeOf,
   DEFAULT_OUTPUT_THEME,
@@ -32,6 +51,8 @@ import {
   withKey,
 } from "./shell/keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
+import { moveOutputTo, openOutputWindow } from "./shell/openOutput.ts";
+import { createOutputScreens } from "./shell/outputScreens.ts";
 import { isPaneShown, PANES, type PaneId } from "./shell/panes.ts";
 import { canAdjustScale, createPreferences, OUTPUT_CUES, Settings } from "./shell/Settings.tsx";
 import { Sheet } from "./shell/Sheet.tsx";
@@ -42,8 +63,10 @@ import {
   createAppUpdates,
   createPresence,
   homeScreenHintHere,
+  isScreenNotice,
   pickNotice,
   restartIfAllowed,
+  type ScreenNoticeId,
 } from "./shell/updates.ts";
 import { workspaceOf } from "./shell/workspace.ts";
 
@@ -61,6 +84,22 @@ const OUTPUT_URL = `${import.meta.env.BASE_URL}?output=1`;
 // A named target: clicking again focuses the already-open Output window
 // instead of stacking a second one the operator would have to reposition.
 const OUTPUT_WINDOW_NAME = "hymnal-output";
+
+/** How long a placed Output may go fullscreen on its own before the hint says how. */
+const FULLSCREEN_GRACE_MS = 1200;
+/** How often the Output's real screen is read while it is open. */
+const TRACK_MS = 2000;
+
+/** Notices about where the Output window is (DESIGN.md § Snackbar). */
+const SCREEN_NOTICES: Record<ScreenNoticeId, string> = {
+  drag: "Drag the Output to the projector, then press F11 for fullscreen.",
+  fullscreen: "The Output is on the projector screen. If it isn't fullscreen, click it or press F.",
+  blocked:
+    "The browser blocked the Output window. Allow pop-ups for this site, then Go Live again.",
+  gone: "The screen the Output was on is gone. The window stays where it is; drag it back.",
+  back: "That screen is back. Move the Output to it?",
+  stuck: "The Output could not move. Drag it to the screen yourself.",
+};
 
 function isOutputWindow(): boolean {
   return new URLSearchParams(window.location.search).has("output");
@@ -144,12 +183,134 @@ function Operator() {
   // Live matches the Output window's shape; unknown, it is landscape.
   const [outputLandscape, setOutputLandscape] = createSignal<boolean | undefined>();
   onMount(() => onCleanup(subscribeOutputShape(setOutputLandscape)));
-  // Opening once, then bringing it forward: an empty URL targets the named
-  // window without reloading it.
-  const openOutput = () => {
-    if (presentingOutput()) window.open("", OUTPUT_WINDOW_NAME)?.focus();
-    else window.open(OUTPUT_URL, OUTPUT_WINDOW_NAME, "popup");
+  // The screens the Output can be placed on (ADR-0028), shared with Settings.
+  const screens = createOutputScreens();
+  const remembered = () => rememberedScreenOf(preferences.preferences().outputScreen);
+  // The window the Operator opened, and the screen it is really on (polled:
+  // the operator may drag it), which a vanished or returning screen is
+  // measured against.
+  let outputWin: Window | null = null;
+  const [placedOn, setPlacedOn] = createSignal<ScreenKey>();
+  const [screenNotice, setScreenNotice] = createSignal<ScreenNoticeId>();
+  // A screen the Output was on has gone; offered back when it returns.
+  const [goneFrom, setGoneFrom] = createSignal<ScreenKey>();
+  // Hints put themselves away, so one never holds back the update notice.
+  const HINT_MS = 8000;
+  createEffect(() => {
+    const shown = screenNotice();
+    if (shown !== "drag" && shown !== "fullscreen" && shown !== "blocked" && shown !== "stuck")
+      return;
+    const timer = setTimeout(() => setScreenNotice(undefined), HINT_MS);
+    onCleanup(() => clearTimeout(timer));
+  });
+  // Closing the Output ends all of it (not merely not being open yet).
+  createEffect(
+    on(presentingOutput, (open, was) => {
+      if (open || !was) return;
+      setPlacedOn(undefined);
+      setGoneFrom(undefined);
+      outputWin = null;
+      setScreenNotice(undefined);
+    }),
+  );
+  // Each hint is shown once, ever: marked when it first appears.
+  const showHintOnce = (id: "drag" | "fullscreen") => {
+    const prefs = preferences.preferences();
+    const flag = id === "drag" ? "dragHintDismissed" : "fullscreenHintDismissed";
+    if (!preferences.loaded() || prefs[flag]) return;
+    preferences.update({ ...prefs, [flag]: true });
+    setScreenNotice(id);
   };
+  // Opening once, then bringing it forward: an empty URL targets the named
+  // window without reloading it. Opening is never blocked on the screens:
+  // anything unavailable is today's plain popup, with a hint (ADR-0028).
+  const openOutput = async () => {
+    if (presentingOutput()) {
+      window.open("", OUTPUT_WINDOW_NAME)?.focus();
+      return;
+    }
+    setScreenNotice(undefined);
+    const outcome = await openOutputWindow({
+      url: OUTPUT_URL,
+      name: OUTPUT_WINDOW_NAME,
+      screens,
+      remembered: remembered(),
+    });
+    outputWin = outcome.win;
+    if (!outcome.win) setScreenNotice("blocked");
+    else if (outcome.kind === "placed") {
+      setPlacedOn(keyOf(outcome.screen));
+      // Unless the Output went fullscreen by itself, the hint says how.
+      const win = outcome.win;
+      setTimeout(() => {
+        let fullscreen = false;
+        try {
+          fullscreen = !!win.document?.fullscreenElement;
+        } catch {}
+        if (!fullscreen) showHintOnce("fullscreen");
+      }, FULLSCREEN_GRACE_MS);
+    } else showHintOnce("drag");
+  };
+  // The screens change under an open Output: it stays where it is. A screen it
+  // was on going is a hint; its return is an offer, never a jump.
+  const checkScreens = (now: readonly ScreenInfo[]) => {
+    const placed = placedOn();
+    if (placed && !now.some((screen) => sameKey(screen, placed))) {
+      setGoneFrom(placed);
+      setPlacedOn(undefined);
+      setScreenNotice("gone");
+      return;
+    }
+    const gone = goneFrom();
+    if (gone && presentingOutput() && now.some((screen) => sameKey(screen, gone)))
+      setScreenNotice("back");
+  };
+  createEffect(on(screens.screens, checkScreens));
+  // Where the Output really is, from its own position: dragged to another
+  // screen, that is where it is "placed" now.
+  onMount(() => {
+    const timer = setInterval(() => {
+      const win = outputWin;
+      const known = screens.screens();
+      if (!win || win.closed || !presentingOutput() || known.length === 0) return;
+      const at = screenAt(
+        known,
+        win.screenX + win.outerWidth / 2,
+        win.screenY + win.outerHeight / 2,
+      );
+      if (at && !(placedOn() && sameKey(at, placedOn() as ScreenKey))) setPlacedOn(keyOf(at));
+    }, TRACK_MS);
+    onCleanup(() => clearInterval(timer));
+  });
+  const moveTo = async (screen: ScreenInfo) => {
+    if (await moveOutputTo(screen, OUTPUT_WINDOW_NAME, outputWin)) setPlacedOn(keyOf(screen));
+    else setScreenNotice("stuck");
+  };
+  const moveBack = () => {
+    const gone = goneFrom();
+    const screen = screens.screens().find((candidate) => gone && sameKey(candidate, gone));
+    setGoneFrom(undefined);
+    setScreenNotice(undefined);
+    if (screen) void moveTo(screen);
+  };
+  // Choosing a screen in Settings moves an open Output there.
+  createEffect(
+    on(
+      () => JSON.stringify(remembered() ?? null),
+      () => {
+        if (!presentingOutput()) return;
+        const choice = chooseScreen({
+          screens: screens.screens(),
+          current: screens.current(),
+          remembered: remembered(),
+        });
+        if (!choice.screen) return;
+        setGoneFrom(undefined);
+        void moveTo(choice.screen);
+      },
+      { defer: true },
+    ),
+  );
 
   // Notices (DESIGN.md § Snackbar): a waiting app update, and once the
   // Safari Home Screen note — one at a time, none while the Output is live.
@@ -166,6 +327,7 @@ function Operator() {
         preferences.loaded() &&
         !preferences.preferences().homeScreenHintDismissed,
       updateDismissed: updateDismissed(),
+      screen: screenNotice(),
     });
   const restartApp = () =>
     restartIfAllowed({ ready: appUpdates.ready(), live: presence.live() }, appUpdates.restart);
@@ -175,10 +337,15 @@ function Operator() {
     const shown = notice();
     if (shown === "update") setUpdateDismissed(true);
     else if (shown === "safari-hint") dismissHomeScreenHint();
+    else if (isScreenNotice(shown)) {
+      if (shown === "back") setGoneFrom(undefined);
+      setScreenNotice(undefined);
+    }
   };
   const noticeMessage = () => {
     const shown = notice();
     if (shown === "update") return "Update ready";
+    if (isScreenNotice(shown)) return SCREEN_NOTICES[shown];
     if (shown === "safari-hint")
       return `Safari clears saved books after 7 days unused. Add Hymnal to your ${
         homeScreen === "home-screen" ? "Home Screen" : "Dock"
@@ -764,6 +931,25 @@ function Operator() {
         {noticeMessage()}
       </div>
       <Show when={!expanded()}>{noticeView()}</Show>
+      <Show when={screenNotice()} keyed>
+        {(shown) => (
+          <Snackbar
+            floating
+            message={SCREEN_NOTICES[shown]}
+            action={shown === "back" ? "Move it" : "Got it"}
+            onAction={shown === "back" ? moveBack : () => setScreenNotice(undefined)}
+            dismissLabel={shown === "back" ? "Stay" : undefined}
+            onDismiss={
+              shown === "back"
+                ? () => {
+                    setGoneFrom(undefined);
+                    setScreenNotice(undefined);
+                  }
+                : undefined
+            }
+          />
+        )}
+      </Show>
 
       <Sheet open={menuOpen()} onClose={() => setMenuOpen(false)} title="Menu">
         <nav aria-label="Sections">
@@ -771,7 +957,11 @@ function Operator() {
             <For each={SECTIONS}>{(item) => <li>{sectionButton(item, "menu")}</li>}</For>
           </ul>
         </nav>
-        <Settings controller={preferences} onShowShortcuts={() => showShortcuts(setMenuOpen)} />
+        <Settings
+          controller={preferences}
+          screens={screens}
+          onShowShortcuts={() => showShortcuts(setMenuOpen)}
+        />
       </Sheet>
 
       <Sheet
@@ -780,7 +970,11 @@ function Operator() {
         title="Settings"
         placement={expanded() ? "center" : "bottom"}
       >
-        <Settings controller={preferences} onShowShortcuts={() => showShortcuts(setSettingsOpen)} />
+        <Settings
+          controller={preferences}
+          screens={screens}
+          onShowShortcuts={() => showShortcuts(setSettingsOpen)}
+        />
       </Sheet>
     </div>
   );
