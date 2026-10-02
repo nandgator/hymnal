@@ -132,6 +132,8 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — #28 part 2: a container read and checked on the device; song and
+  source hashes; uuidv7 keys
 - 2026-10-02 — #28 part 1: `bun run pack` writes a book's container, the same
   bytes on any machine (fflate, a pinned hash)
 - 2026-10-02 — Recents: rows a glide crosses fade, so no glyph is cut mid-glide
