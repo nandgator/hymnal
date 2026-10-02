@@ -269,9 +269,10 @@ rules cannot answer.
 and font, then every font with a sample: what a profile is written from. With a
 profile, `bun run import <file> --profile <profile.json> [--out <dir>]` writes
 `imports/<id>/`: `hymnbook.json`, the `NNNN.json` files and `report.md`,
-replacing a previous draft's files there. `imports/` is gitignored. A reviewed
-draft is moved into `content/` by hand, and only once its rights allow (arc42
-R2). In practice that means public-domain books shipped as samples
+replacing a previous draft's files there and nothing else: a `HAND-FIXES.md`
+beside them, the fixes no rule makes, is kept. `imports/` is gitignored. A
+reviewed draft is moved into `content/` by hand, and only once its rights allow
+(arc42 R2). In practice that means public-domain books shipped as samples
 ([ADR-0020](../decisions/0020-present-songs-do-not-publish-them.md)).
 
 The app (#28) never runs the import; it loads a format 1 file, a reviewed draft,

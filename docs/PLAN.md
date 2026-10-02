@@ -29,7 +29,9 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 ## Now
 
 **Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
-**Next: Board #27 part 6** (below): its questions wait for the user.
+**Next: Board #28**: it needs #27's parts 1–5, not the judge. #27 part 6, the
+Laya judge, runs last, on another machine or a Codespace (this one is short of
+memory).
 
 **Board #27 (song import, CLI)**: it touches no UI. Target: _Hymns of
 Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its index), the
@@ -47,13 +49,12 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 5. ~~Review the Fellowship report by section~~ — done: titles, fonts, sequences,
    index, breaks; applied rules sampled clean; wraps by sample (an "I"/"&" line
    joins only at 4 words or fewer; sure joins counted, guesses listed). Hand
-   fixes, applied once after the last re-import: #85 (c3 is s3; c2 after every
-   chorus), #197 (s1 is the chorus, s3 the outro: `c s1 c s1 c o`), #81 (index
-   typo "descripton")
-6. **Next.** Judge, swappable by manifest; Laya first (SDD-0003 §4.1), after
-   part 5. Found so far: the kind of a short unlabelled block (bridge, tag, a
-   split stanza; 20 in Fellowship). Triage and inference were dropped: case by
-   case (ADR-0024)
+   fixes (#44, #81, #85, #197), applied once after the last re-import, are
+   listed in the draft's `HAND-FIXES.md`, which a re-import leaves alone
+6. **Last of all**, on another machine or a Codespace. Judge, swappable by
+   manifest; Laya first (SDD-0003 §4.1). Found so far: the kind of a short
+   unlabelled block (bridge, tag, a split stanza; 20 in Fellowship). Triage and
+   inference were dropped: case by case (ADR-0024)
 
 ## State
 
@@ -73,27 +74,30 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                                     | Blocked by   |
-| --- | ---------------------------------------------------------------------------------------- | ------------ |
-| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                         | —            |
-| 28  | Library: load songs and books in format 1, local only; keys, duplicates (ADR-0020/21/24) | 27, 2nd book |
-| 29  | Import: PowerPoint reader; _Songs of Zion_ (.pptx, its PDF to cross-check)               | 27           |
-| 30  | Full song, landscape: printed form in columns, the highlight glides; mockup              | —            |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                              | —            |
-| 15  | Transliteration: search and display across scripts (ADR-0014)                            | —            |
-| 16  | Feedback and corrections from users — where collected: TBD                               | —            |
-| 17  | About: acknowledgements, copyright, credits                                              | —            |
-| 18  | Over-the-air update notices (as Supabase announces changes)                              | —            |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                          | 2nd book     |
-| 21  | Hold: freeze the Output on what's showing, navigate, release                             | —            |
-| 22  | Service queue: line up hymns for a service (a supporting pane)                           | —            |
-| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved                | 22           |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                               | Phase 2      |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation                            | content      |
+| #   | Task                                                                                     | Blocked by |
+| --- | ---------------------------------------------------------------------------------------- | ---------- |
+| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                         | —          |
+| 28  | Library: load songs and books in format 1, local only; keys, duplicates (ADR-0020/21/24) | —          |
+| 29  | Import: PowerPoint reader; _Songs of Zion_ (.pptx, its PDF to cross-check)               | 27         |
+| 30  | Full song, landscape: printed form in columns, the highlight glides; mockup              | —          |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                              | —          |
+| 15  | Transliteration: search and display across scripts (ADR-0014)                            | —          |
+| 16  | Feedback and corrections from users — where collected: TBD                               | —          |
+| 17  | About: acknowledgements, copyright, credits                                              | —          |
+| 18  | Over-the-air update notices (as Supabase announces changes)                              | —          |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                          | 2nd book   |
+| 21  | Hold: freeze the Output on what's showing, navigate, release                             | —          |
+| 22  | Service queue: line up hymns for a service (a supporting pane)                           | —          |
+| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved                | 22         |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                               | Phase 2    |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation                            | content    |
 
-Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. 14–15
-sit past the scope guard below. 16–25 are notes, not scheduled: the shell
-reserves room for them (DESIGN.md § Structure).
+Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. Next
+phase: the songs leave the repo, and every book, `content/`'s included, comes in
+as an import (format 1 as it is, or a PDF and the like). That reverses
+ADR-0009's committed corpus: an ADR first. 14–15 sit past the scope guard below.
+16–25 are notes, not scheduled: the shell reserves room for them (DESIGN.md §
+Structure).
 
 ## Invariants
 
@@ -129,6 +133,8 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — Laya (#27 part 6) moved last; hand fixes kept in the draft's
+  `HAND-FIXES.md`; Recents' glide 300ms, as PRINCIPLES says
 - 2026-10-01 — This Song's tint glides from part to part, with the scroll
 - 2026-10-01 — #27 part 5 done. Decided while the user was away, by the
   recommendation: the 4-word limit, the wraps section summarised
@@ -147,15 +153,3 @@ only, here:
   read
 - 2026-09-28 — #27 part 5: repeat marks taken off lines; "(Repeat Chorus)" a
   label
-- 2026-09-28 — #27 part 5: "Cho…" mid-block closes a stanza unless a chorus
-  follows
-- 2026-09-28 — #27 part 5: titles cased as the lyrics set them; shown in Title
-  Case
-- 2026-09-28 — Firefox: the sheet reveals too (no backdrop-filter in the copy)
-- 2026-09-28 — #26 done. Live's theme reveal shows; every sheet follows the
-  layout
-- 2026-09-28 — The fold a fade-through; theme changes revealed in a circle
-- 2026-09-27 — #26 part 4c: the fold; Split jitter; search one style, no Find
-- 2026-09-27 — The refrain is the chorus: screen, key C, code, format (ADR-0025)
-- 2026-09-27 — #26 part 4b: loading in place, install progress; Recents
-- 2026-09-27 — #26 part 4a: phone layout, Parts a tab; one Recents list
