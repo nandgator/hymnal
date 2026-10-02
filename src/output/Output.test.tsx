@@ -173,6 +173,92 @@ describe("Output", () => {
     expect(document.documentElement.getAttribute("data-output-theme")).toBe("dark");
   });
 
+  it("lights every line for the whole-song highlight, and only the focus again after", () => {
+    render(() => <Output />);
+    show(0);
+    expect(screen.getByText("Chorus line")).not.toHaveClass("output-line-current");
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: {},
+      pinChorus: false,
+      highlight: "song",
+      bandSize: "part",
+    });
+    for (const text of ["Line 1a", "Line 1b", "Chorus line"]) {
+      expect(screen.getByText(text)).toHaveClass("output-line-current");
+    }
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: {},
+      pinChorus: false,
+      bandSize: "part",
+    });
+    expect(screen.getByText("Chorus line")).not.toHaveClass("output-line-current");
+    expect(screen.getByText("Line 1a")).toHaveClass("output-line-current");
+  });
+
+  it("shows the whole song, nothing scrolling, on a landscape view (a square counts)", () => {
+    const sizes = vi.spyOn(HTMLElement.prototype, "clientWidth", "get");
+    const heights = vi.spyOn(HTMLElement.prototype, "clientHeight", "get");
+    sizes.mockReturnValue(1000);
+    heights.mockReturnValue(1000);
+    render(() => <Output />);
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: {},
+      pinChorus: false,
+      wholeSong: true,
+      bandSize: "part",
+    });
+    channel.handler?.({
+      type: "content",
+      hymnbookId: "book",
+      number: 7,
+      title: "Test Hymn",
+      lines: LINES,
+      focus: { start: 2, end: 3 },
+      parts: [
+        { id: "s1", lines: ["Line 1a", "Line 1b"] },
+        { id: "c", lines: ["Chorus line"] },
+      ],
+    });
+    expect(document.querySelector(".output-view-fullsong")).toBeInTheDocument();
+    expect([...document.querySelectorAll(".full-part")]).toHaveLength(2);
+    expect(document.querySelector(".full-part-current")).toHaveTextContent("Chorus line");
+    sizes.mockRestore();
+    heights.mockRestore();
+  });
+
+  it("keeps scrolling while the whole song is on a view that is not landscape", () => {
+    render(() => <Output />);
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: {},
+      pinChorus: false,
+      wholeSong: true,
+      bandSize: "part",
+    });
+    channel.handler?.({
+      type: "content",
+      hymnbookId: "book",
+      number: 7,
+      title: "Test Hymn",
+      lines: LINES,
+      focus: { start: 0, end: 1 },
+      parts: [
+        { id: "s1", lines: ["Line 1a", "Line 1b"] },
+        { id: "c", lines: ["Chorus line"] },
+      ],
+    });
+    // jsdom has no layout: not wider than tall, so the scroll shows.
+    expect(document.querySelector(".output-view-fullsong")).not.toBeInTheDocument();
+    expect(document.querySelector(".full-song")).not.toBeInTheDocument();
+  });
+
   it("shows no caption until a cue is on, then only the cues switched on", () => {
     render(() => <Output />);
     channel.handler?.({

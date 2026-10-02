@@ -5,6 +5,7 @@ import {
   setOutputBlanked,
   setOutputPresentation,
   subscribeOutput,
+  subscribeOutputShape,
   subscribePresence,
   subscribeSeek,
 } from "./channel.ts";
@@ -88,7 +89,11 @@ describe("output channel", () => {
     const seen: unknown[] = [];
     const unsubscribe = subscribeOutput((message) => seen.push(message));
 
-    expect(await pending).toEqual({ type: "hello", id: expect.any(String) });
+    expect(await pending).toEqual({
+      type: "hello",
+      id: expect.any(String),
+      landscape: expect.any(Boolean),
+    });
 
     presenterWindow.postMessage({ type: "hello" });
     await new Promise((resolve) => setTimeout(resolve, 10));
@@ -96,6 +101,31 @@ describe("output channel", () => {
 
     unsubscribe();
     presenterWindow.close();
+  });
+
+  it("tells the Operator the Output's shape: from hello, then as it turns, none after bye", async () => {
+    const outputWindow = new BroadcastChannel(CHANNEL_NAME);
+    const seen: (boolean | undefined)[] = [];
+    const unsubscribe = subscribeOutputShape((landscape) => seen.push(landscape));
+    outputWindow.postMessage({ type: "hello", id: "a", landscape: false });
+    outputWindow.postMessage({ type: "shape", id: "a", landscape: true });
+    outputWindow.postMessage({ type: "hello", id: "b" });
+    outputWindow.postMessage({ type: "bye", id: "b" });
+    outputWindow.postMessage({ type: "bye", id: "a" });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    // b has not said, then is gone, so a's shape stands until a leaves.
+    expect(seen).toEqual([false, true, undefined, true, undefined]);
+
+    // The window that spoke last wins, not the one that spoke first.
+    seen.length = 0;
+    outputWindow.postMessage({ type: "hello", id: "x", landscape: true });
+    outputWindow.postMessage({ type: "hello", id: "y", landscape: false });
+    outputWindow.postMessage({ type: "shape", id: "x", landscape: true });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(seen).toEqual([true, false, true]);
+
+    unsubscribe();
+    outputWindow.close();
   });
 
   it("tracks whether an Output is open: pinged hello, hello, bye (On air)", async () => {

@@ -81,8 +81,7 @@ Ordered. Top unblocked item is next.
 | --- | ----------------------------------------------------------------------------------------------- | ---------- |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                | —          |
 | 28  | Library: load songs and books in format 1, local only; keys, duplicates (SDD-0004, ADR-0026/27) | —          |
-| 30  | Full song, landscape: printed form in columns, the highlight glides; mockup                     | —          |
-| 31  | Output on the projector screen: pick and remember it, fullscreen (ADR-0028; Chromium)           | 30         |
+| 31  | Output on the projector screen: pick and remember it, fullscreen (ADR-0028; Chromium)           | —          |
 | 33  | Authoring kit: the song text format, a prompt template, a sample (ADR-0029)                     | —          |
 | 34  | Song text in the app: parser to format 1 and the source check (ADR-0029)                        | 28, 33     |
 | 35  | The song text parser and source check in the CLI (ADR-0029)                                     | 34         |

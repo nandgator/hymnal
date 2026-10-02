@@ -9,12 +9,17 @@ import {
   Show,
 } from "solid-js";
 import type { LineRange } from "../domain/sequence-engine.ts";
-import type { BandSize, OutputCues } from "../persistence/user-state.ts";
+import type { BandSize, Highlight, OutputCues } from "../persistence/user-state.ts";
 import type { OutputMessage } from "./channel.ts";
+import { FullSong } from "./FullSong.tsx";
 
 type ContentMessage = Extract<OutputMessage, { type: "content" }>;
 /** How a hymn lays out (SDD-0001 §16.1). */
 type Layout = "flow" | "band" | "side";
+
+/** Wider than tall, a square counting as wide (as the Output reports it to
+ * Live, channel.ts); an unlaid-out view is neither. */
+const isLandscape = (el: HTMLElement) => el.clientWidth > 0 && el.clientWidth >= el.clientHeight;
 
 /** Share of the height kept clear at top and bottom — the safe margin. */
 const SAFE = 0.1;
@@ -72,6 +77,16 @@ export interface OutputViewProps {
   /** Pin the chorus in a band at the foot, where it fits (SDD-0001
    * §16.1). Off, or where it doesn't fit, the Output flows as ever. */
   pinChorus?: boolean;
+  /** The whole song at once in columns, on a landscape view (SDD-0005):
+   * nothing scrolls, and the chorus does not pin. A portrait view, or a
+   * message without the song's parts, scrolls as ever. */
+  wholeSong?: boolean;
+  /** The view's shape where its own box does not say it (Live is always
+   * 16:9): the Output window's. Unset, the view's own. */
+  landscape?: boolean;
+  /** What is lit: the current part (the default), or every line, in either
+   * layout (SDD-0005 § 5). */
+  highlight?: Highlight;
 }
 
 /** The cue caption, e.g. "Hymnbook · Amazing Grace · Verse 2 · ×2": only
@@ -127,6 +142,12 @@ export function OutputView(props: OutputViewProps) {
   };
   const pinnedNow = () => layoutNow !== "flow";
   const lineRefs: (HTMLLIElement | undefined)[] = [];
+  // Full Song (SDD-0005): the whole song at once, on a landscape view. The
+  // scroll's list stays in place, hidden, so its refs and fit are as ever.
+  const [landscape, setLandscape] = createSignal(false);
+  const lightAll = () => props.highlight === "song";
+  const fullSong = () =>
+    !!props.wholeSong && (props.landscape ?? landscape()) && !!props.message.parts?.length;
   let lastHymnKey: string | undefined;
 
   // Each occurrence's line range — the blocks the fit must make room for.
@@ -186,10 +207,22 @@ export function OutputView(props: OutputViewProps) {
   // A pinned band's lines light where the focus lights its showing.
   const bandLineLit = (k: number) => {
     const { focus } = props.message;
+    if (lightAll()) return layout() !== "flow";
     if (layout() === "flow" || !focusInChorus() || bandLit()) return false;
     const showing = blocks().find((block) => focus.start >= block.start && focus.start < block.end);
     const i = (showing?.start ?? 0) + k;
     return i >= focus.start && i < focus.end;
+  };
+  // Under line focus, the one line lit within its part (Full Song); null for
+  // a whole part.
+  const litWithinPart = () => {
+    const { lines, focus } = props.message;
+    let start = focus.start;
+    while (start > 0 && !lines[start]?.isPartStart) start--;
+    let end = focus.start + 1;
+    while (end < lines.length && !lines[end]?.isPartStart) end++;
+    const whole = focus.start === start && focus.end >= end;
+    return whole ? null : { start: focus.start - start, end: focus.end - start };
   };
   const caption = () => cueCaption(props.message, props.cues);
   // Memos, so they change only when a cue turns on or off — not on every
@@ -288,6 +321,7 @@ export function OutputView(props: OutputViewProps) {
   const gapPx = () => (lineRefs.find(Boolean)?.offsetHeight ?? 0) * PIN_GAP_LINES;
 
   const position = (behavior: ScrollBehavior) => {
+    if (fullSong()) return;
     armed = false;
     clearTimeout(restTimer);
     clearTimeout(driftTimer);
@@ -380,7 +414,7 @@ export function OutputView(props: OutputViewProps) {
   // behind the heads in front for the back rows; a portrait one the band.
   // Else the hymn flows exactly as it would with pinning off.
   const refit = () => {
-    if (!view) return;
+    if (!view || fullSong()) return;
     setLayoutNow("flow");
     const room = view.clientHeight * (1 - safeTop() - safeBottom());
     const flowing = fitTo(room, () => tallestOf(blocks()), true);
@@ -441,6 +475,7 @@ export function OutputView(props: OutputViewProps) {
   // the Operator gone. Programmatic scrolls don't fire these events. Keys
   // don't scroll the Output: the window forwards them to the Operator.
   const onHandScroll = () => {
+    if (fullSong()) return;
     armed = !!props.onSeek;
     if (armed) startBand();
     clearTimeout(driftTimer);
@@ -468,10 +503,17 @@ export function OutputView(props: OutputViewProps) {
     });
   });
 
+  // Back to the scroll: fit and position it again, now it shows.
+  createEffect(on(fullSong, (active) => (active ? undefined : refit()), { defer: true }));
+
   onMount(() => {
+    if (view) setLandscape(isLandscape(view));
     void document.fonts?.ready.then(refit);
     if (typeof ResizeObserver !== "function" || !view) return;
-    const observer = new ResizeObserver(() => refit());
+    const observer = new ResizeObserver(() => {
+      setLandscape(!!view && isLandscape(view));
+      refit();
+    });
     observer.observe(view);
     onCleanup(() => observer.disconnect());
   });
@@ -501,7 +543,11 @@ export function OutputView(props: OutputViewProps) {
       ref={view}
       class={`output-view output-view-${props.variant}`}
       style={{ "--safe-bottom": `${safeBottom() * 100}cqh` }}
-      classList={{ ...props.classList, "output-blanked": !!props.blanked }}
+      classList={{
+        ...props.classList,
+        "output-blanked": !!props.blanked,
+        "output-view-fullsong": fullSong(),
+      }}
       // The mini view is a picture of the Output; the full one is the Output.
       {...(props.variant === "mini" ? { role: "img", "aria-label": "Live output preview" } : {})}
     >
@@ -518,6 +564,17 @@ export function OutputView(props: OutputViewProps) {
       <Show when={layout() === "side"}>
         <div class="output-pin-side">{chorusPane()}</div>
       </Show>
+      <Show when={fullSong()}>
+        <FullSong
+          parts={props.message.parts ?? []}
+          current={props.message.lines[props.message.focus.start]?.partId}
+          lit={litWithinPart()}
+          all={lightAll()}
+          safeTop={safeTop()}
+          safeBottom={safeBottom()}
+          songKey={`${props.message.hymnbookId}:${props.message.number}`}
+        />
+      </Show>
       <ul class="output-list">
         <li class="output-spacer" aria-hidden="true" />
         <Index each={props.message.lines}>
@@ -528,7 +585,7 @@ export function OutputView(props: OutputViewProps) {
               }}
               class="output-line"
               classList={{
-                "output-line-current": i >= lit().start && i < lit().end,
+                "output-line-current": lightAll() || (i >= lit().start && i < lit().end),
                 // Parts are set apart by a gap, as in a printed hymnal.
                 "output-part-start": line().isPartStart && i > 0,
                 // The chorus pins; no other mark (SDD-0001 §16.1).

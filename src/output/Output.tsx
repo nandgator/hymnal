@@ -1,5 +1,5 @@
 import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
-import type { BandSize, OutputCues } from "../persistence/user-state.ts";
+import type { BandSize, Highlight, OutputCues } from "../persistence/user-state.ts";
 import { easeThemeChange } from "../shell/theme.ts";
 import { forwardKey, type OutputMessage, requestSeek, subscribeOutput } from "./channel.ts";
 import { OutputView } from "./OutputView.tsx";
@@ -38,6 +38,8 @@ export function Output() {
   const [cues, setCues] = createSignal<OutputCues>({});
   const [reveal, setReveal] = createSignal(0);
   const [pinChorus, setPinChorus] = createSignal(false);
+  const [wholeSong, setWholeSong] = createSignal(false);
+  const [highlight, setHighlight] = createSignal<Highlight>("part");
   const [bandSize, setBandSize] = createSignal<BandSize>("part");
   // Theme and cues follow the Operator's Settings live (SDD-0001 §16.1).
   const receive = (next: OutputMessage) => {
@@ -52,6 +54,8 @@ export function Output() {
       else apply();
       setCues(next.cues);
       setPinChorus(next.pinChorus);
+      setWholeSong(!!next.wholeSong);
+      setHighlight(next.highlight ?? "part");
       setBandSize(next.bandSize);
     } else setMessage(next);
   };
@@ -104,6 +108,8 @@ export function Output() {
           cues={cues()}
           reveal={reveal()}
           pinChorus={pinChorus()}
+          wholeSong={wholeSong()}
+          highlight={highlight()}
           bandSize={bandSize()}
           onSeek={(line, whole) =>
             requestSeek({

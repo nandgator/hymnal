@@ -1,6 +1,6 @@
 import type { FlatLine, LineRange } from "../domain/sequence-engine.ts";
 import type { HymnbookId, HymnNumber, PartId } from "../domain/types.ts";
-import type { BandSize, OutputCues, OutputTheme } from "../persistence/user-state.ts";
+import type { BandSize, Highlight, OutputCues, OutputTheme } from "../persistence/user-state.ts";
 
 /**
  * Presenter → Output, one browser, two windows (Board #11, SDD-0001 §16.1).
@@ -25,6 +25,9 @@ export type OutputMessage =
       /** The hymn's chorus, if it has one — pinned where it fits
        * (SDD-0001 §16.1). */
       chorus?: PartId;
+      /** The hymn's parts in printed order, each once, for the whole-song
+       * layout (SDD-0005). Without it the Output scrolls. */
+      parts?: { id: PartId; lines: string[] }[];
     }
   | { type: "idle" }
   /** Hides what's presented, or shows it again — distinct from `idle`,
@@ -40,12 +43,24 @@ export type PresentationMessage = {
   theme: OutputTheme;
   cues: OutputCues;
   pinChorus: boolean;
+  /** The whole song at once on a landscape screen (SDD-0005). */
+  wholeSong?: boolean;
+  /** What is lit: the current part, or the whole song (SDD-0005 § 5). */
+  highlight?: Highlight;
   bandSize: BandSize;
 };
 
 /** Output → Operator: "I'm open — send me what's showing." Sent on
  * opening and in answer to a ping; each Output window has its own id. */
-type HelloMessage = { type: "hello"; id: string };
+type HelloMessage = {
+  type: "hello";
+  id: string;
+  /** The window is wider than tall, so Live can match it (SDD-0005 § 1). */
+  landscape?: boolean;
+};
+
+/** Output → Operator: the window's shape changed (resized, rotated). */
+type ShapeMessage = { type: "shape"; id: string; landscape: boolean };
 
 /** Output → Operator: the window is closing (SDD-0001 §16.4, On air). */
 type ByeMessage = { type: "bye"; id: string };
@@ -80,6 +95,7 @@ export type KeyMessage = {
 type ChannelMessage =
   | OutputMessage
   | HelloMessage
+  | ShapeMessage
   | ByeMessage
   | PingMessage
   | SeekMessage
@@ -140,7 +156,16 @@ export function setOutputPresentation(settings: Omit<PresentationMessage, "type"
 export function subscribeOutput(handler: (message: OutputMessage) => void): () => void {
   const target = getChannel();
   const id = crypto.randomUUID();
-  const hello = () => target.postMessage({ type: "hello", id } satisfies HelloMessage);
+  const landscape = () => window.innerWidth >= window.innerHeight;
+  let wasLandscape = landscape();
+  const hello = () =>
+    target.postMessage({ type: "hello", id, landscape: landscape() } satisfies HelloMessage);
+  const onResize = () => {
+    if (landscape() === wasLandscape) return;
+    wasLandscape = landscape();
+    target.postMessage({ type: "shape", id, landscape: wasLandscape } satisfies ShapeMessage);
+  };
+  window.addEventListener("resize", onResize);
   const bye = () => target.postMessage({ type: "bye", id } satisfies ByeMessage);
   const listener = (event: MessageEvent<ChannelMessage>) => {
     const { data } = event;
@@ -162,6 +187,7 @@ export function subscribeOutput(handler: (message: OutputMessage) => void): () =
   hello();
   return () => {
     bye();
+    window.removeEventListener("resize", onResize);
     window.removeEventListener("pagehide", bye);
     target.removeEventListener("message", listener);
   };
@@ -212,6 +238,31 @@ export function subscribePresence(handler: (open: boolean) => void): () => void 
     else if (data.type === "bye") open.delete(data.id);
     else return;
     handler(open.size > 0);
+  };
+  target.addEventListener("message", listener);
+  target.postMessage({ type: "ping" } satisfies PingMessage);
+  return () => target.removeEventListener("message", listener);
+}
+
+/**
+ * Operator: whether the open Output window is wider than tall (the latest to
+ * say so, with several), or undefined when none is open or it has not said.
+ * Live follows it, so a portrait Output shows its scroll in Live too.
+ */
+export function subscribeOutputShape(
+  handler: (landscape: boolean | undefined) => void,
+): () => void {
+  const target = getChannel();
+  const shapes = new Map<string, boolean | undefined>();
+  const listener = (event: MessageEvent<ChannelMessage>) => {
+    const { data } = event;
+    if (data.type === "hello" || data.type === "shape") {
+      // Deleted first, so the window that spoke last is last.
+      shapes.delete(data.id);
+      shapes.set(data.id, data.landscape);
+    } else if (data.type === "bye") shapes.delete(data.id);
+    else return;
+    handler([...shapes.values()].at(-1));
   };
   target.addEventListener("message", listener);
   target.postMessage({ type: "ping" } satisfies PingMessage);

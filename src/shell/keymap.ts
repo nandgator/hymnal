@@ -25,6 +25,7 @@ export type ShortcutId =
   | "output"
   | "tab"
   | "live"
+  | "highlight"
   | "command-menu"
   | "text-size"
   | "shortcuts"
@@ -44,6 +45,7 @@ export const SHORTCUTS: Shortcut[] = [
   { id: "output", keys: ["O"], label: "Go live: open the Output, or bring it forward" },
   { id: "tab", keys: ["N"], label: "Next tab" },
   { id: "live", keys: ["L"], label: "Show or hide Live" },
+  { id: "highlight", keys: ["H"], label: "Light the whole song / only the current part" },
   { id: "command-menu", keys: ["/", "Ctrl+K"], label: "Search songs and actions" },
   { id: "text-size", keys: ["+", "−"], label: "Text size" },
   { id: "shortcuts", keys: ["?"], label: "Keyboard shortcuts" },

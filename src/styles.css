@@ -3166,7 +3166,13 @@ html[data-scrolling],
 /* Lit and dimmed differ by color alone, never size or weight, which would
    reflow the column mid-scroll (DESIGN.md § Typography). */
 .output-line {
-  transition: color 200ms ease;
+  transition: color var(--motion-medium) var(--motion-emphasized);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .output-line {
+    transition: none;
+  }
 }
 
 /* Parts set apart as in a printed hymnal (SDD-0001 §16.1): where a verse
@@ -3179,6 +3185,157 @@ html[data-scrolling],
 
 .output-line-current {
   color: var(--output-ink);
+}
+
+/* Full Song (SDD-0005): the whole song at once, in columns, nothing scrolling.
+   The scroll's list stays, hidden; the cues leave the scroll's sticky flow
+   for the view's own edges. The tint is a mark here, the one exception to
+   "no part carries a mark" (DESIGN.md § Structure). */
+.output-view-fullsong {
+  overflow: hidden;
+}
+
+.output-view-fullsong > .output-list {
+  display: none;
+}
+
+.full-song {
+  position: absolute;
+  inset: 0;
+  transition: opacity 300ms ease;
+}
+
+.output-blanked .full-song {
+  opacity: 0;
+}
+
+.full-sheet {
+  position: absolute;
+  inset: var(--safe-top) 5cqw var(--safe-bottom);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(7.5cqmin * var(--fit, 1));
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.full-block {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  gap: var(--col-gap);
+}
+
+.full-col {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: var(--col-width);
+  text-align: start;
+}
+
+/* One column: parts centred as the scroll shows them, each tint hugging its
+   lines. */
+.full-col-single {
+  align-items: center;
+  text-align: center;
+}
+
+/* The measure (FullSong.tsx): the same column, hidden, at a scale. */
+.full-probe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: calc(7.5cqmin * var(--fit, 1));
+  visibility: hidden;
+}
+
+/* A part is a box: its padding is what the tint shows around the text, so
+   the gap between two parts' text is 0.6em, about the scroll's half line. */
+.full-part {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  padding: 0.3em 0.6em;
+}
+
+.full-col-single > .full-part {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.full-line {
+  color: var(--output-ink-dimmed);
+  overflow-wrap: normal;
+  transition: color var(--motion-medium) var(--motion-emphasized);
+}
+
+.full-line-lit {
+  color: var(--output-ink);
+}
+
+/* Colour follows the tint (SDD-0005 § 4). Across columns the old part dims
+   in the first 60%, the new one brightens from 20% of the time: overlapped,
+   so something is always lit. A page turn dims at once and fades with the
+   page. A snap, and reduced motion, change at once. */
+.full-song[data-glide="cross"] .full-line {
+  transition-duration: calc(var(--motion-medium) * 0.6);
+}
+
+.full-song[data-glide="cross"] .full-line-lit {
+  transition-delay: calc(var(--motion-medium) * 0.2);
+  transition-duration: calc(var(--motion-medium) * 0.8);
+}
+
+.full-song[data-glide="turn"] .full-line {
+  transition-duration: 125ms;
+}
+
+.full-song[data-glide="snap"] .full-line {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .full-line {
+    transition: none;
+  }
+}
+
+/* Forced colours drop the tint's fill and the dimmed ink alike, so the current
+   part is marked by an outline in the system highlight. */
+@media (forced-colors: active) {
+  .full-tint {
+    border: 0.1em solid Highlight;
+    box-sizing: border-box;
+  }
+}
+
+.full-tint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  border-radius: 0.4em;
+  background-color: color-mix(in srgb, var(--output-ink) 9%, var(--output-ground));
+  pointer-events: none;
+}
+
+/* The whole song lit: no tint, every part at full brightness. The tint fades
+   with the colours, in the same time; reduced motion changes at once. */
+.full-tint {
+  transition: opacity var(--motion-medium) var(--motion-emphasized);
+}
+
+.full-song[data-lit="all"] .full-tint {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .full-tint {
+    transition: none;
+  }
 }
 
 /* The chorus, pinned (SDD-0001 §16.1): the chorus's copies leave the
@@ -3320,6 +3477,20 @@ html[data-scrolling],
   font-weight: 600;
   line-height: 1.2;
   transition: opacity 300ms ease;
+}
+
+/* Full Song has nothing to scroll past: its cues take the view's own edges. */
+.output-view-fullsong :is(.output-badge, .output-caption) {
+  position: absolute;
+  inset-inline: 0;
+}
+
+.output-view-fullsong .output-badge {
+  top: 0;
+}
+
+.output-view-fullsong .output-caption {
+  bottom: 0;
 }
 
 .output-blanked :is(.output-caption-text, .output-badge-text),

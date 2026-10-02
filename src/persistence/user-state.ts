@@ -29,6 +29,9 @@ export interface OutputCues {
 /** The Output's reading band while someone scrolls by hand: the part the
  * focus is in, or one line (SDD-0001 §16.1). */
 export type BandSize = "part" | "line";
+/** What the Output lights: the current part (the rest dimmed), or the whole
+ * song, for a congregation singing straight through (SDD-0005 § 5). */
+export type Highlight = "part" | "song";
 
 /** The Output's preset when none is chosen. */
 export const DEFAULT_OUTPUT_THEME: OutputTheme = "warm";
@@ -53,6 +56,11 @@ export interface Preferences {
   bandSize?: BandSize;
   /** Pin the chorus where it fits; absent means off — SDD-0001 §16.1. */
   pinChorus?: boolean;
+  /** Show the whole song at once on a landscape Output (SDD-0005); absent
+   * means off. */
+  wholeSong?: boolean;
+  /** What the Output lights; absent means the current part. */
+  highlight?: Highlight;
   /** The Operator's tab groups, as stored; read through `workspaceOf`, which
    * makes any stored value whole — SDD-0001 §16.4. */
   workspace?: unknown;
@@ -72,6 +80,12 @@ export const bandSizeOf = (preferences: Preferences): BandSize =>
   preferences.bandSize === "line" ? "line" : "part";
 
 export const pinChorusOf = (preferences: Preferences) => preferences.pinChorus ?? false;
+
+/** Anything but "song", a stored value gone wrong included, is the part. */
+export const highlightOf = (preferences: Preferences): Highlight =>
+  preferences.highlight === "song" ? "song" : "part";
+
+export const wholeSongOf = (preferences: Preferences) => preferences.wholeSong ?? false;
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",

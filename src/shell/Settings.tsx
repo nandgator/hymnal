@@ -5,12 +5,15 @@ import {
   DEFAULT_OUTPUT_THEME,
   DEFAULT_PREFERENCES,
   userState as defaultUserState,
+  type Highlight,
+  highlightOf,
   type OutputCues,
   type OutputTheme,
   outputCuesOf,
   type Preferences,
   pinChorusOf,
   type UserState,
+  wholeSongOf,
 } from "../persistence/user-state.ts";
 import { ariaKeys, keyHint, withKey } from "./keymap.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./media.ts";
@@ -45,6 +48,11 @@ export const OUTPUT_CUES: {
   { id: "hymnbook", name: "Hymnbook", example: "the book's title" },
   { id: "part", name: "Part", example: "Verse 2, Chorus" },
   { id: "repeat", name: "Repeat count", example: "×2, on a repeat" },
+];
+
+const HIGHLIGHTS: { value: Highlight; label: string }[] = [
+  { value: "part", label: "Current part" },
+  { value: "song", label: "Whole song" },
 ];
 
 const BAND_SIZES: { value: BandSize; label: string }[] = [
@@ -394,12 +402,47 @@ export function Settings(props: SettingsProps) {
             </For>
           </fieldset>
         </div>
+        <div class="settings-row">
+          <span class="settings-label">
+            Highlight on the Output
+            <span class="settings-supporting">
+              What is lit: the part being sung, or the whole song with nothing dimmed, for singing
+              straight through ({keyHint("highlight")} switches)
+            </span>
+          </span>
+          {segmented(
+            "Highlight on the Output",
+            "highlight",
+            HIGHLIGHTS,
+            () => highlightOf(preferences()),
+            (highlight) => update({ ...preferences(), highlight }),
+          )}
+        </div>
+        <label class="settings-row">
+          <span class="settings-label">
+            Whole song on screen
+            <span class="settings-supporting">
+              On a wide screen the whole song at once in columns, nothing scrolling; a long song
+              takes pages. A tall screen scrolls as ever
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            class="switch"
+            checked={wholeSongOf(preferences())}
+            aria-checked={wholeSongOf(preferences())}
+            onChange={(event) =>
+              update({ ...preferences(), wholeSong: event.currentTarget.checked })
+            }
+          />
+        </label>
         <label class="settings-row">
           <span class="settings-label">
             Pin the chorus
             <span class="settings-supporting">
               Beside the verses on a wide screen, below on a tall one; a hymn flows if its type
-              would get too small
+              would get too small. Not used while the whole song is on screen
             </span>
           </span>
           <input

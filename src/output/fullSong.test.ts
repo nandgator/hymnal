@@ -1,0 +1,288 @@
+import { describe, expect, it } from "vitest";
+import {
+  balance,
+  FULL_FIT_FLOOR,
+  FULL_FIT_MAX,
+  FULL_FIT_MIN,
+  layoutSong,
+  type Measure,
+} from "./fullSong.ts";
+
+const LINE = 81 * 1.35; // px of one line at fit 1, 1080p
+const ROOM = 864;
+
+/** A measure: a part of n lines is n lines tall, plus padding, and narrower
+ * columns wrap more (each extra column makes a part `wrap` taller). */
+function measureOf(
+  lines: number[],
+  opts: { wrap?: number; wide?: (columns: number) => boolean } = {},
+) {
+  const wrap = opts.wrap ?? 0;
+  const calls: [number, number][] = [];
+  const measure: Measure = (columns, fit) => {
+    calls.push([columns, fit]);
+    const unit = LINE * fit;
+    return {
+      heights: lines.map((n) => (n * unit + 0.6 * unit) * (1 + wrap * (columns - 1))),
+      fits: lines.map(() => !opts.wide?.(columns)),
+    };
+  };
+  return { measure, calls };
+}
+
+const flat = (columns: number[][]) => columns.flat();
+
+describe("balance", () => {
+  it("cuts into runs of whole items, in order, minimising the tallest", () => {
+    const result = balance([4, 4, 4, 4, 4], 2);
+    expect(result?.tallest).toBe(12);
+    // A tie between [3|2] and [2|3]: the earlier column fills first.
+    expect(result?.groups).toEqual([
+      [0, 1, 2],
+      [3, 4],
+    ]);
+  });
+
+  it("among equal tallest takes the most even", () => {
+    // Three runs: [4,1 | 1,4 | 1,1] and [4 | 1,1,4 | 1,1] ... both 6 tall or
+    // less; the even one wins. Checked against brute force below as well.
+    const result = balance([4, 1, 1, 4, 1, 1], 3);
+    expect(result?.tallest).toBe(5);
+    expect(result?.groups).toEqual([
+      [0, 1],
+      [2, 3],
+      [4, 5],
+    ]);
+  });
+
+  it("never splits an item, even one taller than the rest together", () => {
+    const result = balance([10, 1, 1], 2);
+    expect(result?.groups).toEqual([[0], [1, 2]]);
+    expect(result?.tallest).toBe(10);
+  });
+
+  it("is one run for one column and one item each for as many as items", () => {
+    expect(balance([1, 2, 3], 1)?.groups).toEqual([[0, 1, 2]]);
+    expect(balance([1, 2, 3], 3)?.groups).toEqual([[0], [1], [2]]);
+  });
+
+  it("refuses more runs than items, or none", () => {
+    expect(balance([1, 2], 3)).toBeNull();
+    expect(balance([1, 2], 0)).toBeNull();
+    expect(balance([], 1)).toBeNull();
+  });
+
+  it("keeps every item exactly once, in order", () => {
+    const heights = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3];
+    for (let k = 1; k <= 6; k++) {
+      const groups = balance(heights, k)?.groups ?? [];
+      expect(groups).toHaveLength(k);
+      expect(groups.every((g) => g.length > 0)).toBe(true);
+      expect(groups.flat()).toEqual(heights.map((_, i) => i));
+    }
+  });
+
+  it("matches brute force: the least tallest, then the least squares", () => {
+    // A small deterministic generator, so a failure repeats.
+    let seed = 7;
+    const next = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed;
+    };
+    const cuts = (n: number, k: number): number[][] => {
+      if (k === 1) return [[n]];
+      const out: number[][] = [];
+      for (let first = 1; first <= n - (k - 1); first++)
+        for (const rest of cuts(n - first, k - 1)) out.push([first, ...rest]);
+      return out;
+    };
+    for (let round = 0; round < 60; round++) {
+      const n = 2 + (next() % 7);
+      const heights = Array.from({ length: n }, () => 1 + (next() % 9));
+      const k = 1 + (next() % Math.min(4, n));
+      let bestMax = Number.POSITIVE_INFINITY;
+      let bestSquares = Number.POSITIVE_INFINITY;
+      for (const sizes of cuts(n, k)) {
+        let at = 0;
+        const sums = sizes.map((size) => {
+          const sum = heights.slice(at, at + size).reduce((a, b) => a + b, 0);
+          at += size;
+          return sum;
+        });
+        const max = Math.max(...sums);
+        const squares = sums.reduce((a, b) => a + b * b, 0);
+        if (max < bestMax || (max === bestMax && squares < bestSquares)) {
+          bestMax = max;
+          bestSquares = squares;
+        }
+      }
+      const got = balance(heights, k);
+      expect(got?.tallest).toBe(bestMax);
+      const squares = (got?.groups ?? [])
+        .map((g) => g.reduce((a, i) => a + heights[i], 0))
+        .reduce((a, b) => a + b * b, 0);
+      expect(squares).toBe(bestSquares);
+    }
+  });
+});
+
+describe("layoutSong", () => {
+  it("has no pages for no parts", () => {
+    const { measure } = measureOf([]);
+    expect(layoutSong(0, measure, ROOM)).toEqual({
+      fit: FULL_FIT_MAX,
+      pages: [],
+      belowFloor: false,
+    });
+  });
+
+  it("keeps a short song in one column at full size when it fits", () => {
+    // 6 lines and two paddings: 7.2 line-units, in a room of 7.9.
+    const { measure } = measureOf([3, 3]);
+    const layout = layoutSong(2, measure, ROOM);
+    expect(layout.pages).toEqual([{ columns: [[0, 1]] }]);
+    expect(layout.fit).toBe(FULL_FIT_MAX);
+    expect(layout.belowFloor).toBe(false);
+  });
+
+  it("stays in one column when a second buys under about 11% of type", () => {
+    // One column: 8.2 units, fit 0.96. Two: 4.1 x 1.3 = 5.3 units, capped at 1.
+    const { measure } = measureOf([3.5, 3.5], { wrap: 0.3 });
+    const layout = layoutSong(2, measure, ROOM);
+    expect(layout.pages[0].columns).toHaveLength(1);
+    expect(layout.fit).toBeCloseTo(864 / (8.2 * LINE), 2);
+  });
+
+  it("adds columns while they buy enough type, the fewest within 10% of the best", () => {
+    // Five parts of 4 lines, wrapping 30% per extra column: one column 0.34,
+    // two 0.44, three 0.54, four 0.45. Three.
+    const { measure } = measureOf([4, 4, 4, 4, 4], { wrap: 0.3 });
+    const layout = layoutSong(5, measure, ROOM);
+    expect(layout.pages[0].columns).toEqual([[0, 1], [2, 3], [4]]);
+    expect(layout.fit).toBeCloseTo(864 / (9.2 * 1.6 * LINE), 2);
+  });
+
+  it("takes three columns over four when four is no larger", () => {
+    // Six parts of 4: two 0.56, three 0.83, four 0.81.
+    const { measure } = measureOf([4, 4, 4, 4, 4, 4], { wrap: 0.02 });
+    const layout = layoutSong(6, measure, ROOM);
+    expect(layout.pages[0].columns).toEqual([
+      [0, 1],
+      [2, 3],
+      [4, 5],
+    ]);
+  });
+
+  it("puts every part in exactly one column of one page, in printed order", () => {
+    const { measure } = measureOf(
+      Array.from({ length: 11 }, (_, i) => 3 + (i % 3)),
+      { wrap: 0.05 },
+    );
+    const layout = layoutSong(11, measure, ROOM);
+    const all = layout.pages.flatMap((p) => flat(p.columns));
+    expect(all).toEqual(Array.from({ length: 11 }, (_, i) => i));
+    for (const page of layout.pages) expect(page.columns.length).toBeLessThanOrEqual(4);
+  });
+
+  it("reaches the floor on one page when four columns can", () => {
+    // 20 parts of 2 lines: four columns of 5 parts, 13 x 1.3 units: 0.47.
+    const { measure } = measureOf(Array(20).fill(2), { wrap: 0.1 });
+    const layout = layoutSong(20, measure, ROOM);
+    expect(layout.pages).toHaveLength(1);
+    expect(layout.pages[0].columns).toHaveLength(4);
+    expect(layout.fit).toBeGreaterThanOrEqual(FULL_FIT_FLOOR);
+    expect(layout.belowFloor).toBe(false);
+  });
+
+  it("splits into the fewest pages of whole parts when one page is under the floor", () => {
+    // 30 parts of 5 lines, wrapping 10%: one page 0.14; two pages 0.27; three
+    // pages of ten parts 0.36.
+    const { measure } = measureOf(Array(30).fill(5), { wrap: 0.1 });
+    const layout = layoutSong(30, measure, ROOM);
+    expect(layout.pages).toHaveLength(3);
+    expect(layout.fit).toBeGreaterThanOrEqual(FULL_FIT_FLOOR);
+    expect(layout.belowFloor).toBe(false);
+    expect(layout.pages.flatMap((p) => flat(p.columns))).toEqual(
+      Array.from({ length: 30 }, (_, i) => i),
+    );
+    // Even pages: ten parts each.
+    expect(layout.pages.map((p) => flat(p.columns).length)).toEqual([10, 10, 10]);
+    // Fifteen parts: one page is under the floor, two pages reach it.
+    const fifteen = measureOf(Array(15).fill(5), { wrap: 0.1 }).measure;
+    expect(layoutSong(15, fifteen, ROOM).pages).toHaveLength(2);
+  });
+
+  it("balances the pages by height, not by count", () => {
+    // Ten long parts then ten short ones: the cut falls so each page is as
+    // tall as the other, the long parts on the first page alone.
+    const lines = [...Array(10).fill(8), ...Array(10).fill(2)];
+    const { measure } = measureOf(lines, { wrap: 0.15 });
+    const layout = layoutSong(20, measure, ROOM);
+    expect(layout.pages.length).toBeGreaterThan(1);
+    const heights = layout.pages.map((p) =>
+      flat(p.columns).reduce((a, i) => a + lines[i] + 0.6, 0),
+    );
+    expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(8.6);
+  });
+
+  it("one fit for the whole song: every page shows at the smallest page's", () => {
+    const lines = [...Array(8).fill(9), ...Array(8).fill(1)];
+    const { measure } = measureOf(lines, { wrap: 0.2 });
+    const layout = layoutSong(16, measure, 400);
+    expect(layout.pages.length).toBeGreaterThan(1);
+    for (const page of layout.pages) {
+      const heights = measure(page.columns.length, layout.fit).heights;
+      for (const column of page.columns) {
+        const tall = column.reduce((a, i) => a + heights[i], 0);
+        expect(tall).toBeLessThanOrEqual(401);
+      }
+    }
+  });
+
+  it("a single part taller than the room stays whole and goes below the floor", () => {
+    // 40 lines in 7.9 line-units: fit 0.19.
+    const { measure } = measureOf([40]);
+    const layout = layoutSong(1, measure, ROOM);
+    expect(layout.pages).toEqual([{ columns: [[0]] }]);
+    expect(layout.fit).toBeLessThan(FULL_FIT_FLOOR);
+    expect(layout.fit).toBeGreaterThanOrEqual(FULL_FIT_MIN);
+    expect(layout.belowFloor).toBe(true);
+  });
+
+  it("a part taller than a column is shown whole, once, with the type down", () => {
+    const { measure } = measureOf([2, 2, 60, 2, 2]);
+    const layout = layoutSong(5, measure, ROOM);
+    const all = layout.pages.flatMap((p) => flat(p.columns));
+    expect(all.filter((i) => i === 2)).toHaveLength(1);
+    expect([...all].sort()).toEqual([0, 1, 2, 3, 4]);
+    expect(layout.belowFloor).toBe(true);
+  });
+
+  it("never goes below the least, even when nothing fits", () => {
+    const { measure } = measureOf([500]);
+    const layout = layoutSong(1, measure, ROOM);
+    expect(layout.fit).toBe(FULL_FIT_MIN);
+    expect(layout.belowFloor).toBe(true);
+    expect(layout.pages[0].columns).toEqual([[0]]);
+  });
+
+  it("a word too wide for a narrow column rules those counts out", () => {
+    const { measure } = measureOf([4, 4, 4, 4, 4], {
+      wide: (columns) => columns > 1,
+    });
+    const layout = layoutSong(5, measure, ROOM);
+    expect(layout.pages[0].columns).toHaveLength(1);
+    expect(layout.fit).toBeLessThan(0.4);
+  });
+
+  it("never uses more than four columns, and uses four when five would be better", () => {
+    // 12 parts of 3 lines: four columns of 3 parts fit at 0.73; a fifth would
+    // do better still, and is not allowed.
+    const { measure } = measureOf(Array(12).fill(3));
+    const layout = layoutSong(12, measure, ROOM);
+    expect(layout.pages).toHaveLength(1);
+    expect(layout.pages[0].columns).toHaveLength(4);
+    expect(layout.pages[0].columns.map((c) => c.length)).toEqual([3, 3, 3, 3]);
+    expect(layout.fit).toBeCloseTo(864 / (3 * 3.6 * LINE), 2);
+  });
+});

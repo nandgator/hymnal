@@ -26,6 +26,7 @@ import { OutputView } from "../output/OutputView.tsx";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import {
   userState as defaultUserState,
+  type Highlight,
   type OutputCues,
   type UserState,
 } from "../persistence/user-state.ts";
@@ -131,6 +132,13 @@ export interface PresenterProps {
   revealCues?: number;
   /** Live pins the chorus as the Output does (SDD-0001 §16.1). */
   pinChorus?: boolean;
+  /** Live shows the whole song as the Output does (SDD-0005). */
+  wholeSong?: boolean;
+  /** The Output window's shape, if it has said: Live is 16:9 whatever it is,
+   * so it takes this for the layout (SDD-0005 § 1). */
+  liveLandscape?: boolean;
+  /** Live lights what the Output does (SDD-0005 § 5). */
+  highlight?: Highlight;
 }
 
 /**
@@ -270,6 +278,8 @@ export function Presenter(props: PresenterProps) {
       // Only the chorus recurs, so only it pins; bridges and tags stay in
       // the verse column, boxed while sung like it (SDD-0001 §16.1).
       chorus: e.hymn.parts.find((part) => part.kind === "chorus")?.id,
+      // Printed order, for the whole-song layout (SDD-0005).
+      parts: e.hymn.parts.map((part) => ({ id: part.id, lines: [...part.lines] })),
     };
   });
   createEffect(() => {
@@ -610,6 +620,9 @@ export function Presenter(props: PresenterProps) {
           cues={props.cues}
           reveal={props.revealCues}
           pinChorus={props.pinChorus}
+          wholeSong={props.wholeSong}
+          landscape={props.liveLandscape}
+          highlight={props.highlight}
           classList={{ "live-blanked": !!props.blanked }}
         />
       )}

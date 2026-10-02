@@ -655,7 +655,12 @@ view is close enough to the frame to need a smaller unit.
   follows, so it stretches over the new part, then lets go of the old; a jump of
   more than a screen fades it instead. The text changes colour in those same
   250ms and easing, so the part the tint leaves dims and the one it reaches
-  brightens as the tint passes, never ahead or behind it.
+  brightens as the tint passes, never ahead or behind it. **Full Song's tint**
+  (SDD-0005, the Output) does the same within a column. Across columns it fades,
+  overlapped so some part is always lit: the old tint fades out in place over
+  the first 60%, the new one fades in over the last 80% travelling 1.6em from
+  the left, the text following in step. A page turn fades the page out (125ms)
+  and in (175ms). Reduced motion shows the end state.
 - **Loading: the shape of what's coming, in its place** (Board #26 part 4). A
   screen still loading shows a skeleton of itself: the Library its card (title,
   count line, button), the Operator its panels, empty, where they will sit.
@@ -708,9 +713,24 @@ view is close enough to the frame to need a smaller unit.
   **a band at the foot** on portrait, or when side by side would shrink the type
   below 70% of full size (5.25% of the screen's shorter side). A hymn that
   neither layout can hold there flows. Only the chorus pins; a bridge or tag
-  stays in the verse column. No part carries a mark (no box, glow, rule, label
-  or italics): being sung, it's lit like any other, and the part gap sets it
-  apart.
+  stays in the verse column. In these scroll layouts no part carries a mark (no
+  box, glow, rule, label or italics): being sung, it's lit like any other, and
+  the part gap sets it apart. The one exception is Full Song, below.
+- **Full Song** (SDD-0005, Presentation > "Whole song on screen", off by
+  default, landscape only, in place of the scroll and its pinned chorus): the
+  whole song at once in its printed form, in columns, left-aligned (one column:
+  centred). Nothing scrolls. Parts are whole, in printed order, balanced across
+  as few columns as buy type size; the type, one size for the song, shrinks to
+  fit, down to a fit of 0.30 (24px on a 1080p screen). A song that would need
+  less is split into pages of whole parts and the page turns with the tint; no
+  page says so. **The tint is a mark here**, the one exception to the rule
+  above: with no eyeline to say where the song is, a box behind the current part
+  (9% ink over the ground, the badge's tone, corners 0.4em) does, and the lit
+  part's text is lit, the rest dimmed, by colour alone. Margins, cues and the
+  ground are the scroll's. **Highlight on the Output** (Presentation, and the H
+  key) can be _Whole song_ in this layout and the scroll alike: every part at
+  full brightness, no tint, no dimming, for singing straight through; the switch
+  animates the colour and the tint in 250ms, at once under reduced motion.
 - **One hard breakpoint** (`~60rem`), not to change the type scale but to cap
   reading-column width on a large display — unconstrained lines on a big screen
   are exactly as illegible as too-small text on a phone.

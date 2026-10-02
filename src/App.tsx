@@ -8,14 +8,17 @@ import {
   setOutputBlanked,
   setOutputPresentation,
   subscribeKeys,
+  subscribeOutputShape,
   subscribePresence,
 } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
 import {
   bandSizeOf,
   DEFAULT_OUTPUT_THEME,
+  highlightOf,
   outputCuesOf,
   pinChorusOf,
+  wholeSongOf,
 } from "./persistence/user-state.ts";
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { titleCase } from "./shell/case.ts";
@@ -96,6 +99,12 @@ function Operator() {
   // reads Back and returns there.
   const [shortcutsReturn, setShortcutsReturn] = createSignal<(open: boolean) => void>();
 
+  // H: light the whole song, or only the current part, live.
+  const toggleHighlight = () => {
+    const prefs = preferences.preferences();
+    preferences.update({ ...prefs, highlight: highlightOf(prefs) === "song" ? "part" : "song" });
+  };
+
   // The Output follows Presentation settings live, and a late Output gets
   // them replayed (SDD-0001 §16.1).
   createEffect(() =>
@@ -103,6 +112,8 @@ function Operator() {
       theme: preferences.preferences().outputTheme ?? DEFAULT_OUTPUT_THEME,
       cues: outputCuesOf(preferences.preferences()),
       pinChorus: pinChorusOf(preferences.preferences()),
+      wholeSong: wholeSongOf(preferences.preferences()),
+      highlight: highlightOf(preferences.preferences()),
       bandSize: bandSizeOf(preferences.preferences()),
     }),
   );
@@ -130,6 +141,9 @@ function Operator() {
   // On air status, and Live's dot the on-air light.
   const presence = createPresence(subscribePresence);
   const presentingOutput = presence.open;
+  // Live matches the Output window's shape; unknown, it is landscape.
+  const [outputLandscape, setOutputLandscape] = createSignal<boolean | undefined>();
+  onMount(() => onCleanup(subscribeOutputShape(setOutputLandscape)));
   // Opening once, then bringing it forward: an empty URL targets the named
   // window without reloading it.
   const openOutput = () => {
@@ -354,6 +368,20 @@ function Operator() {
         ),
       },
       {
+        label:
+          highlightOf(prefs) === "song"
+            ? "Light only the current part on the Output"
+            : "Light the whole song on the Output",
+        hint: keyHint("highlight"),
+        run: run(toggleHighlight),
+      },
+      {
+        label: wholeSongOf(prefs)
+          ? "Scroll the song on the Output"
+          : "Show the whole song on the Output",
+        run: run(() => preferences.update({ ...prefs, wholeSong: !wholeSongOf(prefs) })),
+      },
+      {
         label: cues.fade ? "Keep cues on the Output" : "Fade cues on the Output",
         run: run(() => preferences.setCue("fade", !cues.fade)),
       },
@@ -419,6 +447,7 @@ function Operator() {
         ".": toggleBlank,
         o: openOutput,
         l: () => togglePane("live"),
+        h: toggleHighlight,
         "/": () => hymnbook() && openSheet(setCommandMenuOpen),
         "+": () => preferences.adjustScale(1),
         // The + key's own character, unshifted, on most layouts.
@@ -636,6 +665,9 @@ function Operator() {
                   cues={outputCuesOf(preferences.preferences())}
                   revealCues={cuesRevealed()}
                   pinChorus={pinChorusOf(preferences.preferences())}
+                  wholeSong={wholeSongOf(preferences.preferences())}
+                  liveLandscape={outputLandscape()}
+                  highlight={highlightOf(preferences.preferences())}
                 />
               )}
             </Match>
