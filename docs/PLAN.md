@@ -83,6 +83,9 @@ Ordered. Top unblocked item is next.
 | 30  | Full song, landscape: printed form in columns, the highlight glides; mockup                     | —          |
 | 32  | App updates: prompt to restart when one is ready, never while live; Safari install hint         | —          |
 | 31  | Output on the projector screen: pick and remember it, fullscreen (ADR-0028; Chromium)           | 30         |
+| 33  | Authoring kit: the song text format, a prompt template, a sample (ADR-0029)                     | —          |
+| 34  | Song text in the app: parser to format 1 and the source check (ADR-0029)                        | 28, 33     |
+| 35  | The song text parser and source check in the CLI (ADR-0029)                                     | 34         |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                     | —          |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                   | —          |
 | 16  | Feedback and corrections from users — where collected: TBD                                      | —          |
@@ -135,6 +138,10 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — ADR-0029 accepted: others build their books, format 1 the
+  contract; the profile pipeline for bulk and whole books, a plain song text
+  format with a parser and a source check for everyone; AI the user's own tool.
+  Board #33–35
 - 2026-10-02 — Board #32, decided: an app update waits for a restart the
   operator chooses, never while the Output is live (today it takes over at once
   and deletes the old version's files); books and settings are untouched by
