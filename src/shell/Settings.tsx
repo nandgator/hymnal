@@ -56,6 +56,9 @@ let nextId = 0;
 
 export interface PreferencesController {
   preferences: () => Preferences;
+  /** Whether the stored preferences have been read; until then
+   * {@link preferences} is the defaults, which a once-only note must not trust. */
+  loaded: () => boolean;
   update: (next: Preferences) => void;
   /** Steps the Operator's text scale within its bounds — Settings' A− A+
    * and the + − keys (SDD-0001 §16.5). */
@@ -119,6 +122,7 @@ export function createPreferences(state: UserState = defaultUserState): Preferen
   };
   return {
     preferences,
+    loaded: () => loaded.state === "ready",
     update,
     adjustScale: (direction) => {
       const current = preferences();

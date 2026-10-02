@@ -14,7 +14,10 @@ export default defineConfig(({ command, isPreview }) => ({
   plugins: [
     solid(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt", not "autoUpdate": a new version downloads and waits; the
+      // shell offers Restart, never while the Output is live (SDD-0001 §15,
+      // PLAN Board #32). autoUpdate skipped waiting and reloaded at once.
+      registerType: "prompt",
       // The bundled hymnbook (public/content/*.sqlite) is fetched once by
       // ContentStore and persisted to OPFS itself (SDD-0001 §10) — it must
       // not also sit in the service worker's precache, which exists only to

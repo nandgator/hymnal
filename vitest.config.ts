@@ -5,6 +5,9 @@ export default defineConfig({
   plugins: [solid()],
   resolve: {
     conditions: ["development", "browser"],
+    alias: {
+      "virtual:pwa-register": new URL("./src/vitest-pwa-register.ts", import.meta.url).pathname,
+    },
   },
   test: {
     environment: "jsdom",

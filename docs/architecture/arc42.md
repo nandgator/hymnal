@@ -405,6 +405,10 @@ content package, which stays `ContentStore`'s job via OPFS. Verified against the
 actual production build with the network cut off: the shell, the SQLite engine,
 and a real hymn all load offline after one prior online visit.
 
+An app update downloads and waits for a restart the operator chooses, never
+while the Output is live; it replaces only the shell, never books (OPFS) or
+settings (IndexedDB) (SDD-0001 §15).
+
 `OPEN:` Wrapper deployment, once
 [ADR-0006](../decisions/0006-defer-the-native-wrapper-decision.md) is resolved.
 

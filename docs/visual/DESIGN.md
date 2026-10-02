@@ -564,6 +564,20 @@ view is close enough to the frame to need a smaller unit.
   is a custom colour, red harmonised to the amber seed (Material's method), with
   its own roles in both themes. Blanked is On Air's other state: **Blanked**,
   the dot a ring.
+- **Snackbar.** The shell's one notice, for what needs a word but not a stop:
+  **Update ready** with **Restart** and a close (Later), and the Safari note
+  about keeping books, with **Got it**. MD3's inverse surface, one message, one
+  text action in the inverse primary, 8px corners, never wider than 36rem. On a
+  phone it **floats** above the dock with the soft floating shadow, centred.
+  From 840px it is an **in-flow strip** under the switcher row and above the
+  workspace, left-aligned, flat, so it never covers lyrics or the transport (it
+  does move the layout by one row, which is fine: it is never shown live). One
+  at a time, the update first, and **never while the Output is live** (On Air or
+  Blanked). It takes no focus; a persistent live region announces its message.
+  Keyboard: Esc puts it away (Later; the note's Got it), and the command menu
+  has **Restart to update** and **Dismiss the Home Screen note**. In forced
+  colours it gains a 1px CanvasText border, and its buttons a visible focus
+  ring. Undo still stays in the Repeat row, not here.
 - **Rhythm and states.** One 12px gap above, between and below the areas.
   Disabled is the whole control at 38%, whatever its style. Only floating things
   cast a shadow (menus, sheets, the snackbar, Back to Current); cards and panels

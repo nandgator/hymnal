@@ -32,8 +32,16 @@ import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { isPaneShown, PANES, type PaneId } from "./shell/panes.ts";
 import { canAdjustScale, createPreferences, OUTPUT_CUES, Settings } from "./shell/Settings.tsx";
 import { Sheet } from "./shell/Sheet.tsx";
+import { Snackbar } from "./shell/Snackbar.tsx";
 import { SwapLabel } from "./shell/SwapLabel.tsx";
 import { installScrollReveal } from "./shell/scrollReveal.ts";
+import {
+  createAppUpdates,
+  createPresence,
+  homeScreenHintHere,
+  pickNotice,
+  restartIfAllowed,
+} from "./shell/updates.ts";
 import { workspaceOf } from "./shell/workspace.ts";
 
 /** The app's top-level sections (DESIGN.md § Structure, layer 1). Feedback,
@@ -120,14 +128,65 @@ function Operator() {
 
   // Whether an Output window is open (SDD-0001 §16.4): Go live becomes the
   // On air status, and Live's dot the on-air light.
-  const [presentingOutput, setPresentingOutput] = createSignal(false);
-  onMount(() => onCleanup(subscribePresence(setPresentingOutput)));
+  const presence = createPresence(subscribePresence);
+  const presentingOutput = presence.open;
   // Opening once, then bringing it forward: an empty URL targets the named
   // window without reloading it.
   const openOutput = () => {
     if (presentingOutput()) window.open("", OUTPUT_WINDOW_NAME)?.focus();
     else window.open(OUTPUT_URL, OUTPUT_WINDOW_NAME, "popup");
   };
+
+  // Notices (DESIGN.md § Snackbar): a waiting app update, and once the
+  // Safari Home Screen note — one at a time, none while the Output is live.
+  // Until an Output has had time to answer, presence counts as live.
+  const appUpdates = createAppUpdates(presence.live);
+  const [updateDismissed, setUpdateDismissed] = createSignal(false);
+  const homeScreen = homeScreenHintHere();
+  const notice = () =>
+    pickNotice({
+      update: { ready: appUpdates.ready(), live: presence.live() },
+      safariHint:
+        !!homeScreen &&
+        !!hymnbook() &&
+        preferences.loaded() &&
+        !preferences.preferences().homeScreenHintDismissed,
+      updateDismissed: updateDismissed(),
+    });
+  const restartApp = () =>
+    restartIfAllowed({ ready: appUpdates.ready(), live: presence.live() }, appUpdates.restart);
+  const dismissHomeScreenHint = () =>
+    preferences.update({ ...preferences.preferences(), homeScreenHintDismissed: true });
+  const dismissNotice = () => {
+    const shown = notice();
+    if (shown === "update") setUpdateDismissed(true);
+    else if (shown === "safari-hint") dismissHomeScreenHint();
+  };
+  const noticeMessage = () => {
+    const shown = notice();
+    if (shown === "update") return "Update ready";
+    if (shown === "safari-hint")
+      return `Safari clears saved books after 7 days unused. Add Hymnal to your ${
+        homeScreen === "home-screen" ? "Home Screen" : "Dock"
+      } to keep them.`;
+    return "";
+  };
+  const noticeView = () => (
+    <Switch>
+      <Match when={notice() === "update"}>
+        <Snackbar
+          message={noticeMessage()}
+          action="Restart"
+          onAction={restartApp}
+          dismissLabel="Later"
+          onDismiss={() => setUpdateDismissed(true)}
+        />
+      </Match>
+      <Match when={notice() === "safari-hint"}>
+        <Snackbar message={noticeMessage()} action="Got it" onAction={dismissHomeScreenHint} />
+      </Match>
+    </Switch>
+  );
   const presenting = () => section() === "present" && !!hymnNumber();
   const togglePane = (id: PaneId) =>
     preferences.setPane(id, !isPaneShown(preferences.preferences(), id));
@@ -202,7 +261,13 @@ function Operator() {
       setCommandMenuOpen(false);
       action();
     };
+    const shownNotice = notice();
     return [
+      ...(shownNotice === "update"
+        ? [{ label: "Restart to update", run: run(restartApp) }]
+        : shownNotice === "safari-hint"
+          ? [{ label: "Dismiss the Home Screen note", run: run(dismissHomeScreenHint) }]
+          : []),
       {
         label: blanked() ? "Restore the Output" : "Blank the Output",
         hint: keyHint("blank"),
@@ -342,6 +407,12 @@ function Operator() {
       }
     }
     if (ignoresShortcuts(event)) return;
+    // Escape puts a notice away (Later; the Safari note's Got it).
+    if (event.key === "Escape" && notice()) {
+      event.preventDefault();
+      dismissNotice();
+      return;
+    }
     const action = (
       {
         b: toggleBlank,
@@ -530,6 +601,7 @@ function Operator() {
             />
           </button>
         </header>
+        <Show when={expanded()}>{noticeView()}</Show>
 
         <main
           class="workspace"
@@ -653,6 +725,13 @@ function Operator() {
           </For>
         </ul>
       </Sheet>
+
+      {/* A persistent live region, filled when a notice appears: a region
+          inserted already full is not reliably announced. */}
+      <div class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
+        {noticeMessage()}
+      </div>
+      <Show when={!expanded()}>{noticeView()}</Show>
 
       <Sheet open={menuOpen()} onClose={() => setMenuOpen(false)} title="Menu">
         <nav aria-label="Sections">

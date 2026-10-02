@@ -44,6 +44,7 @@
   --md-sys-color-surface-container-highest: #eae1d4;
   --md-sys-color-inverse-surface: #362f26;
   --md-sys-color-inverse-on-surface: #fbeee1;
+  --md-sys-color-inverse-primary: #ffb951;
   /* On air: a custom colour, Material's way — red harmonised to the amber
      seed, so it belongs to the palette (live = tone 40, container 90). */
   --hymnal-live: #a83900;
@@ -106,6 +107,7 @@
     --md-sys-color-surface-container-highest: #3a3223;
     --md-sys-color-inverse-surface: #eae1d9;
     --md-sys-color-inverse-on-surface: #362f26;
+    --md-sys-color-inverse-primary: #6e4500;
     --hymnal-live: #ff8c5f;
     --hymnal-live-container: #7b2e0d;
     --hymnal-on-live-container: #ffdbcf;
@@ -137,6 +139,7 @@
   --md-sys-color-surface-container-highest: #3a3223;
   --md-sys-color-inverse-surface: #eae1d9;
   --md-sys-color-inverse-on-surface: #362f26;
+  --md-sys-color-inverse-primary: #6e4500;
   --hymnal-live: #ff8c5f;
   --hymnal-live-container: #7b2e0d;
   --hymnal-on-live-container: #ffdbcf;
@@ -3348,4 +3351,103 @@ html[data-scrolling],
 .fold-layer > .shell {
   position: absolute;
   inset: 0;
+}
+
+/* The snackbar (DESIGN.md § Snackbar): the shell's one floating notice, MD3's
+   inverse surface, centred over the workspace — above the dock on a phone,
+   beside the rail from 840px. The region ignores the pointer so it never
+   blocks what lies around the bar. */
+.snackbar-region {
+  position: fixed;
+  right: 0;
+  bottom: calc(var(--dock-height, 0px) + var(--space-sm));
+  left: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--space-md);
+  pointer-events: none;
+}
+
+/* From 840px it is a strip in the flow, under the switcher row and above the
+   workspace, so it never covers lyrics or the transport; the rail is beside
+   it already. */
+@media (min-width: 840px) {
+  .snackbar-region {
+    position: static;
+    justify-content: flex-start;
+    flex: none;
+    padding: var(--space-xs) var(--space-md) 0;
+  }
+}
+
+.snackbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  box-sizing: border-box;
+  width: min(100%, 36rem);
+  min-height: 3rem;
+  padding: var(--space-xxs) var(--space-xxs) var(--space-xxs) var(--space-md);
+  border-radius: var(--shape-sm);
+  background-color: var(--md-sys-color-inverse-surface);
+  color: var(--md-sys-color-inverse-on-surface);
+  box-shadow: var(--elevation-3);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  pointer-events: auto;
+}
+
+.snackbar-message {
+  flex: 1;
+  padding: var(--space-xs) 0;
+}
+
+.snackbar-action.btn-text {
+  flex: none;
+  color: var(--md-sys-color-inverse-primary);
+}
+
+.snackbar-close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--button-shape);
+  background-color: transparent;
+  color: var(--md-sys-color-inverse-on-surface);
+}
+
+.snackbar-close:hover {
+  background-color: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.snackbar-close .icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.snackbar :is(.snackbar-action, .snackbar-close):focus-visible {
+  outline: 2px solid var(--md-sys-color-inverse-on-surface);
+  outline-offset: -2px;
+}
+
+@media (forced-colors: active) {
+  .snackbar {
+    border: 1px solid CanvasText;
+  }
+
+  .snackbar :is(.snackbar-action, .snackbar-close):focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+@media (min-width: 840px) {
+  .snackbar {
+    box-shadow: none;
+  }
 }

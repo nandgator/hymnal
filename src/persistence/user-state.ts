@@ -56,6 +56,8 @@ export interface Preferences {
   /** The Operator's tab groups, as stored; read through `workspaceOf`, which
    * makes any stored value whole — SDD-0001 §16.4. */
   workspace?: unknown;
+  /** The Safari "add to Home Screen" note was dismissed; shown once — SDD-0001 §15. */
+  homeScreenHintDismissed?: boolean;
 }
 
 /** The cues when none are chosen: what a songbook congregation needs, the

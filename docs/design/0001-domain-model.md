@@ -960,6 +960,39 @@ build (`vite preview`, `page.context().setOffline(true)`), the same "no faithful
 polyfill, must verify by hand" limitation as the rest of the OPFS/Worker layer
 (§10.5).
 
+**Updates (Board #32).** `registerType` is `"prompt"`, not `"autoUpdate"`, which
+skipped waiting and reloaded at once, deleting the old version's files under a
+page that might be mid-service. Now a new version downloads quietly and waits;
+the old worker keeps serving the open page, so no page is ever left on deleted
+chunks. `createAppUpdates` (`src/shell/updates.ts`) registers through
+`virtual:pwa-register`, and `onNeedRefresh` raises the shell's **Update ready,
+Restart** snackbar (DESIGN.md § Snackbar); Restart calls
+`updateServiceWorker(true)`, which activates the waiting worker and reloads
+(`cleanupOutdatedCaches` then drops the old precache). It checks hourly while
+open and whenever the tab becomes visible, so a long-open Operator still learns
+of a deploy. **Never while the Output is live:** `updateGate` withholds both the
+prompt and the apply while an Output window is open (Go live pressed: On Air or
+Blanked); the prompt appears when it closes, and "Later" hides it for the
+session. If it is never taken, the update applies once every tab and window of
+the app is closed and it is opened again; a plain reload does not apply it,
+because the old worker still controls the page. Until the Output has answered
+the presence ping (or ~1s has passed with no answer) the Operator counts as
+live, so a fresh load cannot restart under an Output it has not heard from. When
+one tab restarts, the others are on a replaced worker whose old precache is
+gone: those not live reload on `controllerchange`; a live one never does, and
+keeps running what it loaded. **Books and settings are untouched:** books live
+in OPFS and settings and recents in IndexedDB, neither in the service worker's
+caches (above), so an update replaces the shell and nothing else. **Safari:**
+WebKit clears script-writable storage, OPFS and IndexedDB included, after 7 days
+without use unless the site is installed (its ITP cap). In Safari, in a tab and
+not as an installed app, once the first book is loaded (and never while live), a
+snackbar says so and suggests Add to Home Screen (iPhone, iPad) or Add to Dock
+(Mac); "Got it" is remembered as `Preferences.homeScreenHintDismissed`. One
+notice shows at a time, the update first. Verified on a production build with a
+second build swapped in: no prompt while On Air or Blanked, prompt after the
+Output closed, Restart applied it, the book and recents survived, and offline
+reload worked before and after.
+
 **CSS is plain, with custom properties** — no framework. Quality goal 5 ranks
 visual novelty and feature breadth below legibility and offline reliability, and
 Phase 1 has three screens; a utility framework or component library would be a
