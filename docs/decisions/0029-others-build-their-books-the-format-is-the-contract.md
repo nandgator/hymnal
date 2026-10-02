@@ -173,7 +173,9 @@ details, or on its own line before the first block, gives the sung order, as the
 words of the labels above (`Verse 1`, `1`, `Chorus`, `Chorus 2`, `Bridge`,
 case-insensitive, space-separated). Each must name a part; an unknown word is an
 error. A part may appear any number of times, and a part not named is not sung.
-The line wins over everything below.
+(Amended 2026-10-02: every part must be sung, as invariant I5 requires; text
+format 1 in `docs/authoring/text-format.md` is the spec where it and this draft
+differ.) The line wins over everything below.
 
 **How it maps to format 1.**
 

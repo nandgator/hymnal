@@ -81,7 +81,6 @@ Ordered. Top unblocked item is next.
 | --- | ------------------------------------------------------------------------------------------------ | ---------- |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                 | —          |
 | 28  | Library: load songs and books in format 1, local only; keys, duplicates (SDD-0004, ADR-0026/27)  | —          |
-| 33  | Authoring kit: the song text format, a prompt template, a sample (ADR-0029)                      | —          |
 | 34  | Song text in the app: parser to format 1 and the source check (ADR-0029)                         | 28, 33     |
 | 35  | The song text parser and source check in the CLI (ADR-0029)                                      | 34         |
 | 36  | A second tab of the app: today it doesn't load (one OPFS connection); say so, or share the store | —          |
@@ -137,6 +136,9 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — #33 done: the authoring kit in `docs/authoring/` (text format 1,
+  a prompt template, three public-domain samples); every part sung (I5), `#`
+  comments, greedy Sequence parsing, decided by the recommendation
 - 2026-10-02 — Board #31 built: Output on the chosen screen in Chrome and Edge
   (pure `chooseScreen`, `openOutputWindow`, Settings > Output screen with Detect
   screens, `placed` Output fullscreen on first click or F, screenschange

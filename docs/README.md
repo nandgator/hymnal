@@ -15,6 +15,12 @@ and the decision records become documentation.
 The plan is **state**; the other four are **reference**. Start at the plan and
 come here for detail — never the other way round.
 
+Outside the five, [`authoring/`](authoring/README.md) is the **authoring kit**
+for people who build their own books: the song text format, a prompt for their
+own AI, and a sample
+([ADR-0029](decisions/0029-others-build-their-books-the-format-is-the-contract.md)).
+It is for users, not contributors, and is versioned with the content format.
+
 ## The rule
 
 **arc42 describes the present.** It is rewritten in place. It never explains a
