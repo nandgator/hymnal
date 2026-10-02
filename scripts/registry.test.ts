@@ -24,7 +24,7 @@ import {
   startRegistry,
 } from "../src/persistence/registry.ts";
 import { SCHEMA_SQL } from "./content-schema.ts";
-import { container, type FakeFiles, hymn, hymns, setup, sqlOf } from "./registry-fixtures.ts";
+import { container, FakeFiles, hymn, hymns, setup, sqlOf } from "./registry-fixtures.ts";
 
 const V2_SQL = SCHEMA_SQL.replace(
   "  origin         TEXT NOT NULL,       -- the id the file declared\n",
@@ -678,5 +678,70 @@ describe("writes and removes", () => {
     expect(() => removeBook(ctx, "b")).toThrow(/shipped/);
     expect(files.list()).toEqual(["/b.sqlite3"]);
     expect(listBooks(ctx)).toHaveLength(1);
+  });
+});
+
+describe("a package write killed halfway (browser reload while the worker writes)", () => {
+  /**
+   * Models the pool as OPFS shows it: a file's name is taken at its first
+   * open, so killing the writer (the page reloads, the worker is terminated:
+   * no `catch` runs) leaves whatever the pool held at that instant. `killAt`
+   * counts statements on the book's package.
+   */
+  class KilledMidWrite extends FakeFiles {
+    statements = 0;
+    killAt = 40;
+    atKill: string[] | null = null;
+    override open<T>(file: string, fn: (sql: Sql) => T): T {
+      if (!file.endsWith(".1.sqlite3")) return super.open(file, fn);
+      return super.open(file, (sql) =>
+        fn({
+          all: (q, b) => sql.all(q, b),
+          run: (q, b) => {
+            this.#tick(file);
+            sql.run(q, b);
+          },
+          exec: (q) => {
+            this.#tick(file);
+            sql.exec(q);
+          },
+        }),
+      );
+    }
+    #tick(file: string) {
+      if (++this.statements !== this.killAt) return;
+      // SQLite has spilled pages to the file beyond its original size without a
+      // synced journal: the file is there, and no hot journal can undo it.
+      this.atKill = this.list();
+      this.failOpen.set(
+        file,
+        new Error("SQLITE_CORRUPT: sqlite3 result code 11: database disk image is malformed"),
+      );
+      throw new Error("killed");
+    }
+  }
+
+  it("leaves no file under the package's name until the package is whole", async () => {
+    const files = new KilledMidWrite();
+    const { ctx } = setup();
+    (ctx as { files: FakeFiles }).files = files;
+    await expect(addBook(ctx, "k", await container())).rejects.toThrow("killed");
+    // What the pool held when the worker died: a torn package under its final
+    // name. Reconcile can only keep it and list it unreadable, for ever.
+    expect(files.atKill).not.toContain("/k.1.sqlite3");
+  });
+
+  it("does not list an aborted write as a damaged book at the next start", async () => {
+    const { ctx, files } = setup();
+    // The pool after the kill: a package SQLite calls malformed, its journal beside it, no row.
+    files.dbs.set("/k.1.sqlite3", new DatabaseSync(":memory:"));
+    files.dbs.set("/k.1.sqlite3-journal", new DatabaseSync(":memory:"));
+    files.failOpen.set(
+      "/k.1.sqlite3",
+      new Error("SQLITE_CORRUPT: sqlite3 result code 11: database disk image is malformed"),
+    );
+    await reconcile(ctx);
+    expect(listBooks(ctx)).toEqual([]);
+    expect(files.list()).toEqual([]);
   });
 });
