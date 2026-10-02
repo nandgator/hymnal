@@ -132,6 +132,8 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — #28 part 1: `bun run pack` writes a book's container, the same
+  bytes on any machine (fflate, a pinned hash)
 - 2026-10-02 — Recents: rows a glide crosses fade, so no glyph is cut mid-glide
 - 2026-10-02 — #29 part 3: _Songs of Zion_ read from its deck (420 songs);
   publisher GLS, id `eng-gls-songs-of-zion`; a number repeated on the next slide

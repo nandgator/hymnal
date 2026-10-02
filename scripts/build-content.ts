@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import type { Hymnbook, HymnSource } from "../src/domain/types.ts";
@@ -150,6 +150,22 @@ export function addOverlay(loaded: LoadedContent, overlayDir: string): number {
   return hymns.length;
 }
 
+/** Every violation of a loaded book: the load's own, the corpus rules, and an
+ * id that does not match its directory name. Shared by build and pack. */
+export function bookViolations(loaded: LoadedContent, dir: string): Violation[] {
+  const violations = [...loaded.violations, ...validateCorpus(loaded.hymnbook, loaded.files)];
+  const name = basename(resolve(dir));
+  const id = (loaded.hymnbook as { id?: unknown } | null)?.id;
+  if (typeof id === "string" && id !== name) {
+    violations.push({
+      rule: "hymnbook-id",
+      where: "hymnbook",
+      message: `id ${id} must match its directory name ${name}`,
+    });
+  }
+  return violations;
+}
+
 /** Loads, validates and (only if nothing is wrong) builds one hymnbook
  * directory, with its local overlay if there is one. */
 export function buildContent({
@@ -163,16 +179,8 @@ export function buildContent({
 }) {
   const loaded = loadContent(contentDir);
   const local = overlayDir ? addOverlay(loaded, overlayDir) : 0;
-  const violations = [...loaded.violations, ...validateCorpus(loaded.hymnbook, loaded.files)];
+  const violations = bookViolations(loaded, contentDir);
 
-  const id = (loaded.hymnbook as { id?: unknown } | null)?.id;
-  if (typeof id === "string" && id !== basename(contentDir)) {
-    violations.push({
-      rule: "hymnbook-id",
-      where: "hymnbook",
-      message: `id ${id} must match its directory name ${basename(contentDir)}`,
-    });
-  }
   if (violations.length > 0) return { violations } satisfies BuildResult;
 
   const contentHash = hashContent(loaded.sources);

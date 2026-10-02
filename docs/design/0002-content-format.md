@@ -38,9 +38,9 @@ the gzip of one UTF-8 JSON document:
 }
 ```
 
-Both forms carry the same content and pass the same rules. Specified, not yet
-built: no tool writes the container until a download or sharing path needs it
-(ADR-0019).
+Both forms carry the same content and pass the same rules. `bun run pack` writes
+the container from a directory
+([SDD-0004 §2](0004-loading-books.md#2-the-container-writer), ADR-0019).
 
 All files are UTF-8 JSON. `NNNN` is the hymn number, zero-padded to four digits.
 

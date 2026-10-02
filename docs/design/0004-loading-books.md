@@ -59,11 +59,17 @@ large book never holds up a frame.
    code is non-zero.
 2. Write `{ "hymnbook": …, "hymns": […] }`: the parsed files verbatim (including
    `$schema`), hymns in number order, compact JSON.
-3. Gzip at level 9. The header carries no timestamp and no file name, so the
-   same book packs to the same bytes, and so to the same source hash. A test
-   packs twice and compares.
+3. Gzip at level 9 with fflate's `gzipSync` (pure JS, its version pinned by
+   `bun.lock`), not `node:zlib`, whose deflate differs between Bun and Node. The
+   header carries no timestamp and no file name, and its OS byte is set to 255
+   (unknown), so the same book packs to the same bytes on any machine and
+   runtime, and so to the same source hash. A test packs twice and compares, a
+   golden test pins one book's sha256, and a test compares the CLI under Bun
+   with the function under Node; an fflate upgrade that changed its output would
+   fail the golden test.
 
-The default output is `imports/` (ignored); `--out` overrides it. It prints
+The default output is `imports/` (ignored), relative to the working directory,
+as `import`'s is, and made if missing; `--out` overrides it. It prints
 `packed <file>: N songs, <size>, sha256 <hex>`. The directory's `id` must match
 its name, as the build requires today; a container carries no such rule, since a
 device keys the book itself (§5).
