@@ -52,6 +52,7 @@ import {
   type Workspace,
 } from "../shell/workspace.ts";
 import { glideBack, glideLyrics, watchTint } from "./lyricsGlide.ts";
+import { placePad, watchPad } from "./padGlide.ts";
 
 // Most parts carry no label — it's printed only for numbered stanzas
 // (SDD-0001 §2.1). Every other part falls back to its kind: "Pre-chorus".
@@ -488,6 +489,10 @@ export function Presenter(props: PresenterProps) {
     for (const list of document.querySelectorAll<HTMLElement>(".sequence")) {
       glideLyrics(list, { still });
     }
+    // The parts pad's pill moves with the step, the same way.
+    for (const pad of document.querySelectorAll<HTMLElement>(".parts-navigator > section")) {
+      placePad(pad, { still });
+    }
   });
 
   // Dock labels collapse to icon-only in reverse priority (lines, then the
@@ -670,84 +675,94 @@ export function Presenter(props: PresenterProps) {
     ...parts.filter((part) => part.label).sort((a, b) => Number(a.label) - Number(b.label) || 0),
   ];
 
-  const partsNavigator = (loaded: Hymn) => (
-    <div class="parts-navigator">
-      {/* Above the chips, so it sits in the same place for every hymn; the
+  const partsNavigator = (loaded: Hymn) => {
+    let pad: HTMLElement | undefined;
+    // The pill keeps to its key as the pad reflows (padGlide.ts).
+    onMount(() => {
+      if (pad) onCleanup(watchPad(pad));
+    });
+    return (
+      <div class="parts-navigator">
+        {/* Above the chips, so it sits in the same place for every hymn; the
           count and Undo appear after it, moving nothing. */}
-      <div class="repeat-row">
-        {/* A text button: occasional, so low emphasis, like Undo and Reset
+        <div class="repeat-row">
+          {/* A text button: occasional, so low emphasis, like Undo and Reset
             beside it (PRINCIPLES.md, hierarchy). */}
-        <button
-          type="button"
-          class="btn-text repeat-button"
-          aria-label="Repeat"
-          aria-keyshortcuts={ariaKeys("repeat")}
-          title={withKey("Repeat this part", "repeat", expanded())}
-          onClick={repeat}
-        >
-          <span class="icon icon-repeat" aria-hidden="true" />
-          <span class="repeat-label">Repeat</span>
-        </button>
-        {/* Held in place before any repeat — the count unseen, Undo and
+          <button
+            type="button"
+            class="btn-text repeat-button"
+            aria-label="Repeat"
+            aria-keyshortcuts={ariaKeys("repeat")}
+            title={withKey("Repeat this part", "repeat", expanded())}
+            onClick={repeat}
+          >
+            <span class="icon icon-repeat" aria-hidden="true" />
+            <span class="repeat-label">Repeat</span>
+          </button>
+          {/* Held in place before any repeat — the count unseen, Undo and
             Reset disabled — so nothing moves when they apply (SDD-0001
             §16.4). Short on screen; the full names are the accessible ones. */}
-        <span class="repeat-count" aria-live="polite">
-          <Show when={repeatOrdinal() > 1}>
-            ×<RollingNumber value={repeatOrdinal()} />
-            <span class="visually-hidden"> — sung {repeatOrdinal()} times in a row</span>
-          </Show>
-        </span>
-        <span class="repeat-actions">
-          <button
-            type="button"
-            class="btn-text"
-            aria-label="Undo repeat"
-            aria-keyshortcuts={ariaKeys("undo-repeat")}
-            title={withKey("Undo repeat", "undo-repeat", expanded())}
-            disabled={!canUndoRepeat()}
-            onClick={undoRepeat}
+          <span class="repeat-count" aria-live="polite">
+            <Show when={repeatOrdinal() > 1}>
+              ×<RollingNumber value={repeatOrdinal()} />
+              <span class="visually-hidden"> — sung {repeatOrdinal()} times in a row</span>
+            </Show>
+          </span>
+          <span class="repeat-actions">
+            <button
+              type="button"
+              class="btn-text"
+              aria-label="Undo repeat"
+              aria-keyshortcuts={ariaKeys("undo-repeat")}
+              title={withKey("Undo repeat", "undo-repeat", expanded())}
+              disabled={!canUndoRepeat()}
+              onClick={undoRepeat}
+            >
+              Undo
+            </button>
+            <button
+              type="button"
+              class="btn-text"
+              aria-label="Reset repeat"
+              disabled={!canResetRepeats()}
+              onClick={resetRepeats}
+            >
+              Reset
+            </button>
+          </span>
+        </div>
+        <section aria-label="Jump to part" ref={pad}>
+          {/* The current key's fill, behind the keys: it glides from key to
+            key (padGlide.ts). */}
+          <span class="chip-pill" aria-hidden="true" />
+          <ul
+            class="chip-set"
+            style={{
+              "--stanza-count": String(
+                Math.max(MIN_CHIP_COLUMNS, loaded.parts.filter((p) => p.label).length),
+              ),
+            }}
           >
-            Undo
-          </button>
-          <button
-            type="button"
-            class="btn-text"
-            aria-label="Reset repeat"
-            disabled={!canResetRepeats()}
-            onClick={resetRepeats}
-          >
-            Reset
-          </button>
-        </span>
+            <For each={keypadOrder(loaded.parts)}>
+              {(part) => (
+                <li>
+                  <button
+                    type="button"
+                    class="chip-filter"
+                    classList={{ "chip-wide": !part.label }}
+                    aria-pressed={occurrence()?.part.id === part.id}
+                    onClick={() => mutate((e) => e.jumpToPart(part.id))}
+                  >
+                    {partLabel(part)}
+                  </button>
+                </li>
+              )}
+            </For>
+          </ul>
+        </section>
       </div>
-      <section aria-label="Jump to part">
-        <ul
-          class="chip-set"
-          style={{
-            "--stanza-count": String(
-              Math.max(MIN_CHIP_COLUMNS, loaded.parts.filter((p) => p.label).length),
-            ),
-          }}
-        >
-          <For each={keypadOrder(loaded.parts)}>
-            {(part) => (
-              <li>
-                <button
-                  type="button"
-                  class="chip-filter"
-                  classList={{ "chip-wide": !part.label }}
-                  aria-pressed={occurrence()?.part.id === part.id}
-                  onClick={() => mutate((e) => e.jumpToPart(part.id))}
-                >
-                  {partLabel(part)}
-                </button>
-              </li>
-            )}
-          </For>
-        </ul>
-      </section>
-    </div>
-  );
+    );
+  };
 
   // Lyrics, touch-first (DESIGN.md § Structure): a tap anywhere in a block
   // goes there, a tap on a line sends that line live. Scrolling never calls

@@ -132,6 +132,8 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — The parts pad's selected key is one pill that glides from key to
+  key
 - 2026-10-02 — #28 designed: ADR-0026/0027 accepted, SDD-0004. Chosen: songs
   leave the repo; no sample until one exists; Malayalam adopted in place, source
   kept ignored, history rewritten later; empty first run; remove drops recents;

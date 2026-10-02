@@ -12,6 +12,18 @@
 // keeps to the tint: it eases with the glide and the fade-in (styles.css),
 // and goes at once when the tint snaps (`data-tint` on the list).
 
+import {
+  type Box,
+  boxOf,
+  frame,
+  glideTiming,
+  onSettle,
+  paint,
+  prefersReducedMotion,
+  sameBox,
+  shownBox,
+} from "./glideGeometry.ts";
+
 export type TintMode = "snap" | "glide" | "fade";
 export type ScrollMode = "snap" | "glide";
 
@@ -58,13 +70,6 @@ export function scrollTargetTop(input: {
   return Math.min(max, Math.max(0, raw));
 }
 
-interface Box {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
 interface ListState {
   // Where the tint settles: the end state, whatever is animating.
   box: Box | null;
@@ -97,7 +102,6 @@ const stateOf = (list: HTMLElement): ListState => {
   return state;
 };
 
-const FALLBACK_EASING = "cubic-bezier(0.2, 0, 0, 1)";
 // The leading edge has arrived by this share of the duration.
 const LEAD = 0.65;
 const EDGE_STEPS = 24;
@@ -162,57 +166,8 @@ export function edgeBoxes(
   });
 }
 
-const FALLBACK_MS = 250;
-
 const tintOf = (list: HTMLElement) =>
   list.querySelector<HTMLElement>(":scope > .seq-tint") ?? undefined;
-
-// Layout offsets, not rects: a tab's zoom-in or a View Transition scales
-// what getBoundingClientRect reports, but never an element's own layout.
-function offsetIn(el: HTMLElement, list: HTMLElement): { x: number; y: number } {
-  let x = 0;
-  let y = 0;
-  for (let n: HTMLElement | null = el; n && n !== list; n = n.offsetParent as HTMLElement | null) {
-    x += n.offsetLeft;
-    y += n.offsetTop;
-  }
-  return { x, y };
-}
-
-const boxOf = (el: HTMLElement, list: HTMLElement): Box => ({
-  ...offsetIn(el, list),
-  w: el.offsetWidth,
-  h: el.offsetHeight,
-});
-
-const sameBox = (a: Box | null, b: Box | null) =>
-  a === b || (!!a && !!b && a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h);
-
-const frame = (b: Box) => ({
-  transform: `translate(${b.x}px, ${b.y}px)`,
-  width: `${b.w}px`,
-  height: `${b.h}px`,
-});
-
-function paint(tint: HTMLElement, box: Box | null) {
-  if (!box) {
-    tint.style.display = "none";
-    return;
-  }
-  tint.style.display = "";
-  const f = frame(box);
-  tint.style.transform = f.transform;
-  tint.style.width = f.width;
-  tint.style.height = f.height;
-}
-
-// Where the tint is drawn right now, mid-glide included.
-function shownBox(tint: HTMLElement, state: ListState): Box | null {
-  if (!state.anim || !state.box) return state.box;
-  const cs = getComputedStyle(tint);
-  const m = new DOMMatrix(cs.transform === "none" ? undefined : cs.transform);
-  return { x: m.m41, y: m.m42, w: Number.parseFloat(cs.width), h: Number.parseFloat(cs.height) };
-}
 
 function stop(state: ListState) {
   state.stopScroll?.();
@@ -229,9 +184,6 @@ function snapColour(list: HTMLElement) {
   void list.offsetHeight;
   delete list.dataset.tint;
 }
-
-const prefersReducedMotion = () =>
-  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
 function watchCurrent(state: ListState, block: Element | null) {
   if (!state.observer || state.watched === block) return;
@@ -339,7 +291,7 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean }) {
   if (options.still && state.anim && sameBox(state.box, to) && state.scrollTo === scrollTo) {
     return;
   }
-  const from = tint ? shownBox(tint, state) : null;
+  const from = tint ? shownBox(tint, state.anim, state.box) : null;
   const plan = planGlide({
     still: options.still,
     reduced: prefersReducedMotion(),
@@ -362,9 +314,7 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean }) {
     return;
   }
 
-  const style = getComputedStyle(list);
-  const duration = Number.parseFloat(style.getPropertyValue("--motion-medium")) || FALLBACK_MS;
-  const easing = style.getPropertyValue("--motion-emphasized").trim() || FALLBACK_EASING;
+  const { duration, easing } = glideTiming(list);
   const start = from ?? to;
   let anim: Animation;
   if (plan.tint === "fade") {
@@ -399,8 +349,7 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean }) {
   const settle = () => {
     if (state.anim === anim) state.anim = null;
   };
-  anim.addEventListener("finish", settle);
-  anim.addEventListener("cancel", settle);
+  onSettle(anim, settle);
   if (plan.tint === "snap") snapColour(list);
   if (plan.scroll === "glide") rideScroll(list, state, anim, scrollTo);
 }

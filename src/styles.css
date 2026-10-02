@@ -920,7 +920,8 @@ button:disabled {
 }
 
 /* Selected by tone alone: neutral is an action, tonal is "selected" — no
-   outlines anywhere in the keypad or the transport. */
+   outlines anywhere in the keypad or the transport. In the parts pad the
+   selected fill is the pill behind the keys, which glides (below). */
 .chip-filter[aria-pressed="true"] {
   background-color: var(--md-sys-color-secondary-container);
   color: var(--md-sys-color-on-secondary-container);
@@ -2788,6 +2789,113 @@ html[data-scrolling],
 
 .chip-set .chip-filter {
   width: 100%;
+}
+
+/* The pad's current key is a pill behind the keys that glides from key to
+   key (padGlide.ts), so the keys' own fills sit behind it, on their cell,
+   and the keys are transparent above it: fill, pill, key. The label's colour
+   changes over the same 250ms; both selected and resting colours are dark on
+   light (or light on dark) over either fill, so it reads at every frame. */
+.parts-navigator > section:has(> .chip-pill) {
+  position: relative;
+  isolation: isolate;
+}
+
+.chip-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  border-radius: var(--button-shape);
+  background-color: var(--md-sys-color-secondary-container);
+  pointer-events: none;
+  /* Gives under the finger with its key: the same 96%, the same timing. */
+  scale: 1;
+  transition:
+    scale var(--motion-short) var(--motion-spring),
+    opacity var(--motion-short) var(--motion-emphasized);
+}
+
+.chip-set li {
+  position: relative;
+}
+
+.chip-set li::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--button-shape);
+  background-color: var(--md-sys-color-surface-container-high);
+  scale: 1;
+  transition:
+    scale var(--motion-short) var(--motion-spring),
+    opacity var(--motion-short) var(--motion-emphasized);
+}
+
+/* Disabled follows the control's 38% fade (a key's own fill and the pill). */
+.chip-set li:has(.chip-filter:disabled)::before,
+.parts-navigator > section:has(.chip-filter[aria-pressed="true"]:disabled) .chip-pill {
+  opacity: 0.38;
+}
+
+.chip-set li:has(.chip-filter:active:not(:disabled))::before,
+.parts-navigator > section:has(.chip-filter[aria-pressed="true"]:active:not(:disabled)) .chip-pill {
+  scale: 0.96;
+  transition-duration: 80ms;
+  transition-timing-function: var(--motion-emphasized);
+}
+
+.chip-set .chip-filter,
+.chip-set .chip-filter[aria-pressed="true"] {
+  z-index: 2;
+  background-color: transparent;
+}
+
+.chip-set .chip-filter {
+  transition-property: color, border-radius, box-shadow, opacity, scale;
+  transition-duration:
+    var(--motion-medium), var(--motion-short), var(--motion-short), var(--motion-short),
+    var(--motion-short);
+  transition-timing-function:
+    var(--motion-emphasized), var(--motion-emphasized), var(--motion-emphasized),
+    var(--motion-emphasized), var(--motion-spring);
+}
+
+/* Reduced motion: the pill jumps (padGlide.ts), keys don't squeeze, and no
+   fill or label eases. */
+@media (prefers-reduced-motion: reduce) {
+  .chip-pill,
+  .chip-set li::before,
+  .chip-set .chip-filter {
+    transition: none;
+  }
+
+  .chip-set li:has(.chip-filter:active:not(:disabled))::before,
+  .parts-navigator
+    > section:has(.chip-filter[aria-pressed="true"]:active:not(:disabled))
+    .chip-pill {
+    scale: 1;
+  }
+}
+
+/* Forced colours drop backgrounds: the pill is Highlight with HighlightText
+   on the current key, and a resting key keeps a ButtonText outline. */
+@media (forced-colors: active) {
+  .chip-set li::before {
+    border: 1px solid ButtonText;
+  }
+
+  .chip-pill {
+    forced-color-adjust: none;
+    background-color: Highlight;
+  }
+
+  .chip-set .chip-filter[aria-pressed="true"] {
+    forced-color-adjust: none;
+    color: HighlightText;
+  }
 }
 
 .chip-set li:has(.chip-wide) {
