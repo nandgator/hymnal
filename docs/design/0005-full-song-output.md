@@ -92,9 +92,13 @@ split, never scrolled:
    page's own choice of k, or a larger k if wrapping made that infeasible.
 
 **Page turn**: one page shows at a time, the one holding the current part. When
-a step reaches a part on the other page, the page fades out (125ms), the other
-fades in (175ms) with the tint already on its part. Under reduced motion it is
-at once. Nothing on screen says there are pages.
+a step reaches a part on the other page, the pages hand off within one medium
+time (250ms, emphasised): the old page fades out over the first 110ms, the new
+one rises 12px into place and fades in from 90ms to 250ms. They share only 20ms,
+both nearly invisible, so text never shows twice, and the Output is never blank
+for more than a frame or two. The tint goes with its page (§ 4). Under reduced
+motion it is at once. A step that comes while a turn is running lands at once,
+so two turns never overlap. Nothing on screen says there are pages.
 
 ## 4. The tint's motion
 
@@ -111,12 +115,30 @@ All durations are the app's medium (250ms) at the emphasised easing, through
   last 80% (starting at 20%), travelling 1.6em from the left to its place. The
   text follows: the old part dims over the first 150ms, the new one brightens
   from 50ms over 200ms.
-- **A page turn**: § 3. The tint does not travel.
+- **A page turn**: the pages hand off (§ 3) and the tint goes with them, in the
+  same times and easing: the old tint fades out in place over the first 110ms,
+  the new one rises 12px into place and fades in from 90ms, neither travelling
+  sideways. A tint whose box is the same on both pages is not touched, so it
+  neither jumps nor vanishes. The old part's text dims over the first 110ms; the
+  new part's is lit as its page arrives.
 - **When it is laid out**: when the song, its parts' text (a signature, so an
   edit counts), the box, the margins or the fonts change, never for a step.
   Layouts are cached by those; a burst of resizes or font loads makes one
   layout, in the next frame. A font that loads when the text first needs it
   (Malayalam, on the first song) measures again once in (`loadingdone`).
+- **How it is measured**: not by building the song in the page for every
+  candidate. Each word is measured once, with the real font (canvas), as the
+  song arrives, and a part's height at any column count and scale is arithmetic
+  over those widths: greedy line breaking at spaces and after a joining hyphen,
+  words never broken, `1.35em` a line, the part's padding. The rule's search is
+  then pure arithmetic: about 165 measures and 3ms for the longest song. When
+  the Output has a song, the layout for its current box is made ahead, when the
+  browser is idle, so turning the setting on has nothing left to do. The layout
+  chosen is checked once in the page, on the page shown: if a block is taller
+  than the room or a word overflows, the layout is made again for a room 3%
+  smaller, up to 8 times, and that is what is kept. On the sampled songs of both
+  books the arithmetic agrees with the browser to the pixel in all but 1 of
+  about 7,500 parts, and then errs smaller.
 - **Forced colours**: the tint's fill and the dimmed ink are dropped, so the
   tint takes an outline in the system highlight: the current part stays marked.
 - **Snapping**: a new song, a resize, a refit (a cue turning on, the setting, a
@@ -144,7 +166,8 @@ scroll) the position.
 | Piece           | Does                                                       | Lives in                      |
 | --------------- | ---------------------------------------------------------- | ----------------------------- |
 | `layoutSong`    | The rule of § 2 and § 3, pure                              | `src/output/fullSong.ts`      |
-| `FullSong`      | Measures, lays out, renders pages, columns, tint           | `src/output/FullSong.tsx`     |
+| Text metrics    | Word widths (canvas), wrapped heights by arithmetic        | `src/output/fullSongText.ts`  |
+| `FullSong`      | Lays out, checks it, renders pages, columns, tint          | `src/output/FullSong.tsx`     |
 | `glideFullTint` | The within-column slide, the cross-column fade             | `src/output/fullSongGlide.ts` |
 | `OutputView`    | Chooses the layout (setting and landscape), keeps the cues | `src/output/OutputView.tsx`   |
 | The setting     | `wholeSong` preference, in the presentation message        | `user-state.ts`, `channel.ts` |
@@ -157,5 +180,8 @@ the focused line. A message without `parts` shows the scroll.
 
 `fullSong.test.ts` pins the rule with a synthetic measure: balancing, ties, the
 smaller column count, the floor and pages, one part, a part taller than a
-column. `FullSong.test.tsx` checks the order, the tint's part, the lit lines and
-the page shown. The glide's geometry is the existing one's, tested there.
+column. `fullSongText.test.ts` pins the arithmetic: breaking, wrapping, heights,
+and that the rule runs on it. `FullSong.test.tsx` checks the order, the tint's
+part, the lit lines, the page shown, a turn with both pages mounted and the old
+one gone at its end, and the layout made again when the page disagrees. The
+glide's geometry is the existing one's, tested there.

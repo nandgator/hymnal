@@ -824,8 +824,10 @@ view is close enough to the frame to need a smaller unit.
   (SDD-0005, the Output) does the same within a column. Across columns it fades,
   overlapped so some part is always lit: the old tint fades out in place over
   the first 60%, the new one fades in over the last 80% travelling 1.6em from
-  the left, the text following in step. A page turn fades the page out (125ms)
-  and in (175ms). Reduced motion shows the end state.
+  the left, the text following in step. A page turn is a handoff within 250ms:
+  the old page fades out over the first 110ms, the new one rises 12px and fades
+  in from 90ms (a 20ms overlap at low opacity, so text never doubles), the tint
+  going out and coming in with its pages. Reduced motion shows the end state.
 - **Loading: the shape of what's coming, in its place** (Board #26 part 4). A
   screen still loading shows a skeleton of itself: the Library its header and
   two rows of its list, the Operator its panels, empty, where they will sit.

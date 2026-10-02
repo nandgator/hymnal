@@ -3378,12 +3378,26 @@ html[data-scrolling],
 .full-sheet {
   position: absolute;
   inset: var(--safe-top) 5cqw var(--safe-bottom);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-size: calc(7.5cqmin * var(--fit, 1));
   font-weight: 500;
   line-height: 1.35;
+}
+
+/* The tint and the pages share one stage, so the tint's coordinates are the
+   same on every page: it can cross from one to the next. */
+.full-stage {
+  position: absolute;
+  inset: 0;
+}
+
+/* A page fills the sheet; its block is centred in it, both ways, so a page
+   of two columns and one of three each sit in the middle. */
+.full-page {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .full-block {
@@ -3392,6 +3406,39 @@ html[data-scrolling],
   flex: none;
   align-items: flex-start;
   gap: var(--col-gap);
+}
+
+/* A page turn (SDD-0005 § 3) is a handoff, not an overlap: the old page fades
+   out over the first 44% of the medium time, the new one rises 12px into place
+   and fades in from 36%. They share only the 20ms between, both nearly
+   invisible, so text never shows twice. */
+.full-page[data-turn="out"] {
+  animation: full-page-out calc(var(--motion-medium) * 0.44) var(--motion-emphasized) forwards;
+  pointer-events: none;
+}
+
+.full-page[data-turn="in"] {
+  animation: full-page-in calc(var(--motion-medium) * 0.64) var(--motion-emphasized)
+    calc(var(--motion-medium) * 0.36) backwards;
+}
+
+@keyframes full-page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes full-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .full-page[data-turn] {
+    animation: none;
+  }
 }
 
 .full-col {
@@ -3407,15 +3454,6 @@ html[data-scrolling],
 .full-col-single {
   align-items: center;
   text-align: center;
-}
-
-/* The measure (FullSong.tsx): the same column, hidden, at a scale. */
-.full-probe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  font-size: calc(7.5cqmin * var(--fit, 1));
-  visibility: hidden;
 }
 
 /* A part is a box: its padding is what the tint shows around the text, so
@@ -3444,8 +3482,8 @@ html[data-scrolling],
 
 /* Colour follows the tint (SDD-0005 § 4). Across columns the old part dims
    in the first 60%, the new one brightens from 20% of the time: overlapped,
-   so something is always lit. A page turn dims at once and fades with the
-   page. A snap, and reduced motion, change at once. */
+   so something is always lit. A page turn dims the old part in the first half, as
+   its page fades out. A snap, and reduced motion, change at once. */
 .full-song[data-glide="cross"] .full-line {
   transition-duration: calc(var(--motion-medium) * 0.6);
 }
@@ -3456,7 +3494,7 @@ html[data-scrolling],
 }
 
 .full-song[data-glide="turn"] .full-line {
-  transition-duration: 125ms;
+  transition-duration: calc(var(--motion-medium) * 0.44);
 }
 
 .full-song[data-glide="snap"] .full-line {

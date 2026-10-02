@@ -7,6 +7,11 @@
 // - cross: to another column, a fade, overlapped so some part is always lit:
 //   the old tint (a ghost layer) fades out in place over the first 60%, the
 //   new one fades in from the 20% mark, travelling from the left.
+// - turn: to another page, the tint goes with its page, a handoff as the
+//   pages' is: the old one fades out in place over the first 44% of the time,
+//   the new one rises 12px into place and fades in from 36%, never travelling
+//   sideways. A tint that
+//   stays where it is (the same box on both pages) is not touched.
 // - snap: at once, the tint re-measured. Reduced motion is always this.
 
 import {
@@ -21,7 +26,7 @@ import {
 } from "../presenter/glideGeometry.ts";
 import { edgeBoxes, parseEase } from "../presenter/lyricsGlide.ts";
 
-export type TintStep = "snap" | "slide" | "cross";
+export type TintStep = "snap" | "slide" | "cross" | "turn";
 
 /** Where the incoming tint starts its travel, in em, left of its place. */
 export const CROSS_TRAVEL_EM = 1.6;
@@ -50,14 +55,21 @@ function stop(layers: TintLayers, state: TintState) {
   layers.tint.style.opacity = "";
 }
 
-/** The geometry of a cross-column fade, as keyframes (pure, for tests). */
-export function crossFrames(from: Box, to: Box, em: number) {
+/** A page turn: the old tint is gone by this share of the glide, the new one
+ * starts at this share, rising this many px. */
+export const TURN_OUT = 0.44;
+export const TURN_IN_START = 0.36;
+export const TURN_RISE_PX = 12;
+
+/** The geometry of a cross-column fade, as keyframes (pure, for tests); a
+ * page turn's has no travel, and rises instead. */
+export function crossFrames(from: Box, to: Box, em: number, travel = CROSS_TRAVEL_EM, rise = 0) {
   const ghost: Keyframe[] = [
     { ...frame(from), opacity: 1 },
     { ...frame(from), opacity: 0 },
   ];
   const tint: Keyframe[] = [
-    { ...frame({ ...to, x: to.x - CROSS_TRAVEL_EM * em }), opacity: 0 },
+    { ...frame({ ...to, x: to.x - travel * em, y: to.y + rise }), opacity: 0 },
     { ...frame(to), opacity: 1 },
   ];
   return { ghost, tint };
@@ -95,16 +107,20 @@ export function placeTint(
     });
     return;
   }
-  const frames = crossFrames(was, to, em);
+  // A turn runs with its pages: a handoff, the new tint rising into place.
+  const turn = step === "turn";
+  const outShare = turn ? TURN_OUT : CROSS_OUT;
+  const inStart = turn ? TURN_IN_START : CROSS_IN_START;
+  const frames = crossFrames(was, to, em, turn ? 0 : CROSS_TRAVEL_EM, turn ? TURN_RISE_PX : 0);
   paint(ghost, was);
   const out = ghost.animate(frames.ghost, {
-    duration: duration * CROSS_OUT,
+    duration: duration * outShare,
     easing,
     fill: "forwards",
   });
   const into = tint.animate(frames.tint, {
-    duration: duration * (1 - CROSS_IN_START),
-    delay: duration * CROSS_IN_START,
+    duration: duration * (1 - inStart),
+    delay: duration * inStart,
     easing,
     fill: "backwards",
   });

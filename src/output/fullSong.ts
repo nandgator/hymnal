@@ -52,9 +52,11 @@ export function balance(heights: number[], count: number): Balanced | null {
   if (count < 1 || count > n) return null;
   const prefix = [0];
   for (const h of heights) prefix.push(prefix[prefix.length - 1] + h);
-  type Cell = { max: number; squares: number; cuts: number[] };
+  // best[c][j]: the best way to cut the first j items into c runs; `from` is
+  // where its last run begins (a back-pointer, so no array is copied).
+  type Cell = { max: number; squares: number; from: number };
   const best: (Cell | null)[][] = Array.from({ length: count + 1 }, () => Array(n + 1).fill(null));
-  best[0][0] = { max: 0, squares: 0, cuts: [] };
+  best[0][0] = { max: 0, squares: 0, from: -1 };
   for (let c = 1; c <= count; c++) {
     for (let j = c; j <= n; j++) {
       for (let i = c - 1; i < j; i++) {
@@ -68,18 +70,17 @@ export function balance(heights: number[], count: number): Balanced | null {
           !now ||
           max < now.max - EPSILON ||
           (Math.abs(max - now.max) <= EPSILON && squares <= now.squares + EPSILON);
-        if (better) best[c][j] = { max, squares, cuts: [...before.cuts, i] };
+        if (better) best[c][j] = { max, squares, from: i };
       }
     }
   }
   const last = best[count][n];
   if (!last) return null;
-  const edges = [...last.cuts.slice(1), n];
   const groups: number[][] = [];
-  let from = 0;
-  for (const to of edges) {
-    groups.push(Array.from({ length: to - from }, (_, k) => from + k));
-    from = to;
+  for (let c = count, to = n; c >= 1; c--) {
+    const from = (best[c][to] as Cell).from;
+    groups.unshift(Array.from({ length: to - from }, (_, k) => from + k));
+    to = from;
   }
   return { tallest: last.max, groups };
 }

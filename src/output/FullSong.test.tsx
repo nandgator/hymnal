@@ -1,7 +1,31 @@
 import { render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { FullSong, type FullSongProps, signature } from "./FullSong.tsx";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { FullSong, type FullSongProps, forgetLayouts, signature } from "./FullSong.tsx";
+import * as rule from "./fullSong.ts";
+
+// Counts the layouts: a layout is one run of the rule.
+vi.mock("./fullSong.ts", async (original) => {
+  const actual = await original<typeof import("./fullSong.ts")>();
+  return { ...actual, layoutSong: vi.fn(actual.layoutSong) };
+});
+
+// jsdom has no layout: give the sheet a box (1080p by default).
+const box = (name: "clientWidth" | "clientHeight" | "offsetHeight", value: number) =>
+  Object.defineProperty(HTMLElement.prototype, name, { value, configurable: true });
+const unbox = () => {
+  for (const name of ["clientWidth", "clientHeight", "offsetHeight"] as const)
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>)[name];
+};
+beforeEach(() => {
+  forgetLayouts();
+  box("clientWidth", 1728);
+  box("clientHeight", 864);
+});
+afterEach(() => {
+  unbox();
+  vi.mocked(rule.layoutSong).mockClear();
+});
 
 const PARTS = [
   { id: "s1", lines: ["One a", "One b"] },
@@ -58,17 +82,6 @@ describe("FullSong", () => {
   });
 
   describe("laying out", () => {
-    // A layout builds hidden probe columns, one per measure: counting them
-    // counts the layouts (each makes several).
-    const probes = (container: HTMLElement) => {
-      const count = { n: 0 };
-      new MutationObserver((records) => {
-        for (const r of records)
-          for (const node of r.addedNodes)
-            if ((node as HTMLElement).classList?.contains("full-probe")) count.n++;
-      }).observe(container, { childList: true, subtree: true });
-      return count;
-    };
     const settle = () => new Promise((resolve) => setTimeout(resolve, 30));
     afterEach(() => {
       vi.restoreAllMocks();
@@ -85,7 +98,12 @@ describe("FullSong", () => {
       const { container } = render(() => (
         <FullSong {...props({ current: current(), parts: parts() })} />
       ));
-      const count = probes(container);
+      void container;
+      const count = {
+        get n() {
+          return vi.mocked(rule.layoutSong).mock.calls.length;
+        },
+      };
       await settle();
       const first = count.n;
 
@@ -102,6 +120,107 @@ describe("FullSong", () => {
       await settle();
       expect(count.n).toBeGreaterThan(edited); // a font arrived: measured again
     });
+  });
+});
+
+// A song too long for one page at the floor: six parts of twelve lines in a
+// short box. Its parts, in printed order, are s1..s6.
+const LONG = Array.from({ length: 6 }, (_, i) => ({
+  id: `s${i + 1}`,
+  lines: Array.from({ length: 12 }, (_, k) => `Verse ${i + 1} line ${k + 1} of the hymn`),
+}));
+
+describe("pages", () => {
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 30));
+  const pagesIn = (container: HTMLElement) =>
+    [...container.querySelectorAll<HTMLElement>(".full-page")].map((p) => [
+      p.dataset.page,
+      p.dataset.turn,
+    ]);
+
+  it("turns a page with both pages mounted, never none, the old one gone at the end", async () => {
+    box("clientHeight", 120);
+    const [current, setCurrent] = createSignal("s1");
+    const { container } = render(() => (
+      <FullSong {...props({ parts: LONG, current: current() })} />
+    ));
+    await settle();
+    expect(pagesIn(container)).toEqual([["0", undefined]]);
+    const onFirst = [...container.querySelectorAll("[data-part-index]")].map((e) =>
+      Number((e as HTMLElement).dataset.partIndex),
+    );
+    expect(onFirst.length).toBeLessThan(LONG.length); // it is paged
+
+    setCurrent("s6");
+    await Promise.resolve();
+    // Both are there at once, and the tint is on the new part's page.
+    expect(pagesIn(container)).toEqual([
+      ["0", "out"],
+      ["1", "in"],
+    ]);
+    expect(container.querySelectorAll(".full-page").length).toBe(2);
+    const out = container.querySelector(".full-page[data-turn='in']") as HTMLElement;
+    out.dispatchEvent(new Event("animationend", { bubbles: true }));
+    await settle();
+    expect(pagesIn(container)).toEqual([["1", undefined]]);
+    expect(container.querySelector(".full-part-current")).toHaveTextContent("Verse 6 line 1");
+  });
+
+  it("steps within a page without a turn", async () => {
+    box("clientHeight", 120);
+    const [current, setCurrent] = createSignal("s1");
+    const { container } = render(() => (
+      <FullSong {...props({ parts: LONG, current: current() })} />
+    ));
+    await settle();
+    setCurrent("s2");
+    await settle();
+    expect(pagesIn(container)).toEqual([["0", undefined]]);
+  });
+
+  it("ends a turn that never reports its end", async () => {
+    vi.useFakeTimers();
+    try {
+      box("clientHeight", 120);
+      const [current, setCurrent] = createSignal("s1");
+      const { container } = render(() => (
+        <FullSong {...props({ parts: LONG, current: current() })} />
+      ));
+      await vi.advanceTimersByTimeAsync(50);
+      setCurrent("s6");
+      await vi.advanceTimersByTimeAsync(10);
+      expect(container.querySelectorAll(".full-page").length).toBe(2);
+      await vi.advanceTimersByTimeAsync(700);
+      expect(container.querySelectorAll(".full-page").length).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("checking the layout in the page", () => {
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 30));
+
+  it("makes the layout again for a smaller room when the page overflows", async () => {
+    // The browser says every block is far too tall, so each nudge is tried,
+    // and the type goes down with them, to a stop.
+    box("offsetHeight", 5000);
+    const { container } = render(() => <FullSong {...props()} />);
+    await settle();
+    const calls = vi.mocked(rule.layoutSong).mock.calls;
+    expect(calls.length).toBeGreaterThan(2);
+    expect(calls.length).toBeLessThanOrEqual(9);
+    const rooms = calls.map((c) => c[2]);
+    expect(rooms[1]).toBeLessThan(rooms[0]);
+    expect(rooms.at(-1)).toBeLessThan(rooms[1]);
+    expect(container.querySelectorAll(".full-part")).toHaveLength(PARTS.length);
+  });
+
+  it("leaves a layout that fits alone", async () => {
+    box("offsetHeight", 100);
+    render(() => <FullSong {...props()} />);
+    await settle();
+    expect(vi.mocked(rule.layoutSong).mock.calls).toHaveLength(1);
   });
 });
 

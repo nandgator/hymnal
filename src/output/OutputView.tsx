@@ -11,7 +11,8 @@ import {
 import type { LineRange } from "../domain/sequence-engine.ts";
 import type { BandSize, Highlight, OutputCues } from "../persistence/user-state.ts";
 import type { OutputMessage } from "./channel.ts";
-import { FullSong } from "./FullSong.tsx";
+import { FullSong, prepareFullSong } from "./FullSong.tsx";
+import { signature } from "./fullSongText.ts";
 
 type ContentMessage = Extract<OutputMessage, { type: "content" }>;
 /** How a hymn lays out (SDD-0001 §16.1). */
@@ -149,6 +150,26 @@ export function OutputView(props: OutputViewProps) {
   const fullSong = () =>
     !!props.wholeSong && (props.landscape ?? landscape()) && !!props.message.parts?.length;
   let lastHymnKey: string | undefined;
+
+  // Measure and lay the song out as it arrives, when the browser is idle, so
+  // turning the layout on later has nothing left to do (SDD-0005 § 4).
+  const partsSignature = createMemo(() => signature(props.message.parts ?? []));
+  createEffect(
+    on(partsSignature, () => {
+      const parts = props.message.parts;
+      if (!parts?.length || !view) return;
+      const measure = () => {
+        if (view) prepareFullSong(view, parts, safeTop(), safeBottom());
+      };
+      if (typeof requestIdleCallback === "function") {
+        const id = requestIdleCallback(measure, { timeout: 1000 });
+        onCleanup(() => cancelIdleCallback(id));
+      } else {
+        const id = setTimeout(measure, 0);
+        onCleanup(() => clearTimeout(id));
+      }
+    }),
+  );
 
   // Each occurrence's line range — the blocks the fit must make room for.
   const blocks = createMemo(() => {
