@@ -6,8 +6,8 @@ parser turns it into content format 1
 cannot place is an error with its line number, never a guess, and nothing is
 repaired. Decision:
 [ADR-0029](../decisions/0029-others-build-their-books-the-format-is-the-contract.md).
-The parser itself (Board #34) follows this document; where they differ, this
-document is the bug report.
+The parser itself (`src/import/songtext.ts`, run by `bun run text`) follows this
+document; where they differ, this document is the bug report.
 
 A worked file is in [`sample.md`](sample.md).
 
@@ -22,7 +22,8 @@ A worked file is in [`sample.md`](sample.md).
   there for notes to yourself, such as `# CHECK: second line unclear in scan`. A
   lyric line that begins with `#` cannot be written.
 - A file holds one song, or a book of them, with a line of three or more hyphens
-  (`---`) alone between songs.
+  (`---`) alone between songs. A `---` with nothing after it at the end of the
+  file is ignored.
 - Line numbers in errors count lines of the file as given, comments and blank
   lines included, from 1.
 
@@ -191,7 +192,9 @@ nothing if there is any. It never repairs, guesses or skips. The errors:
 | the reference   | it names no part, or too many (bare, with several candidates)  |
 | the sequence    | an entry that names no part or is ambiguous; a second Sequence |
 | the part's line | a part that no sequence entry names (its first line)           |
-| the `---` line  | an empty song between two separators                           |
+| the `---` line  | an empty song between two separators, or before the first one  |
+| line 1          | a file with no song in it                                      |
+| the title line  | a number that is not a whole number from 1 to 999999999999999  |
 
 Then the book-level rules of SDD-0002 section 4 apply to the result, as they do
 to any format 1 book.

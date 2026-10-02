@@ -16,6 +16,7 @@
     "build:content": "bun scripts/build-content.ts",
     "import": "bun scripts/import.ts",
     "pack": "bun scripts/pack.ts",
+    "text": "bun scripts/text.ts",
     "lint:md": "markdownlint-cli2 --fix",
     "lint:ts": "biome lint --write .",
     "lint": "bun run lint:md && bun run lint:ts",

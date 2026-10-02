@@ -81,8 +81,7 @@ Ordered. Top unblocked item is next.
 | --- | ------------------------------------------------------------------------------------------------ | ---------- |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                 | —          |
 | 28  | Library: load songs and books in format 1, local only; keys, duplicates (SDD-0004, ADR-0026/27)  | —          |
-| 34  | Song text in the app: parser to format 1 and the source check (ADR-0029)                         | 28, 33     |
-| 35  | The song text parser and source check in the CLI (ADR-0029)                                      | 34         |
+| 34  | Song text in the app: the parser and source check exist (#35); the Library step (ADR-0029)       | 28         |
 | 36  | A second tab of the app: today it doesn't load (one OPFS connection); say so, or share the store | —          |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                      | —          |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                    | —          |
@@ -136,6 +135,9 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — #35 done: `bun run text` (parser `src/import/songtext.ts`, source
+  check `src/import/sourcecheck.ts`, both pure) writes a format 1 directory for
+  `pack`; #34's app part waits for the Library
 - 2026-10-02 — #33 done: the authoring kit in `docs/authoring/` (text format 1,
   a prompt template, three public-domain samples); every part sung (I5), `#`
   comments, greedy Sequence parsing, decided by the recommendation

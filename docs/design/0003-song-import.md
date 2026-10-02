@@ -337,6 +337,22 @@ reviewed draft is moved into `content/` by hand, and only once its rights allow
 (arc42 R2). In practice that means public-domain books shipped as samples
 ([ADR-0020](../decisions/0020-present-songs-do-not-publish-them.md)).
 
+A book in song text (the authoring kit,
+[text format 1](../authoring/text-format.md), ADR-0029) comes in beside the
+profile pipeline, not through it:
+
+```sh
+bun run text <file.txt> --id I --title T --language L --script S \
+  [--source <src.txt>] [--out <dir>]
+```
+
+runs the deterministic parser (`src/import/songtext.ts`) and writes the same
+`<out>/<id>/` directory of format 1 (nothing on an error, each listed with its
+line number), which `bun run pack` packs. With `--source`, the source check
+(`src/import/sourcecheck.ts`) lists result lines absent from the source and
+source lines absent from the result, and exits 1 on any difference. No judge and
+no model are involved.
+
 The app (#28) never runs the import; it loads a format 1 file, a reviewed draft,
 into the device's own store (ADR-0024), which assigns its key, records source
 and song hashes, and handles a file or book it already holds

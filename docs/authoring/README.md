@@ -22,8 +22,9 @@ content format 1. A change to either is a new version.
 
 1. Get your songs into the text format: type or paste them by hand, or use an AI
    of your own choosing with the prompt in `ai-prompt.md`.
-2. Load the text in the app (Library) and read the review: every song, every
-   part, the sung order. Fix the text, never the review, and load again.
+2. Run it through `bun run text` (the Library will take it too) and read the
+   review: every song, every part, the sung order. Fix the text, never the
+   result, and run it again.
 3. Keep your source text next to the result, so the source check can compare
    them.
 
@@ -33,36 +34,59 @@ and there is no public catalogue
 
 ## How to check it
 
-**Today.** The text parser is not in the app yet (Board #34). What exists is the
-check on format 1 itself. If you have written the format 1 files (a directory of
-`hymnbook.json` and `NNNN.json`, as in `sample.md`), pack them and load the
-result in the app:
+**In the command line.** `bun run text` runs the parser and the source check
+(the same code the app will run). Give it your song text and the book's own
+fields, which are never guessed from the text:
 
 ```sh
-bun run pack path/to/my-book
+bun run text my-songs.txt --id my-book --title "My book" \
+  --language en --script Latn --source my-source.txt
+```
+
+If the text has errors, each is listed with its line number and nothing is
+written. Otherwise it writes `imports/my-book/` (`hymnbook.json` and the
+`NNNN.json` files; `--out` changes `imports`), prints any note about a sung
+order it had to take as printed, and, with `--source`, the source check below. A
+single song whose first line has no number takes `--number`. Then pack the
+directory and load the result in the app:
+
+```sh
+bun run pack imports/my-book
 ```
 
 `pack` validates the book first. A broken book is listed violation by violation
 and nothing is written; a good one becomes `<id>.hymnbook.json.gz` in
 `imports/`. In the app, open the Library and load that file. The review shows
-what will be stored before anything is.
+what will be stored before anything is. If you wrote the format 1 files by hand,
+skip the first step and pack their directory.
 
-**After Board #34.** Paste or load the song text in the Library. The app parses
-it, lists every error with its line number, and, when there are none, shows the
-same review. The same parser runs in the command line.
+**In the app (coming, Board #34).** Paste or load the song text in the Library.
+The app parses it, lists every error with its line number, and, when there are
+none, shows the same review.
 
-**The source check (coming, Board #34).** A local check, with no model, that
-compares the text you started from with the result and lists two things:
+**The source check.** A local check, with no model, that compares the text you
+started from with the result and lists two things:
 
 - lines of the result that are not in the source (**added or altered**), such as
-  a modernised word or an invented chorus;
+  a modernised word or an invented chorus, with the song, part and line;
 - lines of the source that are not in the result (**dropped**), such as a
-  missing stanza.
+  missing stanza, with their line numbers in the source.
 
-It is optional. A book loaded without a source is marked "not checked against a
-source" in the review. It reports and you decide: it cannot tell a dropped
-stanza from a deliberate cut. Until it exists, read the review against your
-source by eye, and be most careful with a book that went through an AI.
+Lines are compared after Unicode NFC, whitespace and the quote and dash forms
+are normalised, and nothing else: a changed word is reported. Each source line
+explains at most one result line, so a chorus the result holds twice but the
+source printed once is listed; and a chorus the source prints in full each time,
+which the result holds once, is listed as dropped. Labels, details, `Sequence:`
+and comment lines of the source are not lyrics and are not listed. In a book of
+several songs, locations are approximate, because lines are matched across the
+whole source. Page numbers and headings are, and that is fine: it is a list for
+a person to read.
+
+It is optional (`--source`; a book loaded without one is marked "not checked
+against a source" in the review). It reports and you decide: it cannot tell a
+dropped stanza from a deliberate cut, and it exits 1 when it finds differences,
+so fix the text and run it again. Be most careful with a book that went through
+an AI.
 
 ## What is not here
 

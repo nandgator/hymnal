@@ -3,6 +3,7 @@ import type { Flow, FlowLine } from "./flow.ts";
 import type { Profile } from "./profile.ts";
 import { GUESS, type Note } from "./report.ts";
 import type { FoundSong } from "./songs.ts";
+import { ID_PREFIX } from "./songtext.ts";
 
 /** A run of lines with no stanza gap inside it. */
 interface Block {
@@ -15,17 +16,6 @@ interface Block {
 
 /** A place in the printed song: a block, or a label standing for a part. */
 type Printed = { block: Block } | { refers: PartKind; page: number };
-
-const ID_PREFIX: Record<PartKind, string> = {
-  intro: "i",
-  stanza: "s",
-  "pre-chorus": "p",
-  chorus: "c",
-  "post-chorus": "q",
-  bridge: "b",
-  outro: "o",
-  tag: "t",
-};
 
 /** "(2)", "(x 3)", "(twice)", "(repeat)", "x 2", "– 2" ending a line, and "Repeat" alone. */
 const REPEAT_MARK =
