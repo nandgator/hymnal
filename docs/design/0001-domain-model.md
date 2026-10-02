@@ -700,12 +700,41 @@ object-returning, unlike `wa-sqlite`'s integer-pointer handles.
 `searchLyrics`'s matching (per-word prefix, implicit AND, capped at 30 results)
 was settled in Board #8 — see §13.
 
-### 10.4 Known limitation
+### 10.4 One tab owns the store
 
-`opfs-sahpool` does not support multiple simultaneous connections (ADR-0015).
-Two tabs open at once on the same origin: the second fails to acquire the store.
-Accepted for Phase 1 — the scope guard is single-_device_, which doesn't promise
-single-tab. `OPEN:` revisit if reported.
+`opfs-sahpool` does not support multiple simultaneous connections (ADR-0015), so
+two tabs cannot both open the books. Board #36: the tab that holds the store
+owns it through an exclusive Web Lock (`navigator.locks`, name `hymnal-store`),
+held for the store's life. `src/shell/tabLock.ts` is the protocol (the locks and
+the channel are passed in, so it is unit tested with fakes); `TabGate` is the
+shell's use of it.
+
+- The Operator asks for the lock before it shows the app, and before any worker
+  starts. A tab that cannot get it shows the full-page note "Hymnal is open in
+  another tab" with **Use here** (DESIGN.md § Another tab).
+- **Use here** queues for the lock and sends `release-request` on a
+  `BroadcastChannel` (`hymnal-tabs`). The holder, unless it is live, closes the
+  store (`releaseContent()`: every connection closed, the pool paused, the
+  worker ended), then lets the lock go, and shows the same note itself with its
+  own Use here. The lock is not given up until the store is closed.
+- A holder that is **live** (an Output window is open, or not yet known not to
+  be: the same `presence.live` the update gate uses) refuses with
+  `release-refused`; the asking tab says the other tab is presenting and keeps
+  Use here for when the Output has closed.
+- A holder that is **writing** (a Library load, replace or remove in flight, or
+  a first install) refuses the same way (reason `saving`); a store is never let
+  go mid-write. A review not yet committed is thrown away on release: nothing
+  was written. The holder answers with `release-ack` as soon as it starts
+  letting go; an asking tab that hears nothing in 5s withdraws its queued lock
+  request (so it cannot take the lock later) and says the other tab did not
+  answer. Use here stays offered after each.
+- The Output window is not an app tab: it never opens the store and never takes
+  the lock.
+- #32's update takeover is unchanged: presence and `createAppUpdates` live in
+  `TabGate`, above the lock, so a tab showing the note reloads on
+  `controllerchange` like any other that is not live.
+- A browser without `navigator.locks` (or `BroadcastChannel`) shows the app as
+  before: the second tab fails to open the store.
 
 ### 10.5 Testing
 

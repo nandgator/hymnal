@@ -588,6 +588,19 @@ view is close enough to the frame to need a smaller unit.
   is a custom colour, red harmonised to the amber seed (Material's method), with
   its own roles in both themes. Blanked is On Air's other state: **Blanked**,
   the dot a ring.
+- **Another tab** (Board #36; SDD-0001 §10.4). A tab that cannot hold the books
+  (another tab has them) is a full page: the empty card's own shape centred on
+  the page background, display-small **Hymnal is open in another tab**, one body
+  line ("Only one tab can hold your books at a time. Use it here, and the other
+  tab will let go.") and the filled **Use here**. Calm, not an error: no error
+  colour, no icon, no alert role. The tab that let go shows the same note at
+  once. While the request waits the button is disabled; if the other tab is
+  presenting (its Output is open) the line becomes "The other tab is presenting.
+  Close its Output window first, then use Hymnal here." and Use here stays for
+  another try. Two more lines in the same place: "The other tab is saving a
+  book. Try again in a moment." and, after 5 seconds without an answer, "The
+  other tab didn't answer. Close it, or try again." The Output window is never
+  such a tab.
 - **Snackbar.** The shell's one notice, for what needs a word but not a stop:
   **Update ready** with **Restart** and a close (Later), the note about keeping
   the book file after a first load whose storage request was refused, with **Got

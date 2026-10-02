@@ -4376,3 +4376,18 @@ fieldset.book-main {
     display: none;
   }
 }
+/* Hymnal open in another tab (SDD-0001 §10.4): a full-page state, the empty
+   card centred; calm, not an error. */
+.tab-note {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-md);
+  box-sizing: border-box;
+}
+.tab-note .lib-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}

@@ -186,6 +186,12 @@ export class LoadSession {
     };
   }
 
+  /** Throws away any pending review (the store is being let go). Nothing is written. */
+  discard(): void {
+    this.#generation++;
+    this.#pending = undefined;
+  }
+
   /** Throws away the parsed book. */
   cancel(token: string): boolean {
     if (this.#pending?.token !== token) return false;

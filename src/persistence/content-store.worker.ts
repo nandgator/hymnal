@@ -90,6 +90,11 @@ export interface ContentAdmin {
   cancel(token: string): Promise<boolean>;
   /** A loaded book only; a shipped one is refused. Its recents go with it: see `removeBookAndRecents`. */
   removeBook(key: string): Promise<boolean>;
+  /** A write is under way (a commit, a removal, an install): the store is not let go. */
+  busy(): Promise<boolean>;
+  /** Closes every connection and lets the pool go, so another tab can take
+   * the store (SDD-0001 §10.4). The worker is of no use after it. */
+  close(): Promise<void>;
   /** Development only (undefined in a production build): see {@link DevAdmin}. */
   dev?: DevAdmin;
 }
@@ -125,6 +130,8 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
   /** The registry and the pool once they are up, for the queries, which are not async. */
   #liveCtx: RegistryContext | null = null;
   #livePool: SAHPoolUtil | null = null;
+  /** Writes in flight, so the store is not let go mid-write (SDD-0001 §10.4). */
+  #writes = new Set<Promise<unknown>>();
   #session = new LoadSession(() => this.#registry());
   dev: DevAdmin | undefined = import.meta.env.DEV ? this.#makeDev() : undefined;
 
@@ -320,8 +327,19 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     return { state: "ready" };
   }
 
+  #track<T>(write: Promise<T>): Promise<T> {
+    this.#writes.add(write);
+    const done = () => this.#writes.delete(write);
+    write.then(done, done);
+    return write;
+  }
+
+  async busy(): Promise<boolean> {
+    return this.#writes.size > 0;
+  }
+
   commit(token: string, choice?: Choice): Promise<CommitResult> {
-    return this.#session.commit(token, choice);
+    return this.#track(this.#session.commit(token, choice));
   }
 
   async cancel(token: string): Promise<boolean> {
@@ -329,7 +347,22 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
   }
 
   async removeBook(key: string): Promise<boolean> {
-    return removeBook(await this.#registry(), key);
+    return this.#track((async () => removeBook(await this.#registry(), key))());
+  }
+
+  async close(): Promise<void> {
+    // A review not yet committed is thrown away: nothing was written.
+    this.#session.discard();
+    await Promise.allSettled([...this.#writes]);
+    await this.#ready;
+    for (const file of [...this.#conns.keys()]) this.#close(file);
+    this.#livePool = null;
+    this.#liveCtx = null;
+    try {
+      await (await this.#poolReady).pauseVfs();
+    } catch {
+      // A pool that never started holds nothing.
+    }
   }
 
   #makeDev(): DevAdmin {
@@ -360,7 +393,14 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     };
   }
 
-  async ensureInstalled(
+  ensureInstalled(
+    id: HymnbookId,
+    onProgress?: (progress: InstallProgress) => void,
+  ): Promise<ContentStatus> {
+    return this.#track(this.#install(id, onProgress));
+  }
+
+  async #install(
     id: HymnbookId,
     onProgress?: (progress: InstallProgress) => void,
     replacing = false,
@@ -408,7 +448,7 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     // ships (ADR-0025), once: if the shipped one is old too, that's said.
     if (found < SCHEMA_VERSION && !replacing) {
       this.#close(filename);
-      return this.ensureInstalled(id, onProgress, true);
+      return this.#install(id, onProgress, true);
     }
     if (found !== SCHEMA_VERSION)
       return { state: "schema-mismatch", found, expected: SCHEMA_VERSION };

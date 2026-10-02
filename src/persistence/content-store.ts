@@ -51,14 +51,41 @@ export function getContentAdmin(): Comlink.Remote<ContentAdmin> {
 }
 
 let remote: Comlink.Remote<ContentStore & ContentAdmin> | undefined;
+let worker: Worker | undefined;
 function connect() {
   if (!remote) {
-    const worker = new Worker(new URL("./content-store.worker.ts", import.meta.url), {
+    worker = new Worker(new URL("./content-store.worker.ts", import.meta.url), {
       type: "module",
     });
     remote = Comlink.wrap<ContentStore & ContentAdmin>(worker);
   }
   return remote;
+}
+
+/** A write is in flight in this tab's store (nothing started: none). */
+export async function contentBusy(): Promise<boolean> {
+  return remote ? remote.busy() : false;
+}
+
+/**
+ * Lets the store go (SDD-0001 §10.4): the pool is paused so its file handles
+ * are free, then the worker ends. The next getContentStore() or
+ * getContentAdmin() starts a new one. Nothing started: nothing to do.
+ */
+export async function releaseContent(): Promise<void> {
+  const current = remote;
+  const running = worker;
+  remote = undefined;
+  worker = undefined;
+  store = undefined;
+  admin = undefined;
+  lists.clear();
+  if (!current) return;
+  try {
+    await current.close();
+  } finally {
+    running?.terminate();
+  }
 }
 
 export type {

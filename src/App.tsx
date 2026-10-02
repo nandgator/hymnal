@@ -19,7 +19,6 @@ import {
   setOutputPresentation,
   subscribeKeys,
   subscribeOutputShape,
-  subscribePresence,
 } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
 import {
@@ -61,9 +60,8 @@ import { Sheet } from "./shell/Sheet.tsx";
 import { Snackbar } from "./shell/Snackbar.tsx";
 import { SwapLabel } from "./shell/SwapLabel.tsx";
 import { installScrollReveal } from "./shell/scrollReveal.ts";
+import { type Shared, TabGate } from "./shell/TabGate.tsx";
 import {
-  createAppUpdates,
-  createPresence,
   homeScreenHintHere,
   isScreenNotice,
   pickNotice,
@@ -109,7 +107,8 @@ function isOutputWindow(): boolean {
 
 /** Signal-based view state, not a router — SDD-0001 §12. */
 function App() {
-  return isOutputWindow() ? <Output /> : <Operator />;
+  // The Output is not an app tab: it never opens the store, so never takes the lock.
+  return isOutputWindow() ? <Output /> : <TabGate>{(shared) => <Operator {...shared} />}</TabGate>;
 }
 
 /**
@@ -118,7 +117,7 @@ function App() {
  * hymn ▾, each a picker that hot-swaps in place — then the workspace, whose
  * width follows its content, and the dock/FAB.
  */
-function Operator() {
+function Operator(props: Shared) {
   const expanded = createMediaQuery(EXPANDED_QUERY);
   // Applied at startup, whether or not a Settings sheet is open.
   const preferences = createPreferences();
@@ -215,7 +214,7 @@ function Operator() {
 
   // Whether an Output window is open (SDD-0001 §16.4): Go live becomes the
   // On air status, and Live's dot the on-air light.
-  const presence = createPresence(subscribePresence);
+  const presence = props.presence;
   const presentingOutput = presence.open;
   // Live matches the Output window's shape; unknown, it is landscape.
   const [outputLandscape, setOutputLandscape] = createSignal<boolean | undefined>();
@@ -352,7 +351,7 @@ function Operator() {
   // Notices (DESIGN.md § Snackbar): a waiting app update, and once the
   // Safari Home Screen note — one at a time, none while the Output is live.
   // Until an Output has had time to answer, presence counts as live.
-  const appUpdates = createAppUpdates(presence.live);
+  const appUpdates = props.appUpdates;
   const [updateDismissed, setUpdateDismissed] = createSignal(false);
   const homeScreen = homeScreenHintHere();
   const notice = () =>
