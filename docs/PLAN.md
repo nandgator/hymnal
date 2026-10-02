@@ -132,6 +132,7 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — The parts pad's pill blurs a little mid-glide, crisp on landing
 - 2026-10-02 — #28 part 2: a container read and checked on the device; song and
   source hashes; uuidv7 keys
 - 2026-10-02 — #28 part 1: `bun run pack` writes a book's container, the same

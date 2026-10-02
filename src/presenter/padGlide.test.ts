@@ -110,11 +110,52 @@ describe("placePad and watchPad", () => {
     expect(animate).toHaveBeenCalledTimes(1);
     const [frames, timing] = animate.mock.calls[0];
     expect(frames).toEqual([
-      { transform: "translate(0px, 0px)", width: "100px", height: "40px" },
-      { transform: "translate(100px, 0px)", width: "50px", height: "40px" },
+      { transform: "translate(0px, 0px)", width: "100px", height: "40px", filter: "blur(0px)" },
+      { offset: 0.5, filter: "blur(2px)" },
+      { transform: "translate(100px, 0px)", width: "50px", height: "40px", filter: "blur(0px)" },
     ]);
     expect(timing).toMatchObject({ duration: 250 });
     expect(pill.style.transform).toBe("translate(100px, 0px)");
+  });
+
+  it("blurs the pill alone, 0 at both ends and most at the middle", () => {
+    placePad(pad, { still: false });
+    select(1);
+    placePad(pad, { still: false });
+    const frames = animate.mock.calls[0][0];
+    expect(frames.map((f: Keyframe) => f.filter)).toEqual(["blur(0px)", "blur(2px)", "blur(0px)"]);
+    expect(frames[1].offset).toBe(0.5);
+    expect(pill.style.filter).toBe("");
+    expect(keys[1].style.filter).toBe("");
+  });
+
+  it("does not blur under forced colours", () => {
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("forced-colors") }));
+    placePad(pad, { still: false });
+    select(1);
+    placePad(pad, { still: false });
+    const frames = animate.mock.calls[0][0];
+    expect(frames).toHaveLength(2);
+    for (const f of frames) expect(f.filter).toBeUndefined();
+  });
+
+  it("does not blur, or animate, under reduced motion", () => {
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("reduced-motion") }));
+    placePad(pad, { still: false });
+    select(1);
+    placePad(pad, { still: false });
+    expect(animate).not.toHaveBeenCalled();
+    expect(pill.style.filter).toBe("");
+  });
+
+  it("does not blur, or animate, when the pill appears in place or the song changes", () => {
+    placePad(pad, { still: false });
+    expect(animate).not.toHaveBeenCalled();
+    expect(pill.style.filter).toBe("");
+    select(2);
+    placePad(pad, { still: true });
+    expect(animate).not.toHaveBeenCalled();
+    expect(pill.style.filter).toBe("");
   });
 
   it("snaps a step in another song (still)", () => {
@@ -140,12 +181,12 @@ describe("placePad and watchPad", () => {
     select(2);
     placePad(pad, { still: false });
     expect(animate).toHaveBeenCalledTimes(2);
-    expect(animate.mock.calls[1][0][0]).toEqual({
+    expect(animate.mock.calls[1][0][0]).toMatchObject({
       transform: "translate(100px, 0px)",
       width: "50px",
       height: "40px",
     });
-    expect(animate.mock.calls[1][0][1].transform).toBe("translate(0px, 48px)");
+    expect(animate.mock.calls[1][0][2].transform).toBe("translate(0px, 48px)");
   });
 
   it("hides the pill with no current key", () => {

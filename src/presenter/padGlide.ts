@@ -2,18 +2,24 @@
 // glides from the old key's box to the new one's, whatever caused the step
 // (a key, Part and Line, the keyboard, digits). It lands at once where
 // there is nothing to glide from — the pad shown anew, another song — and
-// under reduced motion. A pad that resizes or reflows keeps the pill on its
-// key by measuring again, never animating.
+// under reduced motion. While it glides it blurs a little, crisp on
+// landing. A pad that resizes or reflows keeps the pill on its key by
+// measuring again, never animating.
 
 import {
   type Box,
   boxOf,
+  forcedColors,
   glideBox,
   paint,
   prefersReducedMotion,
   sameBox,
   shownBox,
 } from "./glideGeometry.ts";
+
+/** The pill alone softens (px) at the middle of a glide; the labels above it
+ * stay sharp. Not under forced colours, where the pill is a system colour. */
+const PILL_BLUR = 2;
 
 export type PadMode = "snap" | "glide";
 
@@ -89,9 +95,15 @@ export function placePad(pad: HTMLElement, options: { still: boolean }) {
   state.box = to;
   paint(pill, to);
   if (mode === "snap" || !from || typeof pill.animate !== "function") return;
-  const anim = glideBox(pill, from, to, () => {
-    if (state.anim === anim) state.anim = null;
-  });
+  const anim = glideBox(
+    pill,
+    from,
+    to,
+    () => {
+      if (state.anim === anim) state.anim = null;
+    },
+    forcedColors() ? 0 : PILL_BLUR,
+  );
   state.anim = anim;
 }
 

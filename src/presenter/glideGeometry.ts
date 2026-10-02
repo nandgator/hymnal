@@ -63,6 +63,8 @@ export function shownBox(layer: HTMLElement, anim: Animation | null, box: Box | 
 export const prefersReducedMotion = () =>
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
+export const forcedColors = () => window.matchMedia?.("(forced-colors: active)").matches ?? false;
+
 /** The app's medium duration and emphasised easing, from the tokens. */
 export function glideTiming(el: HTMLElement) {
   const style = getComputedStyle(el);
@@ -80,8 +82,23 @@ export function onSettle(anim: Animation, settle: () => void) {
 
 /** The layer glides from one box to another: position and size, never a
  * scale, so its corners keep their radius. */
-export function glideBox(layer: HTMLElement, from: Box, to: Box, settle: () => void): Animation {
-  const anim = layer.animate([frame(from), frame(to)], glideTiming(layer));
+export function glideBox(
+  layer: HTMLElement,
+  from: Box,
+  to: Box,
+  settle: () => void,
+  blur = 0,
+): Animation {
+  // `blur` (px) softens the layer at the middle of the move, in the same
+  // animation, so one clock and one easing drive both; crisp at both ends.
+  const frames: Keyframe[] = blur
+    ? [
+        { ...frame(from), filter: "blur(0px)" },
+        { offset: 0.5, filter: `blur(${blur}px)` },
+        { ...frame(to), filter: "blur(0px)" },
+      ]
+    : [frame(from), frame(to)];
+  const anim = layer.animate(frames, glideTiming(layer));
   onSettle(anim, settle);
   return anim;
 }

@@ -614,33 +614,34 @@ view is close enough to the frame to need a smaller unit.
   the key: whatever changes the current part (a key, Part and Line, the
   keyboard, digits), the pill glides from the old key's box to the new one's,
   position and size together over 250ms (never a scale, so its corners keep
-  their radius), as the label's colour changes over the same time. Both label
-  colours are dark on the pad's light fills (light on its dark ones), so the
-  text reads whether the pill is under it or not. With no pill yet (the pad
-  shown anew, a song just changed) it appears in place, and a pad that reflows,
-  from a window resize, a phone or a desktop width, keeps it on its key without
-  animating (`padGlide.ts`). A song chosen from Recents glides to the top, every
-  row moving from where it was to where it lands, the group headings (Today,
-  Yesterday, Before) with them; the rising row passes over the rows it crosses,
-  not under; a heading whose group emptied fades out where it stood (150ms). A
-  menu grows from its button; a sheet rises over a blurred page and sinks away
-  on close; every control's change of state eases. **Press**: a control gives a
-  little under the finger (96%) at once and springs back with a slight
-  overshoot, Material 3 Expressive's press kept small; an icon that changes
-  meaning (Blank to Restore) turns in. The Repeat count is a rolling number (an
-  odometer): the old count rolls out as the new one rolls in, up as it grows and
-  down on Undo. It is in the text colour, not Repeat's primary: coloured text
-  means a control. Each rail section eases in on arrival, the Library as the
-  Operator. In the command menu the highlight follows a moving pointer and
-  leaves with it; Enter then takes the top match. Reduced motion shows the end
-  state. **The Lyrics tint** slides and resizes with the scroll in 250ms
-  (`lyricsGlide.ts`: one animation clocks both, so they land together; translate
-  and height, never scaleY, which warps the corners). Its leading edge arrives
-  first and the trailing edge follows, so it stretches over the new part, then
-  lets go of the old; a jump of more than a screen fades it instead. The text
-  changes colour in those same 250ms and easing, so the part the tint leaves
-  dims and the one it reaches brightens as the tint passes, never ahead or
-  behind it.
+  their radius) and softening to a 2px blur at the middle of the move, crisp on
+  landing (the pill alone; not under reduced motion or forced colours), as the
+  label's colour changes over the same time. Both label colours are dark on the
+  pad's light fills (light on its dark ones), so the text reads whether the pill
+  is under it or not. With no pill yet (the pad shown anew, a song just changed)
+  it appears in place, and a pad that reflows, from a window resize, a phone or
+  a desktop width, keeps it on its key without animating (`padGlide.ts`). A song
+  chosen from Recents glides to the top, every row moving from where it was to
+  where it lands, the group headings (Today, Yesterday, Before) with them; the
+  rising row passes over the rows it crosses, not under; a heading whose group
+  emptied fades out where it stood (150ms). A menu grows from its button; a
+  sheet rises over a blurred page and sinks away on close; every control's
+  change of state eases. **Press**: a control gives a little under the finger
+  (96%) at once and springs back with a slight overshoot, Material 3
+  Expressive's press kept small; an icon that changes meaning (Blank to Restore)
+  turns in. The Repeat count is a rolling number (an odometer): the old count
+  rolls out as the new one rolls in, up as it grows and down on Undo. It is in
+  the text colour, not Repeat's primary: coloured text means a control. Each
+  rail section eases in on arrival, the Library as the Operator. In the command
+  menu the highlight follows a moving pointer and leaves with it; Enter then
+  takes the top match. Reduced motion shows the end state. **The Lyrics tint**
+  slides and resizes with the scroll in 250ms (`lyricsGlide.ts`: one animation
+  clocks both, so they land together; translate and height, never scaleY, which
+  warps the corners). Its leading edge arrives first and the trailing edge
+  follows, so it stretches over the new part, then lets go of the old; a jump of
+  more than a screen fades it instead. The text changes colour in those same
+  250ms and easing, so the part the tint leaves dims and the one it reaches
+  brightens as the tint passes, never ahead or behind it.
 - **Loading: the shape of what's coming, in its place** (Board #26 part 4). A
   screen still loading shows a skeleton of itself: the Library its card (title,
   count line, button), the Operator its panels, empty, where they will sit.
