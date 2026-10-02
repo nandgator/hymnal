@@ -132,6 +132,9 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — #29 part 3: _Songs of Zion_ read from its deck (420 songs);
+  publisher GLS, id `eng-gls-songs-of-zion`; a number repeated on the next slide
+  continues its song; long deck lines kept as written
 - 2026-10-02 — The parts pad's selected key is one pill that glides from key to
   key
 - 2026-10-02 — #28 designed: ADR-0026/0027 accepted, SDD-0004. Chosen: songs

@@ -24,8 +24,11 @@ export interface Profile {
   furniture: { pageNumber: boolean };
   /** A song starts at a line matching this, in this font if given. */
   title: { pattern: string; font?: string };
-  /** A block set wholly in this font is a chorus. */
-  chorus: { font: string };
+  /**
+   * A block set wholly in this font is a chorus. Left out for a book that
+   * sets its choruses like its stanzas: none is then found by font.
+   */
+  chorus?: { font: string };
   /**
    * The words that name a part, lower case, and the kind each names:
    * { "chorus": "chorus" }. Alone in its block, a label means "sing that
@@ -38,6 +41,25 @@ export interface Profile {
    * out of the line; echoed words in brackets are lyrics and stay.
    */
   directions?: string[];
+  /**
+   * False when the reader's lines are the author's own, not a printer's: a
+   * deck's paragraph wraps only when drawn, so no line is joined to the next.
+   * Default true.
+   */
+  wraps?: boolean;
+  /**
+   * What a gap is measured in: the book's commonest line pitch ("book", the
+   * default), or each page's own tightest step ("page"), for a deck whose
+   * slides shrink their type to fit.
+   */
+  pitch?: "book" | "page";
+  /**
+   * True for a deck that prints a number again on the very next slide when a
+   * song runs over two: that heading continues the previous song, the slide
+   * boundary a stanza break. Any other repeat is dropped and noted. Default
+   * false.
+   */
+  continues?: boolean;
   /** A gap wider than this, × the book's line pitch, ends a block. */
   stanzaGap: number;
 }
@@ -83,6 +105,9 @@ export function parseProfile(value: unknown): Profile {
     "labels",
     "directions",
     "stanzaGap",
+    "wraps",
+    "pitch",
+    "continues",
   ]);
 
   if (isRecord(p.hymnbook)) {
@@ -125,10 +150,21 @@ export function parseProfile(value: unknown): Profile {
     }
   } else need(false, "title is required");
 
-  if (isRecord(p.chorus)) {
-    known("chorus.", p.chorus, ["font"]);
-    need(text(p.chorus.font), "chorus.font is required");
-  } else need(false, "chorus is required");
+  if (p.chorus !== undefined) {
+    if (isRecord(p.chorus)) {
+      known("chorus.", p.chorus, ["font"]);
+      need(text(p.chorus.font), "chorus.font is required");
+    } else need(false, 'chorus must be { "font": … }');
+  }
+  need(p.wraps === undefined || typeof p.wraps === "boolean", "wraps must be true or false");
+  need(
+    p.continues === undefined || typeof p.continues === "boolean",
+    "continues must be true or false",
+  );
+  need(
+    p.pitch === undefined || p.pitch === "book" || p.pitch === "page",
+    'pitch must be "book" or "page"',
+  );
 
   if (isRecord(p.labels)) {
     for (const [word, kind] of Object.entries(p.labels)) {

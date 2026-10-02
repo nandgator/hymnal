@@ -22,8 +22,8 @@ const DEFAULT_SIDE_INSET = 91440;
 const LINE_HEIGHT = 1.2;
 /** The baseline sits this many times the font size below its line's top. */
 const ASCENT = 0.8;
-/** An entry that unzips to more than this is refused: a zip bomb, not a deck. */
-const MAX_ENTRY_BYTES = 50 * 1024 * 1024;
+/** What one XML entry may unzip to (SDD-0003 §2); more is refused as a zip bomb, not a deck. */
+export const MAX_ENTRY_BYTES = 50 * 1024 * 1024;
 /** Placeholders that hold furniture, not lyrics. */
 const FURNITURE = new Set(["sldNum", "dt", "ftr"]);
 
@@ -308,8 +308,13 @@ function bodyRuns(
       (num(rPr?.attrs.sz) === undefined
         ? (props.size ?? DEFAULT_SIZE)
         : Number(rPr?.attrs.sz) / 100) * box.scale;
-    const fontOf = (rPr: Xml | undefined) =>
-      resolveFont(child(rPr, "latin")?.attrs.typeface ?? props.font, inherited.fonts);
+    const fontOf = (rPr: Xml | undefined) => {
+      const face = resolveFont(child(rPr, "latin")?.attrs.typeface ?? props.font, inherited.fonts);
+      // As a PDF names a styled face ("Calibri-BoldItalic"), so profiles read alike.
+      const on = (flag: unknown) => flag === "1" || flag === "true";
+      const style = (on(rPr?.attrs.b) ? "Bold" : "") + (on(rPr?.attrs.i) ? "Italic" : "");
+      return style ? `${face}-${style}` : face;
+    };
 
     // A paragraph's lines: a break starts a new one.
     const pieces: { text: string; size: number; font: string }[][] = [[]];
@@ -503,13 +508,13 @@ function themeFonts(files: Files, master: string | undefined): Inherited["fonts"
   };
 }
 
-function unzip(data: Uint8Array): Files {
+function unzip(data: Uint8Array, cap: number): Files {
   let tooBig: string | undefined;
   let files: Files;
   try {
     files = unzipSync(data, {
       filter: (file) => {
-        if (file.originalSize > MAX_ENTRY_BYTES) tooBig ??= file.name;
+        if (file.originalSize > cap) tooBig ??= file.name;
         return !tooBig && /\.(xml|rels)$/.test(file.name);
       },
     });
@@ -518,7 +523,7 @@ function unzip(data: Uint8Array): Files {
   }
   if (tooBig) {
     throw new ImportError(
-      `The deck's ${tooBig} unzips to over 50 MB, which a real deck's XML never does.`,
+      `The deck's ${tooBig} unzips to over ${Math.round(cap / 1024 / 1024)} MB, which a real deck's XML never does.`,
     );
   }
   return files;
@@ -529,8 +534,11 @@ function unzip(data: Uint8Array): Files {
  * has no lines, only shapes, so each text shape's lines get a synthesised y.
  * A hidden slide has no page, and the others keep the numbers they would have.
  */
-export function readPptx(data: Uint8Array, { from = 1, to }: PageRange = {}): SourcePage[] {
-  const files = unzip(data);
+export function readPptx(
+  data: Uint8Array,
+  { from = 1, to, maxEntryBytes = MAX_ENTRY_BYTES }: PageRange & { maxEntryBytes?: number } = {},
+): SourcePage[] {
+  const files = unzip(data, maxEntryBytes);
   const presentation = parseXml(files, "ppt/presentation.xml");
   if (!presentation) {
     throw new ImportError(

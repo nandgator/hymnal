@@ -34,6 +34,8 @@ export type NoteKind =
   | "direction"
   /** A last line quoting the chorus's first ("Bind us together, Lord ..."): the chorus sung again. */
   | "cue"
+  /** A song with no printed title, named by its first line. */
+  | "untitled"
   /** A violation of the content format. */
   | "invalid";
 
@@ -44,6 +46,7 @@ const HEADINGS: Record<NoteKind, string> = {
   invalid: "Not valid content",
   stray: "Text outside any song",
   number: "Numbers",
+  untitled: "Songs titled by their first line",
   index: "Index and page disagree",
   break: "Blocks split by a column or page break",
   long: "Stanzas twice the usual length",

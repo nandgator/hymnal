@@ -1,0 +1,27 @@
+{
+  "hymnbook": {
+    "id": "eng-gls-songs-of-zion",
+    "title": "Songs of Zion",
+    "publisher": "GLS Publishing, Mumbai, India",
+    "language": "en",
+    "script": "Latn"
+  },
+  "pages": {
+    "from": 1,
+    "to": 422
+  },
+  "furniture": {
+    "pageNumber": false
+  },
+  "title": {
+    "pattern": "^(?<number>\\d+)(?<title>)$"
+  },
+  "chorus": {
+    "font": "Calibri-Italic"
+  },
+  "labels": {},
+  "wraps": false,
+  "pitch": "page",
+  "continues": true,
+  "stanzaGap": 1.3
+}

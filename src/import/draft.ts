@@ -35,7 +35,7 @@ export function draftBook(pages: SourcePage[], profile: Profile): Draft {
         kind: "number",
         hymn: song.number,
         page: song.page,
-        message: `printed again, as "${song.title}"; this copy is left out`,
+        message: `printed again${song.title ? `, as "${song.title}"` : ""}; this copy is left out`,
       });
       continue;
     }
@@ -53,11 +53,21 @@ export function draftBook(pages: SourcePage[], profile: Profile): Draft {
 
     const { parts, sequence } = toParts(song, flowed, profile, notes);
     const entry = listed.get(song.number);
-    const title = titleOf(
-      song.title,
-      entry,
-      parts.flatMap((p) => p.lines),
-    );
+    const lyrics = parts.flatMap((p) => p.lines);
+    let title: string;
+    if (song.title === "") {
+      // No title is printed: the first line stands for it, for the user to check.
+      title = firstLineTitle(lyrics[0] ?? "");
+      notes.push({
+        kind: "untitled",
+        hymn: song.number,
+        page: song.page,
+        message:
+          title === ""
+            ? "no title printed, and the first line is empty: the song has no title (not valid)"
+            : `no title printed, taken from the first line: "${title}"`,
+      });
+    } else title = titleOf(song.title, entry, lyrics);
     if (entry) checkAgainstIndex(song, entry, title, flowed.folios, notes);
     hymns.push({ number: song.number, title, parts, sequence, meta: {} });
   }
@@ -94,6 +104,11 @@ export function draftBook(pages: SourcePage[], profile: Profile): Draft {
     `${notes.length} notes`,
   ];
   return { hymnbook, hymns, notes, summary };
+}
+
+/** A first line as a title: without the comma, semicolon or dash that ended it. */
+export function firstLineTitle(line: string): string {
+  return line.replace(/[\s,;:—–-]+$/u, "").trim();
 }
 
 /**

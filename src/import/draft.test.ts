@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HymnSource } from "../domain/types.ts";
-import { draftBook, titleOf } from "./draft.ts";
+import { draftBook, firstLineTitle, titleOf } from "./draft.ts";
 import { flow, readIndex } from "./flow.ts";
 import { type Profile, parseProfile } from "./profile.ts";
 import type { SourceLine, SourcePage } from "./source.ts";
@@ -835,3 +835,237 @@ describe("a wrap before a line starting with I", () => {
     expect(wraps).toBe(1);
   });
 });
+
+describe("a deck: one song a slide, headed by a bare number, no titles", () => {
+  // Slides of 24 pt type on a 26 pt pitch; "7" alone heads each song. Every
+  // line is as long as the measure, so a printer's-wrap rule would join them.
+  const long = "Lines as long as the widest line of the whole deck, ";
+  const slide = (number: number, rows: string[], step = 26, at = number): SourcePage => {
+    let y = 40;
+    const lines: SourceLine[] = [
+      { text: String(number), x: 440, y, width: 20, size: 28, font: BOLD },
+    ];
+    y += 30;
+    for (const row of rows) {
+      if (row === "") {
+        y += step;
+        continue;
+      }
+      const [font, text] = row.startsWith("_ ") ? [ITALIC, row.slice(2)] : [BOLD, row];
+      lines.push({ text, x: 50, y, width: 900, size: 24, font });
+      y += step;
+    }
+    return { number: at, width: 960, height: 540, lines };
+  };
+  const deckProfile = parseProfile({
+    hymnbook: { id: "deck", title: "Deck", language: "en", script: "Latn" },
+    pages: { from: 1, to: 4 },
+    furniture: { pageNumber: false },
+    title: { pattern: "^(?<number>\\d+)(?<title>)$" },
+    chorus: { font: ITALIC },
+    labels: {},
+    wraps: false,
+    pitch: "page",
+    stanzaGap: 1.3,
+  });
+  const deck = draftBook(
+    [
+      slide(1, [
+        `${long}and on,`,
+        "continues here",
+        "",
+        "_ Refrain line one",
+        "_ Refrain line two",
+      ]),
+      slide(2, ["Only stanza,", "of two lines"]),
+      // A slide that shrank its type: stanza gap 32 on a pitch of 22.
+      slide(3, ["One of four", "Two of four", "", "Three of four", "Four of four"], 22),
+      slide(3, ["Printed twice"]),
+    ],
+    deckProfile,
+  );
+
+  it("keeps each slide line as the author's, without joining to the next", () => {
+    expect(deck.hymns[0].parts[0].lines).toEqual([`${long}and on,`, "continues here"]);
+    expect(deck.notes.filter((n) => n.kind === "wrap")).toEqual([]);
+  });
+
+  it("names an untitled song by its first line, and notes each", () => {
+    expect(deck.hymns.map((h) => h.title)).toEqual([`${long}and on`, "Only stanza", "One of four"]);
+    expect(deck.notes.filter((n) => n.kind === "untitled").map((n) => n.hymn)).toEqual([1, 2, 3]);
+  });
+
+  it("finds a chorus by font, and a deck's slide by its own pitch", () => {
+    expect(deck.hymns[0].parts.map((p) => p.kind)).toEqual(["stanza", "chorus"]);
+    expect(deck.hymns[2].parts.map((p) => p.lines.length)).toEqual([2, 2]);
+  });
+
+  it("leaves out a second song with the same number, and says so", () => {
+    expect(deck.hymns).toHaveLength(3);
+    expect(deck.notes.filter((n) => n.kind === "number").map((n) => n.message)).toEqual([
+      "printed again; this copy is left out",
+    ]);
+    expect(deck.notes.filter((n) => n.kind === "invalid")).toEqual([]);
+  });
+
+  it("needs no chorus font", () => {
+    const profile = parseProfile(bareProfile());
+    expect(profile.chorus).toBeUndefined();
+    const kinds = draftBook([slide(1, ["_ Italic as the rest", "Line"])], profile).hymns[0].parts;
+    expect(kinds.map((p) => p.kind)).toEqual(["stanza"]);
+  });
+
+  it("checks the new fields", () => {
+    expect(() => parseProfile({ ...bareProfile(), wraps: "no", pitch: "slide" })).toThrow(
+      ["- wraps must be true or false", '- pitch must be "book" or "page"'].join("\n"),
+    );
+  });
+
+  describe("continues", () => {
+    const span = (to: number) => ({ ...bareProfile(), pages: { from: 1, to } });
+    const withContinues = parseProfile({ ...span(6), continues: true, wraps: false });
+    const without = parseProfile({ ...span(6), wraps: false });
+    const pages = [
+      slide(1, ["Stanza one,", "its second line"]),
+      slide(2, ["First of two slides"]),
+      slide(2, ["Second of two slides"], 26, 3),
+      slide(4, ["Another song"]),
+      slide(5, ["Far from its twin"]),
+      slide(2, ["Not adjacent, so dropped"], 26, 6),
+    ];
+
+    it("joins a number printed again on the next slide, as a new stanza", () => {
+      const draft = draftBook(pages, withContinues);
+      const two = draft.hymns.find((h) => h.number === 2);
+      expect(two?.parts.map((p) => p.lines)).toEqual([
+        ["First of two slides"],
+        ["Second of two slides"],
+      ]);
+      expect(two?.parts.map((p) => p.kind)).toEqual(["stanza", "stanza"]);
+      expect(two?.sequence).toHaveLength(2);
+      expect(draft.notes.filter((n) => n.kind === "invalid")).toEqual([]);
+    });
+
+    it("still drops a repeat that is not on the next slide, and says so", () => {
+      const draft = draftBook(pages, withContinues);
+      expect(draft.hymns.map((h) => h.number)).toEqual([1, 2, 4, 5]);
+      const notes = draft.notes.filter((n) => n.kind === "number").map((n) => n.message);
+      expect(notes.filter((m) => m.includes("left out"))).toHaveLength(1);
+      expect(notes.filter((m) => m.includes("next stanza"))).toHaveLength(1);
+    });
+
+    it("is off by default: the repeat is left out", () => {
+      const draft = draftBook(pages, without);
+      const two = draft.hymns.find((h) => h.number === 2);
+      expect(two?.parts.map((p) => p.lines)).toEqual([["First of two slides"]]);
+      expect(draft.notes.filter((n) => n.message.includes("left out"))).toHaveLength(2);
+    });
+
+    it("chains a continuation of a continuation", () => {
+      const draft = draftBook(
+        [slide(1, ["A"]), slide(1, ["B"], 26, 2), slide(1, ["C"], 26, 3)],
+        parseProfile({ ...span(3), continues: true, wraps: false }),
+      );
+      expect(draft.hymns).toHaveLength(1);
+      expect(draft.hymns[0].parts.map((p) => p.lines)).toEqual([["A"], ["B"], ["C"]]);
+    });
+
+    it("continues from a song's last page, then drops a repeat further on", () => {
+      const draft = draftBook(
+        [slide(1, ["A"]), slide(1, ["B"], 26, 2), slide(1, ["C"], 26, 3)],
+        parseProfile({ ...span(3), continues: true, wraps: false }),
+      );
+      expect(draft.notes.filter((n) => n.message.includes("left out"))).toEqual([]);
+      const spanning = draftBook(
+        [slide(1, ["A"]), slide(2, ["B"], 26, 2), slide(2, ["C"], 26, 3), slide(2, ["D"], 26, 5)],
+        parseProfile({ ...span(5), continues: true, wraps: false }),
+      );
+      expect(spanning.hymns.find((h) => h.number === 2)?.parts).toHaveLength(2);
+      expect(spanning.notes.filter((n) => n.message.includes("left out"))).toHaveLength(1);
+    });
+
+    it("does not leak a continuation's stanza break into the next song", () => {
+      const empty = { ...slide(1, []), number: 2 };
+      const draft = draftBook(
+        [slide(1, ["A"]), empty, slide(2, ["B", "C"], 26, 3)],
+        parseProfile({ ...span(3), continues: true, wraps: false }),
+      );
+      expect(draft.hymns.find((h) => h.number === 2)?.parts.map((p) => p.lines)).toEqual([
+        ["B", "C"],
+      ]);
+    });
+
+    it("notes a title on a continuation heading", () => {
+      const titled = parseProfile({
+        ...span(2),
+        continues: true,
+        wraps: false,
+        title: { pattern: "^(?<number>\\d+)(?<title>.*)$" },
+      });
+      const heading = slide(1, ["A"]);
+      const next = slide(1, ["B"], 26, 2);
+      next.lines[0].text = "1 Named again";
+      const draft = draftBook([heading, next], titled);
+      expect(draft.notes.some((n) => n.message.includes("not compared"))).toBe(true);
+    });
+
+    it("checks the field", () => {
+      expect(() => parseProfile({ ...span(1), continues: 1 })).toThrow(
+        "- continues must be true or false",
+      );
+    });
+  });
+
+  it("passes the publisher through to the hymnbook", () => {
+    const profile = parseProfile({
+      ...bareProfile(),
+      hymnbook: { ...bareProfile().hymnbook, publisher: "A Press, Town" },
+    });
+    expect(draftBook([slide(1, ["A line"])], profile).hymnbook.publisher).toBe("A Press, Town");
+    expect(
+      draftBook([slide(1, ["A line"])], parseProfile(bareProfile())).hymnbook,
+    ).not.toHaveProperty("publisher");
+  });
+
+  it("notes an untitled song whose first line is empty, and it stays invalid", () => {
+    const draft = draftBook([slide(1, ["—"])], parseProfile(bareProfile()));
+    expect(draft.hymns[0].title).toBe("");
+    expect(draft.notes.find((n) => n.kind === "untitled")?.message).toMatch(/first line is empty/);
+    expect(draft.notes.some((n) => n.kind === "invalid" && /title/.test(n.message))).toBe(true);
+  });
+
+  it('measures a page with no step of its own by the book\'s pitch ("page")', () => {
+    const lines = (ys: number[]): SourceLine[] =>
+      ys.map((y) => ({ text: "x", x: 50, y, width: 100, size: 24, font: BOLD }));
+    const pages: SourcePage[] = [
+      { number: 1, width: 960, height: 540, lines: lines([40, 66, 92, 118]) },
+      // Two lines closer than their type is tall, and a lone line: no step.
+      { number: 2, width: 960, height: 540, lines: lines([40, 52]) },
+      { number: 3, width: 960, height: 540, lines: lines([40]) },
+    ];
+    const flowed = flow(
+      pages,
+      parseProfile({ ...bareProfile(), pages: { from: 1, to: 3 }, pitch: "page" }),
+    );
+    expect(flowed.pitch).toBe(26);
+    const [, close] = flowed.lines.filter((l) => l.page === 2);
+    expect(close.gap).toBeCloseTo(12 / 26);
+    expect(flowed.lines.find((l) => l.page === 3)?.gap).toBeNull();
+  });
+
+  it("trims what ended a first line", () => {
+    expect(firstLineTitle("Lord, we are Thine; ")).toBe("Lord, we are Thine");
+    expect(firstLineTitle("Rise, my soul!")).toBe("Rise, my soul!");
+  });
+});
+
+function bareProfile() {
+  return {
+    hymnbook: { id: "d", title: "D", language: "en", script: "Latn" },
+    pages: { from: 1, to: 1 },
+    furniture: { pageNumber: false },
+    title: { pattern: "^(?<number>\\d+)(?<title>)$" },
+    labels: {},
+    stanzaGap: 1.3,
+  };
+}

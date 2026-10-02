@@ -86,7 +86,9 @@ export function toParts(
 
   const printed = labelled(blocks(song.lines, profile), profile, note);
   for (const item of printed) {
-    if ("block" in item) item.block.lines = unwrap(item.block.lines, flow, note);
+    if ("block" in item && profile.wraps !== false) {
+      item.block.lines = unwrap(item.block.lines, flow, note);
+    }
   }
   const lyrics = joinBreaks(printed, flow, profile, note).filter((item) => {
     if (!("block" in item)) return true;
@@ -205,7 +207,9 @@ function labelled(
         !match[1] &&
         (i === 0 ||
           named !== "chorus" ||
-          after.slice(0, next < 0 ? undefined : next).every((l) => l.font === profile.chorus.font));
+          after
+            .slice(0, next < 0 ? undefined : next)
+            .every((l) => l.font === profile.chorus?.font));
       if (i === block.lines.length - 1 || !heads) out.push({ refers: named, page: line.page });
       else kind = named;
     }
@@ -286,7 +290,9 @@ function joinBreaks(
       out.push(item);
       continue;
     }
-    const wrap = wraps(a.lines.at(-1) as FlowLine, b.lines[0], flow);
+    // `wraps: false` (profile) means the reader's lines are never printer's wraps.
+    const wrap =
+      profile.wraps === false ? "no" : wraps(a.lines.at(-1) as FlowLine, b.lines[0], flow);
     if (wrap !== "no") {
       a.lines = unwrap([...a.lines, ...b.lines], flow, note);
       continue;
@@ -338,7 +344,7 @@ function cued(
 ): Printed[] {
   // As it starts, till a cue is off: a cue is often set in the chorus's font.
   const kindOf = (block: Block) =>
-    block.kind ?? (block.lines[0].font === profile.chorus.font ? "chorus" : "stanza");
+    block.kind ?? (block.lines[0].font === profile.chorus?.font ? "chorus" : "stanza");
   const words = (text: string) =>
     text
       .toLowerCase()
@@ -374,7 +380,7 @@ function cued(
     // into the chorus with its words ("One day at a time…").
     const set =
       /^[“"‘'].*[”"’']$/.test(last.text.trim()) ||
-      (last.font === profile.chorus.font && block.lines[0].font !== profile.chorus.font);
+      (last.font === profile.chorus?.font && block.lines[0].font !== profile.chorus?.font);
     const cue =
       set &&
       quoted.includes(" ") &&
@@ -401,7 +407,7 @@ function cued(
 
 /** "chorus" or "stanza" when one font sets the whole block, else undefined. */
 function fontKind(block: Block, profile: Profile): PartKind | undefined {
-  const chorus = block.lines.filter((line) => line.font === profile.chorus.font).length;
+  const chorus = block.lines.filter((line) => line.font === profile.chorus?.font).length;
   if (chorus === block.lines.length) return "chorus";
   if (chorus === 0) return "stanza";
   return undefined;
@@ -419,8 +425,8 @@ function kindByFont(
 ): PartKind {
   const kind = fontKind(block, profile);
   if (kind) return kind;
-  const chorus = block.lines.filter((line) => line.font === profile.chorus.font);
-  const first = block.lines[0].font === profile.chorus.font ? "chorus" : "stanza";
+  const chorus = block.lines.filter((line) => line.font === profile.chorus?.font);
+  const first = block.lines[0].font === profile.chorus?.font ? "chorus" : "stanza";
   note(
     "fonts",
     `${chorus.length} of ${block.lines.length} lines in the chorus font, taken as a ${first} as it starts: "${block.lines[0].text}"`,

@@ -111,11 +111,13 @@ without one, by type), the master's `txStyles` (title, body or other) and the
 presentation's default text style, else 18 pt, times `normAutofit`'s
 `fontScale`. A line takes its size and font from its first run that has text.
 `font` is resolved the same way from `a:latin`, with `+mj-lt` and `+mn-lt` read
-from the theme; insets come from the shape, else its placeholders. Field text is
-kept; XML entities, character references and Office's `_x000D_` escapes are
-decoded. A file that is not a zip, one with an entry over 50 MB unzipped, one
-without `ppt/presentation.xml`, a slide that is missing or whose XML is not
-well-formed, are refused with the part named.
+from the theme, and named as a PDF names a styled face: `b="1"` and `i="1"` on
+the run add `-Bold`, `-Italic` or `-BoldItalic` (`Calibri-Italic`), so one
+profile reads either file; insets come from the shape, else its placeholders.
+Field text is kept; XML entities, character references and Office's `_x000D_`
+escapes are decoded. A file that is not a zip, one with an entry over 50 MB
+unzipped, one without `ppt/presentation.xml`, a slide that is missing or whose
+XML is not well-formed, are refused with the part named.
 
 A document that yields no text (a scan), or text outside the profile's `script`,
 is reported and not imported: it needs OCR, a later reader.
@@ -147,6 +149,17 @@ stages (ADR-0024); nothing is inferred.
 }
 ```
 
+Four fields are for books that are not typeset pages, and may be left out:
+`chorus` (a book that sets its choruses like its stanzas finds none by font),
+`wraps: false` (the reader's lines are the author's own, so no line is joined to
+the next), `pitch: "page"` (a gap is measured in the page's own tightest step,
+not the book's commonest, for a deck whose slides shrink their type to fit; a
+page with no measurable step, such as a single line, uses the book's pitch), and
+`continues: true` (a heading that repeats the previous song's number on the very
+next page continues that song, the page boundary a stanza break; any other
+repeat is dropped and noted). A title pattern whose `(?<title>)` group is empty
+marks a book that prints no titles (below).
+
 The rules the stages apply with it:
 
 - **Columns** are found per page by their gutters (§2); a page with fewer than
@@ -165,15 +178,17 @@ The rules the stages apply with it:
 - **Labels** in `labels`, however punctuated ("Chorus:", "(chorus)", "Chorus…"):
   heading lines, they give them their kind; alone or closing a block, they stand
   for that part sung again. Within a block, a chorus label heads what follows
-  only if it is in `chorus.font`; otherwise it closes the lines before it (no
-  gap was printed after "Cho…"). Ending a line after an ellipsis or before one
-  ("covered me…Cho….", "today. Ch…"), a label closes the block there.
-- **Cues**: a block's last line that is the chorus's first line, in quotes or in
-  `chorus.font` ("Bind us together, Lord ...") stands for the chorus sung again.
-  Trailing off alone doesn't make a cue: a stanza's own last line often leads
-  into the chorus with its words. A chorus's first line printed as a block of
-  its own and trailing off ("Jesus Messiah …..") is a cue too. A label or cue
-  just before the chorus printed is that chorus.
+  only if the profile has `chorus` and it is in that font; otherwise it closes
+  the lines before it (no gap was printed after "Cho…"). Ending a line after an
+  ellipsis or before one ("covered me…Cho….", "today. Ch…"), a label closes the
+  block there.
+- **Cues**: a block's last line that is the chorus's first line, in quotes or
+  (only when the profile has `chorus`) in `chorus.font` ("Bind us together, Lord
+  ...") stands for the chorus sung again. Trailing off alone doesn't make a cue:
+  a stanza's own last line often leads into the chorus with its words. A
+  chorus's first line printed as a block of its own and trailing off ("Jesus
+  Messiah …..") is a cue too. A label or cue just before the chorus printed is
+  that chorus.
 - **Kind**, unlabelled: a block starting in `chorus.font` is a chorus, else a
   stanza (a chorus's italic can stop partway). A block printed again word for
   word is the same part.
@@ -182,6 +197,9 @@ The rules the stages apply with it:
   sure; before a capital, only a short remainder after unpunctuated text is
   joined, as a guess (two words or fewer; four for a line starting with "I" or
   "&").
+- **Untitled songs**: where the heading carries no title, the song's first line
+  stands for it, without the comma, semicolon or dash that ended it (SDD-0002:
+  "the first line when none is printed"). Each is noted, with the title it got.
 - **Sequence** is as printed when the page spells it out: a label, or choruses
   printed more than once. Otherwise
   [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)'s rule: the
@@ -212,6 +230,7 @@ draft, by hymn:
 - text before the first title, or a title with nothing under it
 - a number missing, duplicated, or out of order
 - the index disagreeing with the page: title, page number, or a song not found
+- a song titled by its first line, as none is printed
 - a block split by a column break, joined or kept apart, when not certain
 - a stanza twice as long as the song's usual stanza (three lines or more): the
   book may have printed two with no gap, which layout can't split
@@ -341,4 +360,26 @@ in the index on its page; 178 with a chorus, 26 with a bridge; valid content.
 exist; their drafts are identical, and the reports differ in one line, the older
 index listing #165 on the wrong page.
 
-`OPEN:` Malayalam PDFs with legacy fonts; OCR; the other readers.
+_Songs of Zion_ (a deck by Vijay Lakka, published by GLS Publishing, Mumbai,
+India): English, 422 slides of 960 × 540 pt, one song to a slide, headed by a
+zero-padded number line (28 pt, centred) and untitled; Calibri, mostly 24 pt,
+20–28 with the type shrunk on long songs.
+`import-profiles/eng-gls-songs-of-zion.json`; the id is language, publisher,
+title, as for any book. Numbered 1–420 without a gap. Two songs continue onto a
+second slide, which repeats the number (slides 51–52 and 91–92: "051", "090");
+`continues` joins each, the second slide a new stanza. Any other repeated number
+would still be left out and noted, as a number is unique in a book.
+
+The deck's paragraphs are the author's lines (PowerPoint wraps them only when it
+draws): against the book's PDF, every slide's text is identical, and each deck
+line is one PDF line or two (23 lines on 12 slides). They are not metrical
+lines, though: a paragraph often holds two, rarely four, set one after the
+other, so a stanza of four has two to four deck lines. They are kept as they
+are. The italic lines are the choruses (140 songs), found by font, which the
+reader gained here; the first book's rule for a stanza's sequence then applies.
+First draft: 420 songs, 140 with a chorus, none with a bridge or an ending; 429
+notes, 420 of them titles taken from the first line, 5 mixed fonts, 2
+continuations, 1 cue, 1 sequence.
+
+`OPEN:` Malayalam PDFs with legacy fonts; OCR; the other readers; splitting a
+deck line that holds two verse lines.

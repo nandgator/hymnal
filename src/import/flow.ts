@@ -58,11 +58,22 @@ export function flow(pages: SourcePage[], profile: Profile): Flow {
   }
 
   const pitch = linePitch(lines);
+  // A deck shrinks the type of a long song: its own tightest step is its pitch.
+  const own = new Map<number, number>();
+  if (profile.pitch === "page") {
+    for (const [i, line] of lines.entries()) {
+      const prev = lines[i - 1];
+      if (!prev || prev.page !== line.page || prev.column !== line.column) continue;
+      // Lines closer than their type is tall are one line, or a heading beside text.
+      const step = line.y - prev.y;
+      if (step >= 0.9 * line.size) own.set(line.page, Math.min(own.get(line.page) ?? step, step));
+    }
+  }
   const measure: number[] = [];
   for (const [i, line] of lines.entries()) {
     const prev = lines[i - 1];
     if (prev && prev.page === line.page && prev.column === line.column) {
-      line.gap = (line.y - prev.y) / pitch;
+      line.gap = (line.y - prev.y) / (own.get(line.page) ?? pitch);
     }
     measure[line.column] = Math.max(measure[line.column] ?? 0, line.width);
   }
