@@ -138,6 +138,11 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — AI seams: the app's actions written as tool definitions (name,
+  schema, handler), so WebMCP (`document.modelContext`, Chrome origin trial
+  149–156) can register them when on by default, and an MCP server with Tauri.
+  No vector store: the user's agent judges meaning over the app's search; local
+  semantic search only by a later ADR, Malayalam tested first
 - 2026-10-02 — AI in the app, decided: no provider code or keys in the app; its
   actions and queries kept as one clean API now, and with Tauri an ADR for an
   MCP interface so the user's own agent drives it (ADR-0029: AI is the user's
