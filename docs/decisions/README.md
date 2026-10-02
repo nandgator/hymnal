@@ -50,3 +50,4 @@ deliberation.
 | Lyrics copyright and redistribution rights | Establishing provenance — blocks any store release            |
 | Content authoring and correction UI        | Evidence that hand-editing has become the bottleneck          |
 | Transliteration scheme and library         | Phase 1 in use; see [ADR-0014](0014-defer-transliteration.md) |
+| AI in the app (the user's own agent)       | Tauri: an ADR for an MCP interface over the app's actions     |

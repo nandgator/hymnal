@@ -138,6 +138,10 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — AI in the app, decided: no provider code or keys in the app; its
+  actions and queries kept as one clean API now, and with Tauri an ADR for an
+  MCP interface so the user's own agent drives it (ADR-0029: AI is the user's
+  tool)
 - 2026-10-02 — ADR-0029 accepted: others build their books, format 1 the
   contract; the profile pipeline for bulk and whole books, a plain song text
   format with a parser and a source check for everyone; AI the user's own tool.
