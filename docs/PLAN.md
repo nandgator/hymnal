@@ -80,6 +80,7 @@ Ordered. Top unblocked item is next.
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                | —          |
 | 28  | Library: load songs and books in format 1, local only; keys, duplicates (SDD-0004, ADR-0026/27) | —          |
 | 30  | Full song, landscape: printed form in columns, the highlight glides; mockup                     | —          |
+| 31  | Output on the projector screen: pick and remember it, fullscreen (ADR-0028; Chromium)           | 30         |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                     | —          |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                   | —          |
 | 16  | Feedback and corrections from users — where collected: TBD                                      | —          |
@@ -132,6 +133,11 @@ only, here:
 
 ## Log
 
+- 2026-10-02 — ADR-0028 accepted: the Output on the projector screen, in Chrome
+  and Edge (Window Management API); elsewhere the window as today. Board #31.
+  #30 decided: the tint in Full Song only, an overlapped fade between columns,
+  pages below a 0.30 fit, a Presentation setting; and lighting the whole song
+  instead, with a shortcut
 - 2026-10-02 — #29 done: _Songs of Zion_'s deck matches its PDF on all 422
   slides (6,438 lines one PDF line, 23 two). #28 parts 1–2 checked by hand:
   Malayalam packs to 1,631 songs, 512.6 KB; _Hymns of Fellowship_ 275, 63.1 KB;
