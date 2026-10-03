@@ -94,6 +94,7 @@ Ordered. Top unblocked item is next.
 | 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                             | —          |
 | 38  | Search across books: one query over every loaded book (SDD-0001 §16)                                                      | —          |
 | 39  | Private windows: say the books go when the window closes; an in-memory store where OPFS is refused (Firefox private, Tor) | —          |
+| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                    | —          |
 
 Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. The
 songs have left the repo (#28 done): nothing is bundled, and every book comes in
