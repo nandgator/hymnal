@@ -100,7 +100,7 @@ Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. The
 songs have left the repo (#28 done): nothing is bundled, and every book comes in
 through the Library (ADR-0026). 14–15 sit past the scope guard below. 16–25 are
 notes, not scheduled: the shell reserves room for them (DESIGN.md § Structure).
-37–39 were added from the maintainer's feedback and are not yet scheduled.
+37–40 were added from the maintainer's feedback and are not yet scheduled.
 
 ## Invariants
 
