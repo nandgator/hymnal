@@ -77,20 +77,22 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                      | Blocked by |
-| --- | ------------------------------------------------------------------------- | ---------- |
-| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                          | —          |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)               | —          |
-| 15  | Transliteration: search and display across scripts (ADR-0014)             | —          |
-| 16  | Feedback and corrections from users — where collected: TBD                | —          |
-| 17  | About: acknowledgements, copyright, credits                               | —          |
-| 18  | Over-the-air update notices (as Supabase announces changes)               | —          |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)           | 28         |
-| 21  | Hold: freeze the Output on what's showing, navigate, release              | —          |
-| 22  | Service queue: line up hymns for a service (a supporting pane)            | —          |
-| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved | 22         |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                | Phase 2    |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation             | content    |
+| #   | Task                                                                          | Blocked by |
+| --- | ----------------------------------------------------------------------------- | ---------- |
+| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                              | —          |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                   | —          |
+| 15  | Transliteration: search and display across scripts (ADR-0014)                 | —          |
+| 16  | Feedback and corrections from users — where collected: TBD                    | —          |
+| 17  | About: acknowledgements, copyright, credits                                   | —          |
+| 18  | Over-the-air update notices (as Supabase announces changes)                   | —          |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)               | —          |
+| 21  | Hold: freeze the Output on what's showing, navigate, release                  | —          |
+| 22  | Service queue: line up hymns for a service (a supporting pane)                | —          |
+| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved     | 22         |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                    | Phase 2    |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation                 | content    |
+| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout | —          |
+| 38  | Search across books: one query over every loaded book (SDD-0001 §16)          | —          |
 
 Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. Next
 phase: the songs leave the repo, and every book, `content/`'s included, comes in
