@@ -52,6 +52,8 @@ export interface LibraryProps {
    * cannot be removed while it is on the Output (SDD-0004 §10). */
   presentedKey?: string;
   outputLive?: boolean;
+  /** End Live, from the Remove Book sheet that asks for it. */
+  onEndLive?: () => void;
   /** The first load's request to keep storage was refused: say to keep the file. */
   onStorageRefused?: () => void;
   /** A word for the snackbar: books left unloaded when the review is closed. */
@@ -854,6 +856,7 @@ export function Library(props: LibraryProps) {
         current={removing()?.key === props.currentKey}
         presented={removing()?.key === props.presentedKey}
         onOutput={onOutput()}
+        onEndLive={props.onEndLive}
         nextTitle={nextTitle()}
         busy={busy()}
         error={removeError()}

@@ -76,6 +76,33 @@ describe("FullSong", () => {
     expect(container.querySelector(".full-song")).toHaveAttribute("data-lit", "all");
   });
 
+  it("marks the parts that carry a marker, small above the lines, never among them", () => {
+    const parts = [
+      { id: "s1", lines: ["One a", "One b"], marker: "1" },
+      { id: "c", lines: ["Chorus a", "Chorus b"], marker: "Chorus" },
+      { id: "s2", lines: ["Two a", "Two b"] },
+    ];
+    const { container } = render(() => <FullSong {...props({ parts })} />);
+    const marks = [...container.querySelectorAll(".full-marker")].map((m) => m.textContent);
+    expect(marks).toEqual(["1", "Chorus"]);
+    // Above the first line, and not one of the lit lines.
+    const first = container.querySelector(".full-part") as HTMLElement;
+    expect(first.firstElementChild).toHaveClass("full-marker");
+    expect(lit(container)).toEqual(["Chorus a", "Chorus b"]);
+    expect(container.querySelectorAll(".full-line")).toHaveLength(6);
+  });
+
+  it("lays out again for a marker, which takes room", async () => {
+    const parts = PARTS.map((p) => ({ ...p, marker: "1" }));
+    const [shown, setShown] = createSignal(PARTS as typeof parts);
+    render(() => <FullSong {...props({ parts: shown() })} />);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    const before = vi.mocked(rule.layoutSong).mock.calls.length;
+    setShown(parts);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(vi.mocked(rule.layoutSong).mock.calls.length).toBeGreaterThan(before);
+  });
+
   it("lights nothing for a part it does not hold", () => {
     const { container } = render(() => <FullSong {...props({ current: "zz" })} />);
     expect(lit(container)).toEqual([]);
@@ -164,6 +191,81 @@ describe("pages", () => {
     await settle();
     expect(pagesIn(container)).toEqual([["1", undefined]]);
     expect(container.querySelector(".full-part-current")).toHaveTextContent("Verse 6 line 1");
+  });
+
+  it("puts the tint on the new part once its page is there", async () => {
+    // jsdom has no layout: a part sits 10px down per index.
+    Object.defineProperty(HTMLElement.prototype, "offsetTop", {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.dataset.partIndex ? Number(this.dataset.partIndex) * 10 : 0;
+      },
+    });
+    try {
+      box("clientHeight", 120);
+      const [current, setCurrent] = createSignal("s1");
+      const { container } = render(() => (
+        <FullSong {...props({ parts: LONG, current: current() })} />
+      ));
+      await settle();
+      const tint = container.querySelector(".full-tint") as HTMLElement;
+      expect(tint.style.transform).toBe("translate(0px, 0px)");
+      setCurrent("s6");
+      await settle();
+      expect(tint.style.transform).toBe("translate(0px, 50px)");
+    } finally {
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>).offsetTop;
+    }
+  });
+
+  it("a step during a turn goes on from where the dissolve is, not as a cut: the pages still sum to one", async () => {
+    const animate = vi.fn((..._args: unknown[]) => ({
+      finished: new Promise(() => {}),
+      cancel: vi.fn(),
+      addEventListener: vi.fn(),
+      playState: "running",
+    }));
+    HTMLElement.prototype.animate = animate as unknown as HTMLElement["animate"];
+    vi.stubGlobal(
+      "DOMMatrix",
+      class {
+        m41 = 0;
+        m42 = 0;
+      },
+    );
+    try {
+      box("clientHeight", 120);
+      const [current, setCurrent] = createSignal("s1");
+      const { container } = render(() => (
+        <FullSong {...props({ parts: LONG, current: current() })} />
+      ));
+      await settle();
+      setCurrent("s6");
+      await Promise.resolve();
+      expect(pagesIn(container)).toEqual([
+        ["0", "out"],
+        ["1", "in"],
+      ]);
+      animate.mockClear();
+      // Back again before the turn is done.
+      setCurrent("s1");
+      await settle();
+      expect(pagesIn(container)).toEqual([
+        ["0", "manual"],
+        ["1", "manual"],
+      ]);
+      // The pages' own animations (the tint's move by translate, not translateY).
+      const ends: number[] = [];
+      for (const call of animate.mock.calls as unknown as [Keyframe[]][]) {
+        const keys = call[0];
+        if (String(keys[0].transform).startsWith("translateY")) ends.push(Number(keys[1].opacity));
+      }
+      // One page going to full, the other to none: nothing cut, nothing blank.
+      expect(ends.sort()).toEqual([0, 1]);
+    } finally {
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>).animate;
+      vi.unstubAllGlobals();
+    }
   });
 
   it("steps within a page without a turn", async () => {

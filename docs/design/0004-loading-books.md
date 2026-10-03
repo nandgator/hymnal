@@ -598,12 +598,13 @@ hook go, along with the defaults that read it (`Library`, `Finder`, `Presenter`,
   removed while the Output is live.** If the book being removed is the one the
   hymn on screen is from (the presented book) and the Output is live (On Air or
   Blanked, or not yet known to be closed), the Remove sheet says "This book is
-  on the Output now. Close the Output first, then remove it", and Remove Book is
-  disabled; the confirm is refused as well, whatever the button says. When the
-  Output is not live, removing the presented book clears the presented state
-  (hymn, number and presented key) at once, whether or not it was the current
-  book, and the sheet says the song on screen goes with the book. Choosing
-  another book still leaves the hymn on screen alone (SDD-0001 §16.4).
+  on the Output now. End Live first, then remove it", with an End Live button
+  beside it (SDD-0001 §16.4), and Remove Book is disabled; the confirm is
+  refused as well, whatever the button says. When the Output is not live,
+  removing the presented book clears the presented state (hymn, number and
+  presented key) at once, whether or not it was the current book, and the sheet
+  says the song on screen goes with the book. Choosing another book still leaves
+  the hymn on screen alone (SDD-0001 §16.4).
 - Opening a book that is held but whose file is missing (evicted) is an error
   state with Load again, not a crash (arc42 §8.6).
 - The development hook gives way to loading the file: a draft in `imports/` is

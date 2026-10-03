@@ -23,6 +23,7 @@ export type ShortcutId =
   | "undo-repeat"
   | "blank"
   | "output"
+  | "end-live"
   | "tab"
   | "live"
   | "highlight"
@@ -43,8 +44,9 @@ export const SHORTCUTS: Shortcut[] = [
   { id: "undo-repeat", keys: ["U"], label: "Undo the last repeat" },
   { id: "blank", keys: ["B", "."], label: "Blank the Output / restore" },
   { id: "output", keys: ["O"], label: "Go live: open the Output, or bring it forward" },
+  { id: "end-live", keys: ["Shift+E"], label: "End Live: the Output goes dark, its window stays" },
   { id: "tab", keys: ["N"], label: "Next tab" },
-  { id: "live", keys: ["L"], label: "Show or hide Live" },
+  { id: "live", keys: ["L"], label: "Show or hide the Live preview" },
   { id: "highlight", keys: ["H"], label: "Light the whole song / only the current part" },
   { id: "command-menu", keys: ["/", "Ctrl+K"], label: "Search songs and actions" },
   { id: "text-size", keys: ["+", "−"], label: "Text size" },

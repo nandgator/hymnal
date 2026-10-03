@@ -60,6 +60,9 @@ export interface Preferences {
   /** Show the whole song at once on a landscape Output (SDD-0005); absent
    * means off. */
   wholeSong?: boolean;
+  /** Mark each part in the whole-song layout with its verse number or kind
+   * (SDD-0005 § 1); absent means on. */
+  partLabels?: boolean;
   /** What the Output lights; absent means the current part. */
   highlight?: Highlight;
   /** The Operator's tab groups, as stored; read through `workspaceOf`, which
@@ -94,6 +97,8 @@ export const highlightOf = (preferences: Preferences): Highlight =>
   preferences.highlight === "song" ? "song" : "part";
 
 export const wholeSongOf = (preferences: Preferences) => preferences.wholeSong ?? false;
+
+export const partLabelsOf = (preferences: Preferences) => preferences.partLabels ?? true;
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",

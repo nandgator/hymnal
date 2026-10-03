@@ -26,6 +26,24 @@ SDD-0001 §16.1's scroll stays the default and is what portrait screens show.
   the number badge, corners 0.4em. The lit text is `output-ink`, the rest
   `output-ink-dimmed`: colour only, never size or weight. Under line focus the
   part is tinted and only the focused line is lit.
+- **Part labels**: each part carries a small marker above its first line: a
+  stanza's number ("2"), or its kind for the others ("Chorus", "Bridge"); a
+  stanza with no number has none. A chorus the sequence repeats is printed once,
+  so it has one marker, the same each time the tint returns to it. The marker is
+  typography beside the lyrics, never among them: 0.55 of the lyrics' size, a
+  lighter weight (400 against 500), letters spaced a little, and muted, the
+  dimmed ink on a part not sung and a step lighter (70% ink over the ground) on
+  the part that is, so it never competes with the lyrics. It is the same voice
+  as the language picker's caption beside a name. Its row is a fixed box,
+  0.825em of the lyrics' size, the text centred in it, so a script's tall glyphs
+  (Malayalam) never move a line; it is aligned as the part is (centred in one
+  column, at the start in more). The row is part of the part, so the tint hugs
+  it and the layout counts it (§ 4, How it is measured). The marker is the
+  part's own, sent in the content message (`parts[].marker`, from the Presenter,
+  which knows the part's kind and label), and shown or hidden by a Presentation
+  setting, **Part labels**, on by default, next to Whole song on screen; it is
+  on the Output through the presentation message (`partLabels`, absent meaning
+  on). Turning it off lays the song out again without the rows.
 - **Cues** (number badge, caption) are as in the scroll layout. The safe margins
   grow to 16% where a cue shows, as there, and the fit respects them.
 - **Alignment**: one column, each part centred as the scroll shows it, its tint
@@ -92,13 +110,18 @@ split, never scrolled:
    page's own choice of k, or a larger k if wrapping made that infeasible.
 
 **Page turn**: one page shows at a time, the one holding the current part. When
-a step reaches a part on the other page, the pages hand off within one medium
-time (250ms, emphasised): the old page fades out over the first 110ms, the new
-one rises 12px into place and fades in from 90ms to 250ms. They share only 20ms,
-both nearly invisible, so text never shows twice, and the Output is never blank
-for more than a frame or two. The tint goes with its page (§ 4). Under reduced
-motion it is at once. A step that comes while a turn is running lands at once,
-so two turns never overlap. Nothing on screen says there are pages.
+a step reaches a part on the other page, the pages cross-dissolve over one
+medium time (250ms, emphasised): the old page fades out as the new one rises
+12px into place and fades in, in the same time and easing, so their opacities
+sum to one at every moment. The Output is never blank (the greater of the two is
+never under half) and never shows two clear pages (the lesser is never over
+half); with the emphasised curve the two are level for a frame or so and the new
+page is the clear one by 40ms. (A first version faded the old page out over the
+first 110ms and the new one in from 90ms, to share almost nothing: it showed
+nothing at all for about 100ms between, which is what a blink is.) The tint goes
+with its page (§ 4). Under reduced motion it is at once. A step that comes while
+a turn is running lands at once, so two turns never overlap. Nothing on screen
+says there are pages.
 
 ## 4. The tint's motion
 
@@ -115,12 +138,14 @@ All durations are the app's medium (250ms) at the emphasised easing, through
   last 80% (starting at 20%), travelling 1.6em from the left to its place. The
   text follows: the old part dims over the first 150ms, the new one brightens
   from 50ms over 200ms.
-- **A page turn**: the pages hand off (§ 3) and the tint goes with them, in the
-  same times and easing: the old tint fades out in place over the first 110ms,
-  the new one rises 12px into place and fades in from 90ms, neither travelling
-  sideways. A tint whose box is the same on both pages is not touched, so it
-  neither jumps nor vanishes. The old part's text dims over the first 110ms; the
-  new part's is lit as its page arrives.
+- **A page turn**: the pages cross-dissolve (§ 3) and the tint goes with them,
+  in the same time and easing: the old tint fades out in place as the new one
+  rises 12px into place and fades in, neither travelling sideways. A tint whose
+  box is the same on both pages is not touched, so it neither jumps nor
+  vanishes. The old part's text dims as its page fades; the new part's is lit as
+  its page arrives. The tint is placed once the new page is in the page, a
+  moment after the step: it is looked for again then (a first version looked
+  once, found nothing, and left the tint on the old page's box for good).
 - **When it is laid out**: when the song, its parts' text (a signature, so an
   edit counts), the box, the margins or the fonts change, never for a step.
   Layouts are cached by those; a burst of resizes or font loads makes one
@@ -130,20 +155,33 @@ All durations are the app's medium (250ms) at the emphasised easing, through
   candidate. Each word is measured once, with the real font (canvas), as the
   song arrives, and a part's height at any column count and scale is arithmetic
   over those widths: greedy line breaking at spaces and after a joining hyphen,
-  words never broken, `1.35em` a line, the part's padding. The rule's search is
-  then pure arithmetic: about 165 measures and 3ms for the longest song. When
-  the Output has a song, the layout for its current box is made ahead, when the
-  browser is idle, so turning the setting on has nothing left to do. The layout
-  chosen is checked once in the page, on the page shown: if a block is taller
-  than the room or a word overflows, the layout is made again for a room 3%
-  smaller, up to 8 times, and that is what is kept. On the sampled songs of both
-  books the arithmetic agrees with the browser to the pixel in all but 1 of
-  about 7,500 parts, and then errs smaller.
+  words never broken, `1.35em` a line, the part's padding, and the part's marker
+  row (a fixed 0.825em, and its width, a word that never breaks, against the
+  column's). The rule's search is then pure arithmetic: about 165 measures and
+  3ms for the longest song. When the Output has a song, the layout for its
+  current box is made ahead, when the browser is idle, so turning the setting on
+  has nothing left to do. The layout chosen is checked once in the page, on the
+  page shown: if a block is taller than the room or a word overflows, the layout
+  is made again for a room 3% smaller, up to 8 times, and that is what is kept.
+  On the sampled songs of both books the arithmetic agrees with the browser to
+  the pixel in all but 1 of about 7,500 parts, and then errs smaller.
 - **Forced colours**: the tint's fill and the dimmed ink are dropped, so the
   tint takes an outline in the system highlight: the current part stays marked.
 - **Snapping**: a new song, a resize, a refit (a cue turning on, the setting, a
   font loading) land at once with the tint re-measured. Reduced motion shows the
   end state in every case, with no colour transition either.
+
+## 4a. Changing between the layouts
+
+Turning "Whole song on screen" on or off (or turning the window from portrait to
+landscape) changes the Output between this layout and the scroll. It takes the
+Operator cards' soft zoom (`tab-in`: from 98.5%, the medium time at the
+emphasised easing): the new layout is whole under a still copy of the old one
+from the first frame, settles in from 98.5% to full size, and the copy fades out
+over it in the same time. The screen is never blank, since the new layout is
+there at once, and the two are never both clear for long. Under reduced motion
+the copy fades and nothing zooms. The first layout a view settles into, when it
+learns its shape, and a step, do not do it. `layoutSwap.ts`.
 
 ## 5. Highlight: the part or the whole song
 
@@ -170,11 +208,12 @@ scroll) the position.
 | `FullSong`      | Lays out, checks it, renders pages, columns, tint          | `src/output/FullSong.tsx`     |
 | `glideFullTint` | The within-column slide, the cross-column fade             | `src/output/fullSongGlide.ts` |
 | `OutputView`    | Chooses the layout (setting and landscape), keeps the cues | `src/output/OutputView.tsx`   |
+| `swapLayouts`   | The zoom and fade between the two layouts (§ 4a)           | `src/output/layoutSwap.ts`    |
 | The setting     | `wholeSong` preference, in the presentation message        | `user-state.ts`, `channel.ts` |
 
 The content message carries the song's parts in printed order (`parts`, each an
-id and its lines) besides the flattened sequence; the focus part is the part of
-the focused line. A message without `parts` shows the scroll.
+id, its lines and its marker) besides the flattened sequence; the focus part is
+the part of the focused line. A message without `parts` shows the scroll.
 
 ## 7. Tests
 
@@ -183,5 +222,8 @@ smaller column count, the floor and pages, one part, a part taller than a
 column. `fullSongText.test.ts` pins the arithmetic: breaking, wrapping, heights,
 and that the rule runs on it. `FullSong.test.tsx` checks the order, the tint's
 part, the lit lines, the page shown, a turn with both pages mounted and the old
-one gone at its end, and the layout made again when the page disagrees. The
-glide's geometry is the existing one's, tested there.
+one gone at its end, the tint on the new part's box once its page is there, the
+markers, and the layout made again when the page disagrees. `Output.test.tsx`
+checks the markers' setting and the swap between layouts. The glide's geometry
+is the existing one's, tested there; its page-turn timing (the two sum to one)
+is pinned in `fullSongGlide.test.ts`.

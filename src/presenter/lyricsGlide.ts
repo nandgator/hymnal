@@ -42,18 +42,27 @@ export interface GlideInput {
   scrollTravel: number;
   // The list's height: "more than about a screen" of travel fades.
   viewport: number;
+  // Back to Current: the scroll glides however far it is.
+  back?: boolean;
 }
 
 /** What a step does: glide, fade (a far jump) or snap. Pure, for tests. */
 export function planGlide(input: GlideInput): GlidePlan {
   if (input.still || input.reduced) return { tint: "snap", scroll: "snap" };
   const far = (travel: number) => travel > input.viewport;
-  const scroll: ScrollMode = far(input.scrollTravel) ? "snap" : "glide";
+  const scroll: ScrollMode = far(input.scrollTravel) && !input.back ? "snap" : "glide";
   if (input.tintTravel === null) return { tint: "snap", scroll };
   // Only the tint travelling far fades. Far scroll with a near (or still)
   // tint, like Back to Current, just lands: the tint has nothing to flash.
   if (far(input.tintTravel)) return { tint: "fade", scroll: "snap" };
   return { tint: "glide", scroll };
+}
+
+/** How long Back to Current takes: the app's duration for a screen or less;
+ * beyond a screen, 80ms more for every 1000px, to at most 450ms more, so a
+ * long way is still seen going. */
+export function backDuration(base: number, travel: number, viewport: number): number {
+  return base + Math.min(450, Math.max(0, travel - viewport) * 0.08);
 }
 
 /** The scrollTop that puts an element in the middle of the list, or at its top. */
@@ -267,7 +276,7 @@ function rideScroll(list: HTMLElement, state: ListState, anim: Animation, to: nu
  * scroll lands. `still` skips the motion (a list shown anew, or an update
  * that isn't a step).
  */
-export function glideLyrics(list: HTMLElement, options: { still: boolean }) {
+export function glideLyrics(list: HTMLElement, options: { still: boolean; back?: boolean }) {
   const state = stateOf(list);
   const tint = tintOf(list);
   const targets = targetsOf(list);
@@ -291,6 +300,7 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean }) {
   if (options.still && state.anim && sameBox(state.box, to) && state.scrollTo === scrollTo) {
     return;
   }
+  const scrolledFrom = list.scrollTop;
   const from = tint ? shownBox(tint, state.anim, state.box) : null;
   const plan = planGlide({
     still: options.still,
@@ -298,6 +308,7 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean }) {
     tintTravel: from ? Math.abs(to.y - from.y) : null,
     scrollTravel: Math.abs(scrollTo - list.scrollTop),
     viewport: list.clientHeight,
+    back: options.back,
   });
   stop(state);
   state.box = to;
@@ -314,7 +325,11 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean }) {
     return;
   }
 
-  const { duration, easing } = glideTiming(list);
+  const timing = glideTiming(list);
+  const { easing } = timing;
+  const duration = options.back
+    ? backDuration(timing.duration, Math.abs(scrollTo - scrolledFrom), list.clientHeight)
+    : timing.duration;
   const start = from ?? to;
   let anim: Animation;
   if (plan.tint === "fade") {
@@ -356,7 +371,7 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean }) {
 
 /** Back to Current: scroll to the current part, gliding if it is near. */
 export function glideBack(list: HTMLElement) {
-  glideLyrics(list, { still: false });
+  glideLyrics(list, { still: false, back: true });
 }
 
 /**

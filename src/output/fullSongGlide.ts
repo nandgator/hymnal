@@ -7,11 +7,11 @@
 // - cross: to another column, a fade, overlapped so some part is always lit:
 //   the old tint (a ghost layer) fades out in place over the first 60%, the
 //   new one fades in from the 20% mark, travelling from the left.
-// - turn: to another page, the tint goes with its page, a handoff as the
-//   pages' is: the old one fades out in place over the first 44% of the time,
-//   the new one rises 12px into place and fades in from 36%, never travelling
-//   sideways. A tint that
-//   stays where it is (the same box on both pages) is not touched.
+// - turn: to another page, the tint goes with its page, a cross-dissolve as
+//   the pages' is: the old one fades out in place as the new one rises 12px
+//   into place and fades in, over the same time and easing (the two sum to
+//   one), never travelling sideways. A tint that stays where it is (the same
+//   box on both pages) is not touched.
 // - snap: at once, the tint re-measured. Reduced motion is always this.
 
 import {
@@ -55,10 +55,12 @@ function stop(layers: TintLayers, state: TintState) {
   layers.tint.style.opacity = "";
 }
 
-/** A page turn: the old tint is gone by this share of the glide, the new one
- * starts at this share, rising this many px. */
-export const TURN_OUT = 0.44;
-export const TURN_IN_START = 0.36;
+/** A page turn: the old tint fades out over the whole glide as the new one
+ * fades in over the same, in the same easing, so their opacities sum to one:
+ * the screen is never blank, and never two clear marks at once. The new one
+ * rises this many px. */
+export const TURN_OUT = 1;
+export const TURN_IN_START = 0;
 export const TURN_RISE_PX = 12;
 
 /** The geometry of a cross-column fade, as keyframes (pure, for tests); a

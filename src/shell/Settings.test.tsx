@@ -215,6 +215,17 @@ describe("Settings", () => {
     );
   });
 
+  it("sets Part labels, on unless chosen otherwise", async () => {
+    const setPreferences = vi.fn(async () => {});
+    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
+    await screen.findByText("100%");
+    const presentation = within(screen.getByRole("region", { name: "Presentation" }));
+    const toggle = presentation.getByRole("switch", { name: /Part labels/ });
+    expect(toggle).toBeChecked();
+    fireEvent.click(toggle);
+    expect(setPreferences).toHaveBeenLastCalledWith(expect.objectContaining({ partLabels: false }));
+  });
+
   it("sets the Output's reading band, a part unless chosen otherwise", async () => {
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);

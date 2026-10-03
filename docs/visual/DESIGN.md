@@ -527,10 +527,13 @@ view is close enough to the frame to need a smaller unit.
     the old part to the new as the list scrolls, one motion (a line step keeps
     the tint still and only brightens its line). A jump of more than a screen
     (End, a distant part) fades the tint and lands the scroll instead of
-    travelling through the song; Back to Current from far away just lands, the
-    tint staying put. A list shown anew (a tab, a split, expand or collapse,
-    another song) lands on the current part at once, and the tint re-measures,
-    never glides, as type size or width changes.
+    travelling through the song; Back to Current is the exception: it always
+    scrolls there, the tint staying put, taking longer the further it goes (the
+    medium time to a screen away, up to 450ms more), and it is offered whenever
+    the current part is out of view, including the one a song opens on. A list
+    shown anew (a tab, a split, expand or collapse, another song) lands on the
+    current part at once, and the tint re-measures, never glides, as type size
+    or width changes.
   - **Height matters too.** WCAG's Reflow sets a width floor (320 CSS px) but no
     single height floor, so the practice is to degrade gracefully. The stage
     needs Live and at least a row of the keypad: under 640px of height (a

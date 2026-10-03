@@ -95,6 +95,52 @@ const currentPart = () => {
   return within(block);
 };
 
+describe("Back to Current", () => {
+  it("is offered for the part a song opens on, once it is scrolled out of view, with no tap first", async () => {
+    // The observers made, each with the element it watches.
+    const seen: { callback: IntersectionObserverCallback; el?: Element }[] = [];
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        entry: { callback: IntersectionObserverCallback; el?: Element };
+        constructor(callback: IntersectionObserverCallback) {
+          this.entry = { callback };
+          seen.push(this.entry);
+        }
+        observe(el: Element) {
+          this.entry.el = el;
+        }
+        disconnect() {
+          this.entry.el = undefined;
+        }
+        unobserve() {}
+      },
+    );
+    try {
+      render(() => (
+        <Presenter
+          hymnNumber={7}
+          hymnbookId="book"
+          store={fakeStore()}
+          userState={fakeUserState()}
+        />
+      ));
+      expect(await screen.findByText("Test Hymn")).toBeInTheDocument();
+      const watching = seen.filter((o) => o.el?.getAttribute("aria-current") === "step");
+      expect(watching).toHaveLength(1);
+      expect(screen.queryByRole("button", { name: "Back to Current" })).not.toBeInTheDocument();
+      // Scrolled away from it.
+      watching[0].callback(
+        [{ isIntersecting: false } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+      expect(await screen.findByRole("button", { name: "Back to Current" })).toBeInTheDocument();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 describe("Presenter", () => {
   it("shows nothing for a fast load, then its panels empty in place (DESIGN.md § Structure)", async () => {
     render(() => (
@@ -278,6 +324,22 @@ describe("Presenter", () => {
 
     unmount();
     expect(publishOutput).toHaveBeenLastCalledWith({ type: "idle" });
+  });
+
+  it("sends each part with its marker for the whole-song layout: a verse's number, else its kind", async () => {
+    publishOutput.mockClear();
+    render(() => (
+      <Presenter hymnNumber={7} hymnbookId="book" store={fakeStore()} userState={fakeUserState()} />
+    ));
+    await screen.findByText("Test Hymn");
+    const last = publishOutput.mock.calls.at(-1)?.[0] as {
+      parts: { id: string; marker?: string }[];
+    };
+    expect(last.parts.map((p) => [p.id, p.marker])).toEqual([
+      ["s1", "1"],
+      ["c", "Chorus"],
+      ["s2", "2"],
+    ]);
   });
 
   it("keeps Next and Previous meaningful after jumping to a part", async () => {

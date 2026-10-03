@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  backDuration,
   edgeBoxes,
   glideLyrics,
   parseEase,
@@ -41,6 +42,26 @@ describe("planGlide", () => {
       tint: "glide",
       scroll: "snap",
     });
+  });
+
+  it("glides Back to Current from any distance, the tint left alone", () => {
+    expect(planGlide({ ...base, tintTravel: 0, scrollTravel: 3000, back: true })).toEqual({
+      tint: "glide",
+      scroll: "glide",
+    });
+    // Reduced motion still lands at once.
+    expect(
+      planGlide({ ...base, tintTravel: 0, scrollTravel: 3000, back: true, reduced: true }),
+    ).toEqual({ tint: "snap", scroll: "snap" });
+  });
+
+  it("takes longer to scroll back the further it is, to a limit", () => {
+    const at = (travel: number) => backDuration(250, travel, 600);
+    expect(at(100)).toBe(250);
+    expect(at(1200)).toBeGreaterThan(250);
+    expect(at(6000)).toBeGreaterThan(at(1200));
+    expect(at(60000)).toBe(at(600000));
+    expect(at(60000)).toBeLessThanOrEqual(700);
   });
 
   it("snaps the scroll of a step whose tint is near but the scroll far", () => {

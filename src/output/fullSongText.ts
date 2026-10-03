@@ -11,9 +11,12 @@ export interface Segment {
   gap: number;
 }
 
-/** A part's lines, each as its segments. */
+/** A part's lines, each as its segments, and its marker if it has one (the
+ * verse number, "Chorus": a word that never breaks, above the first line). */
 export interface PartMetrics {
   lines: Segment[][];
+  /** The marker's width in em of the song's type (not its own, smaller). */
+  marker?: { width: number };
 }
 
 export interface SongMetrics {
@@ -25,6 +28,14 @@ export const LINE_HEIGHT = 1.35;
 /** A part's padding, in em: 0.3 above and below, 0.6 each side. */
 export const PART_PAD_X = 0.6;
 export const PART_PAD_Y = 0.3;
+/** The marker's type is this share of the song's, in a lighter weight. */
+export const MARKER_SCALE = 0.55;
+/** Its row is this tall, in em of the song's type: a fixed box (1.5 of its
+ * own em), so a script's tall glyphs never change the arithmetic. */
+export const MARKER_HEIGHT = 0.825;
+/** Its letters are spaced by this much of its own em. */
+const MARKER_TRACKING = 0.06;
+const MARKER_WEIGHT = "400";
 /** A word may overhang its box by this many px and still fit (as the DOM
  * check allows). */
 const FIT_TOLERANCE_PX = 1;
@@ -67,6 +78,10 @@ export const widest = (segments: Segment[]) =>
 export function partAt(part: PartMetrics, avail: number, tolerance: number) {
   let height = 0;
   let fits = true;
+  if (part.marker) {
+    height += MARKER_HEIGHT;
+    if (part.marker.width > avail + tolerance) fits = false;
+  }
   for (const line of part.lines) {
     height += wrappedLines(line, avail) * LINE_HEIGHT;
     if (widest(line) > avail + tolerance) fits = false;
@@ -120,24 +135,39 @@ function context() {
 /** The metrics of a song's parts in a font (`family` as CSS writes it, and
  * `weight`). Without a canvas (a test's DOM) each character is half an em. */
 export function measureSong(
-  parts: { lines: string[] }[],
+  parts: { lines: string[]; marker?: string }[],
   family: string,
   weight: string,
 ): SongMetrics {
   const ctx = context();
-  if (ctx) ctx.font = `${weight} ${REFERENCE_PX}px ${family}`;
-  const width = (text: string) =>
-    ctx && typeof ctx.measureText === "function"
+  const widthIn = (text: string, w: string) => {
+    if (ctx) ctx.font = `${w} ${REFERENCE_PX}px ${family}`;
+    return ctx && typeof ctx.measureText === "function"
       ? ctx.measureText(text).width / REFERENCE_PX
       : text.length * 0.5;
+  };
+  const width = (text: string) => widthIn(text, weight);
   const space = width(" ");
-  return {
-    parts: parts.map((part) => ({
-      lines: part.lines.map((text) =>
-        splitLine(text).flatMap((word) =>
-          word.map((piece, k) => ({ width: width(piece), gap: k === 0 ? space : 0 })),
-        ),
+  // The lines first, so the context's font is the song's again for each.
+  const lines = parts.map((part) =>
+    part.lines.map((text) =>
+      splitLine(text).flatMap((word) =>
+        word.map((piece, k) => ({ width: width(piece), gap: k === 0 ? space : 0 })),
       ),
+    ),
+  );
+  return {
+    parts: parts.map((part, i) => ({
+      lines: lines[i],
+      ...(part.marker
+        ? {
+            marker: {
+              width:
+                (widthIn(part.marker, MARKER_WEIGHT) + part.marker.length * MARKER_TRACKING) *
+                MARKER_SCALE,
+            },
+          }
+        : {}),
     })),
   };
 }
@@ -145,9 +175,13 @@ export function measureSong(
 /** A cheap signature of a song's parts: ids, line counts and a hash of the
  * text, so an edited song is measured and laid out again though its key is
  * the same. */
-export function signature(parts: { id: string; lines: string[] }[]): string {
+export function signature(parts: { id: string; lines: string[]; marker?: string }[]): string {
   let hash = 5381;
   for (const part of parts) {
+    if (part.marker) {
+      for (let i = 0; i < part.marker.length; i++) hash = (hash * 33) ^ part.marker.charCodeAt(i);
+      hash = (hash * 33) ^ 20;
+    }
     for (const line of part.lines) {
       for (let i = 0; i < line.length; i++) hash = (hash * 33) ^ line.charCodeAt(i);
       hash = (hash * 33) ^ 10;
@@ -188,7 +222,7 @@ export const fontsEpoch = () => fontEpoch;
 
 /** A song's metrics, measured once per song and font. */
 export function metricsFor(
-  parts: { id: string; lines: string[] }[],
+  parts: { id: string; lines: string[]; marker?: string }[],
   family: string,
   weight: string,
 ): SongMetrics {

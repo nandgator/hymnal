@@ -1474,6 +1474,30 @@ workspace, the dock.
   it's non-empty, Go live reads On air and brings the window forward
   (`window.open("", name)`, which never reloads it), and Live's dot is the
   on-air light.
+- **End Live.** Closing the Output window was the only way to stop presenting,
+  and the Live pane's own control only hides its preview. **End Live** ends the
+  presenting and leaves the window: the Output goes dark (the black screen of
+  Blank, faded the same way), and the header's button reads Go Live again; Go
+  Live then resumes on the same window, in place, without asking for a screen or
+  opening anything. It is one channel message, `{ type: "ended", ended }`, held
+  and replayed to a late Output like `blank` and kept apart from it: a blank
+  held before the end is still held after it, and Live's preview dims as for
+  Blank. It is reached from a button beside On Air in the switcher row (an icon
+  alone on a phone), the command menu ("End Live", while live) and **Shift+E**
+  (§16.5). The Output window is the source of truth: once told anything, it
+  reports its blank and ended state in its `hello` and `shape`, and a reloaded
+  Operator adopts it (the header reads Go Live) and never posts "not ended"
+  except on Go Live. A late join replays the settings and the dark states before
+  the content, and a window not yet told anything stays dark, so a dark Output
+  never paints the song and fades it. Closing the window clears it. While ended,
+  the Output is not on the screen as far as the Library is concerned (a book it
+  showed may be removed), though the update gate still treats an open window as
+  live. With several outputs one day (ADR-0028), End Live ends them all; ending
+  one would be an item in that output's own menu. Not built: there is one
+  Output.
+- **The Live pane's control is "Hide Live Preview"**, not "Hide Live", so it is
+  never confused with ending Live: it hides the preview (the pane toggle, **L**,
+  Settings' "Show Live Preview") and does nothing to the Output.
 - **Hot-swap.** The hymnbook and hymn are the Operator's inputs, not its
   identity. Choosing another from the switcher row or the command menu replaces
   the engine in place: a new `SequenceEngine` for the new hymn, the cursor at
@@ -1516,8 +1540,9 @@ work too.
 | U                       | Undo the last repeat            |
 | B or .                  | Blank the Output / restore      |
 | O                       | Open or focus the Output window |
+| Shift+E                 | End Live: the Output goes dark  |
 | N                       | Next tab (see below)            |
-| L                       | Show or hide Live (§16.4)       |
+| L                       | Show or hide Live Preview       |
 | / or Ctrl/⌘+K           | Command menu: hymns and actions |
 | + −                     | Operator text size              |
 | ?                       | Shortcut sheet                  |
@@ -1528,10 +1553,10 @@ work too.
   `SHORTCUTS`), rendered by the `?` sheet and read by every other place a key
   shows, so none can disagree: a control's tooltip and `aria-keyshortcuts`, and
   the command menu's hints all derive from it, with no hardcoded key strings.
-  The shell handles the keys that work on every screen (B, O, L, /, Ctrl/⌘+K, +,
-  −, ?); the Presenter handles the ones that move an engine (parts, lines,
-  stanzas, chorus, R, U) and N, which switches tabs inside the Presenter's own
-  workspace.
+  The shell handles the keys that work on every screen (B, O, Shift+E, L, /,
+  Ctrl/⌘+K, +, −, ?); the Presenter handles the ones that move an engine (parts,
+  lines, stanzas, chorus, R, U) and N, which switches tabs inside the
+  Presenter's own workspace.
 - **Keys follow the layout.** A control with a key shows it in its tooltip
   ("Repeat this part (R)"); on a phone (under 840px, usually no keyboard)
   tooltips carry no key hint, though `aria-keyshortcuts` stays. A command-menu
@@ -1543,6 +1568,10 @@ work too.
   repeat has no key: a button from ×3, and a command-menu item. Both keys are
   off in text fields and sheets like all the others, and work from the Output
   window, which forwards every plain key.
+- **Shift+E is End Live**, a chord so a stray key cannot end the show. Shift+Esc
+  was the natural one, and is the browser's task manager in Chrome. It does
+  nothing while Live is not on, and works from the Output window, which forwards
+  every plain key.
 - **No key, by choice**: Show cues now and the Output's band size (§16.1) are
   command-menu items only, occasional enough that a letter would be wasted.
 - **Space is Next part**, even on a focused button: a clicker or a thumb on the
@@ -1577,7 +1606,8 @@ Finder (§13) with actions listed ahead of the hymn results: an action shows whe
 every word typed starts a word of its name, so "bl" finds "Blank the Output". A
 number matches no action, so the Finder's fast path holds: `/`, a number, Enter.
 With the box empty, the actions show, each with its key. Actions: Blank or
-Restore the Output, Go live, Next tab, Split or merge the tabs and Make the
+Restore the Output, Go live (Bring the Output forward, or resume it, while one
+is open), End Live (while live), Next tab, Split or merge the tabs and Make the
 other tab group main (only where two groups fit, from 1400px; they glide as the
 pane toolbar's do), Show or hide each pane, Switch hymnbook, Library, Settings,
 Text size up and down, Keyboard shortcuts, and the Output's band size. Repeat

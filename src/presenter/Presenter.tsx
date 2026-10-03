@@ -68,6 +68,14 @@ export function partCueLabel(part: Part): string {
   return part.label ? `Verse ${part.label}` : partLabel(part);
 }
 
+/** What marks a part in the Output's whole-song layout (SDD-0005 § 1): a
+ * stanza's number, else its kind: "Chorus", "Bridge". None for a stanza with
+ * no number. */
+export function partMarker(part: Part): string | undefined {
+  if (part.label) return part.label;
+  return part.kind === "stanza" ? undefined : partLabel(part);
+}
+
 const MIN_CHIP_COLUMNS = 3;
 /** How long a stanza digit waits for a second one (SDD-0001 §16.5). */
 const STANZA_DIGIT_MS = 500;
@@ -109,6 +117,8 @@ export interface PresenterProps {
   onToggleBlank?: () => void;
   /** An Output window is open: Live's dot is the on-air light. */
   presenting?: boolean;
+  /** Live has ended (End Live): the preview is as dark as the Output. */
+  outputEnded?: boolean;
   /** Which supporting panes show, by id; absent means shown (SDD-0001
    * §16.4). The shell keeps it in preferences. */
   panes?: Record<string, boolean>;
@@ -134,6 +144,8 @@ export interface PresenterProps {
   pinChorus?: boolean;
   /** Live shows the whole song as the Output does (SDD-0005). */
   wholeSong?: boolean;
+  /** Live marks each part in it as the Output does (SDD-0005 § 1). */
+  partLabels?: boolean;
   /** The Output window's shape, if it has said: Live is 16:9 whatever it is,
    * so it takes this for the layout (SDD-0005 § 1). */
   liveLandscape?: boolean;
@@ -279,7 +291,11 @@ export function Presenter(props: PresenterProps) {
       // the verse column, boxed while sung like it (SDD-0001 §16.1).
       chorus: e.hymn.parts.find((part) => part.kind === "chorus")?.id,
       // Printed order, for the whole-song layout (SDD-0005).
-      parts: e.hymn.parts.map((part) => ({ id: part.id, lines: [...part.lines] })),
+      parts: e.hymn.parts.map((part) => ({
+        id: part.id,
+        lines: [...part.lines],
+        marker: partMarker(part),
+      })),
     };
   });
   createEffect(() => {
@@ -621,9 +637,10 @@ export function Presenter(props: PresenterProps) {
           reveal={props.revealCues}
           pinChorus={props.pinChorus}
           wholeSong={props.wholeSong}
+          partLabels={props.partLabels}
           landscape={props.liveLandscape}
           highlight={props.highlight}
-          classList={{ "live-blanked": !!props.blanked }}
+          classList={{ "live-blanked": !!props.blanked || !!props.outputEnded }}
         />
       )}
     </Show>
@@ -663,7 +680,7 @@ export function Presenter(props: PresenterProps) {
         <button
           type="button"
           class="live-strip-toggle"
-          classList={{ "live-blanked": !!props.blanked }}
+          classList={{ "live-blanked": !!props.blanked || !!props.outputEnded }}
           aria-expanded={liveExpanded()}
           onClick={() => setLiveExpanded((open) => !open)}
         >
@@ -786,14 +803,25 @@ export function Presenter(props: PresenterProps) {
     const [awayFromCurrent, setAwayFromCurrent] = createSignal(false);
     let observer: IntersectionObserver | undefined;
     createEffect(() => {
+      // The blocks too: a song's engine arrives after this list is made, with
+      // no step, so the part it opens on is watched from the start. Looked
+      // for once the blocks are in the page, a moment after this runs.
       version();
+      lyricBlocks();
       observer?.disconnect();
-      const block = list?.querySelector('[aria-current="step"]');
-      if (!list || !block || typeof IntersectionObserver !== "function") return;
-      observer = new IntersectionObserver(([entry]) => setAwayFromCurrent(!entry.isIntersecting), {
-        root: list,
+      let stale = false;
+      onCleanup(() => {
+        stale = true;
       });
-      observer.observe(block);
+      queueMicrotask(() => {
+        const block = list?.querySelector('[aria-current="step"]');
+        if (stale || !list || !block || typeof IntersectionObserver !== "function") return;
+        observer = new IntersectionObserver(
+          ([entry]) => setAwayFromCurrent(!entry.isIntersecting),
+          { root: list },
+        );
+        observer.observe(block);
+      });
     });
     onCleanup(() => observer?.disconnect());
     // The tint keeps to its block as parts resize (lyricsGlide.ts).

@@ -1,18 +1,25 @@
 import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { createSignal } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FlatLine } from "../domain/sequence-engine.ts";
 import type { OutputMessage } from "./channel.ts";
 import { Output } from "./Output.tsx";
+import { OutputView, type OutputViewProps } from "./OutputView.tsx";
 
 const channel = vi.hoisted(() => ({
   handler: undefined as ((message: OutputMessage) => void) | undefined,
+  stateOf: undefined as (() => { blanked: boolean; ended: boolean } | undefined) | undefined,
   unsubscribe: vi.fn(),
   requestSeek: vi.fn(),
   forwardKey: vi.fn(),
 }));
 vi.mock("./channel.ts", () => ({
-  subscribeOutput: (handler: (message: OutputMessage) => void) => {
+  subscribeOutput: (
+    handler: (message: OutputMessage) => void,
+    stateOf?: () => { blanked: boolean; ended: boolean } | undefined,
+  ) => {
     channel.handler = handler;
+    channel.stateOf = stateOf;
     return channel.unsubscribe;
   },
   requestSeek: channel.requestSeek,
@@ -153,6 +160,66 @@ describe("Output", () => {
     expect(view).not.toHaveClass("output-blanked");
   });
 
+  it("is dark until it has been told its state, and paints a dark state dark from its first frame", () => {
+    render(() => <Output />);
+    // Content with nothing said about the dark states: dark, and says nothing.
+    show(0);
+    const view = screen.getByText("Line 1a").closest(".output-view");
+    expect(view).toHaveClass("output-blanked");
+    expect(channel.stateOf?.()).toBeUndefined();
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: {},
+      pinChorus: false,
+      bandSize: "part",
+    });
+    expect(view).not.toHaveClass("output-blanked");
+    expect(channel.stateOf?.()).toEqual({ blanked: false, ended: false });
+  });
+
+  it("a window opened while Live is ended never has the song lit: the replay's order, then its first paint", () => {
+    render(() => <Output />);
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: {},
+      pinChorus: false,
+      bandSize: "part",
+    });
+    channel.handler?.({ type: "ended", ended: true });
+    // The very first element made is already dark: nothing fades.
+    const classes: string[] = [];
+    const observer = new MutationObserver(() => {
+      for (const view of document.querySelectorAll(".output-view")) classes.push(view.className);
+    });
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true });
+    show(0);
+    const view = screen.getByText("Line 1a").closest(".output-view");
+    expect(view).toHaveClass("output-blanked");
+    expect(classes.every((c) => c.includes("output-blanked"))).toBe(true);
+    observer.disconnect();
+    expect(channel.stateOf?.()).toEqual({ blanked: false, ended: true });
+  });
+
+  it("goes dark when Live ends and comes back when it resumes, the window staying (End Live)", () => {
+    render(() => <Output />);
+    show(0);
+    const view = screen.getByText("Line 1a").closest(".output-view");
+    channel.handler?.({ type: "ended", ended: true });
+    expect(view).toHaveClass("output-blanked");
+    // Content keeps arriving underneath.
+    show(2);
+    expect(screen.getByText("Chorus line")).toHaveClass("output-line-current");
+    channel.handler?.({ type: "ended", ended: false });
+    expect(view).not.toHaveClass("output-blanked");
+    // A blank held through the end is still held after it.
+    channel.handler?.({ type: "blank", blanked: true });
+    channel.handler?.({ type: "ended", ended: true });
+    channel.handler?.({ type: "ended", ended: false });
+    expect(view).toHaveClass("output-blanked");
+  });
+
   it("takes the Operator's Output theme, live (SDD-0001 §16.1)", () => {
     render(() => <Output />);
     channel.handler?.({
@@ -230,6 +297,236 @@ describe("Output", () => {
     expect(document.querySelector(".full-part-current")).toHaveTextContent("Chorus line");
     sizes.mockRestore();
     heights.mockRestore();
+  });
+
+  it("marks the parts in the whole song, unless Part labels is off", () => {
+    const sizes = vi.spyOn(HTMLElement.prototype, "clientWidth", "get");
+    const heights = vi.spyOn(HTMLElement.prototype, "clientHeight", "get");
+    sizes.mockReturnValue(1000);
+    heights.mockReturnValue(1000);
+    render(() => <Output />);
+    const presentation = (partLabels?: boolean) =>
+      channel.handler?.({
+        type: "presentation",
+        theme: "warm",
+        cues: {},
+        pinChorus: false,
+        wholeSong: true,
+        bandSize: "part",
+        ...(partLabels === undefined ? {} : { partLabels }),
+      });
+    presentation();
+    channel.handler?.({
+      type: "content",
+      hymnbookId: "book",
+      number: 7,
+      title: "Test Hymn",
+      lines: LINES,
+      focus: { start: 2, end: 3 },
+      parts: [
+        { id: "s1", lines: ["Line 1a", "Line 1b"], marker: "1" },
+        { id: "c", lines: ["Chorus line"], marker: "Chorus" },
+      ],
+    });
+    const marks = () => [...document.querySelectorAll(".full-marker")].map((m) => m.textContent);
+    expect(marks()).toEqual(["1", "Chorus"]); // on by default
+    presentation(false);
+    expect(marks()).toEqual([]);
+    presentation(true);
+    expect(marks()).toEqual(["1", "Chorus"]);
+    sizes.mockRestore();
+    heights.mockRestore();
+  });
+
+  describe("switching between the whole song and the scroll", () => {
+    const animate = vi.fn((..._args: unknown[]) => ({
+      finished: new Promise(() => {}),
+      cancel: vi.fn(),
+    }));
+    const present = (wholeSong: boolean) =>
+      channel.handler?.({
+        type: "presentation",
+        theme: "warm",
+        cues: {},
+        pinChorus: false,
+        wholeSong,
+        bandSize: "part",
+      });
+    const setUp = async (reduced: boolean) => {
+      vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(1000);
+      vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(1000);
+      Element.prototype.animate = animate as unknown as Element["animate"];
+      vi.stubGlobal(
+        "matchMedia",
+        vi.fn(() => ({
+          matches: reduced,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        })),
+      );
+      render(() => <Output />);
+      present(true);
+      channel.handler?.({
+        type: "content",
+        hymnbookId: "book",
+        number: 7,
+        title: "Test Hymn",
+        lines: LINES,
+        focus: { start: 2, end: 3 },
+        parts: [
+          { id: "s1", lines: ["Line 1a", "Line 1b"] },
+          { id: "c", lines: ["Chorus line"] },
+        ],
+      });
+      await Promise.resolve(); // the view has learned its shape
+      animate.mockClear();
+    };
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.unstubAllGlobals();
+      delete (Element.prototype as unknown as Record<string, unknown>).animate;
+      for (const copy of document.querySelectorAll(".output-swap")) copy.remove();
+    });
+
+    it("zooms the new layout in from 98.5% as a copy of the old one fades out over it", async () => {
+      await setUp(false);
+      present(false); // the scroll
+      const copy = document.querySelector(".output-swap");
+      expect(copy).toBeInTheDocument();
+      // The old layout, as it was: the whole song, not the scroll.
+      expect(copy).toHaveClass("output-view-fullsong");
+      const calls = animate.mock.calls as unknown as [Keyframe[], KeyframeAnimationOptions][];
+      expect(calls.some(([k]) => k[0].opacity === 1 && k[1].opacity === 0)).toBe(true);
+      expect(
+        calls.some(([k]) => k[0].transform === "scale(0.985)" && k[1].transform === "scale(1)"),
+      ).toBe(true);
+      // Both ways.
+      animate.mockClear();
+      present(true);
+      expect(animate).toHaveBeenCalled();
+    });
+
+    it("only fades under reduced motion", async () => {
+      await setUp(true);
+      present(false);
+      expect(document.querySelector(".output-swap")).toBeInTheDocument();
+      const calls = animate.mock.calls as unknown as [Keyframe[], KeyframeAnimationOptions][];
+      expect(calls.every(([k]) => k[0].transform === undefined)).toBe(true);
+      expect(calls.some(([k]) => k[0].opacity === 1)).toBe(true);
+    });
+
+    it("leaves no lyric behind when the Output goes dark mid-swap, blanked or ended", async () => {
+      await setUp(false);
+      present(false);
+      expect(document.querySelector(".output-swap")).toBeInTheDocument();
+      channel.handler?.({ type: "ended", ended: true });
+      expect(document.querySelector(".output-swap")).not.toBeInTheDocument();
+      channel.handler?.({ type: "ended", ended: false });
+      present(true);
+      expect(document.querySelector(".output-swap")).toBeInTheDocument();
+      channel.handler?.({ type: "blank", blanked: true });
+      expect(document.querySelector(".output-swap")).not.toBeInTheDocument();
+      // Dark, a toggle has no lyric to swap.
+      present(false);
+      expect(document.querySelector(".output-swap")).not.toBeInTheDocument();
+    });
+
+    it("keeps one copy through a rapid toggle, and leaks none when the view goes mid-swap", async () => {
+      await setUp(false);
+      present(false);
+      present(true);
+      present(false);
+      expect(document.querySelectorAll(".output-swap")).toHaveLength(1);
+      // The song goes (idle): the view unmounts with a swap under way.
+      channel.handler?.({ type: "idle" });
+      expect(document.querySelectorAll(".output-swap")).toHaveLength(0);
+    });
+
+    it("does nothing for a step, or the first layout", async () => {
+      await setUp(false);
+      channel.handler?.({
+        type: "content",
+        hymnbookId: "book",
+        number: 7,
+        title: "Test Hymn",
+        lines: LINES,
+        focus: { start: 0, end: 1 },
+        parts: [
+          { id: "s1", lines: ["Line 1a", "Line 1b"] },
+          { id: "c", lines: ["Chorus line"] },
+        ],
+      });
+      expect(document.querySelector(".output-swap")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("the swap belongs to a change the operator made", () => {
+    const message = (withParts: boolean) => ({
+      type: "content" as const,
+      hymnbookId: "book",
+      number: 7,
+      title: "Test Hymn",
+      lines: LINES,
+      focus: { start: 2, end: 3 },
+      ...(withParts
+        ? {
+            parts: [
+              { id: "s1", lines: ["Line 1a", "Line 1b"] },
+              { id: "c", lines: ["Chorus line"] },
+            ],
+          }
+        : {}),
+    });
+    const animate = vi.fn((..._args: unknown[]) => ({
+      finished: new Promise(() => {}),
+      cancel: vi.fn(),
+    }));
+    afterEach(() => {
+      vi.restoreAllMocks();
+      delete (Element.prototype as unknown as Record<string, unknown>).animate;
+      for (const copy of document.querySelectorAll(".output-swap")) copy.remove();
+    });
+    const mount = async (over: Partial<OutputViewProps>) => {
+      vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(1000);
+      vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(1000);
+      Element.prototype.animate = animate as unknown as Element["animate"];
+      const [props, setProps] = createSignal<OutputViewProps>({
+        message: message(true),
+        variant: "mini",
+        wholeSong: true,
+        ...over,
+      });
+      render(() => <OutputView {...props()} />);
+      await Promise.resolve(); // the view has learned its shape
+      return setProps;
+    };
+
+    it("not for the Live preview's late word that the Output window is landscape or portrait", async () => {
+      const setProps = await mount({ landscape: true });
+      expect(document.querySelector(".full-song")).toBeInTheDocument();
+      setProps((p) => ({ ...p, landscape: false }));
+      expect(document.querySelector(".full-song")).not.toBeInTheDocument();
+      setProps((p) => ({ ...p, landscape: true }));
+      expect(document.querySelector(".full-song")).toBeInTheDocument();
+      expect(document.querySelector(".output-swap")).not.toBeInTheDocument();
+    });
+
+    it("not for a song that merely has no parts, but for the setting really changing the layout", async () => {
+      const setProps = await mount({});
+      setProps((p) => ({ ...p, message: message(false) }));
+      expect(document.querySelector(".full-song")).not.toBeInTheDocument();
+      expect(document.querySelector(".output-swap")).not.toBeInTheDocument();
+      setProps((p) => ({ ...p, message: message(true) }));
+      expect(document.querySelector(".output-swap")).not.toBeInTheDocument();
+      setProps((p) => ({ ...p, wholeSong: false }));
+      expect(document.querySelector(".output-swap")).toBeInTheDocument();
+    });
+
+    it("not for the setting turned on where the view is portrait: the layout did not change", async () => {
+      const setProps = await mount({ wholeSong: false, landscape: false });
+      setProps((p) => ({ ...p, wholeSong: true }));
+      expect(document.querySelector(".output-swap")).not.toBeInTheDocument();
+    });
   });
 
   it("keeps scrolling while the whole song is on a view that is not landscape", () => {

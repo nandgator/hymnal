@@ -137,6 +137,9 @@ only, here:
 - 2026-10-03 — Library feedback: a chosen book aims the Finder (the crumb keeps
   the song's book); Load Books queue with Back/Next; the Finder lists a book's
   first songs; plainer empty state and source field; Manage Books gone
+- 2026-10-03 — Feedback: Full Song's page turn a dissolve and its tint follows
+  the page; part labels; a zoom between layouts; End Live (Shift+E); Back to
+  Current offered from the start and glides
 - 2026-10-03 — #28 done: part 6 landed after the maintainer loaded the Malayalam
   container on the same origin and the shipped copy was adopted as loaded, same
   key, Recents kept

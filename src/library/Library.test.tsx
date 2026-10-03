@@ -99,6 +99,7 @@ function setup(options: Setup = {}) {
       currentKey?: string;
       presentedKey?: string;
       outputLive?: boolean;
+      onEndLive?: () => void;
       booksAdmin?: Pick<LibraryAdmin, "listBooks">;
     } = {},
   ) =>
@@ -110,6 +111,7 @@ function setup(options: Setup = {}) {
           currentKey={props.currentKey}
           presentedKey={props.presentedKey}
           outputLive={props.outputLive}
+          onEndLive={props.onEndLive}
           onChoose={onChoose}
           onOpen={onOpen}
           onStorageRefused={onStorageRefused}
@@ -437,16 +439,26 @@ describe("Library: removing the book on screen (SDD-0004 §10)", () => {
     return within(await screen.findByRole("dialog", { name: "Remove Book" }));
   }
 
-  it("is refused while that book is on the Output, and says to close the Output first", async () => {
+  it("is refused while that book is on the Output, and says to End Live first", async () => {
     const s = setup({ rows: [row(), loaded()] });
     s.view({ currentKey: "k1", presentedKey: "k1", outputLive: true });
     const dialog = await askRemove();
     expect(dialog.getByRole("alert")).toHaveTextContent(
-      /on the Output now.*Close the Output first/,
+      /on the Output now.*End Live first, then remove it/,
     );
     const button = dialog.getByRole("button", { name: "Remove Book" });
     expect(button).toBeDisabled();
     fireEvent.click(button);
+    expect(s.admin.removeBook).not.toHaveBeenCalled();
+  });
+
+  it("offers End Live where it refuses, and does not remove the book itself", async () => {
+    const onEndLive = vi.fn();
+    const s = setup({ rows: [row(), loaded()] });
+    s.view({ currentKey: "k1", presentedKey: "k1", outputLive: true, onEndLive });
+    const dialog = await askRemove();
+    fireEvent.click(dialog.getByRole("button", { name: "End Live" }));
+    expect(onEndLive).toHaveBeenCalledTimes(1);
     expect(s.admin.removeBook).not.toHaveBeenCalled();
   });
 

@@ -27,12 +27,16 @@ export type OutputMessage =
       chorus?: PartId;
       /** The hymn's parts in printed order, each once, for the whole-song
        * layout (SDD-0005). Without it the Output scrolls. */
-      parts?: { id: PartId; lines: string[] }[];
+      parts?: { id: PartId; lines: string[]; marker?: string }[];
     }
   | { type: "idle" }
   /** Hides what's presented, or shows it again — distinct from `idle`,
    * which means nothing is presented (SDD-0001 §16.5). */
   | { type: "blank"; blanked: boolean }
+  /** End Live, or Go Live again: the window stays open and goes dark, held
+   * apart from blank (which it leaves as it was), so it resumes in place
+   * without the window being opened again (SDD-0001 §16.4). */
+  | { type: "ended"; ended: boolean }
   /** The Operator's Presentation settings, followed live (SDD-0001 §16.1). */
   | PresentationMessage
   /** Show faded cues again for a while — a moment, never replayed. */
@@ -45,10 +49,17 @@ export type PresentationMessage = {
   pinChorus: boolean;
   /** The whole song at once on a landscape screen (SDD-0005). */
   wholeSong?: boolean;
+  /** Mark each part in that layout with its verse number or kind; absent
+   * means on (SDD-0005 § 1). */
+  partLabels?: boolean;
   /** What is lit: the current part, or the whole song (SDD-0005 § 5). */
   highlight?: Highlight;
   bandSize: BandSize;
 };
+
+/** What the Output window itself is showing of the dark states: it is the
+ * source of truth, and tells a reloaded Operator (SDD-0001 §16.4). */
+export type OutputState = { blanked: boolean; ended: boolean };
 
 /** Output → Operator: "I'm open — send me what's showing." Sent on
  * opening and in answer to a ping; each Output window has its own id. */
@@ -57,10 +68,13 @@ type HelloMessage = {
   id: string;
   /** The window is wider than tall, so Live can match it (SDD-0005 § 1). */
   landscape?: boolean;
+  /** Its dark states, once an Operator has told it any; a window that has
+   * not been told is new, and is told. */
+  state?: OutputState;
 };
 
 /** Output → Operator: the window's shape changed (resized, rotated). */
-type ShapeMessage = { type: "shape"; id: string; landscape: boolean };
+type ShapeMessage = { type: "shape"; id: string; landscape: boolean; state?: OutputState };
 
 /** Output → Operator: the window is closing (SDD-0001 §16.4, On air). */
 type ByeMessage = { type: "bye"; id: string };
@@ -102,10 +116,14 @@ type ChannelMessage =
   | KeyMessage;
 
 const CHANNEL_NAME = "hymnal-output";
+const stateListeners = new Set<(state: OutputState) => void>();
+/** The latest state an Output reported, for a listener that comes after it. */
+let reported: OutputState | undefined;
 
 let channel: BroadcastChannel | undefined;
 let lastPublished: OutputMessage | undefined;
 let blanked = false;
+let ended = false;
 let presentation: PresentationMessage | undefined;
 
 function getChannel(): BroadcastChannel {
@@ -113,12 +131,24 @@ function getChannel(): BroadcastChannel {
     channel = new BroadcastChannel(CHANNEL_NAME);
     // Late join (SDD-0001 §16.1): an Output window opened mid-hymn replays
     // whatever this window last published, instead of sitting blank until
-    // the next keypress.
+    // the next keypress. The settings and the dark states go first, then the
+    // content, so a window that is blanked or ended never paints the song
+    // and then fades it.
     channel.addEventListener("message", (event: MessageEvent<ChannelMessage>) => {
-      if (event.data.type !== "hello") return;
-      if (lastPublished) channel?.postMessage(lastPublished);
-      if (blanked) channel?.postMessage({ type: "blank", blanked } satisfies OutputMessage);
+      const { data } = event;
+      // An Output that already holds a state is the truth (this Operator was
+      // reloaded): adopt it, and do not post over it.
+      if ((data.type === "hello" || data.type === "shape") && data.state) {
+        blanked = data.state.blanked;
+        ended = data.state.ended;
+        reported = data.state;
+        for (const listener of [...stateListeners]) listener(data.state);
+      }
+      if (data.type !== "hello") return;
       if (presentation) channel?.postMessage(presentation);
+      if (blanked) channel?.postMessage({ type: "blank", blanked } satisfies OutputMessage);
+      if (ended) channel?.postMessage({ type: "ended", ended } satisfies OutputMessage);
+      if (lastPublished) channel?.postMessage(lastPublished);
     });
   }
   return channel;
@@ -141,6 +171,32 @@ export function setOutputBlanked(next: boolean): void {
   getChannel().postMessage({ type: "blank", blanked } satisfies OutputMessage);
 }
 
+/** Ends Live (the Output goes dark, its window stays) or resumes it; held and
+ * replayed to a late Output like blank. */
+export function setOutputEnded(next: boolean): void {
+  ended = next;
+  getChannel().postMessage({ type: "ended", ended } satisfies OutputMessage);
+}
+
+/** The window it was held for closed: the next one opens lit. Nothing is
+ * posted. */
+export function forgetOutputEnded(): void {
+  ended = false;
+  reported = undefined;
+}
+
+/**
+ * Operator: the Output's own dark states, as an Output that holds them
+ * reports them (a reloaded Operator adopts them). Returns an unsubscribe
+ * function.
+ */
+export function subscribeOutputState(handler: (state: OutputState) => void): () => void {
+  getChannel();
+  stateListeners.add(handler);
+  if (reported) handler({ blanked, ended });
+  return () => stateListeners.delete(handler);
+}
+
 /** Sends the Output's theme, cues and band size; held and replayed to a late Output
  * like blank. */
 export function setOutputPresentation(settings: Omit<PresentationMessage, "type">): void {
@@ -153,17 +209,31 @@ export function setOutputPresentation(settings: Omit<PresentationMessage, "type"
  * Announces itself with `hello` so an already-open Presenter replays the
  * current state.
  */
-export function subscribeOutput(handler: (message: OutputMessage) => void): () => void {
+export function subscribeOutput(
+  handler: (message: OutputMessage) => void,
+  /** The window's dark states, once it has been told any. */
+  stateOf?: () => OutputState | undefined,
+): () => void {
   const target = getChannel();
   const id = crypto.randomUUID();
   const landscape = () => window.innerWidth >= window.innerHeight;
   let wasLandscape = landscape();
   const hello = () =>
-    target.postMessage({ type: "hello", id, landscape: landscape() } satisfies HelloMessage);
+    target.postMessage({
+      type: "hello",
+      id,
+      landscape: landscape(),
+      state: stateOf?.(),
+    } satisfies HelloMessage);
   const onResize = () => {
     if (landscape() === wasLandscape) return;
     wasLandscape = landscape();
-    target.postMessage({ type: "shape", id, landscape: wasLandscape } satisfies ShapeMessage);
+    target.postMessage({
+      type: "shape",
+      id,
+      landscape: wasLandscape,
+      state: stateOf?.(),
+    } satisfies ShapeMessage);
   };
   window.addEventListener("resize", onResize);
   const bye = () => target.postMessage({ type: "bye", id } satisfies ByeMessage);
@@ -177,6 +247,7 @@ export function subscribeOutput(handler: (message: OutputMessage) => void): () =
       data.type === "content" ||
       data.type === "idle" ||
       data.type === "blank" ||
+      data.type === "ended" ||
       data.type === "presentation" ||
       data.type === "reveal"
     )

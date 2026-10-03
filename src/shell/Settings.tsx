@@ -26,6 +26,7 @@ import {
   type OutputTheme,
   outputCuesOf,
   type Preferences,
+  partLabelsOf,
   pinChorusOf,
   type UserState,
   wholeSongOf,
@@ -567,6 +568,25 @@ export function Settings(props: SettingsProps) {
             aria-checked={wholeSongOf(preferences())}
             onChange={(event) =>
               update({ ...preferences(), wholeSong: event.currentTarget.checked })
+            }
+          />
+        </label>
+        <label class="settings-row">
+          <span class="settings-label">
+            Part labels
+            <span class="settings-supporting">
+              With the whole song on screen, a small marker above each verse (its number) and above
+              a Chorus, Bridge and the like
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            class="switch"
+            checked={partLabelsOf(preferences())}
+            aria-checked={partLabelsOf(preferences())}
+            onChange={(event) =>
+              update({ ...preferences(), partLabels: event.currentTarget.checked })
             }
           />
         </label>

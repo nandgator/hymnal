@@ -408,6 +408,10 @@ button:disabled {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M240-160q-33 0-56.5-23.5T160-240q0-33 23.5-56.5T240-320q33 0 56.5 23.5T320-240q0 33-23.5 56.5T240-160Zm240 0q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm240 0q-33 0-56.5-23.5T640-240q0-33 23.5-56.5T720-320q33 0 56.5 23.5T800-240q0 33-23.5 56.5T720-160ZM240-400q-33 0-56.5-23.5T160-480q0-33 23.5-56.5T240-560q33 0 56.5 23.5T320-480q0 33-23.5 56.5T240-400Zm240 0q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm240 0q-33 0-56.5-23.5T640-480q0-33 23.5-56.5T720-560q33 0 56.5 23.5T800-480q0 33-23.5 56.5T720-400ZM240-640q-33 0-56.5-23.5T160-720q0-33 23.5-56.5T240-800q33 0 56.5 23.5T320-720q0 33-23.5 56.5T240-640Zm240 0q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Zm240 0q-33 0-56.5-23.5T640-720q0-33 23.5-56.5T720-800q33 0 56.5 23.5T800-720q0 33-23.5 56.5T720-640Z'/%3E%3C/svg%3E");
 }
 
+.icon-stop {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M320-320v-320h320v320H320Z'/%3E%3C/svg%3E");
+}
+
 .icon-present {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M440-487v127q0 17 11.5 28.5T480-320q17 0 28.5-11.5T520-360v-126l36 35q12 11 28 11.5t28-11.5q12-12 12-28.5T612-508L508-612q-12-12-28-12t-28 12L348-508q-12 12-11.5 28t12.5 28q12 11 28 11.5t28-11.5l35-35ZM160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-480H160v480Zm0 0v-480 480Z'/%3E%3C/svg%3E");
 }
@@ -1572,6 +1576,17 @@ input[type="checkbox"].switch:disabled {
   cursor: pointer;
 }
 
+/* End Live: a quiet text button beside the status, never mistaken for it. */
+.end-live-button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 2.5rem;
+  padding: 0 var(--space-md) 0 var(--space-sm);
+  font-size: 0.875rem;
+}
+
 .present-button.presenting {
   background-color: var(--hymnal-live-container);
   color: var(--hymnal-on-live-container);
@@ -1636,6 +1651,21 @@ input[type="checkbox"].switch:disabled {
     width: 3rem;
     padding: 0;
     font-size: 0;
+  }
+
+  .end-live-button {
+    justify-content: center;
+    gap: 0;
+    width: 2.5rem;
+    padding: 0;
+  }
+
+  .end-live-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
   }
 
   .present-button .swap-label {
@@ -3556,6 +3586,12 @@ html[data-scrolling],
   text-align: center;
 }
 
+/* The still copy of the old layout, fading over the new (layoutSwap.ts). */
+.output-swap {
+  z-index: 5;
+  pointer-events: none;
+}
+
 .output-view-full {
   position: fixed;
   inset: 0;
@@ -3678,18 +3714,18 @@ html[data-scrolling],
   gap: var(--col-gap);
 }
 
-/* A page turn (SDD-0005 § 3) is a handoff, not an overlap: the old page fades
-   out over the first 44% of the medium time, the new one rises 12px into place
-   and fades in from 36%. They share only the 20ms between, both nearly
-   invisible, so text never shows twice. */
+/* A page turn (SDD-0005 § 3) is a cross-dissolve whose two opacities sum to
+   one: the old page fades out as the new one rises 12px into place and fades
+   in, over one medium time at one easing. The Output is never blank (the
+   greater of the two is never under half) and never shows two clear pages
+   (the lesser is never over half). */
 .full-page[data-turn="out"] {
-  animation: full-page-out calc(var(--motion-medium) * 0.44) var(--motion-emphasized) forwards;
+  animation: full-page-out var(--motion-medium) var(--motion-emphasized) forwards;
   pointer-events: none;
 }
 
 .full-page[data-turn="in"] {
-  animation: full-page-in calc(var(--motion-medium) * 0.64) var(--motion-emphasized)
-    calc(var(--motion-medium) * 0.36) backwards;
+  animation: full-page-in var(--motion-medium) var(--motion-emphasized) backwards;
 }
 
 @keyframes full-page-out {
@@ -3740,6 +3776,37 @@ html[data-scrolling],
   max-width: 100%;
 }
 
+/* A part's marker (SDD-0005 § 1): the verse number or the kind, above the
+   first line, beside the lyrics' size and weight as the language picker's
+   caption is: smaller, lighter, muted. Its row is a fixed 0.825em (what the
+   layout arithmetic allows), the text centred in it, so a script's tall
+   glyphs never move anything. */
+.full-marker {
+  display: flex;
+  align-items: center;
+  height: 0.825em;
+}
+
+.full-col-single .full-marker {
+  justify-content: center;
+}
+
+.full-marker-text {
+  color: var(--output-ink-dimmed);
+  font-size: 0.55em;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  white-space: nowrap;
+  transition: color var(--motion-medium) var(--motion-emphasized);
+}
+
+/* Lit with its part: a step lighter, never the lyrics' own ink. */
+.full-part-current .full-marker-text,
+.full-song[data-lit="all"] .full-marker-text {
+  color: color-mix(in srgb, var(--output-ink) 70%, var(--output-ground));
+}
+
 .full-line {
   color: var(--output-ink-dimmed);
   overflow-wrap: normal;
@@ -3752,9 +3819,10 @@ html[data-scrolling],
 
 /* Colour follows the tint (SDD-0005 § 4). Across columns the old part dims
    in the first 60%, the new one brightens from 20% of the time: overlapped,
-   so something is always lit. A page turn dims the old part in the first half, as
-   its page fades out. A snap, and reduced motion, change at once. */
-.full-song[data-glide="cross"] .full-line {
+   so something is always lit. A page turn dims the old part as its page fades
+   out, in the same time. A snap, and reduced motion, change at once. */
+.full-song[data-glide="cross"] .full-line,
+.full-song[data-glide="cross"] .full-marker-text {
   transition-duration: calc(var(--motion-medium) * 0.6);
 }
 
@@ -3763,16 +3831,30 @@ html[data-scrolling],
   transition-duration: calc(var(--motion-medium) * 0.8);
 }
 
-.full-song[data-glide="turn"] .full-line {
-  transition-duration: calc(var(--motion-medium) * 0.44);
+.full-song[data-glide="turn"] .full-line,
+.full-song[data-glide="turn"] .full-marker-text {
+  transition-duration: var(--motion-medium);
 }
 
-.full-song[data-glide="snap"] .full-line {
+.full-song[data-glide="snap"] .full-line,
+.full-song[data-glide="snap"] .full-marker-text {
+  transition: none;
+}
+
+/* The marker brightens with its part as the lyrics do (the more specific
+   rules come last). */
+.full-song[data-glide="cross"] .full-part-current .full-marker-text {
+  transition-delay: calc(var(--motion-medium) * 0.2);
+  transition-duration: calc(var(--motion-medium) * 0.8);
+}
+
+.full-song[data-glide="snap"] .full-part-current .full-marker-text {
   transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .full-line {
+  .full-line,
+  .full-marker-text {
     transition: none;
   }
 }

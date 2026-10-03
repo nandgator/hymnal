@@ -8,12 +8,13 @@ import {
   on,
   onCleanup,
   onMount,
+  Show,
   untrack,
 } from "solid-js";
 import type { PartId } from "../domain/types.ts";
-import { boxOf, prefersReducedMotion } from "../presenter/glideGeometry.ts";
+import { boxOf, glideTiming, prefersReducedMotion } from "../presenter/glideGeometry.ts";
 import { type FullLayout, layoutSong } from "./fullSong.ts";
-import { newTintState, placeTint, type TintStep } from "./fullSongGlide.ts";
+import { newTintState, placeTint, type TintStep, TURN_RISE_PX } from "./fullSongGlide.ts";
 import {
   analyticMeasure,
   fontsEpoch,
@@ -23,6 +24,12 @@ import {
 } from "./fullSongText.ts";
 
 export { signature };
+
+/** The vertical offset of a computed `transform` (a matrix, or none). */
+const translateYOf = (transform: string) => {
+  const values = /^matrix\(([^)]+)\)$/.exec(transform)?.[1].split(",");
+  return Number.parseFloat(values?.[5] ?? "0") || 0;
+};
 
 /** The gap between columns, as a share of the sheet's width. */
 const COLUMN_GAP = 0.03;
@@ -46,7 +53,9 @@ interface Kept {
  * a song seen again at the same size, or laid out ahead of its turn. */
 const kept = new Map<string, Kept>();
 
-const layoutKey = (parts: { id: string; lines: string[] }[], w: number, h: number) =>
+type SongPart = { id: string; lines: string[]; marker?: string };
+
+const layoutKey = (parts: SongPart[], w: number, h: number) =>
   `${signature(parts)}|${w}x${h}|${fontsEpoch()}`;
 
 function remember(key: string, layout: FullLayout, nudge: number) {
@@ -57,7 +66,7 @@ function remember(key: string, layout: FullLayout, nudge: number) {
 /** The rule over a song's measured words, in a sheet `w` by `h` px, the type
  * `emFull` px at fit 1, the room `nudge` steps smaller. */
 function solveFor(
-  parts: { id: string; lines: string[] }[],
+  parts: SongPart[],
   w: number,
   h: number,
   emFull: number,
@@ -80,7 +89,7 @@ export const forgetLayouts = () => kept.clear();
  */
 export function prepareFullSong(
   view: HTMLElement,
-  parts: { id: string; lines: string[] }[],
+  parts: SongPart[],
   safeTop: number,
   safeBottom: number,
 ) {
@@ -95,8 +104,9 @@ export function prepareFullSong(
 }
 
 export interface FullSongProps {
-  /** The song's parts, in printed order. */
-  parts: { id: PartId; lines: string[] }[];
+  /** The song's parts, in printed order, each with its marker if it is to
+   * show one (the verse number, "Chorus"). */
+  parts: { id: PartId; lines: string[]; marker?: string }[];
   /** The part being sung. */
   current: PartId | undefined;
   /** The lines lit within it, when the focus is one line; else the part. */
@@ -268,16 +278,91 @@ export function FullSong(props: FullSongProps) {
 
   // The page turn: the new page is mounted over the old, which fades out as
   // it fades in (CSS, `data-turn`), and the old one goes when it is done.
-  // Never blank, never two turns at once.
+  // Never blank. A step that comes while a turn runs does not cut: the
+  // dissolve goes on toward the new page from the opacities now (`retarget`).
+  const [manual, setManual] = createSignal(false);
+  let turnAnims: Animation[] = [];
+  const stopTurn = () => {
+    for (const anim of turnAnims) anim.cancel();
+    turnAnims = [];
+  };
+  onCleanup(stopTurn);
+  const pageEl = (page: number) =>
+    stage.querySelector<HTMLElement>(`.full-page[data-page="${page}"]`);
+  const retarget = (target: number, pages: number[]) => {
+    // Where each page is drawn now, read before anything changes.
+    const drawn = new Map(
+      pages.map((page) => {
+        const el = pageEl(page);
+        if (!el) return [page, { o: 0, y: 0 }] as const;
+        const style = getComputedStyle(el);
+        return [
+          page,
+          { o: Number.parseFloat(style.opacity), y: translateYOf(style.transform) },
+        ] as const;
+      }),
+    );
+    stopTurn();
+    const next = pages.includes(target) ? pages : [...pages, target];
+    batch(() => {
+      setManual(true);
+      setMounted(next);
+      setShown(target);
+    });
+    // The new page is in the page a moment later: every page's opacity goes
+    // from where it is to where it is going, in one easing, so they still sum
+    // to one (the rest of the old pages, as they fade, and the new one).
+    queueMicrotask(() => {
+      if (untrack(shown) !== target) return;
+      const { duration, easing } = glideTiming(sheet);
+      const anims: Animation[] = [];
+      for (const page of next) {
+        const el = pageEl(page);
+        if (!el || typeof el.animate !== "function") continue;
+        const from = drawn.get(page) ?? { o: 0, y: TURN_RISE_PX };
+        const into = page === target;
+        anims.push(
+          el.animate(
+            [
+              { opacity: Number.isNaN(from.o) ? 0 : from.o, transform: `translateY(${from.y}px)` },
+              {
+                opacity: into ? 1 : 0,
+                transform: into ? "translateY(0)" : `translateY(${from.y}px)`,
+              },
+            ],
+            { duration, easing, fill: "forwards" },
+          ),
+        );
+      }
+      turnAnims = anims;
+      void Promise.all(anims.map((a) => a.finished)).then(
+        () => {
+          if (turnAnims !== anims || untrack(shown) !== target) return;
+          batch(() => {
+            setMounted([target]);
+            setManual(false);
+          });
+        },
+        () => {},
+      );
+    });
+  };
   createEffect(
     on(
       targetPage,
       (target) => {
         const current = untrack(shown);
         if (target === current) return;
-        const turning = untrack(step) === "turn" && untrack(mounted).length < 2;
+        const turning = untrack(step) === "turn";
+        const pages = untrack(mounted);
+        if (turning && pages.length > 1 && typeof sheet.animate === "function") {
+          retarget(target, pages);
+          return;
+        }
+        stopTurn();
         batch(() => {
-          setMounted(turning ? [current, target] : [target]);
+          setManual(false);
+          setMounted(turning && pages.length < 2 ? [current, target] : [target]);
           setShown(target);
         });
       },
@@ -285,7 +370,10 @@ export function FullSong(props: FullSongProps) {
     ),
   );
   createEffect(() => {
-    if (mounted().length < 2) return;
+    if (mounted().length < 2) {
+      setManual(false);
+      return;
+    }
     const guard = setTimeout(() => setMounted([untrack(shown)]), TURN_GUARD_MS);
     onCleanup(() => clearTimeout(guard));
   });
@@ -315,20 +403,29 @@ export function FullSong(props: FullSongProps) {
     stage.querySelector<HTMLElement>(`[data-part-index="${index}"]`);
 
   // The tint follows the current part, on the page shown. It does not depend
-  // on which pages are mounted: the end of a turn must not disturb it.
+  // on which pages are mounted.
   let tintLayout: Computed | null = null;
+  let searched = "";
+  const [search, setSearch] = createSignal(0);
   createEffect(() => {
+    search();
     const l = layout();
     shown();
     const index = currentIndex();
     const how = step();
     if (!l) return;
     const el = findPart(index);
-    // Before the turn mounts the new page, the current part is not there yet:
-    // the tint stays where it is until it is.
-    if (!el && how === "turn") return;
+    // The page holding the part is put in the DOM just after this runs (a
+    // layout's first page, a turn's new one): look again once it is, the once.
+    // Until then the tint stays where it is through a turn, and is hidden
+    // where nothing is yet shown.
     if (!el) {
-      placeTint({ tint, ghost }, tintState, null, "snap", 0);
+      const key = `${l.id}|${shown()}|${index}`;
+      if (searched !== key) {
+        searched = key;
+        queueMicrotask(() => setSearch((n) => n + 1));
+      }
+      if (how !== "turn") placeTint({ tint, ghost }, tintState, null, "snap", 0);
       return;
     }
     // Another layout is a landing, not a step.
@@ -374,7 +471,13 @@ export function FullSong(props: FullSongProps) {
                   data-page={pageIndex}
                   data-layout={layout()?.id}
                   data-turn={
-                    mounted().length > 1 ? (pageIndex === shown() ? "in" : "out") : undefined
+                    mounted().length > 1
+                      ? manual()
+                        ? "manual"
+                        : pageIndex === shown()
+                          ? "in"
+                          : "out"
+                      : undefined
                   }
                   onAnimationEnd={(event) => {
                     if (event.target === event.currentTarget && pageIndex === shown())
@@ -398,6 +501,13 @@ export function FullSong(props: FullSongProps) {
                                 classList={{ "full-part-current": index === currentIndex() }}
                                 data-part-index={index}
                               >
+                                <Show when={props.parts[index]?.marker}>
+                                  {(marker) => (
+                                    <div class="full-marker" aria-hidden="true">
+                                      <span class="full-marker-text">{marker()}</span>
+                                    </div>
+                                  )}
+                                </Show>
                                 <Index each={props.parts[index]?.lines ?? []}>
                                   {(text, k) => (
                                     <div

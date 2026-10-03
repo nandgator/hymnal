@@ -3,10 +3,12 @@ import { layoutSong } from "./fullSong.ts";
 import {
   analyticMeasure,
   LINE_HEIGHT,
+  MARKER_HEIGHT,
   measureSong,
   PART_PAD_Y,
   partAt,
   type Segment,
+  signature,
   splitLine,
   widest,
   wrappedLines,
@@ -72,6 +74,16 @@ describe("partAt", () => {
     expect(wide.height).toBeCloseTo(2 * LINE_HEIGHT + 2 * PART_PAD_Y);
     // Width 2.5: the first wraps to two.
     expect(partAt(part, 2.5, 0).height).toBeCloseTo(3 * LINE_HEIGHT + 2 * PART_PAD_Y);
+  });
+
+  it("makes room for a part's marker above its lines, and for its width", () => {
+    const marked = { lines: part.lines, marker: { width: 1.2 } };
+    // The marker row is a fixed height, whatever the script of the lines.
+    expect(partAt(marked, 3.5, 0).height).toBeCloseTo(partAt(part, 3.5, 0).height + MARKER_HEIGHT);
+    // It is a word that never breaks: a column narrower than it does not fit.
+    expect(partAt(marked, 3.5, 0).fits).toBe(true);
+    expect(partAt({ lines: [line(0.5)], marker: { width: 1.2 } }, 1, 0).fits).toBe(false);
+    expect(partAt({ lines: [line(0.5)], marker: { width: 1.2 } }, 1, 0.3).fits).toBe(true);
   });
 
   it("says whether every word fits, within a tolerance", () => {
@@ -152,5 +164,29 @@ describe("analyticMeasure", () => {
         expect(tall).toBeLessThanOrEqual(864 + 0.5);
       }
     }
+  });
+});
+
+describe("markers", () => {
+  it("are measured with their part, in the parent's em, so the arithmetic counts them", () => {
+    const parts = [
+      { lines: ["one two"], marker: "1" },
+      { lines: ["one two"], marker: undefined },
+    ];
+    const metrics = measureSong(parts, "serif", "500");
+    expect(metrics.parts[0].marker?.width).toBeGreaterThan(0);
+    expect(metrics.parts[1].marker).toBeUndefined();
+    const measured = analyticMeasure(metrics, 100, 1000, 0)(1, 1);
+    // Same lines, the marked one taller by the marker's row (at 100px).
+    expect(measured.heights[0] - measured.heights[1]).toBeCloseTo(MARKER_HEIGHT * 100);
+  });
+
+  it("are part of a song's signature, so showing or hiding them lays it out again", () => {
+    const plain = [{ id: "a", lines: ["x"] }];
+    expect(signature([{ id: "a", lines: ["x"], marker: "1" }])).not.toBe(signature(plain));
+    expect(signature([{ id: "a", lines: ["x"], marker: "1" }])).not.toBe(
+      signature([{ id: "a", lines: ["x"], marker: "2" }]),
+    );
+    expect(signature([{ id: "a", lines: ["x"], marker: undefined }])).toBe(signature(plain));
   });
 });

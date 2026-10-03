@@ -23,6 +23,8 @@ export interface RemoveSheetProps {
   presented: boolean;
   /** ...and the Output is live: removing it is refused until the Output is closed. */
   onOutput: boolean;
+  /** Ends Live, so the book is no longer on the Output. */
+  onEndLive?: () => void;
   busy: boolean;
   error?: string;
   placement: "bottom" | "center";
@@ -106,8 +108,15 @@ export function RemoveSheet(props: RemoveSheetProps) {
             </div>
             <Show when={props.onOutput}>
               <p class="review-error" role="alert">
-                This book is on the Output now. Close the Output first, then remove it.
+                This book is on the Output now. End Live first, then remove it.
               </p>
+              <Show when={props.onEndLive}>
+                <div class="review-actions">
+                  <button type="button" class="btn-tonal" onClick={() => props.onEndLive?.()}>
+                    End Live
+                  </button>
+                </div>
+              </Show>
             </Show>
             <Show when={props.error}>
               <p class="review-error" role="alert">

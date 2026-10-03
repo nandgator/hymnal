@@ -35,15 +35,27 @@ export function Output() {
   // Blank holds apart from the content, which keeps arriving underneath, so
   // restoring shows wherever the operator has got to (SDD-0001 §16.5).
   const [blanked, setBlanked] = createSignal(false);
+  // Live ended (End Live): dark like a blank, but a state of its own, so a
+  // blank held before it is still held after it.
+  const [ended, setEnded] = createSignal(false);
+  // Dark until an Operator has said anything about the settings or the dark
+  // states: a window opened (or reloaded) while Live is ended or blanked must
+  // never paint the song first and fade it. Content that arrives first waits
+  // dark; the replay (channel.ts) sends the states before it.
+  const [stated, setStated] = createSignal(false);
   const [cues, setCues] = createSignal<OutputCues>({});
   const [reveal, setReveal] = createSignal(0);
   const [pinChorus, setPinChorus] = createSignal(false);
   const [wholeSong, setWholeSong] = createSignal(false);
+  const [partLabels, setPartLabels] = createSignal(true);
   const [highlight, setHighlight] = createSignal<Highlight>("part");
   const [bandSize, setBandSize] = createSignal<BandSize>("part");
   // Theme and cues follow the Operator's Settings live (SDD-0001 §16.1).
   const receive = (next: OutputMessage) => {
+    if (next.type === "blank" || next.type === "ended" || next.type === "presentation")
+      setStated(true);
     if (next.type === "blank") setBlanked(next.blanked);
+    else if (next.type === "ended") setEnded(next.ended);
     else if (next.type === "reveal") setReveal((n) => n + 1);
     else if (next.type === "presentation") {
       const root = document.documentElement;
@@ -55,6 +67,7 @@ export function Output() {
       setCues(next.cues);
       setPinChorus(next.pinChorus);
       setWholeSong(!!next.wholeSong);
+      setPartLabels(next.partLabels ?? true);
       setHighlight(next.highlight ?? "part");
       setBandSize(next.bandSize);
     } else setMessage(next);
@@ -130,7 +143,9 @@ export function Output() {
   onCleanup(() => window.removeEventListener("keydown", onKeyDown));
 
   onMount(() => {
-    const unsubscribe = subscribeOutput(receive);
+    const unsubscribe = subscribeOutput(receive, () =>
+      stated() ? { blanked: blanked(), ended: ended() } : undefined,
+    );
     onCleanup(unsubscribe);
   });
 
@@ -143,11 +158,12 @@ export function Output() {
         <OutputView
           message={current()}
           variant="full"
-          blanked={blanked()}
+          blanked={blanked() || ended() || !stated()}
           cues={cues()}
           reveal={reveal()}
           pinChorus={pinChorus()}
           wholeSong={wholeSong()}
+          partLabels={partLabels()}
           highlight={highlight()}
           bandSize={bandSize()}
           onSeek={(line, whole) =>

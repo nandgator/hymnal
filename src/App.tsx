@@ -15,11 +15,14 @@ import { type Command, Finder } from "./finder/Finder.tsx";
 import { createBooks } from "./library/books.ts";
 import { Library } from "./library/Library.tsx";
 import {
+  forgetOutputEnded,
   revealCues,
   setOutputBlanked,
+  setOutputEnded,
   setOutputPresentation,
   subscribeKeys,
   subscribeOutputShape,
+  subscribeOutputState,
 } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
 import {
@@ -37,6 +40,7 @@ import {
   DEFAULT_OUTPUT_THEME,
   highlightOf,
   outputCuesOf,
+  partLabelsOf,
   pinChorusOf,
   userState,
   wholeSongOf,
@@ -199,6 +203,7 @@ function Operator(props: Shared) {
       cues: outputCuesOf(preferences.preferences()),
       pinChorus: pinChorusOf(preferences.preferences()),
       wholeSong: wholeSongOf(preferences.preferences()),
+      partLabels: partLabelsOf(preferences.preferences()),
       highlight: highlightOf(preferences.preferences()),
       bandSize: bandSizeOf(preferences.preferences()),
     }),
@@ -227,6 +232,30 @@ function Operator(props: Shared) {
   // On air status, and Live's dot the on-air light.
   const presence = props.presence;
   const presentingOutput = presence.open;
+  // End Live (SDD-0001 §16.4): the Output window stays open and goes dark; the
+  // header says Go Live again, and Go Live resumes it in place, on the same
+  // window, without asking for a screen. The Output window holds the truth:
+  // an Operator that was reloaded adopts what it reports, and posts "not
+  // ended" only on Go Live.
+  const [ended, setEnded] = createSignal(false);
+  const liveNow = () => presentingOutput() && !ended();
+  const endLive = () => {
+    if (!liveNow()) return;
+    setEnded(true);
+    setOutputEnded(true);
+  };
+  const resumeLive = () => {
+    setEnded(false);
+    setOutputEnded(false);
+  };
+  onMount(() =>
+    onCleanup(
+      subscribeOutputState((state) => {
+        setEnded(state.ended);
+        setBlanked(state.blanked);
+      }),
+    ),
+  );
   // Live matches the Output window's shape; unknown, it is landscape.
   const [outputLandscape, setOutputLandscape] = createSignal<boolean | undefined>();
   onMount(() => onCleanup(subscribeOutputShape(setOutputLandscape)));
@@ -254,6 +283,9 @@ function Operator(props: Shared) {
   createEffect(
     on(presentingOutput, (open, was) => {
       if (open || !was) return;
+      // The window is gone, and with it what it held: nothing to say to it.
+      setEnded(false);
+      forgetOutputEnded();
       setPlacedOn(undefined);
       setGoneFrom(undefined);
       outputWin = null;
@@ -280,6 +312,7 @@ function Operator(props: Shared) {
   // anything unavailable is today's plain popup, with a hint (ADR-0028).
   const openOutput = async () => {
     if (presentingOutput()) {
+      if (ended()) resumeLive();
       window.open("", OUTPUT_WINDOW_NAME)?.focus();
       return;
     }
@@ -560,10 +593,15 @@ function Operator(props: Shared) {
         run: run(toggleBlank),
       },
       {
-        label: presentingOutput() ? "Bring the Output forward" : "Go live: open the Output",
+        label: liveNow()
+          ? "Bring the Output forward"
+          : presentingOutput()
+            ? "Go live: resume on the Output"
+            : "Go live: open the Output",
         hint: keyHint("output"),
         run: run(openOutput),
       },
+      ...(liveNow() ? [{ label: "End Live", hint: keyHint("end-live"), run: run(endLive) }] : []),
       ...(presenting() && presenterActions()
         ? [
             {
@@ -711,6 +749,12 @@ function Operator(props: Shared) {
     if (event.key === "Escape" && notice()) {
       event.preventDefault();
       dismissNotice();
+      return;
+    }
+    // Shift+E, a chord so a stray key cannot end the show.
+    if (event.key === "E" && event.shiftKey) {
+      event.preventDefault();
+      endLive();
       return;
     }
     const action = (
@@ -888,30 +932,50 @@ function Operator(props: Shared) {
             type="button"
             class="present-button"
             classList={{
-              presenting: presentingOutput(),
-              "present-blanked": presentingOutput() && blanked(),
+              presenting: liveNow(),
+              "present-blanked": liveNow() && blanked(),
             }}
             aria-keyshortcuts={ariaKeys("output")}
             title={
-              !presentingOutput()
-                ? withKey("Open the Output", "output", expanded())
+              !liveNow()
+                ? withKey(
+                    presentingOutput() ? "Go live again on the open Output" : "Open the Output",
+                    "output",
+                    expanded(),
+                  )
                 : blanked()
                   ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
                   : withKey("Bring the Output forward", "output", expanded())
             }
             onClick={openOutput}
           >
-            <Show
-              when={presentingOutput()}
-              fallback={<span class="icon icon-present" aria-hidden="true" />}
-            >
+            <Show when={liveNow()} fallback={<span class="icon icon-present" aria-hidden="true" />}>
               <span class="on-air" aria-hidden="true" />
             </Show>
             <SwapLabel
               labels={["Go Live", "On Air", "Blanked"]}
-              current={!presentingOutput() ? "Go Live" : blanked() ? "Blanked" : "On Air"}
+              current={!liveNow() ? "Go Live" : blanked() ? "Blanked" : "On Air"}
             />
           </button>
+          {/* End Live: the Output window stays open and goes dark. Beside the
+              status, not in it, so the status never doubles as the way out;
+              an icon alone on a phone. */}
+          <Show when={liveNow()}>
+            <button
+              type="button"
+              class="btn-text end-live-button"
+              aria-keyshortcuts={ariaKeys("end-live")}
+              title={withKey(
+                "End Live: the Output goes dark and its window stays",
+                "end-live",
+                expanded(),
+              )}
+              onClick={endLive}
+            >
+              <span class="icon icon-stop" aria-hidden="true" />
+              <span class="end-live-label">End Live</span>
+            </button>
+          </Show>
         </header>
 
         <main
@@ -924,7 +988,8 @@ function Operator(props: Shared) {
                 books={books}
                 currentKey={currentKey()}
                 presentedKey={presentedKey()}
-                outputLive={presence.live()}
+                outputLive={presence.live() && !ended()}
+                onEndLive={endLive}
                 onChoose={setCurrentKey}
                 onOpen={chooseHymnbook}
                 onStorageRefused={() => setKeepFile(true)}
@@ -948,7 +1013,8 @@ function Operator(props: Shared) {
                 onBack={openHymnPicker}
                 blanked={blanked()}
                 onToggleBlank={toggleBlank}
-                presenting={presentingOutput()}
+                presenting={liveNow()}
+                outputEnded={ended()}
                 panes={preferences.preferences().panes}
                 workspace={preferences.preferences().workspace}
                 onWorkspaceChange={(workspace) =>
@@ -962,6 +1028,7 @@ function Operator(props: Shared) {
                 revealCues={cuesRevealed()}
                 pinChorus={pinChorusOf(preferences.preferences())}
                 wholeSong={wholeSongOf(preferences.preferences())}
+                partLabels={partLabelsOf(preferences.preferences())}
                 liveLandscape={outputLandscape()}
                 highlight={highlightOf(preferences.preferences())}
               />

@@ -20,7 +20,12 @@ export interface Pane {
  * part keypad and the dock aren't here: they're the controls, never hidden.
  */
 export const PANES: Pane[] = [
-  { id: "live", name: "Live", description: "What the Output shows now", shortcut: "live" },
+  {
+    id: "live",
+    name: "Live Preview",
+    description: "A small copy of what the Output shows now",
+    shortcut: "live",
+  },
 ];
 
 /** Absent means shown: an unknown id is ignored, a new one starts visible. */

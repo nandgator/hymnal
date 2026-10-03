@@ -1,4 +1,5 @@
 import {
+  createComputed,
   createEffect,
   createMemo,
   createSignal,
@@ -13,6 +14,7 @@ import type { BandSize, Highlight, OutputCues } from "../persistence/user-state.
 import type { OutputMessage } from "./channel.ts";
 import { FullSong, prepareFullSong } from "./FullSong.tsx";
 import { signature } from "./fullSongText.ts";
+import { cancelSwap, swapLayouts } from "./layoutSwap.ts";
 
 type ContentMessage = Extract<OutputMessage, { type: "content" }>;
 /** How a hymn lays out (SDD-0001 §16.1). */
@@ -82,6 +84,9 @@ export interface OutputViewProps {
    * nothing scrolls, and the chorus does not pin. A portrait view, or a
    * message without the song's parts, scrolls as ever. */
   wholeSong?: boolean;
+  /** Each part marked with its verse number or kind in that layout; on unless
+   * false (SDD-0005 § 1). */
+  partLabels?: boolean;
   /** The view's shape where its own box does not say it (Live is always
    * 16:9): the Output window's. Unset, the view's own. */
   landscape?: boolean;
@@ -147,16 +152,46 @@ export function OutputView(props: OutputViewProps) {
   // scroll's list stays in place, hidden, so its refs and fit are as ever.
   const [landscape, setLandscape] = createSignal(false);
   const lightAll = () => props.highlight === "song";
-  const fullSong = () =>
-    !!props.wholeSong && (props.landscape ?? landscape()) && !!props.message.parts?.length;
+  const fullSong = createMemo(
+    () => !!props.wholeSong && (props.landscape ?? landscape()) && !!props.message.parts?.length,
+  );
   let lastHymnKey: string | undefined;
+  // Switching between the two layouts is a soft zoom over a fading copy of the
+  // old one (layoutSwap.ts); computed, so the copy is taken before the DOM
+  // changes.
+  // Only for a change the operator made, the setting turned on or off, that
+  // really changes the layout: not for the view first learning its shape, a
+  // late word of the Output window's shape, or a song that has no parts.
+  let shapeKnown = false;
+  let wasWhole = !!props.wholeSong;
+  let wasFull = fullSong();
+  createComputed(() => {
+    const whole = !!props.wholeSong;
+    const full = fullSong();
+    const flipped = whole !== wasWhole;
+    const changed = full !== wasFull;
+    wasWhole = whole;
+    wasFull = full;
+    if (flipped && changed && shapeKnown && view && !props.blanked) swapLayouts(view);
+  });
+  // A dark Output shows no lyric, so no copy of one lingers; nor after it goes.
+  createEffect(() => {
+    if (props.blanked && view) cancelSwap(view);
+  });
+  onCleanup(() => view && cancelSwap(view));
+
+  // The parts as the layout is given them: each with its marker, or none.
+  const songParts = createMemo(() => {
+    const parts = props.message.parts ?? [];
+    return props.partLabels === false ? parts.map(({ marker: _, ...part }) => part) : parts;
+  });
 
   // Measure and lay the song out as it arrives, when the browser is idle, so
   // turning the layout on later has nothing left to do (SDD-0005 § 4).
-  const partsSignature = createMemo(() => signature(props.message.parts ?? []));
+  const partsSignature = createMemo(() => signature(songParts()));
   createEffect(
     on(partsSignature, () => {
-      const parts = props.message.parts;
+      const parts = songParts();
       if (!parts?.length || !view) return;
       const measure = () => {
         if (view) prepareFullSong(view, parts, safeTop(), safeBottom());
@@ -529,6 +564,9 @@ export function OutputView(props: OutputViewProps) {
 
   onMount(() => {
     if (view) setLandscape(isLandscape(view));
+    queueMicrotask(() => {
+      shapeKnown = true;
+    });
     void document.fonts?.ready.then(refit);
     if (typeof ResizeObserver !== "function" || !view) return;
     const observer = new ResizeObserver(() => {
@@ -587,7 +625,7 @@ export function OutputView(props: OutputViewProps) {
       </Show>
       <Show when={fullSong()}>
         <FullSong
-          parts={props.message.parts ?? []}
+          parts={songParts()}
           current={props.message.lines[props.message.focus.start]?.partId}
           lit={litWithinPart()}
           all={lightAll()}
