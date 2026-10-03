@@ -43,7 +43,8 @@ export function Sheet(props: SheetProps) {
     } else if (dialog.open) {
       // Motion explains the change (PRINCIPLES.md): the sheet sinks away and
       // the page comes back into focus, then the dialog closes. Reduced
-      // motion, or no animation support, closes at once.
+      // motion fades it instead of sinking it; no animation support closes
+      // at once.
       const el = dialog;
       const token = ++closing;
       const finish = () => {
@@ -53,8 +54,7 @@ export function Sheet(props: SheetProps) {
         else el.removeAttribute("open");
         setShown(false);
       };
-      const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-      if (reduced || typeof el.getAnimations !== "function") {
+      if (typeof el.getAnimations !== "function") {
         finish();
         return;
       }

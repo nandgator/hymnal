@@ -16,6 +16,7 @@ import {
 } from "../persistence/content-store.ts";
 import type { UserState } from "../persistence/user-state.ts";
 import { titleCase } from "../shell/case.ts";
+import { type GlideList, glideList } from "../shell/glideList.ts";
 import { RecentsList } from "../shell/RecentsList.tsx";
 
 /** How long typing must pause before a lyric search runs. */
@@ -200,6 +201,19 @@ export function Finder(props: FinderProps) {
 
   const optionId = (index: number) => `${listId}-${index}`;
 
+  // The highlight is Enter's target: the one layer follows the active
+  // option, so the arrow keys and the top match move it as the pointer does.
+  let glide: GlideList | undefined;
+  let results: HTMLDivElement | undefined;
+  createEffect(() => {
+    active();
+    rows();
+    // After the rows have settled: a microtask on, the DOM is what to mark.
+    queueMicrotask(() =>
+      glide?.hover.show(results?.querySelector<HTMLElement>('[aria-selected="true"]') ?? null),
+    );
+  });
+
   return (
     <div class="finder">
       <Show when={props.onBack}>
@@ -266,10 +280,15 @@ export function Finder(props: FinderProps) {
           aria-activedescendant (the ARIA combobox pattern), not focus. */}
       <div
         id={listId}
-        class="list"
+        class="list glide-list"
         role="listbox"
         aria-label={props.commands ? "Matching songs and actions" : "Matching songs"}
         onMouseLeave={() => setActiveIndex(undefined)}
+        ref={(el) => {
+          results = el;
+          glide = glideList(el, { rows: ".finder-option" });
+          onCleanup(glide.stop);
+        }}
       >
         <For each={rows()}>
           {(row, index) => (
@@ -333,7 +352,10 @@ export function Finder(props: FinderProps) {
             <h2 class="title-medium on-surface-variant">
               {(hymns()?.length ?? 0) > OPENING_SONGS ? "From the start" : "Songs"}
             </h2>
-            <div class="recents">
+            <div
+              class="recents"
+              ref={(el) => onCleanup(glideList(el, { rows: ".recents-row" }).stop)}
+            >
               <ul class="list finder-songs">
                 <For each={opening()}>
                   {(hymn) => (

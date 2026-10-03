@@ -14,6 +14,7 @@ import {
 } from "../persistence/user-state.ts";
 import { titleCase } from "./case.ts";
 import { EMPHASIZED_BEZIER, GLIDE_MS, planCrossings } from "./glide-crossings.ts";
+import { glideList } from "./glideList.ts";
 
 export interface RecentsListProps {
   hymnbookId: HymnbookId;
@@ -183,7 +184,16 @@ export function RecentsList(props: RecentsListProps) {
         </Show>
       }
     >
-      <div class="recents" ref={list}>
+      <div
+        class="recents"
+        ref={(el) => {
+          list = el;
+          // Hover is the app's one highlight, gliding between the rows. The
+          // song that's up wears the tonal fill on its row, not a pill: the
+          // rows themselves glide when a song is chosen.
+          onCleanup(glideList(el, { rows: ".recents-row" }).stop);
+        }}
+      >
         {/* The groups are fixed, and each row is the same object across reads
             and refreshes, so a row that changes group moves rather than
             being rebuilt. */}

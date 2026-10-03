@@ -567,8 +567,8 @@ view is close enough to the frame to need a smaller unit.
     trigger a button showing the choice, a chevron after it, never a native
     select) of Automatic and the screens by label and size ("Built-in" for the
     laptop's panel, a remembered one not attached marked "not connected"; the
-    chosen one carries a check; arrows, Enter and Esc work, and ArrowDown opens
-    it). With one screen attached there is no list: the text "One screen
+    chosen one is the tonal pill; arrows, Enter and Esc work, and ArrowDown
+    opens it). With one screen attached there is no list: the text "One screen
     attached" instead. A text **Detect screens** button asks the browser to list
     the screens; its supporting line says what Automatic picks, or that
     permission is blocked. Hidden where the browser cannot place a window.
@@ -806,31 +806,47 @@ view is close enough to the frame to need a smaller unit.
   chosen from Recents glides to the top, every row moving from where it was to
   where it lands, the group headings (Today, Yesterday, Before) with them; the
   rising row passes over the rows it crosses, not under; a heading whose group
-  emptied fades out where it stood (150ms). A menu grows from its button; a
-  sheet rises over a blurred page and sinks away on close; every control's
-  change of state eases. **Press**: a control gives a little under the finger
-  (96%) at once and springs back with a slight overshoot, Material 3
-  Expressive's press kept small; an icon that changes meaning (Blank to Restore)
-  turns in. The Repeat count is a rolling number (an odometer): the old count
-  rolls out as the new one rolls in, up as it grows and down on Undo. It is in
-  the text colour, not Repeat's primary: coloured text means a control. Each
-  rail section eases in on arrival, the Library as the Operator. In the command
-  menu the highlight follows a moving pointer and leaves with it; Enter then
-  takes the top match. Reduced motion shows the end state. **The Lyrics tint**
-  slides and resizes with the scroll in 250ms (`lyricsGlide.ts`: one animation
-  clocks both, so they land together; translate and height, never scaleY, which
-  warps the corners). Its leading edge arrives first and the trailing edge
-  follows, so it stretches over the new part, then lets go of the old; a jump of
-  more than a screen fades it instead. The text changes colour in those same
-  250ms and easing, so the part the tint leaves dims and the one it reaches
-  brightens as the tint passes, never ahead or behind it. **Full Song's tint**
-  (SDD-0005, the Output) does the same within a column. Across columns it fades,
-  overlapped so some part is always lit: the old tint fades out in place over
-  the first 60%, the new one fades in over the last 80% travelling 1.6em from
-  the left, the text following in step. A page turn is a handoff within 250ms:
-  the old page fades out over the first 110ms, the new one rises 12px and fades
-  in from 90ms (a 20ms overlap at low opacity, so text never doubles), the tint
-  going out and coming in with its pages. Reduced motion shows the end state.
+  emptied fades out where it stood (150ms). A menu grows from its button and
+  shrinks back to it, quicker (150ms, the exit easing); a sheet rises over a
+  blurred page and sinks away on close; every control's change of state eases.
+  **Press**: a control gives a little under the finger (96%) at once and springs
+  back with a slight overshoot, Material 3 Expressive's press kept small; an
+  icon that changes meaning (Blank to Restore) turns in. The Repeat count is a
+  rolling number (an odometer): the old count rolls out as the new one rolls in,
+  up as it grows and down on Undo. It is in the text colour, not Repeat's
+  primary: coloured text means a control. Each rail section eases in on arrival,
+  the Library as the Operator. In the command menu the highlight follows a
+  moving pointer and leaves with it; Enter then takes the top match (§
+  Interaction states). Reduced motion shows the end state, with what appears and
+  goes keeping its fade: a menu, a sheet and its scrim, a tab's content and a
+  notice fade and lose their zoom, rise and sink. **The Lyrics tint** slides and
+  resizes with the scroll in 250ms (`lyricsGlide.ts`: one animation clocks both,
+  so they land together; translate and height, never scaleY, which warps the
+  corners). Its leading edge arrives first and the trailing edge follows, so it
+  stretches over the new part, then lets go of the old; a jump of more than a
+  screen fades it instead. The text changes colour in those same 250ms and
+  easing, so the part the tint leaves dims and the one it reaches brightens as
+  the tint passes, never ahead or behind it. **Full Song's tint** (SDD-0005, the
+  Output) does the same within a column. Across columns it fades, overlapped so
+  some part is always lit: the old tint fades out in place over the first 60%,
+  the new one fades in over the last 80% travelling 1.6em from the left, the
+  text following in step. A page turn is a handoff within 250ms: the old page
+  fades out over the first 110ms, the new one rises 12px and fades in from 90ms
+  (a 20ms overlap at low opacity, so text never doubles), the tint going out and
+  coming in with its pages. Reduced motion shows the end state.
+- **Motion tokens** (`src/styles.css`, `:root`): `--motion-emphasized`
+  `cubic-bezier(0.2, 0, 0, 1)` for what moves (glides, enters, selection);
+  `--motion-exit` `cubic-bezier(0.3, 0, 0.8, 0.15)` for what leaves;
+  `--motion-standard` `cubic-bezier(0.4, 0, 0.2, 1)` for what only changes
+  colour (hover, state layers, a track); `--motion-short` 150ms (a press, a
+  corner, a notice leaving), `--motion-medium` 250ms (a glide, a pill, an
+  entrance), `--motion-hover` 250ms (a state or hover easing in or out: keep
+  within 200-300ms), `--motion-switch` 300ms with `--motion-switch-ease`
+  `cubic-bezier(0.34, 1.3, 0.64, 1)` (the switch's thumb), `--motion-spring`
+  `cubic-bezier(0.34, 1.4, 0.64, 1)` (a released press). Blur: 2px at the middle
+  of a selection pill's glide (`PILL_BLUR`), 4px at the end of a hover layer's
+  entrance and exit (`HOVER_BLUR`). Reduced motion keeps fades and drops glide,
+  blur, zoom and spring.
 - **Loading: the shape of what's coming, in its place** (Board #26 part 4). A
   screen still loading shows a skeleton of itself: the Library its header and
   two rows of its list, the Operator its panels, empty, where they will sit.
@@ -1013,17 +1029,65 @@ also gets a 3px `secondary` ring, offset 2px, visible only via `:focus-visible`
 — the Operator is keyboard- and remote-driven (arc42 §8.8), so focus must always
 be findable.
 
-**List highlight.** A list of rows that open or choose (a menu, the hymnbooks
-sheet) has one highlight layer, the hover colour above, that **glides**
-(translate and height, 250ms (the medium duration), emphasised easing;
-`hoverGlide.ts`, reusing the geometry of the Lyrics tint) to the row under the
-pointer or the keyboard's focus. When the pointer enters the list the layer
-slides in from the side it came from, fading up; when it leaves, it fades out
-(150ms), unless a row has keyboard focus. The rows paint no hover of their own.
-The **current** row keeps a mark of its own (a check, and the accent colour) and
-still takes the highlight, so it shows both. Touch has no hover: no layer there.
-Reduced motion: the layer jumps, no glide. The command menu keeps its own
-highlight.
+**Hover and press ease** in and out over 250ms (`--motion-hover`; within the
+200-300ms a hover should take) at the standard easing,
+`cubic-bezier(0.4, 0, 0.2, 1)` (`--motion-standard`): the emphasised easing does
+nearly all its work in the first tenth, and a hover with it reads as a snap. A
+button's state layer is its own colour at a share (`--state-a`, a registered
+number, so it can ease: a colour that mixes `currentColor` does not), 0.08 on
+hover and 0.1 pressed. A press tint comes at once (80ms) and goes as a hover
+does. Reduced motion keeps these fades.
+
+**List highlight.** Wherever rows are hovered (a menu, a choice menu, the
+language list, the hymnbooks sheet and the menu sheet, the rail, the Library's
+books, Recents, the Finder's results and the command menu, a segmented button, a
+section of settings, the tab bar) there is one highlight layer, the hover colour
+above, that **glides** (translate and height, 250ms (the medium duration),
+emphasised easing) to the row under the pointer or the keyboard's focus. It is
+one primitive, `glideRows` (`hoverGlide.ts`; `glideList.ts` for a list with a
+selection too), not a copy per list. **Entering**: the layer arrives from the
+side the pointer crossed the list's edge by (a row's height above or below, half
+its width, at most 96px, beside), fading up from 0 and out of a 4px blur.
+**Leaving**: it drifts out toward the side the pointer left by, by as much,
+fading to 0 into the same blur; moving back in while it fades carries on from
+where it is. **Between rows** it only glides. Crossing a gap between rows does
+not let go (it waits 60ms for the next row). **Keyboard focus** moves it by
+glide and brings it up by fading in place, with no side: a stale pointer never
+gives it one. A list whose highlight is something else's as well (the Finder's
+and the language list's active row, Enter's target) shows that row with the same
+layer (`show(row)`). The rows paint no hover of their own. Touch has no hover:
+no layer there. Reduced motion: no glide and no blur; the layer fades up and
+down where it is, and between rows it moves at once.
+
+**Selection is the tonal pill, everywhere**: `secondary-container` with
+`on-secondary-container` text, with no check and no accent-coloured text. It is
+the parts pad's pill, the rail's, the hymnbooks list's, the Library's current
+book, the selected tab (the tab bar's own pill), the chosen option of a review
+(Keep both, Replace), a choice menu's chosen item, the language list's, a
+segmented button's, the current song in Recents. Where a list has a selection
+that can change in place (the rail, the Library, the menu sheet, the hymnbooks
+list, a segmented button, the output themes) the pill is one layer behind the
+rows that **glides** from the old item to the new one (`selectGlide.ts`, the
+pad's geometry and plan): 250ms, emphasised easing, position and size together
+(never a scale), softening to a 2px blur at the middle and crisp on landing, the
+label's colour changing over the same time. With no pill yet (the list shown
+anew, the first book) it appears in place; a list that reflows keeps it on its
+item without animating. The hover layer sits under the pill, so a chosen row
+keeps its tone under the pointer. The output themes' pill is a ring (3px
+`primary`, offset 2px) around the swatch, which glides the same way. Reduced
+motion: the pill fades up where the selection now is. In forced colours the pill
+is `Highlight` and its label `HighlightText`. Recents does not glide a pill: its
+rows themselves travel when a song is chosen, and the current row wears the
+fill.
+
+**The switch** (MD3's motion): the thumb is 16px off, 24px on, 28px under the
+finger. It is always drawn at 24px and scaled, so it moves on the compositor. It
+travels 20px and scales in 300ms (`--motion-switch`) at
+`cubic-bezier(0.34, 1.3, 0.64, 1)` (`--motion-switch-ease`), which overshoots
+its travel by about 4%: a touch of spring, never a bounce. The track's colour
+and the thumb's ease over the same 300ms at the standard easing. A 40px halo
+follows the thumb, 8% on hover and 10% pressed, fading at the hover duration.
+Reduced motion: the thumb is where it is at once; colours still fade.
 
 `list-row` covers what the component list above otherwise lacks: a Finder search
 result or recent hymn is one full-width, tappable row, the title in `on-surface`

@@ -30,11 +30,13 @@ import {
   type UserState,
   wholeSongOf,
 } from "../persistence/user-state.ts";
+import { glideList } from "./glideList.ts";
 import { ariaKeys, keyHint, withKey } from "./keymap.ts";
 import { Menu } from "./Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "./media.ts";
 import { createOutputScreens, type OutputScreens } from "./outputScreens.ts";
 import { isPaneShown, PANES, type PaneId } from "./panes.ts";
+import { selectGlide } from "./selectGlide.ts";
 import { easeThemeChange, revealWithin, shownTheme } from "./theme.ts";
 import { setSplit, workspaceOf } from "./workspace.ts";
 
@@ -190,7 +192,26 @@ export function Settings(props: SettingsProps) {
   // Tooltips carry key hints only where there's a keyboard (SDD-0001 §16.5).
   const keyboard = createMediaQuery(EXPANDED_QUERY);
 
-  // A segmented button on native radios (MD3).
+  // The rows of a section that act on a press (a switch's row, a link) show
+  // the app's one hover highlight, which glides between them.
+  const glideSection = (el: HTMLElement) =>
+    onCleanup(glideList(el, { rows: "label.settings-row, button.settings-link" }).stop);
+
+  // A segmented button on native radios (MD3). Its hover highlight and its
+  // selected pill each glide from segment to segment.
+  const glideSegments = (el: HTMLElement, current: () => string) => {
+    const glide = glideList(el, {
+      rows: ".segment",
+      current: ".segment-input:checked",
+      target: (input) => input.closest<HTMLElement>(".segment"),
+    });
+    onCleanup(glide.stop);
+    // A radio's checked state is a property: tell the pill when it changes.
+    createEffect(() => {
+      current();
+      queueMicrotask(() => glide.select?.sync());
+    });
+  };
   const segmented = <T extends string>(
     legend: string,
     name: string,
@@ -198,7 +219,7 @@ export function Settings(props: SettingsProps) {
     current: () => T,
     choose: (value: T) => void,
   ) => (
-    <fieldset class="segmented">
+    <fieldset class="segmented" ref={(el) => glideSegments(el, current)}>
       <legend class="visually-hidden">{legend}</legend>
       <For each={options}>
         {(option) => (
@@ -298,7 +319,7 @@ export function Settings(props: SettingsProps) {
       <Show when={noMatch()}>
         <p class="body-large on-surface-variant">No settings match “{query().trim()}”.</p>
       </Show>
-      <section class="settings-section" aria-labelledby={`${id}-display`}>
+      <section class="settings-section" ref={glideSection} aria-labelledby={`${id}-display`}>
         <h3 id={`${id}-display`} class="settings-heading">
           Display
         </h3>
@@ -344,7 +365,7 @@ export function Settings(props: SettingsProps) {
         </div>
       </section>
 
-      <section class="settings-section" aria-labelledby={`${id}-workspace`}>
+      <section class="settings-section" ref={glideSection} aria-labelledby={`${id}-workspace`}>
         <h3 id={`${id}-workspace`} class="settings-heading">
           Workspace
         </h3>
@@ -425,7 +446,7 @@ export function Settings(props: SettingsProps) {
         </div>
       </section>
 
-      <section class="settings-section" aria-labelledby={`${id}-presentation`}>
+      <section class="settings-section" ref={glideSection} aria-labelledby={`${id}-presentation`}>
         <h3 id={`${id}-presentation`} class="settings-heading">
           Presentation
         </h3>
@@ -471,7 +492,25 @@ export function Settings(props: SettingsProps) {
           </span>
           {/* Swatches, not a segmented button: a theme is chosen by sight,
               and four fit a phone only as tiles that wrap. */}
-          <fieldset class="theme-swatches">
+          <fieldset
+            class="theme-swatches"
+            ref={(el) => {
+              // The chosen theme's ring is one layer that glides to the next.
+              const ring = selectGlide(el, {
+                current: ".theme-swatch input:checked",
+                target: (input) =>
+                  input
+                    .closest(".theme-swatch")
+                    ?.querySelector<HTMLElement>(".theme-swatch-sample") ?? null,
+                className: "select-pill select-ring",
+              });
+              onCleanup(ring.stop);
+              createEffect(() => {
+                void preferences().outputTheme;
+                queueMicrotask(ring.sync);
+              });
+            }}
+          >
             <legend class="visually-hidden">Output theme</legend>
             <For each={OUTPUT_THEMES}>
               {(theme) => (
@@ -586,7 +625,7 @@ export function Settings(props: SettingsProps) {
 
       <Show when={props.onShowShortcuts}>
         {(show) => (
-          <section class="settings-section" aria-labelledby={`${id}-keyboard`}>
+          <section class="settings-section" ref={glideSection} aria-labelledby={`${id}-keyboard`}>
             <h3 id={`${id}-keyboard`} class="settings-heading">
               Keyboard
             </h3>

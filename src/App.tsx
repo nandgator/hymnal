@@ -43,7 +43,7 @@ import {
 } from "./persistence/user-state.ts";
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { titleCase } from "./shell/case.ts";
-import { hoverGlide } from "./shell/hoverGlide.ts";
+import { glideList } from "./shell/glideList.ts";
 import {
   ariaKeys,
   ignoresShortcuts,
@@ -763,7 +763,18 @@ function Operator(props: Shared) {
   return (
     <div class="shell">
       <Show when={expanded()}>
-        <nav class="nav-rail" aria-label="Sections">
+        <nav
+          class="nav-rail"
+          aria-label="Sections"
+          ref={(el) =>
+            onCleanup(
+              glideList(el, {
+                rows: ".rail-item:enabled",
+                current: '.rail-item[aria-current="page"]',
+              }).stop,
+            )
+          }
+        >
           <For each={SECTIONS}>{(item) => sectionButton(item, "rail")}</For>
           <div class="rail-foot">
             <button
@@ -1034,7 +1045,17 @@ function Operator(props: Shared) {
         title="Hymnbooks"
         placement={expanded() ? "center" : "bottom"}
       >
-        <ul class="list glide-list" ref={(el) => onCleanup(hoverGlide(el, ".list-row:enabled"))}>
+        <ul
+          class="list glide-list"
+          ref={(el) =>
+            onCleanup(
+              glideList(el, {
+                rows: ".list-row:enabled",
+                current: '.list-row[aria-current="true"]',
+              }).stop,
+            )
+          }
+        >
           <For each={installed()}>
             {(book) => (
               <li>
@@ -1049,9 +1070,6 @@ function Operator(props: Shared) {
                     {" "}
                     — {book.songs.toLocaleString("en-US")} songs
                   </span>
-                  <Show when={book.key === currentKey()}>
-                    <span class="icon icon-check list-row-check" aria-hidden="true" />
-                  </Show>
                 </button>
               </li>
             )}
@@ -1068,7 +1086,17 @@ function Operator(props: Shared) {
 
       <Sheet open={menuOpen()} onClose={() => setMenuOpen(false)} title="Menu">
         <nav aria-label="Sections">
-          <ul class="list">
+          <ul
+            class="list glide-list"
+            ref={(el) =>
+              onCleanup(
+                glideList(el, {
+                  rows: ".list-row:enabled",
+                  current: '.list-row[aria-current="page"]',
+                }).stop,
+              )
+            }
+          >
             <For each={SECTIONS}>{(item) => <li>{sectionButton(item, "menu")}</li>}</For>
           </ul>
         </nav>

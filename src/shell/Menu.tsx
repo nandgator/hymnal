@@ -1,5 +1,5 @@
-import { createEffect, createSignal, For, onCleanup, Show } from "solid-js";
-import { hoverGlide } from "./hoverGlide.ts";
+import { batch, createEffect, createSignal, For, onCleanup, Show } from "solid-js";
+import { glideList } from "./glideList.ts";
 import { placeMenu } from "./menuPlacement.ts";
 
 export interface MenuItem {
@@ -67,7 +67,34 @@ export function Menu(props: MenuProps) {
 const topLayer = typeof HTMLElement !== "undefined" && "showPopover" in HTMLElement.prototype;
 
 function MenuList(props: MenuProps) {
-  const [open, setOpen] = createSignal(false);
+  let list: HTMLDivElement | undefined;
+  const [isOpen, setIsOpen] = createSignal(false);
+  const open = isOpen;
+  // The menu stays mounted through its exit (the entrance, played back) and
+  // takes no clicks meanwhile; with no animation support it goes at once.
+  // `closing` is set in the same batch as the close, so the Show below never
+  // sees a moment with neither.
+  const [closing, setClosing] = createSignal(false);
+  const setOpen = (next: boolean | ((was: boolean) => boolean)) => {
+    batch(() => {
+      const to = typeof next === "function" ? next(isOpen()) : next;
+      const el = list;
+      if (to) setClosing(false);
+      else if (isOpen() && el && typeof el.getAnimations === "function") setClosing(true);
+      setIsOpen(to);
+    });
+    if (!isOpen() && closing()) {
+      const el = list;
+      queueMicrotask(() => {
+        const running = el?.getAnimations() ?? [];
+        if (running.length === 0) setClosing(false);
+        else
+          void Promise.allSettled(running.map((a) => a.finished)).then(() => {
+            if (!isOpen()) setClosing(false);
+          });
+      });
+    }
+  };
   // The popover is in the top layer, placed from the trigger's rect (never
   // clipped by a scrolling ancestor): under it, or above when there is no
   // room below. A choice menu lines up with the trigger's start, the rest
@@ -75,7 +102,6 @@ function MenuList(props: MenuProps) {
   const [above, setAbove] = createSignal(false);
   let wrapper: HTMLDivElement | undefined;
   let button: HTMLButtonElement | undefined;
-  let list: HTMLDivElement | undefined;
 
   const items = () => [...(list?.querySelectorAll<HTMLButtonElement>("button:enabled") ?? [])];
   const close = (refocus: boolean) => {
@@ -177,9 +203,10 @@ function MenuList(props: MenuProps) {
           <span class="icon icon-expand" aria-hidden="true" />
         </button>
       </Show>
-      <Show when={open()}>
+      <Show when={open() || closing()}>
         <div
           class="menu-popover"
+          data-closing={closing() && !open() ? "" : undefined}
           popover={topLayer ? "manual" : undefined}
           classList={{
             "menu-popover-above": above(),
@@ -189,7 +216,13 @@ function MenuList(props: MenuProps) {
           aria-label={props.label}
           ref={(el) => {
             list = el;
-            onCleanup(hoverGlide(el));
+            // The chosen item of a choice menu is the tonal pill; every menu
+            // has the hover highlight.
+            onCleanup(
+              glideList(el, {
+                current: props.choice === undefined ? undefined : '[aria-checked="true"]',
+              }).stop,
+            );
           }}
           onKeyDown={onKeyDown}
         >
@@ -214,9 +247,6 @@ function MenuList(props: MenuProps) {
                     <span class="menu-popover-supporting">{item.supporting}</span>
                   </Show>
                 </span>
-                <Show when={item.current}>
-                  <span class="icon icon-check menu-popover-check" aria-hidden="true" />
-                </Show>
               </button>
             )}
           </For>

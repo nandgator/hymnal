@@ -1,9 +1,19 @@
-import { createEffect, createSignal, For, type JSX, Match, Show, Switch } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  For,
+  type JSX,
+  Match,
+  onCleanup,
+  Show,
+  Switch,
+} from "solid-js";
 import type { SourceCheck } from "../import/sourcecheck.ts";
 import type { Choice, LoadReview } from "../persistence/content-store.ts";
 import { ProgressBar } from "../shell/Loading.tsx";
 import { Sheet } from "../shell/Sheet.tsx";
 import { SwapLabel } from "../shell/SwapLabel.tsx";
+import { selectGlide } from "../shell/selectGlide.ts";
 import { count, languageName, shortHash } from "./books.ts";
 import type { QueuePosition } from "./Library.tsx";
 import type { SourceState } from "./textbook.ts";
@@ -430,7 +440,22 @@ export function ReviewSheet(props: ReviewSheetProps) {
                           )}
                         </p>
                       </Callout>
-                      <fieldset class="options">
+                      <fieldset
+                        class="options"
+                        ref={(el) => {
+                          // The chosen option is one pill that glides to the next
+                          // choice; the radios stay native.
+                          const pill = selectGlide(el, {
+                            current: ".option input:checked",
+                            target: (input) => input.closest<HTMLElement>(".option"),
+                          });
+                          onCleanup(pill.stop);
+                          createEffect(() => {
+                            replace();
+                            queueMicrotask(pill.sync);
+                          });
+                        }}
+                      >
                         <legend class="visually-hidden">What to do</legend>
                         <label class="option">
                           <input

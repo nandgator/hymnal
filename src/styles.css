@@ -472,6 +472,9 @@ button:disabled {
   height: 100vh;
   padding: var(--space-md) 0;
   border-inline-end: 1px solid var(--md-sys-color-outline-variant);
+  /* Its hover highlight and selection pill sit behind the items. */
+  isolation: isolate;
+  --glide-radius: var(--button-shape);
 }
 
 /* The dock starts at the rail's edge, so it never covers the rail: its
@@ -496,8 +499,8 @@ button:disabled {
   background: none;
   color: var(--md-sys-color-on-surface-variant);
   transition:
-    background-color var(--motion-short) var(--motion-emphasized),
-    color var(--motion-short) var(--motion-emphasized);
+    background-color var(--motion-hover) var(--motion-standard),
+    color var(--motion-medium) var(--motion-emphasized);
 }
 
 .rail-indicator {
@@ -517,15 +520,15 @@ button:disabled {
   letter-spacing: 0.02em;
 }
 
-@media (hover: hover) {
-  .rail-item:not([aria-current="page"]):hover {
-    background-color: color-mix(in srgb, currentColor 8%, transparent);
-  }
-}
-
 .rail-item[aria-current="page"] {
   background-color: var(--md-sys-color-secondary-container);
   color: var(--md-sys-color-on-secondary-container);
+}
+
+/* The rail's hover highlight and selection pill are layers behind the items
+   (hoverGlide.ts, selectGlide.ts), so the item itself paints neither. */
+[data-select-glide] .rail-item[aria-current="page"] {
+  background-color: transparent;
 }
 
 .rail-item:disabled,
@@ -573,6 +576,10 @@ button:disabled {
   color: var(--md-sys-color-on-surface);
   font-size: 1rem;
   font-weight: 500;
+}
+
+.crumb {
+  transition: background-color var(--motion-hover) var(--motion-standard);
 }
 
 .crumb:hover {
@@ -670,6 +677,9 @@ button:disabled {
 }
 
 .settings-section {
+  position: relative;
+  isolation: isolate;
+  --glide-radius: var(--shape-md);
   display: flex;
   flex-direction: column;
   container-type: inline-size;
@@ -751,6 +761,8 @@ button:disabled {
 }
 
 .theme-swatches {
+  position: relative;
+  --glide-radius: var(--shape-md);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 6rem));
   gap: var(--space-sm) var(--space-xs);
@@ -811,6 +823,12 @@ button:disabled {
   outline-offset: 2px;
 }
 
+/* The chosen swatch's ring is one layer that glides from swatch to swatch
+   (selectGlide.ts), so the swatch itself paints none. */
+[data-select-glide] .theme-swatch:has(:checked) .theme-swatch-sample {
+  outline: none;
+}
+
 /* ---------------------------------------------------------------------------
    Typography roles (DESIGN.md `typography`). The spec's px are expressed in
    rem (16px = 1rem) so UI chrome follows the continuous scale and the
@@ -865,7 +883,8 @@ button:disabled {
 .chip-filter,
 .chip-assist,
 .list-row {
-  --state: transparent;
+  --state-a: 0;
+  --state: color-mix(in srgb, currentColor calc(var(--state-a) * 100%), transparent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -874,8 +893,8 @@ button:disabled {
   background-image: linear-gradient(var(--state), var(--state));
   text-decoration: none;
   transition:
-    background-color 150ms ease,
-    box-shadow 150ms ease;
+    --state-a var(--motion-hover) var(--motion-standard),
+    box-shadow var(--motion-hover) var(--motion-standard);
 }
 
 :is(
@@ -887,14 +906,14 @@ button:disabled {
   .chip-assist,
   .list-row
 ):hover:not(:disabled) {
-  --state: color-mix(in srgb, currentColor 8%, transparent);
+  --state-a: 0.08;
 }
 
 :is(.btn-filled, .btn-tonal, .btn-outlined, .btn-text, .chip-filter, .chip-assist, .list-row):is(
   :focus-visible,
   :active
 ):not(:disabled) {
-  --state: color-mix(in srgb, currentColor 10%, transparent);
+  --state-a: 0.1;
 }
 
 .btn-filled,
@@ -943,7 +962,7 @@ button:disabled {
 :is(.chip-filter[aria-pressed="true"], .list-row[aria-current="true"]):is(:hover, :active):not(
   :disabled
 ) {
-  --state: transparent;
+  --state-a: 0;
 }
 
 /* Disabled, one rule for every control (PRINCIPLES.md; Apple and Figma):
@@ -1042,6 +1061,7 @@ button:disabled {
   background-color: var(--md-sys-color-surface-container);
   color: var(--md-sys-color-on-surface);
   font-size: 1rem;
+  transition: background-color var(--motion-hover) var(--motion-standard);
 }
 
 .settings-screen-text {
@@ -1071,8 +1091,13 @@ button:disabled {
   box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
 }
 
-/* Switch: a native checkbox with role="switch", restyled. */
+/* Switch: a native checkbox with role="switch", restyled to MD3's motion:
+   the thumb is 16px off, 24px on and 28px under the finger, and travels
+   with a touch of spring (--motion-switch-ease); the track's colour and the
+   state halo ease at the hover duration. The thumb is always 24px, scaled
+   (never resized), so it moves on the compositor. */
 input[type="checkbox"].switch {
+  --halo: var(--md-sys-color-on-surface);
   appearance: none;
   position: relative;
   flex: none;
@@ -1083,23 +1108,43 @@ input[type="checkbox"].switch {
   border-radius: var(--shape-full);
   background-color: var(--md-sys-color-surface-container-high);
   cursor: pointer;
-  transition: background-color 150ms ease;
+  transition:
+    background-color var(--motion-switch) var(--motion-standard),
+    border-color var(--motion-switch) var(--motion-standard);
 }
 
-input[type="checkbox"].switch::before {
+input[type="checkbox"].switch::before,
+input[type="checkbox"].switch::after {
   content: "";
   position: absolute;
   top: 50%;
-  left: 0.375rem;
-  width: 1rem;
-  height: 1rem;
   border-radius: var(--shape-full);
-  background-color: var(--md-sys-color-outline);
-  transform: translateY(-50%);
+  translate: 0 0;
   transition:
-    left 150ms ease,
-    width 150ms ease,
-    height 150ms ease;
+    translate var(--motion-switch) var(--motion-switch-ease),
+    scale var(--motion-switch) var(--motion-switch-ease),
+    background-color var(--motion-switch) var(--motion-standard),
+    opacity var(--motion-hover) var(--motion-standard);
+}
+
+/* The thumb, centred 14px from the track's inner start when off. */
+input[type="checkbox"].switch::before {
+  left: 2px;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: -0.75rem;
+  background-color: var(--md-sys-color-outline);
+  scale: 0.6667;
+}
+
+/* The state halo follows the thumb: 8% on hover, 10% pressed. */
+input[type="checkbox"].switch::after {
+  left: -0.375rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-top: -1.25rem;
+  background-color: var(--halo);
+  opacity: 0;
 }
 
 input[type="checkbox"].switch:checked {
@@ -1107,11 +1152,58 @@ input[type="checkbox"].switch:checked {
   background-color: var(--md-sys-color-primary);
 }
 
+input[type="checkbox"].switch:checked::before,
+input[type="checkbox"].switch:checked::after {
+  translate: 1.25rem 0;
+}
+
 input[type="checkbox"].switch:checked::before {
-  left: calc(100% - 1.5rem - 0.125rem);
-  width: 1.5rem;
-  height: 1.5rem;
   background-color: var(--md-sys-color-on-primary);
+  scale: 1;
+}
+
+/* On the primary track the halo is the thumb's own tone, so it shows. */
+input[type="checkbox"].switch:checked::after {
+  background-color: var(--md-sys-color-on-primary);
+}
+
+@media (hover: hover) {
+  input[type="checkbox"].switch:hover:not(:disabled)::after {
+    opacity: 0.08;
+  }
+}
+
+/* Pressed: the thumb swells to 28px, quickly, and settles back with the
+   spring. */
+input[type="checkbox"].switch:active:not(:disabled)::before {
+  scale: 1.1667;
+}
+
+input[type="checkbox"].switch:active:not(:disabled)::after {
+  opacity: 0.1;
+}
+
+input[type="checkbox"].switch:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+/* Reduced motion: the thumb is where it is at once; colours still fade. */
+@media (prefers-reduced-motion: reduce) {
+  input[type="checkbox"].switch::before,
+  input[type="checkbox"].switch::after {
+    transition:
+      background-color var(--motion-hover) var(--motion-standard),
+      opacity var(--motion-hover) var(--motion-standard);
+  }
+
+  input[type="checkbox"].switch:active:not(:disabled)::before {
+    scale: 0.6667;
+  }
+
+  input[type="checkbox"].switch:checked:active:not(:disabled)::before {
+    scale: 1;
+  }
 }
 
 /* A full-width tappable row: title plus optional supporting text. */
@@ -1135,14 +1227,11 @@ input[type="checkbox"].switch:checked::before {
 }
 
 /* Finder's live options: number, then title and matched line. The
-   highlighted option (keyboard or pointer) carries a state layer. */
+   highlighted option (keyboard or pointer) is the list's one highlight layer
+   (hoverGlide.ts), which the Finder drives from its active option. */
 .finder-option {
   gap: var(--space-md);
   cursor: pointer;
-}
-
-.finder-option[aria-selected="true"] {
-  background-color: color-mix(in srgb, currentColor 10%, transparent);
 }
 
 .finder-number {
@@ -1488,6 +1577,25 @@ input[type="checkbox"].switch:checked::before {
   color: var(--hymnal-on-live-container);
 }
 
+/* The find box and Go Live take the same state layer as every button
+   (hover 8%, focus and press 10%), easing in and out. */
+.switcher-find,
+.present-button {
+  --state-a: 0;
+  --state: color-mix(in srgb, currentColor calc(var(--state-a) * 100%), transparent);
+  background-image: linear-gradient(var(--state), var(--state));
+}
+
+.switcher-find:hover,
+.present-button:hover:not(:disabled) {
+  --state-a: 0.08;
+}
+
+.switcher-find:is(:focus-visible, :active),
+.present-button:is(:focus-visible, :active):not(:disabled) {
+  --state-a: 0.1;
+}
+
 .on-air {
   width: 0.5rem;
   height: 0.5rem;
@@ -1809,7 +1917,7 @@ input[type="checkbox"].switch:checked::before {
 }
 
 .area-tab[aria-selected="true"] {
-  color: var(--md-sys-color-on-surface);
+  color: var(--md-sys-color-on-secondary-container);
   font-weight: 600;
 }
 
@@ -1818,6 +1926,8 @@ input[type="checkbox"].switch:checked::before {
    fades in the first time, rather than gliding in from the bar's start. */
 .area-tabs {
   position: relative;
+  isolation: isolate;
+  --glide-radius: var(--button-shape);
 }
 
 .area-tab-pill {
@@ -1827,7 +1937,7 @@ input[type="checkbox"].switch:checked::before {
   left: 0;
   z-index: 0;
   border-radius: var(--button-shape);
-  background-color: var(--md-sys-color-surface-container-high);
+  background-color: var(--md-sys-color-secondary-container);
   opacity: 0;
   transition:
     transform var(--motion-medium) var(--motion-emphasized),
@@ -1937,6 +2047,12 @@ input[type="checkbox"].switch:checked::before {
   transform-origin: bottom left;
 }
 
+/* Leaving: quicker, accelerating away, as a sheet does. */
+.menu-popover[data-closing] {
+  animation: menu-out var(--motion-short) var(--motion-exit) forwards;
+  pointer-events: none;
+}
+
 .menu-popover-item {
   display: flex;
   align-items: center;
@@ -1963,15 +2079,11 @@ input[type="checkbox"].switch:checked::before {
   justify-content: center;
 }
 
-/* The chosen item of a choice menu: a check, and the accent colour. */
+/* The chosen item of a choice menu is the tonal pill, as everywhere
+   (selectGlide.ts); a menu with no pill layer paints it on the item. */
 .menu-popover-current {
-  color: var(--md-sys-color-primary);
-}
-
-.menu-popover-check {
-  flex: none;
-  width: 1.25rem;
-  height: 1.25rem;
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
 }
 
 /* A choice menu's trigger: the select it replaces, in the app's own dress. */
@@ -1990,6 +2102,10 @@ input[type="checkbox"].switch:checked::before {
   cursor: pointer;
 }
 
+.menu-select {
+  transition: background-color var(--motion-hover) var(--motion-standard);
+}
+
 .menu-select:hover {
   background-color: var(--md-sys-color-surface-container-high);
 }
@@ -2005,8 +2121,20 @@ input[type="checkbox"].switch:checked::before {
   max-width: min(24rem, calc(100vw - 2 * var(--space-md)));
 }
 
-/* The one highlight layer of a list (hoverGlide.ts): under the rows, glides
-   to the one pointed at or focused. The rows paint no hover of their own. */
+/* The two layers a list can have behind its rows, each one element that
+   glides. The hover highlight (hoverGlide.ts) follows the pointer and the
+   keyboard's focus; the selection pill (selectGlide.ts) sits on the chosen
+   row, over the highlight, so a chosen row keeps its tone under the pointer.
+   The container is positioned and isolated, so both sit above its own fill
+   and below its rows; the rows paint no hover or selection fill of their
+   own (the rules after the layers). */
+.menu-popover,
+.lang-list,
+.segmented {
+  /* Custom properties inherit: a list in a section would take its radius. */
+  --glide-radius: 0;
+}
+
 .menu-popover {
   isolation: isolate;
 }
@@ -2014,40 +2142,80 @@ input[type="checkbox"].switch:checked::before {
 .glide-list {
   position: relative;
   isolation: isolate;
+  --glide-radius: var(--shape-md);
 }
 
-.hover-glide {
+.hover-glide,
+.select-pill {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: -1;
+  width: 0;
+  height: 0;
   border-radius: var(--glide-radius, 0);
-  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
-  opacity: 0;
   pointer-events: none;
-  will-change: transform, height, opacity;
 }
 
-.glide-list {
-  --glide-radius: var(--shape-md);
+.hover-glide {
+  z-index: -2;
+  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  opacity: 0;
+  will-change: transform, height, opacity, filter;
+}
+
+.select-pill {
+  z-index: -1;
+  background-color: var(--md-sys-color-secondary-container);
+  will-change: transform, width, height, filter;
+}
+
+/* The ring of a chosen output theme: the same layer, outlined. */
+.select-ring {
+  z-index: auto;
+  background-color: transparent;
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+/* A coarse pointer has no hover: a tap must leave no highlight behind. */
+@media (hover: none) {
+  .hover-glide {
+    display: none;
+  }
+}
+
+/* Where a list has the layers, its rows' own hover and selection fills stand
+   down. */
+[data-hover-glide] .list-row:is(:hover, :focus-visible):not(:disabled) {
+  --state-a: 0;
+}
+
+[data-select-glide] :is(.list-row, .menu-popover-item)[aria-current],
+[data-select-glide] .menu-popover-current {
+  background-color: transparent;
+}
+
+@media (forced-colors: active) {
+  .select-pill {
+    forced-color-adjust: none;
+    background-color: Highlight;
+  }
+
+  [data-select-glide] :is(.list-row, .menu-popover-item, .rail-item, .segment)[aria-current],
+  [data-select-glide] :is(.menu-popover-current, .segment:has(:checked)) {
+    forced-color-adjust: none;
+    color: HighlightText;
+  }
 }
 
 .menu-popover-item:enabled:active {
   background-color: color-mix(in srgb, currentColor 10%, transparent);
 }
 
-.glide-list .list-row:is(:hover, :focus-visible):not(:disabled) {
-  --state: transparent;
-}
-
-.list-row-check {
-  flex: none;
-  margin-inline-start: auto;
-  color: var(--md-sys-color-primary);
-}
-
-.list-row[aria-current="true"] {
-  color: var(--md-sys-color-primary);
+.list-row[aria-current="true"],
+.list-row[aria-current="page"] {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
 }
 
 .menu-popover-supporting {
@@ -2148,8 +2316,11 @@ input[type="checkbox"].switch:checked::before {
 }
 
 .recents {
-  /* The ghost of an emptied group's heading is placed against it. */
+  /* The ghost of an emptied group's heading is placed against it, and the
+     hover highlight sits behind the rows. */
   position: relative;
+  isolation: isolate;
+  --glide-radius: var(--button-shape);
   padding-inline: var(--space-xs);
 }
 
@@ -2229,6 +2400,8 @@ input[type="checkbox"].switch:checked::before {
    checkmark's slot, so selection never changes a width (DESIGN.md §
    Stability). */
 .segmented {
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   max-width: 100%;
   /* A fieldset won't shrink below its content unless told to. */
@@ -2264,6 +2437,9 @@ input[type="checkbox"].switch:checked::before {
   border-inline-start: 1px solid var(--md-sys-color-outline);
 }
 
+/* A segmented button's hover highlight and its selected pill are layers
+   behind the segments (hoverGlide.ts, selectGlide.ts); with them, a segment
+   paints neither. */
 .segment:hover {
   background-color: color-mix(in srgb, currentColor 8%, transparent);
 }
@@ -2271,6 +2447,11 @@ input[type="checkbox"].switch:checked::before {
 .segment:has(:checked) {
   background-color: var(--md-sys-color-secondary-container);
   color: var(--md-sys-color-on-secondary-container);
+}
+
+[data-hover-glide] > .segment:hover,
+[data-select-glide] > .segment:has(:checked) {
+  background-color: transparent;
 }
 
 .segment-check {
@@ -2360,6 +2541,15 @@ input[type="checkbox"].switch:checked::before {
    hovered or holds focus, and fading out once still. A scrollbar's color
    can't transition by itself; a registered custom property can, and the
    scrollbar reads from it. The gutter stays, so nothing shifts. */
+/* A state layer (hover, focus, press) is the control's own colour at this
+   share (--state-a, set by the state): registered, so a change of it eases
+   instead of switching. A colour that mixes currentColor does not ease. */
+@property --state-a {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
 @property --scrollbar-thumb {
   syntax: "<color>";
   inherits: false;
@@ -2422,6 +2612,15 @@ html[data-scrolling],
   --motion-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
   --motion-short: 150ms;
   --motion-medium: 250ms;
+  /* A hover or a state layer easing in and out: 200-300ms, and a gentler
+     easing than the emphasised one, whose first tenth does most of the work
+     and reads as a snap. */
+  --motion-hover: 250ms;
+  --motion-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  /* A switch's thumb: MD3's spatial spring, a touch of overshoot (about 4%
+     of its travel), never a bounce. */
+  --motion-switch: 300ms;
+  --motion-switch-ease: cubic-bezier(0.34, 1.3, 0.64, 1);
   /* A slight overshoot, for what springs back (a released press). */
   --motion-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
@@ -2557,10 +2756,11 @@ html[data-scrolling],
   .recents-row
 ) {
   transition:
-    background-color var(--motion-short) var(--motion-emphasized),
-    color var(--motion-short) var(--motion-emphasized),
+    --state-a var(--motion-hover) var(--motion-standard),
+    background-color var(--motion-hover) var(--motion-standard),
+    color var(--motion-medium) var(--motion-emphasized),
     border-radius var(--motion-short) var(--motion-emphasized),
-    box-shadow var(--motion-short) var(--motion-emphasized),
+    box-shadow var(--motion-hover) var(--motion-standard),
     opacity var(--motion-short) var(--motion-emphasized);
 }
 
@@ -2583,11 +2783,14 @@ html[data-scrolling],
   .segment
 ) {
   scale: 1;
-  transition-property: background-color, color, border-radius, box-shadow, opacity, scale;
-  transition-duration: var(--motion-short);
+  transition-property:
+    --state-a, background-color, color, border-radius, box-shadow, opacity, scale;
+  transition-duration:
+    var(--motion-hover), var(--motion-hover), var(--motion-medium), var(--motion-short),
+    var(--motion-hover), var(--motion-short), var(--motion-short);
   transition-timing-function:
-    var(--motion-emphasized), var(--motion-emphasized), var(--motion-emphasized),
-    var(--motion-emphasized), var(--motion-emphasized), var(--motion-spring);
+    var(--motion-standard), var(--motion-standard), var(--motion-emphasized),
+    var(--motion-emphasized), var(--motion-standard), var(--motion-emphasized), var(--motion-spring);
 }
 
 :is(
@@ -2657,6 +2860,13 @@ html[data-scrolling],
   }
 }
 
+@keyframes menu-out {
+  to {
+    opacity: 0;
+    transform: scale(0.94) translateY(-4px);
+  }
+}
+
 @keyframes sheet-in {
   from {
     opacity: 0;
@@ -2694,18 +2904,44 @@ html[data-scrolling],
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*),
-  .menu-popover,
   .skeleton,
   .skeleton-panel,
-  .area-tab-content,
   .workspace > :not(.operator),
   .icon-swap,
-  .rolling-face,
-  .sheet[open],
-  .sheet::backdrop,
-  .sheet[data-closing],
-  .sheet[data-closing]::backdrop {
+  .rolling-face {
     animation: none;
+  }
+
+  /* What appears and goes keeps its fade and loses its travel, zoom and
+     rise: a menu, a sheet and its scrim, a tab's content. */
+  @keyframes menu-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes menu-out {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes sheet-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes sheet-out {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes tab-in {
+    from {
+      opacity: 0;
+    }
   }
 }
 
@@ -2798,7 +3034,7 @@ html[data-scrolling],
 .seq-line {
   transition:
     color var(--motion-medium) var(--motion-emphasized),
-    background-color var(--motion-short) var(--motion-emphasized);
+    background-color var(--motion-hover) var(--motion-standard);
 }
 
 /* lyricsGlide.ts marks a list whose tint snaps: the text goes at once too. */
@@ -3038,22 +3274,26 @@ html[data-scrolling],
 }
 
 .chip-set .chip-filter {
-  transition-property: color, border-radius, box-shadow, opacity, scale;
+  transition-property: --state-a, color, border-radius, box-shadow, opacity, scale;
   transition-duration:
-    var(--motion-medium), var(--motion-short), var(--motion-short), var(--motion-short),
-    var(--motion-short);
+    var(--motion-hover), var(--motion-medium), var(--motion-short), var(--motion-short),
+    var(--motion-short), var(--motion-short);
   transition-timing-function:
-    var(--motion-emphasized), var(--motion-emphasized), var(--motion-emphasized),
-    var(--motion-emphasized), var(--motion-spring);
+    var(--motion-standard), var(--motion-emphasized), var(--motion-emphasized),
+    var(--motion-emphasized), var(--motion-emphasized), var(--motion-spring);
 }
 
 /* Reduced motion: the pill jumps (padGlide.ts), keys don't squeeze, and no
    fill or label eases. */
 @media (prefers-reduced-motion: reduce) {
   .chip-pill,
-  .chip-set li::before,
-  .chip-set .chip-filter {
+  .chip-set li::before {
     transition: none;
+  }
+
+  /* A hover tint is a fade, which reduced motion keeps. */
+  .chip-set .chip-filter {
+    transition: --state-a var(--motion-hover) var(--motion-standard);
   }
 
   .chip-set li:has(.chip-filter:active:not(:disabled))::before,
@@ -3831,6 +4071,7 @@ html[data-scrolling],
 }
 
 .snackbar-close {
+  transition: background-color var(--motion-hover) var(--motion-standard);
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -3956,10 +4197,16 @@ html[data-scrolling],
   list-style: none;
   border-radius: 22px;
   background-color: var(--md-sys-color-surface-container-low);
+  /* The hover highlight and the current book's pill sit behind the rows. */
+  position: relative;
+  isolation: isolate;
+  --glide-radius: 14px;
 }
 .book {
-  --state: transparent;
+  --state-a: 0;
+  --state: color-mix(in srgb, currentColor calc(var(--state-a) * 100%), transparent);
   background-image: linear-gradient(var(--state), var(--state));
+  transition: --state-a var(--motion-hover) var(--motion-standard);
   position: relative;
   display: flex;
   align-items: center;
@@ -3970,6 +4217,10 @@ html[data-scrolling],
 .book:has(> [aria-current="true"]) {
   background-color: var(--md-sys-color-secondary-container);
   color: var(--md-sys-color-on-secondary-container);
+}
+/* The tonal fill is the list's pill (selectGlide.ts) once it is there. */
+[data-select-glide] > .book:has(> [aria-current="true"]) {
+  background-color: transparent;
 }
 .book-main {
   flex: 1;
@@ -3987,13 +4238,12 @@ html[data-scrolling],
   font: inherit;
   text-align: start;
 }
-/* The state layer is the whole row's, ⋯ included, so a tonal row is one
-   shape under the pointer (DESIGN.md § The Library). */
-.book:has(> button.book-main:hover) {
-  --state: color-mix(in srgb, currentColor 8%, transparent);
-}
-.book:has(> button.book-main:is(:focus-visible, :active)) {
-  --state: color-mix(in srgb, currentColor 10%, transparent);
+/* The hover layer is the whole row's, ⋯ included, so a tonal row is one
+   shape under the pointer (DESIGN.md § The Library): the list's one
+   highlight (hoverGlide.ts), not a fill on the row. Press and focus are the
+   row's own. */
+.book:has(> button.book-main:active) {
+  --state-a: 0.1;
 }
 fieldset.book-main {
   margin: 0;
@@ -4285,6 +4535,23 @@ fieldset.book-main {
   background-color: var(--md-sys-color-secondary-container);
   color: var(--md-sys-color-on-secondary-container);
 }
+/* With the pill layer (selectGlide.ts) the options are outlines and the
+   chosen one is the pill gliding behind it, so none hides it with a fill. */
+.options {
+  position: relative;
+  isolation: isolate;
+  --glide-radius: var(--shape-md);
+}
+[data-select-glide].options .option {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant);
+  transition:
+    box-shadow var(--motion-hover) var(--motion-standard),
+    color var(--motion-medium) var(--motion-emphasized);
+}
+[data-select-glide].options .option:has(:checked) {
+  box-shadow: inset 0 0 0 1px transparent;
+}
 .option input {
   width: 1.25rem;
   height: 1.25rem;
@@ -4511,6 +4778,7 @@ fieldset.book-main {
   width: 100%;
   border: none;
   border-radius: var(--button-shape);
+  transition: background-color var(--motion-hover) var(--motion-standard);
   background-color: var(--md-sys-color-surface-container);
   color: var(--md-sys-color-on-surface);
   font: inherit;
@@ -4594,6 +4862,8 @@ fieldset.book-main {
   flex: 1 1 14rem;
 }
 .lang-list {
+  position: relative;
+  isolation: isolate;
   max-height: 14.5rem;
   margin: 0;
   padding: var(--space-xs) 0;
@@ -4617,12 +4887,13 @@ fieldset.book-main {
   font-size: 0.9375rem;
   cursor: pointer;
 }
-.lang-row[aria-selected="true"] {
-  background-color: color-mix(in srgb, currentColor 8%, transparent);
-}
 .lang-row[data-current] {
-  color: var(--md-sys-color-primary);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
   font-weight: 500;
+}
+[data-select-glide] > .lang-row[data-current] {
+  background-color: transparent;
 }
 .lang-english {
   color: var(--md-sys-color-on-surface-variant);

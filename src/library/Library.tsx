@@ -19,6 +19,7 @@ import {
   type LoadReview,
 } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
+import { glideList } from "../shell/glideList.ts";
 import { AfterDelay, ProgressBar } from "../shell/Loading.tsx";
 import { Menu } from "../shell/Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "../shell/media.ts";
@@ -701,7 +702,21 @@ export function Library(props: LibraryProps) {
           </div>
         </div>
       </Show>
-      <ul class="book-list" aria-label="Books">
+      <ul
+        class="book-list"
+        aria-label="Books"
+        ref={(el) =>
+          // Hover is one highlight that glides between the books; the current
+          // book is one pill that glides to the book chosen.
+          onCleanup(
+            glideList(el, {
+              rows: "li.book:not(.book-bad, .reading)",
+              current: '.book-main[aria-current="true"]',
+              target: (main) => main.closest<HTMLElement>(".book"),
+            }).stop,
+          )
+        }
+      >
         <Show when={reading()}>{(now) => readingRow(now())}</Show>
         <For each={rows()}>{bookRow}</For>
       </ul>

@@ -1,4 +1,5 @@
-import { createMemo, createSignal, For, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js";
+import { type GlideList, glideList } from "../shell/glideList.ts";
 import {
   COMMON_CODES,
   filterLanguages,
@@ -41,6 +42,7 @@ export function LanguagePicker(props: LanguagePickerProps) {
   let field: HTMLInputElement | undefined;
   let returning = false;
   let list: HTMLDivElement | undefined;
+  let glide: GlideList | undefined;
 
   // Nothing typed: Common first, then every language. Typed: the matches among all of them.
   const shown = createMemo((): Entry[] => {
@@ -68,6 +70,19 @@ export function LanguagePicker(props: LanguagePickerProps) {
     const entry = shown()[at];
     return entry ? optionId(entry.o.code, entry.group) : optionId("");
   };
+  // The highlight is Enter's target, as well as the pointer's: the one layer
+  // follows the active row, so the arrow keys and typing move it too.
+  createEffect(() => {
+    active();
+    shown();
+    if (!open()) return;
+    // After the rows have settled: a microtask on, the DOM is what to mark.
+    queueMicrotask(() =>
+      glide?.hover.show(
+        list?.querySelector<HTMLElement>('.lang-row[aria-selected="true"]') ?? null,
+      ),
+    );
+  });
   const held = () => (props.value && !other() ? languageOption(props.value) : undefined);
 
   const close = () => {
@@ -100,7 +115,8 @@ export function LanguagePicker(props: LanguagePickerProps) {
   };
   const openList = () => {
     if (open()) return;
-    setActive(Math.max(0, rows().indexOf(props.value)));
+    // No language yet: the top of the list, not "Other…" (the empty code).
+    setActive(props.value ? Math.max(0, rows().indexOf(props.value)) : 0);
     setOpen(true);
     queueMicrotask(() => list?.scrollIntoView?.({ block: "nearest" }));
   };
@@ -182,7 +198,17 @@ export function LanguagePicker(props: LanguagePickerProps) {
           <span class="icon icon-expand lang-chevron" aria-hidden="true" />
         </div>
         <Show when={open()}>
-          <div class="lang-list" id={listId} role="listbox" aria-label="Languages" ref={list}>
+          <div
+            class="lang-list"
+            id={listId}
+            role="listbox"
+            aria-label="Languages"
+            ref={(el) => {
+              list = el;
+              glide = glideList(el, { rows: ".lang-row", current: ".lang-row[data-current]" });
+              onCleanup(glide.stop);
+            }}
+          >
             <For each={shown()}>
               {(entry, i) => (
                 <>

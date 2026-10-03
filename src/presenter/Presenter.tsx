@@ -30,6 +30,7 @@ import {
   type UserState,
 } from "../persistence/user-state.ts";
 import { titleCase } from "../shell/case.ts";
+import { glideList } from "../shell/glideList.ts";
 import { ariaKeys, ignoresShortcuts, type ShortcutId, withKey } from "../shell/keymap.ts";
 import { AfterDelay } from "../shell/Loading.tsx";
 import { Menu, type MenuItem } from "../shell/Menu.tsx";
@@ -916,7 +917,16 @@ export function Presenter(props: PresenterProps) {
             when={tabsOf(group()).length > 1}
             fallback={<h3 class="area-title">{tabName(activeOf(group()))}</h3>}
           >
-            <div class="area-tabs" role="tablist" ref={tablist}>
+            <div
+              class="area-tabs"
+              role="tablist"
+              ref={(el) => {
+                tablist = el;
+                // The hover highlight glides between the tabs; the selected
+                // tab's pill is the bar's own, just below.
+                onCleanup(glideList(el, { rows: ".area-tab" }).stop);
+              }}
+            >
               <span
                 class="area-tab-pill"
                 classList={{ "area-tab-pill-shown": !!pill() }}
