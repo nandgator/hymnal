@@ -883,8 +883,13 @@ opens.
 - **Lyrics** search as the typing pauses (about 200ms), or at once on Enter; the
   previous results stay up while the next load, so the list doesn't flicker.
 - **Keys:** ↑/↓ move the highlighted option, Enter (or Find) takes it — the top
-  one unless moved — and Escape clears the query. Recents show while the box is
-  empty.
+  one unless moved — and Escape clears the query. While the box is empty the
+  Finder shows Recents (this book's, when there are any) and, below them, the
+  book's first songs by number (twenty: "From the start", or "Songs" when the
+  book has no more), each opening on a tap. With no recents the Recents heading
+  and its "No recent songs yet" line are not shown; they stay where the book has
+  no song list to show instead. A line under the field says which book is
+  searched.
 - While focus is in the box, the Presenter's shortcuts are off (§16.5): arrow
   keys that move the highlight must never also move the Output.
 
@@ -1476,10 +1481,13 @@ workspace, the dock.
   scrolls from the old one). The Output window, the Operator screen and the
   operator's pane choices all survive the swap. Switching hymnbook alone keeps
   the current hymn showing until a hymn is chosen from the new book, so the
-  audience never sees an empty screen mid-swap. Deferred (PLAN Board #19): a
-  hymnbook selector inside the hymn picker, so book and hymn swap in one step.
-  Hidden while one book is installed; lyric search could later span all books,
-  number search can't (numbers are per book).
+  audience never sees an empty screen mid-swap. Choosing a hymnbook (the
+  header's picker or the Library) aims the Finder at it and opens the Finder
+  (the picker over the hymn, if one is up); the crumb keeps the hymn's own book
+  until a hymn is picked. Deferred (PLAN Board #19): a hymnbook selector inside
+  the hymn picker, so book and hymn swap in one step. Hidden while one book is
+  installed; lyric search could later span all books, number search can't
+  (numbers are per book).
 
 ### 16.5 Keyboard shortcuts
 

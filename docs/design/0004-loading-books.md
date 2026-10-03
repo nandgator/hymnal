@@ -420,15 +420,17 @@ Library; this says what it shows and does.
   the list, and can be removed; **Load Again** is offered where a file can fix
   it (below).
 - **Choose**: choosing a book makes it the current book, and a tap on its row
-  goes on to Present (the Operator). The Finder and the Operator follow it.
-  There is no new stored field: the app's current book starts as the book of the
-  newest recent (`RecentEntry.hymnbookId`, SDD-0001 §11) that is still held,
-  else the first held book, is chosen again the same way when it stops being
-  held (a removal), and a chosen book is remembered once a hymn from it is
-  opened, which adds a recent. Choosing first asks the worker to `openBook` it;
-  a file that has gone (evicted) turns the row into **File missing**, with Load
-  Again, and the book is not chosen.
-- **Load a Book**: the file picker. While it reads, the row is a progress line;
+  goes on to the Finder, aimed at that book and focused, so the next thing typed
+  is a search in it (over the song on screen, if one is up). The current book is
+  the Finder's **scope**; it is never the song's book (§10). There is no new
+  stored field: the app's current book starts as the book of the newest recent
+  (`RecentEntry.hymnbookId`, SDD-0001 §11) that is still held, else the first
+  held book, is chosen again the same way when it stops being held (a removal),
+  and a chosen book is remembered once a hymn from it is opened, which adds a
+  recent. Choosing first asks the worker to `openBook` it; a file that has gone
+  (evicted) turns the row into **File missing**, with Load Again, and the book
+  is not chosen.
+- **Load Books**: the file picker. While it reads, the row is a progress line;
   then the **summary** (ADR-0027): title, language and script, song count, the
   violations if any (all of them, by song and rule; none repaired), the verdict
   and its choices (§8), and how many songs are held elsewhere, by book. Nothing
@@ -438,9 +440,10 @@ Library; this says what it shows and does.
   and drops its recents; if it was the current book, the next held book becomes
   current, or none.
 - **Nothing held** is the first run (ADR-0026), chosen by the maintainer: the
-  Library explains that books load from a file, and offers the picker. No demo
-  book, no download. The Finder and the Operator say "no book yet" and link to
-  it.
+  Library says, in a line, that a songbook file is loaded or typed in and stays
+  on this device ("Bring your first songbook"), and offers **Load Books** (the
+  filled button) and **From Text**. No demo book, no download. The Finder and
+  the Operator say "no book yet" and link to it.
 
 Chosen, by the maintainer: the first load asks for persistent storage
 (`navigator.storage.persist()`), since a loaded book has no host to come back
@@ -490,9 +493,10 @@ shown and disabled), with one confirm button whose label follows; Replace's text
 says what it keeps (the key, so recents and position; the added date) and drops
 (the old songs; the old file's record). The review sheet is taller than other
 sheets. A long title is clamped to two lines in the list and shown whole in the
-review. The hymnbook picker lists the readable books and a **Manage Books** row.
+review. The hymnbook picker lists the readable books (its **Manage Books** row
+was dropped later: the Library is in the navigation).
 
-**A book from text (Board #34, ADR-0029).** Beside Load a Book, **From Text**
+**A book from text (Board #34, ADR-0029).** Beside Load Books, **From Text**
 opens a sheet with the book's own fields (title, language and script, all
 required and never guessed; the id, made from the title as a slug and editable;
 an optional song number for one song whose first line has none), an area for the
@@ -532,14 +536,33 @@ returns to the sheet with everything typed kept; a successful load clears it.
    fixed row and only the content scrolls; the card ends after the last control.
 4. **Choosing a book goes to Present.** A tap on a row makes the book current
    and shows the Operator; ⋯ stays.
-5. **Several at once.** Load a Book takes several files; **Open .txt files**
-   joins several text files into one song text with `---` between them (the
-   format allows it). The review of several is a queue, read one at a time (each
-   after the one before is settled, so a later file is judged against the books
-   then held): the sheet says "Book 2 of 5", **Skip** throws the current one
-   away, finishing or skipping moves on, and closing the sheet drops the rest
-   with nothing written for them. A file that cannot be read is said and passed
-   over. Load Again takes one file.
+5. **Several at once.** Load Books takes several files; **Open .txt files**
+   joins several text files into one song text with `---` between (the format
+   allows it). The review of several is a queue (below). Load Again takes one
+   file.
+
+**The queue (decided after the first look, by the maintainer).** The books can
+be looked at in any order before any is decided: the sheet's header says "Book 2
+of 5" with **Back** and **Next** (the arrow keys too) on either side, so the
+whole set can be read first. Each book's decision is kept: open (not decided) or
+loaded; a loaded book shows "Loaded" in place of its button, and any book still
+open can be loaded from wherever the operator is. Loading one brings the next
+open book into view, and the sheet closes when none is left. Closing the sheet
+leaves the open books unloaded and says so in a snackbar ("2 books not loaded";
+nothing is said for one book, or when all were decided). A file that cannot be
+read is said and passed over, in either direction.
+
+The session keeps **one** pending review (§3, §8), so the queue does not hold
+tokens: a book brought into view is **read again**, and the new review replaces
+the one pending, so the commit always uses the token of the review in view, and
+the verdict is the one for the books held then (an earlier decision may have
+made it a second edition of a held book). A book returned to shows its last
+review at once, with its button disabled until the fresh review lands; one read
+for the first time in the open sheet shows a progress line. A read overtaken by
+moving on is thrown away when it lands (its token cancelled). Commits stay
+serialized in the session (`#tail`) and a late-finishing commit never restores a
+review begun while it wrote (`#generation`); `scripts/load.test.ts` pins both
+for reviews taken out of order.
 
 ## 10. Several books
 
@@ -558,9 +581,19 @@ hook go, along with the defaults that read it (`Library`, `Finder`, `Presenter`,
   `cancel(token)` and `removeBook(key)`.
 - The app's current book (`App.tsx`) starts as §9 says, not from
   `BUNDLED_HYMNBOOK_ID`; the book the hymn on screen is from is kept apart, so
-  choosing another book does not blank the Output (SDD-0001 §16.4). A recents
-  entry that names a key no longer held is skipped. `lastPosition` is unwired
-  today (SDD-0001 §11) and is not used for this.
+  choosing another book does not blank the Output (SDD-0001 §16.4). **Decided
+  after the first look, by the maintainer: two meanings, kept apart.** The
+  current book is the Finder's **scope** (what a search looks in; the Finder
+  says which book, under its field; Recents in the Finder are that book's; a
+  first load adopts its book as the scope when there is none). The **song's
+  book** (the presented book, from the hymn itself) is what the header's crumb,
+  This Song, the Operator's Recents and the removal check name. The crumb is
+  never a book paired with a song that is not in it. Choosing a book (the
+  header's Hymnbooks picker or the Library) sets the scope and opens the Finder;
+  the song on screen and the Output stay until a song is picked. A Finder closed
+  without a pick puts the scope back on the song's book. A recents entry that
+  names a key no longer held is skipped. `lastPosition` is unwired today
+  (SDD-0001 §11) and is not used for this.
 - **Decided in part 5, by the orchestrator: the book on the Output cannot be
   removed while the Output is live.** If the book being removed is the one the
   hymn on screen is from (the presented book) and the Output is live (On Air or

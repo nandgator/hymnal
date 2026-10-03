@@ -92,13 +92,13 @@ export function RemoveSheet(props: RemoveSheetProps) {
                 </Show>
                 <Show when={props.current}>
                   <p>
-                    It is the current book.{" "}
+                    Searches look in this book now.{" "}
                     {props.nextTitle ? (
                       <>
-                        Hymnal will switch to <b>{props.nextTitle}</b>.
+                        After it goes, they look in <b>{props.nextTitle}</b>.
                       </>
                     ) : (
-                      "No book will be current until you load another."
+                      "After it goes there is nothing to search until you load another book."
                     )}
                   </p>
                 </Show>

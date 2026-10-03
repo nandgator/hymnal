@@ -123,9 +123,10 @@ const errorText = (e: TextError) => (e.line > 0 ? `Line ${e.line}: ${e.message}`
 
 /**
  * A book from song text (ADR-0029, SDD-0004 §9): the book's own fields, which
- * are required and never guessed, the song text, and optionally the source text
- * to check it against. Review parses; every error is a field error under its
- * field and nothing is written. Everything stays on this device.
+ * are required and never guessed, the song text, and optionally the book's
+ * original text to check it against. Review parses; every error is a field
+ * error under its field and nothing is written. Everything stays on this
+ * device.
  */
 export function TextSheet(props: TextSheetProps) {
   const d = props.draft;
@@ -339,7 +340,7 @@ export function TextSheet(props: TextSheetProps) {
         <div class="field">
           <div class="field-top">
             <label class="field-label" for="source-text">
-              Source text <span class="field-optional">optional</span>
+              Original text, to check against <span class="field-optional">optional</span>
             </label>
             <button type="button" class="btn-text" onClick={() => sourceFile()?.click()}>
               <span class="icon icon-file-open" aria-hidden="true" />
@@ -358,7 +359,8 @@ export function TextSheet(props: TextSheetProps) {
             onInput={(e) => d.setSourceText(e.currentTarget.value)}
           />
           <span class="field-hint" id="source-hint">
-            The text the songs started from. The review lists lines the book added or dropped.
+            Paste the book as printed, and Hymnal checks your songs against it. The review lists
+            lines that were added, changed or left out.
           </span>
         </div>
 

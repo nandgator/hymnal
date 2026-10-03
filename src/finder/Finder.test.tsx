@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from "@solidjs/testing-library";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
+import { createSignal } from "solid-js";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { HymnbookId, HymnNumber, HymnSource } from "../domain/types.ts";
 import type { ContentStore, SearchResult } from "../persistence/content-store.ts";
 import type { RecentEntry, UserState } from "../persistence/user-state.ts";
-import { Finder } from "./Finder.tsx";
+import { Finder, OPENING_SONGS } from "./Finder.tsx";
 
 const HYMN_42: HymnSource = {
   number: 42,
@@ -49,16 +50,170 @@ const submit = (value: string) => {
 };
 
 describe("Finder", () => {
-  it("shows an empty recents message when there are none", async () => {
+  /** A book of `count` songs, numbered from 1, listed backwards so the order is not the list's own. */
+  const book = (count: number) =>
+    Array.from({ length: count }, (_, i) => ({
+      number: count - i,
+      title: `Song Number ${count - i}`,
+    }));
+  const songsList = () => screen.getByRole("region", { name: "Songs" });
+
+  it("with nothing typed, shows the book's first songs by number, not an empty recents line", async () => {
     render(() => (
       <Finder
         hymnbookId="book"
-        store={fakeStore()}
+        store={fakeStore({ listHymns: async () => book(50) })}
+        userState={fakeUserState()}
+        onSelect={vi.fn()}
+      />
+    ));
+    await screen.findByRole("heading", { name: "From the start" });
+    const rows = within(songsList()).getAllByRole("button");
+    expect(rows).toHaveLength(OPENING_SONGS);
+    expect(rows[0]).toHaveTextContent("#1");
+    expect(rows[OPENING_SONGS - 1]).toHaveTextContent(`#${OPENING_SONGS}`);
+    expect(screen.queryByText("No recent songs yet.")).not.toBeInTheDocument();
+    // Recents has nothing to say, so it says nothing: no heading over an empty list.
+    expect(screen.queryByRole("heading", { name: "Recents" })).not.toBeInTheDocument();
+  });
+
+  it("calls a short book's list Songs, and opens a song picked from it", async () => {
+    const onSelect = vi.fn();
+    render(() => (
+      <Finder
+        hymnbookId="book"
+        store={fakeStore({ listHymns: async () => book(3) })}
+        userState={fakeUserState()}
+        onSelect={onSelect}
+      />
+    ));
+    await screen.findByRole("heading", { name: "Songs" });
+    fireEvent.click(within(songsList()).getByRole("button", { name: /Song Number 2/ }));
+    expect(onSelect).toHaveBeenCalledWith(2);
+  });
+
+  it("puts the songs below Recents when there are recents", async () => {
+    const recents: RecentEntry[] = [{ hymnbookId: "book", hymnNumber: 7, viewedAt: Date.now() }];
+    render(() => (
+      <Finder
+        hymnbookId="book"
+        store={fakeStore({ listHymns: async () => book(30) })}
+        userState={fakeUserState({ getRecents: async () => recents })}
+        onSelect={vi.fn()}
+      />
+    ));
+    const recentsHeading = await screen.findByRole("heading", { name: "Recents" });
+    const songsHeading = await screen.findByRole("heading", { name: "From the start" });
+    expect(
+      recentsHeading.compareDocumentPosition(songsHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.queryByText("No recent songs yet.")).not.toBeInTheDocument();
+  });
+
+  it("hides the songs once something is typed, and brings them back when it is cleared", async () => {
+    render(() => (
+      <Finder
+        hymnbookId="book"
+        store={fakeStore({ listHymns: async () => book(30) })}
+        userState={fakeUserState()}
+        onSelect={vi.fn()}
+      />
+    ));
+    await screen.findByRole("heading", { name: "From the start" });
+    fireEvent.input(find(), { target: { value: "2" } });
+    expect(screen.queryByRole("heading", { name: "From the start" })).not.toBeInTheDocument();
+    fireEvent.input(find(), { target: { value: "" } });
+    expect(await screen.findByRole("heading", { name: "From the start" })).toBeInTheDocument();
+  });
+
+  it("keeps the empty recents line where there is no song list to show instead", async () => {
+    render(() => (
+      <Finder
+        hymnbookId="book"
+        store={fakeStore({ listHymns: async () => [] })}
         userState={fakeUserState()}
         onSelect={vi.fn()}
       />
     ));
     expect(await screen.findByText("No recent songs yet.")).toBeInTheDocument();
+  });
+
+  describe("focus on opening over nothing", () => {
+    const original = window.matchMedia;
+    const pointer = (fine: boolean) => {
+      window.matchMedia = ((query: string) => ({
+        matches: query === "(pointer: fine)" ? fine : false,
+        media: query,
+      })) as never;
+    };
+    afterEach(() => {
+      window.matchMedia = original;
+    });
+    const open = () =>
+      render(() => (
+        <Finder
+          hymnbookId="book"
+          store={fakeStore()}
+          userState={fakeUserState()}
+          onSelect={vi.fn()}
+        />
+      ));
+
+    it("takes the focus where there is a keyboard to type on", async () => {
+      pointer(true);
+      open();
+      await waitFor(() => expect(find()).toHaveFocus());
+    });
+
+    it("leaves it alone on a touch screen, where the keyboard would cover the songs", async () => {
+      pointer(false);
+      open();
+      await screen.findByRole("heading", { name: "Songs" });
+      await new Promise((r) => setTimeout(r, 20));
+      expect(find()).not.toHaveFocus();
+    });
+  });
+
+  it("forgets the last book's recents the moment the book changes", async () => {
+    const recents: RecentEntry[] = [{ hymnbookId: "book", hymnNumber: 42, viewedAt: Date.now() }];
+    let release: (rows: RecentEntry[]) => void = () => {};
+    let reads = 0;
+    const userState = fakeUserState({
+      getRecents: () =>
+        ++reads === 1 ? Promise.resolve(recents) : new Promise((resolve) => (release = resolve)),
+    });
+    const [id, setId] = createSignal("book");
+    render(() => (
+      <Finder
+        hymnbookId={id()}
+        store={fakeStore({ listHymns: async () => book(30) })}
+        userState={userState}
+        onSelect={vi.fn()}
+      />
+    ));
+    expect(await screen.findByRole("heading", { name: "Recents" })).toBeInTheDocument();
+    setId("other");
+    // The other book's recents are still being read: nothing of the last one's shows.
+    await waitFor(() =>
+      expect(screen.queryByRole("heading", { name: "Recents" })).not.toBeInTheDocument(),
+    );
+    release([]);
+    expect(await screen.findByRole("heading", { name: "From the start" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Recents" })).not.toBeInTheDocument();
+  });
+
+  it("says which book it searches", async () => {
+    render(() => (
+      <Finder
+        hymnbookId="book"
+        bookTitle="Hymns of Fellowship"
+        store={fakeStore()}
+        userState={fakeUserState()}
+        onSelect={vi.fn()}
+      />
+    ));
+    expect(await screen.findByText("Hymns of Fellowship")).toBeInTheDocument();
+    expect(find()).toHaveAccessibleDescription("Searching Hymns of Fellowship");
   });
 
   it("shows recents by number, title and when, as the Operator's tab does", async () => {
@@ -71,7 +226,10 @@ describe("Finder", () => {
         onSelect={vi.fn()}
       />
     ));
-    expect(await screen.findByRole("button", { name: /Forty-Second Hymn/ })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Recents" })).toBeInTheDocument();
+    const rows = await screen.findAllByRole("button", { name: /Forty-Second Hymn/ });
+    // The recent row has a "when"; the song's own row below it does not.
+    expect(rows[0]?.querySelector(".recents-when")).not.toBeNull();
   });
 
   it("shows only this book's recents", async () => {
@@ -87,7 +245,8 @@ describe("Finder", () => {
         onSelect={vi.fn()}
       />
     ));
-    await screen.findByRole("button", { name: /Forty-Second Hymn/ });
+    await screen.findByRole("heading", { name: "Recents" });
+    await screen.findAllByRole("button", { name: /Forty-Second Hymn/ });
     expect(screen.queryByText("#7")).not.toBeInTheDocument();
   });
 
@@ -101,7 +260,7 @@ describe("Finder", () => {
         onSelect={onSelect}
       />
     ));
-    await screen.findByText("No recent songs yet.");
+    await screen.findByRole("heading", { name: "Songs" });
 
     submit("42");
 
@@ -123,7 +282,7 @@ describe("Finder", () => {
         onSelect={onSelect}
       />
     ));
-    await screen.findByText("No recent songs yet.");
+    await screen.findByRole("heading", { name: "Songs" });
 
     submit("grace");
 
@@ -147,7 +306,7 @@ describe("Finder", () => {
         onSelect={vi.fn()}
       />
     ));
-    await screen.findByText("No recent songs yet.");
+    await screen.findByRole("heading", { name: "Songs" });
 
     submit("line");
 
@@ -166,7 +325,7 @@ describe("Finder", () => {
         onSelect={vi.fn()}
       />
     ));
-    await screen.findByText("No recent songs yet.");
+    await screen.findByRole("heading", { name: "Songs" });
 
     submit("nothing like this");
 
@@ -185,7 +344,10 @@ describe("Finder", () => {
       />
     ));
 
-    fireEvent.click(await screen.findByRole("button", { name: /Forty-Second Hymn/ }));
+    // The recent first; the song's own row follows it in the list below.
+    const rows = await screen.findAllByRole("button", { name: /Forty-Second Hymn/ });
+    expect(rows[0]?.querySelector(".recents-when")).not.toBeNull();
+    fireEvent.click(rows[0] as HTMLElement);
     expect(onSelect).toHaveBeenCalledWith(42);
   });
 
@@ -222,7 +384,7 @@ describe("Finder", () => {
         onSelect={onSelect}
       />
     ));
-    await screen.findByText("No recent songs yet.");
+    await screen.findByRole("heading", { name: "Songs" });
 
     fireEvent.input(find(), { target: { value: "4" } });
     const options = await screen.findAllByRole("option");
@@ -251,7 +413,7 @@ describe("Finder", () => {
         onSelect={vi.fn()}
       />
     ));
-    await screen.findByText("No recent songs yet.");
+    await screen.findByRole("heading", { name: "Songs" });
 
     fireEvent.input(find(), { target: { value: "grace" } });
     expect(await screen.findByRole("option", { name: /Forty-Second Hymn/ })).toBeInTheDocument();
@@ -267,7 +429,7 @@ describe("Finder", () => {
         onSelect={vi.fn()}
       />
     ));
-    await screen.findByText("No recent songs yet.");
+    await screen.findByRole("heading", { name: "Songs" });
     fireEvent.input(find(), { target: { value: "42" } });
     fireEvent.keyDown(find(), { key: "Escape" });
     expect(find()).toHaveValue("");
@@ -288,7 +450,7 @@ describe("Finder", () => {
         onSelect={onSelect}
       />
     ));
-    await screen.findByText("No recent songs yet.");
+    await screen.findByRole("heading", { name: "Songs" });
 
     fireEvent.input(find(), { target: { value: "121" } });
     const [, second] = await screen.findAllByRole("option");

@@ -25,6 +25,11 @@ export interface RecentsListProps {
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
   userState?: UserState;
   onSelect: (number: HymnNumber) => void;
+  /** Say nothing when there are none, instead of "No recent songs yet": the
+   * Finder shows the book's songs in that place. */
+  quietWhenEmpty?: boolean;
+  /** Told how many recents there are, once read, and again when it changes. */
+  onCount?: (count: number) => void;
 }
 
 /** How often the words ("Just now") and the groups (midnight) are
@@ -162,13 +167,18 @@ export function RecentsList(props: RecentsListProps) {
     ),
   );
 
+  createEffect(() => {
+    const rows = recents();
+    if (rows) props.onCount?.(rows.length);
+  });
+
   return (
     <Show
       when={recents()?.length}
       fallback={
         // Only once loaded: while loading, "No recent songs yet" would be
         // untrue for a moment.
-        <Show when={recents()}>
+        <Show when={recents() && !props.quietWhenEmpty}>
           <p class="body-large on-surface-variant recents-empty">No recent songs yet.</p>
         </Show>
       }

@@ -44,7 +44,8 @@ export interface LibraryProps {
   currentKey?: string;
   /** Choosing a book makes it the current one (SDD-0004 §9). */
   onChoose: (key: string) => void;
-  /** A tap on a book's row: it is the current book, and the Operator is where to go (SDD-0004 §9). */
+  /** A tap on a book's row: it is the current book, and the Finder, aimed at it, is where
+   * to go (SDD-0004 §9). Called after {@link onChoose}. */
   onOpen?: (key: string) => void;
   /** The book the hymn on screen is from, and whether the Output is live: that book
    * cannot be removed while it is on the Output (SDD-0004 §10). */
@@ -52,6 +53,8 @@ export interface LibraryProps {
   outputLive?: boolean;
   /** The first load's request to keep storage was refused: say to keep the file. */
   onStorageRefused?: () => void;
+  /** A word for the snackbar: books left unloaded when the review is closed. */
+  onNotice?: (message: string) => void;
   /** Defaults to {@link getContentAdmin}; overridable for tests. */
   admin?: LibraryAdmin;
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
@@ -67,19 +70,59 @@ interface Reading {
   target?: string;
 }
 
-/** Files picked together: read and reviewed one after another (SDD-0004 §9). */
-interface Batch {
-  files: File[];
-  /** The next one to read. */
-  next: number;
+/** One picked file in the queue, and what became of it. */
+interface QueueEntry {
+  file: File;
+  /** `open`: not decided; `loaded`: written, or opened; `failed`: could not be read. */
+  state: "open" | "loaded" | "failed";
+  /** The last review read for it: shown at once on a return, while a fresh one is read
+   * (the books held may have changed since, and so may its verdict). */
+  review?: LoadReview;
+}
+
+/** Files picked together: reviewed in any order, each decided where the operator is (SDD-0004 §9). */
+interface Queue {
+  entries: QueueEntry[];
+  /** The entry in view. */
+  at: number;
   target?: string;
 }
 
-/** Where the review in view is in its batch: "Book 2 of 5". */
+/** Where the review in view is in its queue: "Book 2 of 5", and where Back and Next lead. */
 export interface QueuePosition {
   index: number;
   total: number;
+  canBack: boolean;
+  canNext: boolean;
+  /** This book is loaded already: its decision is made. */
+  loaded: boolean;
 }
+
+/** The queue's entries that can be looked at: a file that could not be read is passed over. */
+const readable = (queue: Queue) => queue.entries.filter((entry) => entry.state !== "failed");
+
+/** What closing leaves unloaded: the books not decided, and the files that could not be read. */
+const unloaded = (queue: Queue) => queue.entries.filter((entry) => entry.state !== "loaded").length;
+
+const positionOf = (queue: Queue): QueuePosition => {
+  const shown = readable(queue);
+  const here = shown.indexOf(queue.entries[queue.at] as QueueEntry);
+  return {
+    index: here + 1,
+    total: shown.length,
+    canBack: here > 0,
+    canNext: here >= 0 && here < shown.length - 1,
+    loaded: queue.entries[queue.at]?.state === "loaded",
+  };
+};
+
+/** The nearest readable entry from `from` (not itself) going `step`, if there is one. */
+const nearest = (queue: Queue, from: number, step: 1 | -1): number | undefined => {
+  for (let i = from + step; i >= 0 && i < queue.entries.length; i += step) {
+    if (queue.entries[i]?.state !== "failed") return i;
+  }
+  return undefined;
+};
 
 const rowTitle = (book: BookRow) => book.title || book.key;
 
@@ -114,8 +157,9 @@ export function Library(props: LibraryProps) {
   let input: HTMLInputElement | undefined;
   let pickTarget: string | undefined;
   let nextId = 0;
-  // The files still to review; closing the review sheet drops them (nothing was written for them).
-  let batch: Batch | undefined;
+  // The files picked together. Closing the review sheet drops it; nothing is written for what
+  // was not loaded.
+  let queue: Queue | undefined;
 
   const [reading, setReading] = createSignal<Reading>();
   // The review sheet keeps its last review while it sinks away.
@@ -137,6 +181,9 @@ export function Library(props: LibraryProps) {
   const [removeRecents, setRemoveRecents] = createSignal(0);
   const [removeError, setRemoveError] = createSignal<string>();
   const [position, setPosition] = createSignal<QueuePosition>();
+  // A book is being read again (to its fresh verdict) or for the first time, in the open sheet.
+  const [refreshing, setRefreshing] = createSignal(false);
+  const [sheetReading, setSheetReading] = createSignal<string>();
   // Files that could not be read, each said in words.
   const [readErrors, setReadErrors] = createSignal<string[]>([]);
   // Books whose file turned out to be gone when they were chosen (evicted).
@@ -148,6 +195,8 @@ export function Library(props: LibraryProps) {
     book.state === "ok" && missing().has(book.key) ? "missing" : book.state;
 
   const pick = (target?: string) => {
+    // Not while a book is being written: a new queue must not begin under it.
+    if (busy()) return;
     pickTarget = target;
     if (input) {
       // Several at once, except to bring one book back.
@@ -157,33 +206,30 @@ export function Library(props: LibraryProps) {
     }
   };
 
-  const endBatch = () => {
-    batch = undefined;
+  const endQueue = () => {
+    queue = undefined;
     setPosition(undefined);
+    setRefreshing(false);
+    setSheetReading(undefined);
   };
 
-  const dropReview = () => {
+  /** Closes the review sheet. Of several books, those not decided stay unloaded, and it says so. */
+  const closeReview = (quiet = false) => {
     // A commit in flight is not taken back by closing the sheet.
     if (busy()) return;
     const token = review()?.token;
     if (token) void admin().cancel(token);
+    // A read still going is thrown away when it lands.
+    nextId++;
+    setReading(undefined);
     setReviewOpen(false);
     setReviewError(undefined);
     setBusy(false);
-    // Closing asks nothing and drops what was still to come.
-    endBatch();
+    const left = queue && queue.entries.length > 1 ? unloaded(queue) : 0;
+    endQueue();
+    if (left > 0 && !quiet) props.onNotice?.(`${left} ${left === 1 ? "book" : "books"} not loaded`);
     // A review of song text goes back to the text, which is kept to fix.
     if (reviewSource()) setTextOpen(true);
-  };
-
-  /** Skip: this book is not loaded, and the next one is read. */
-  const skipReview = () => {
-    if (busy()) return;
-    const token = review()?.token;
-    if (token) void admin().cancel(token);
-    setReviewOpen(false);
-    setReviewError(undefined);
-    void readNext();
   };
 
   const openText = () => {
@@ -203,7 +249,7 @@ export function Library(props: LibraryProps) {
     }
     setTextProblems({});
     setTextErrors([]);
-    endBatch();
+    endQueue();
     setTextBusy(true);
     const name = `${built.id}.hymnbook.json.gz`;
     try {
@@ -225,56 +271,98 @@ export function Library(props: LibraryProps) {
     setTextBusy(false);
   };
 
-  /** Reads one file into a review. Resolves to whether a review is open for it. */
-  const readFile = async (file: File, target?: string): Promise<boolean> => {
+  /** Puts a review in the sheet. */
+  const present = (result: LoadReview, file: File) => {
+    setReview(result);
+    setReviewFile(file.name);
+    setReviewError(undefined);
+    setReviewOpen(true);
+  };
+
+  const closeQueue = () => {
+    if (reviewOpen()) closeReview(true);
+    else endQueue();
+  };
+
+  /**
+   * Brings the queue's entry `i` into view, in either direction. A book already looked at shows
+   * at once and is read again for its verdict as the books are now; one not yet looked at is
+   * read. Whatever was being read before is thrown away when it lands. Where nothing readable is
+   * left, the queue ends.
+   */
+  const show = async (now: Queue, i: number, step: 1 | -1 = 1): Promise<void> => {
     const id = ++nextId;
-    setReviewSource(undefined);
-    setReading({ id, fileName: file.name, target });
+    const entry = now.entries[i];
+    if (!entry) return closeQueue();
+    now.at = i;
+    setPosition(positionOf(now));
+    if (entry.state === "loaded" && entry.review) {
+      setReading(undefined);
+      setRefreshing(false);
+      setSheetReading(undefined);
+      present(entry.review, entry.file);
+      return;
+    }
+    if (reviewOpen()) {
+      setRefreshing(true);
+      if (entry.review) {
+        setSheetReading(undefined);
+        present(entry.review, entry.file);
+      } else setSheetReading(entry.file.name);
+    } else {
+      setReviewSource(undefined);
+      setReading({ id, fileName: entry.file.name, target: now.target });
+    }
     try {
-      const result = await admin().review(file, target);
-      // Cancelled, or another file picked, while it read: throw this one away.
-      if (reading()?.id !== id) {
+      const result = await admin().review(entry.file, now.target);
+      // Cancelled, or another book brought into view, while it read: this one is thrown away.
+      if (id !== nextId) {
         if (result.token) void admin().cancel(result.token);
-        return false;
+        return;
       }
+      entry.review = result;
       setReading(undefined);
-      setReview(result);
-      setReviewFile(file.name);
-      setReviewError(undefined);
-      setReviewOpen(true);
-      return true;
+      setRefreshing(false);
+      setSheetReading(undefined);
+      present(result, entry.file);
     } catch (error) {
-      if (reading()?.id !== id) return false;
+      if (id !== nextId) return;
       setReading(undefined);
-      const said = `Couldn’t read ${file.name}${error instanceof Error && error.message ? `: ${error.message}` : "."}`;
-      setReadErrors((now) => [...now, said]);
-      return false;
+      setRefreshing(false);
+      setSheetReading(undefined);
+      entry.state = "failed";
+      const said = `Couldn’t read ${entry.file.name}${error instanceof Error && error.message ? `: ${error.message}` : "."}`;
+      setReadErrors((was) => [...was, said]);
+      // Said and passed over: on to the next in the direction of travel, else the other way.
+      const to = nearest(now, i, step) ?? nearest(now, i, step === 1 ? -1 : 1);
+      if (to === undefined) return closeQueue();
+      await show(now, to, step);
     }
   };
 
-  /** The next picked file, or the end of the batch. A file that cannot be read is said and passed over. */
-  const readNext = async () => {
-    const now = batch;
-    if (!now || now.next >= now.files.length) {
-      endBatch();
-      return;
-    }
-    const file = now.files[now.next++] as File;
-    setPosition({ index: now.next, total: now.files.length });
-    const opened = await readFile(file, now.target);
-    if (opened || batch !== now) return;
-    void readNext();
+  /** Back or Next: another book, whatever was decided here left as it is. */
+  const move = (step: 1 | -1) => {
+    const now = queue;
+    if (!now || busy()) return;
+    const to = nearest(now, now.at, step);
+    if (to !== undefined) void show(now, to, step);
   };
 
   const onPicked = (files: File[]) => {
-    if (files.length === 0) return;
+    if (files.length === 0 || busy()) return;
     setReadErrors([]);
-    batch = { files, next: 0, target: pickTarget };
-    void readNext();
+    const now: Queue = {
+      entries: files.map((file): QueueEntry => ({ file, state: "open" })),
+      at: 0,
+      target: pickTarget,
+    };
+    queue = now;
+    void show(now, 0, 1);
   };
 
   const cancelReading = () => {
-    endBatch();
+    nextId++;
+    endQueue();
     setReading(undefined);
   };
 
@@ -290,6 +378,10 @@ export function Library(props: LibraryProps) {
   const commit = async (choice: Choice) => {
     const current = review();
     if (!current?.token || busy()) return;
+    // The queue and its entry as they are now: what is awaited below must not decide
+    // for a queue begun meanwhile.
+    const now = queue;
+    const here = now?.entries[now.at];
     setBusy(true);
     setReviewError(undefined);
     const result = await commitAndPersist(admin(), current.token, choice, props.persist).catch(
@@ -299,8 +391,8 @@ export function Library(props: LibraryProps) {
         message: error instanceof Error ? error.message : String(error),
       }),
     );
-    setBusy(false);
     if (!result.ok) {
+      setBusy(false);
       setReviewError(
         result.reason === "stale"
           ? "The books on this device changed since the file was read. Cancel, then pick the file again."
@@ -308,33 +400,56 @@ export function Library(props: LibraryProps) {
       );
       return;
     }
-    setReviewOpen(false);
     if (reviewSource()) {
       draft.reset();
       setReviewSource(undefined);
     }
     forgetBook(result.key);
     // A book that was written, restored or opened has its file: no longer missing.
-    setMissing((now) => {
-      const next = new Set(now);
+    setMissing((was) => {
+      const next = new Set(was);
       next.delete(result.key);
       return next;
     });
+    // Busy until the list is read too, so no new pick can begin in the meantime.
     await props.books.refresh();
+    setBusy(false);
     const opened = result.action === "opened" || result.action === "recorded";
     // A load never switches the current book under the operator, unless
     // there is none (the first load); Open Book is the user choosing it.
     if (opened || props.currentKey === undefined) props.onChoose(result.key);
     if (!opened) scrollTo(result.key);
     if (result.persist === "refused") props.onStorageRefused?.();
-    void readNext();
+    if (now && here) decided(now, here, current);
+    else setReviewOpen(false);
+  };
+
+  /**
+   * The book in view is loaded: its decision is kept, and the next one still open comes into
+   * view, in the sheet that stays open. The sheet closes only when none is left.
+   */
+  const decided = (now: Queue, here: QueueEntry, done: LoadReview) => {
+    here.state = "loaded";
+    here.review = { ...done, token: "" };
+    // A queue begun or ended meanwhile is not this one's to move.
+    if (queue !== now) return;
+    const at = now.entries.indexOf(here);
+    const after = now.entries.findIndex((entry, i) => i > at && entry.state === "open");
+    const to = after >= 0 ? after : now.entries.findIndex((entry) => entry.state === "open");
+    if (to >= 0) {
+      void show(now, to, 1);
+    } else {
+      // All decided: nothing left to say.
+      setReviewOpen(false);
+      endQueue();
+    }
   };
 
   const chooseAnother = () => {
     const target = review()?.restore?.key;
     const fromText = !!reviewSource();
-    dropReview();
-    // A refused book from text goes back to the text; dropReview has reopened it.
+    closeReview(true);
+    // A refused book from text goes back to the text; closeReview has reopened it.
     if (!fromText) pick(target);
   };
 
@@ -412,14 +527,14 @@ export function Library(props: LibraryProps) {
   /* ------------------------------ pieces ------------------------------ */
 
   const loadButton = (variant: "btn-tonal" | "btn-filled") => (
-    <button type="button" class={variant} disabled={!!reading()} onClick={() => pick()}>
+    <button type="button" class={variant} disabled={!!reading() || busy()} onClick={() => pick()}>
       <span class="icon icon-file-open" aria-hidden="true" />
-      Load a Book
+      Load Books
     </button>
   );
 
   const textButton = (variant: "btn-text" | "btn-tonal") => (
-    <button type="button" class={variant} disabled={!!reading()} onClick={openText}>
+    <button type="button" class={variant} disabled={!!reading() || busy()} onClick={openText}>
       <span class="icon icon-edit-note" aria-hidden="true" />
       From Text
     </button>
@@ -602,10 +717,9 @@ export function Library(props: LibraryProps) {
         when={reading()}
         fallback={
           <>
-            <h1 class="display-small">No book yet</h1>
+            <h1 class="display-small">Bring your first songbook</h1>
             <p class="body-large on-surface-variant">
-              Hymnal shows the songs you bring. A book is a file made with the importer; it is read
-              on this device and never sent anywhere.
+              Load a songbook file, or type one in. It stays on this device.
             </p>
             <For each={readErrors()}>
               {(message) => (
@@ -696,11 +810,15 @@ export function Library(props: LibraryProps) {
         fileName={reviewFile()}
         error={reviewError()}
         busy={busy()}
+        refreshing={refreshing()}
+        reading={sheetReading()}
+        problems={reviewSource() ? [] : readErrors()}
         source={reviewSource()}
         position={position()}
         placement={placement()}
-        onCancel={dropReview}
-        onSkip={skipReview}
+        onCancel={() => closeReview()}
+        onBack={() => move(-1)}
+        onNext={() => move(1)}
         onCommit={(choice) => void commit(choice)}
         onChooseAnother={chooseAnother}
       />

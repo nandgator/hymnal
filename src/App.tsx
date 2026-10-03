@@ -1,4 +1,5 @@
 import {
+  batch,
   createEffect,
   createSignal,
   For,
@@ -125,15 +126,24 @@ function Operator(props: Shared) {
   // Scrollbars fade in while a pane scrolls (DESIGN.md § Register).
   installScrollReveal();
   const [section, setSection] = createSignal<Section>("library");
-  // The books held (SDD-0004 §9, §10). The current book is the one the Finder
-  // and the crumb follow; the presented book is the one the hymn on screen is
-  // from, which stays until a hymn is chosen from another (§16.4).
+  // The books held (SDD-0004 §9, §10). The current book is the Finder's scope:
+  // the book a search looks in. The presented book is the one the hymn on
+  // screen is from, which stays until a hymn is chosen from another (§16.4); the
+  // crumb, This Song and Recents name that one, never the scope.
   const books = createBooks(getContentAdmin(), getContentStore());
   const [currentKey, setCurrentKey] = createSignal<HymnbookId>();
   const [presentedKey, setPresentedKey] = createSignal<HymnbookId>();
   const readable = () => (books.rows() ?? []).filter((book) => book.state === "ok");
   const hymnbook = () => readable().find((book) => book.key === currentKey());
   const presentedBook = () => readable().find((book) => book.key === presentedKey());
+  // The crumb's book: with a song up, the song's own (its hymn knows where it
+  // is from; the presented key is ahead of it by one load), else the scope.
+  const crumbBook = () => {
+    const song = section() === "present" ? hymn() : undefined;
+    if (!song) return hymnbook();
+    const key = song.hymnbookId ?? presentedKey();
+    return readable().find((book) => book.key === key) ?? hymnbook();
+  };
   // The current book starts as the book of the newest recent still held,
   // else the first held book, and is chosen again if it stops being held
   // (a removal), SDD-0004 §9. Nothing held: none.
@@ -250,6 +260,13 @@ function Operator(props: Shared) {
       setScreenNotice(undefined);
     }),
   );
+  // A word from the Library (books left unloaded), put away by itself or by Got it.
+  const [libraryNote, setLibraryNote] = createSignal<string>();
+  createEffect(() => {
+    if (!libraryNote()) return;
+    const timer = setTimeout(() => setLibraryNote(undefined), HINT_MS);
+    onCleanup(() => clearTimeout(timer));
+  });
   // Each hint is shown once, ever: marked when it first appears.
   const showHintOnce = (id: "drag" | "fullscreen") => {
     const prefs = preferences.preferences();
@@ -411,6 +428,8 @@ function Operator(props: Shared) {
               }
             : undefined,
       };
+    const note = libraryNote();
+    if (note) return { message: note, action: "Got it", onAction: () => setLibraryNote(undefined) };
     const picked = notice();
     if (picked === "update")
       return {
@@ -452,12 +471,16 @@ function Operator(props: Shared) {
 
   // Hot-swap (SDD-0001 §16.4): choosing a hymn from anywhere loads it in the
   // Presenter already on screen. Nothing is reopened or repositioned.
-  const chooseHymn = (number: HymnNumber) => {
-    setHymnNumber(number);
-    setPresentedKey(currentKey());
-    setHymnPickerOpen(false);
-    setSection("present");
-  };
+  // The number and its book change together, or the Presenter would fetch the old
+  // book's song under the new number and record it as a recent. A pick from the
+  // Presenter's own lists is of the song's book, whatever the scope is.
+  const chooseHymn = (number: HymnNumber, book: HymnbookId | undefined = currentKey()) =>
+    batch(() => {
+      setHymnNumber(number);
+      setPresentedKey(book);
+      setHymnPickerOpen(false);
+      setSection("present");
+    });
 
   // "Find a song", from anywhere: Present, plus the picker over the current
   // hymn if one is up. With none, Present already is the Finder, and a
@@ -469,12 +492,38 @@ function Operator(props: Shared) {
   };
 
   const installed = readable;
+  // Choosing a book, from the header or the Library, aims the Finder at it and
+  // opens the Finder (§16.4). The song up, the crumb and the Output stay as they
+  // are until a song is picked, so the audience never sees an empty screen
+  // mid-swap.
   const chooseHymnbook = (id: HymnbookId) => {
     setBookPickerOpen(false);
-    // The current hymn stays up until one is chosen from the new book, so
-    // the audience never sees an empty screen mid-swap (§16.4).
     if (id !== currentKey()) setCurrentKey(id);
     findHymn();
+  };
+  // The scope is the song's book unless a book was just chosen to search: a Finder
+  // opened by the crumb, the keys or the search box starts there, and one closed
+  // without a pick (by Escape, by another sheet opening, by leaving the section)
+  // puts it back, in this one place.
+  const scopeToSong = () => {
+    const song = presentedKey();
+    if (song !== undefined && song !== currentKey() && hymnNumber()) setCurrentKey(song);
+  };
+  createEffect(
+    on(
+      () => hymnPickerOpen() || commandMenuOpen(),
+      (open, was) => {
+        if (!open && was) scopeToSong();
+      },
+    ),
+  );
+  const openHymnPicker = () => {
+    scopeToSong();
+    setHymnPickerOpen(true);
+  };
+  const openCommandMenu = () => {
+    scopeToSong();
+    openSheet(setCommandMenuOpen);
   };
 
   const showShortcuts = (from?: (open: boolean) => void) => {
@@ -647,7 +696,7 @@ function Operator(props: Shared) {
       if (chord === "k") {
         event.preventDefault();
         if (commandMenuOpen()) setCommandMenuOpen(false);
-        else if (hymnbook()) openSheet(setCommandMenuOpen);
+        else if (hymnbook()) openCommandMenu();
         return;
       }
       if (chord === ",") {
@@ -671,7 +720,7 @@ function Operator(props: Shared) {
         o: openOutput,
         l: () => togglePane("live"),
         h: toggleHighlight,
-        "/": () => hymnbook() && openSheet(setCommandMenuOpen),
+        "/": () => hymnbook() && openCommandMenu(),
         "+": () => preferences.adjustScale(1),
         // The + key's own character, unshifted, on most layouts.
         "=": () => preferences.adjustScale(1),
@@ -762,7 +811,7 @@ function Operator(props: Shared) {
             </button>
           </Show>
           <nav class="crumbs" aria-label="Hymnbook and song">
-            <Show when={hymnbook()} fallback={<span class="crumb-static">Hymnal</span>}>
+            <Show when={crumbBook()} fallback={<span class="crumb-static">Hymnal</span>}>
               {(book) => (
                 <button
                   type="button"
@@ -788,7 +837,7 @@ function Operator(props: Shared) {
                     type="button"
                     class="crumb crumb-hymn"
                     aria-haspopup="dialog"
-                    onClick={() => setHymnPickerOpen(true)}
+                    onClick={openHymnPicker}
                   >
                     <span class="crumb-number">#{current().number}</span>
                     <span class="crumb-text">{titleCase(current().title)}</span>
@@ -806,7 +855,7 @@ function Operator(props: Shared) {
               class="switcher-find"
               aria-haspopup="dialog"
               aria-keyshortcuts={ariaKeys("command-menu", 1)}
-              onClick={() => openSheet(setCommandMenuOpen)}
+              onClick={openCommandMenu}
             >
               <span class="icon icon-search" aria-hidden="true" />
               <span class="switcher-find-text">Find a song or action</span>
@@ -866,19 +915,26 @@ function Operator(props: Shared) {
                 presentedKey={presentedKey()}
                 outputLive={presence.live()}
                 onChoose={setCurrentKey}
-                onOpen={() => go("present")}
+                onOpen={chooseHymnbook}
                 onStorageRefused={() => setKeepFile(true)}
+                onNotice={setLibraryNote}
               />
             </Match>
             <Match when={section() === "present" && !hymnNumber()}>
-              {hymnbook() && <Finder hymnbookId={currentKey() as string} onSelect={chooseHymn} />}
+              {hymnbook() && (
+                <Finder
+                  hymnbookId={currentKey() as string}
+                  bookTitle={hymnbook()?.title}
+                  onSelect={chooseHymn}
+                />
+              )}
             </Match>
             <Match when={section() === "present" && hymnNumber() && presentedKey()}>
               <Presenter
                 hymnNumber={hymnNumber() as HymnNumber}
                 hymnbookId={presentedKey() as string}
                 onLoaded={setHymn}
-                onBack={() => setHymnPickerOpen(true)}
+                onBack={openHymnPicker}
                 blanked={blanked()}
                 onToggleBlank={toggleBlank}
                 presenting={presentingOutput()}
@@ -887,7 +943,7 @@ function Operator(props: Shared) {
                 onWorkspaceChange={(workspace) =>
                   preferences.update({ ...preferences.preferences(), workspace })
                 }
-                onSelectHymn={chooseHymn}
+                onSelectHymn={(number) => chooseHymn(number, presentedKey())}
                 scrollSync={preferences.preferences().scrollSync ?? true}
                 onActions={(actions) => setPresenterActions(() => actions)}
                 hymnbookTitle={presentedBook()?.title}
@@ -912,6 +968,7 @@ function Operator(props: Shared) {
         <Show when={hymnbook()}>
           <Finder
             hymnbookId={currentKey() as string}
+            bookTitle={hymnbook()?.title}
             current={hymnNumber()}
             onSelect={chooseHymn}
           />
@@ -926,10 +983,14 @@ function Operator(props: Shared) {
       >
         <Finder
           hymnbookId={currentKey() as string}
+          bookTitle={hymnbook()?.title}
           current={hymnNumber()}
           onSelect={(number) => {
-            setCommandMenuOpen(false);
-            chooseHymn(number);
+            // Closing it and choosing are one step: the scope must not be put back first.
+            batch(() => {
+              setCommandMenuOpen(false);
+              chooseHymn(number);
+            });
           }}
           commands={commands().map((command) => ({ ...command, label: titleCase(command.label) }))}
         />
@@ -995,25 +1056,13 @@ function Operator(props: Shared) {
               </li>
             )}
           </For>
-          <li>
-            <button
-              type="button"
-              class="list-row"
-              onClick={() => {
-                setBookPickerOpen(false);
-                go("library");
-              }}
-            >
-              Manage Books
-            </button>
-          </li>
         </ul>
       </Sheet>
 
       {/* A persistent live region, filled when a notice appears: a region
           inserted already full is not reliably announced. */}
       <div class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
-        {noticeMessage()}
+        {!screenNotice() && libraryNote() ? libraryNote() : noticeMessage()}
       </div>
       <SnackbarHost notice={snackbar()} />
 

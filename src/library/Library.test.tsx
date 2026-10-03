@@ -92,6 +92,7 @@ function setup(options: Setup = {}) {
   const onChoose = vi.fn();
   const onOpen = vi.fn();
   const onStorageRefused = vi.fn();
+  const onNotice = vi.fn();
   const persist = vi.fn(async () => "refused" as const);
   const view = (
     props: {
@@ -112,6 +113,7 @@ function setup(options: Setup = {}) {
           onChoose={onChoose}
           onOpen={onOpen}
           onStorageRefused={onStorageRefused}
+          onNotice={onNotice}
           admin={admin}
           userState={userState}
           persist={persist}
@@ -125,6 +127,7 @@ function setup(options: Setup = {}) {
     onChoose,
     onOpen,
     onStorageRefused,
+    onNotice,
     persist,
     view,
     setRows: (r: BookRow[]) => (rows = r),
@@ -221,10 +224,14 @@ describe("Library: nothing held, the first run (ADR-0026)", () => {
     const s = setup({ rows: [] });
     s.store.ensureInstalled.mockImplementation(async () => ({ state: "ready" }));
     s.view();
-    expect(await screen.findByRole("heading", { name: "No book yet" })).toBeInTheDocument();
-    expect(screen.getByText(/never sent anywhere/)).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Bring your first songbook" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/It stays on this device/)).toBeInTheDocument();
+    expect(screen.queryByText(/importer/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "From Text" })).toBeInTheDocument();
     const click = vi.spyOn(screen.getByTestId("book-file") as HTMLInputElement, "click");
-    fireEvent.click(screen.getByRole("button", { name: "Load a Book" }));
+    fireEvent.click(screen.getByRole("button", { name: "Load Books" }));
     expect(click).toHaveBeenCalled();
     expect(screen.getByTestId("book-file")).toHaveAttribute(
       "accept",
@@ -238,7 +245,7 @@ describe("Library: nothing held, the first run (ADR-0026)", () => {
     let finish: (r: LoadReview) => void = () => {};
     s.admin.review.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
     s.view();
-    await screen.findByRole("heading", { name: "No book yet" });
+    await screen.findByRole("heading", { name: "Bring your first songbook" });
     pickFile();
     expect(
       await screen.findByRole("progressbar", { name: "Reading the book" }),
@@ -283,11 +290,15 @@ describe("Library: the books held (SDD-0004 §9)", () => {
     expect(s.admin.openBook).toHaveBeenCalledWith("k1");
   });
 
-  it("tapping a book makes it current and goes to Present, as does tapping the current one", async () => {
+  it("tapping a book makes it current and opens the Finder on it, as does tapping the current one", async () => {
     const s = setup({ rows: [row(), loaded()] });
     s.view({ currentKey: "mal" });
     fireEvent.click(await screen.findByRole("button", { name: /^Hymns of Fellowship/ }));
     await waitFor(() => expect(s.onOpen).toHaveBeenCalledWith("k1"));
+    // The scope is set first, so the Finder that opens is aimed at the book.
+    expect(s.onChoose.mock.invocationCallOrder[0]).toBeLessThan(
+      s.onOpen.mock.invocationCallOrder[0] as number,
+    );
     fireEvent.click(screen.getByRole("button", { name: /^Athmeeya Geethangal/ }));
     await waitFor(() => expect(s.onOpen).toHaveBeenCalledWith("mal"));
   });
@@ -413,7 +424,7 @@ describe("Library: a missing file is no longer missing once the book is back", (
     fireEvent.click(await screen.findByRole("button", { name: /^Hymns of Fellowship/ }));
     await screen.findByText("File missing");
     pickFile();
-    const dialog = within(await screen.findByRole("dialog", { name: "Load a Book" }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Load Books" }));
     fireEvent.click(dialog.getByRole("button", { name: "Open Book" }));
     await waitFor(() => expect(screen.queryByText("File missing")).not.toBeInTheDocument());
   });
@@ -502,13 +513,13 @@ describe("Library: remove (SDD-0004 §9)", () => {
     expect(s.userState.dropRecents).not.toHaveBeenCalled();
   });
 
-  it("says when nothing will be current afterwards", async () => {
+  it("says when there will be nothing to search afterwards", async () => {
     const s = setup({ rows: [loaded()] });
     s.view({ currentKey: "k1" });
     fireEvent.click(await screen.findByRole("button", { name: "More for Hymns of Fellowship" }));
     fireEvent.click(screen.getByRole("menuitem", { name: /Remove/ }));
     expect(
-      await screen.findByText(/No book will be current until you load another/),
+      await screen.findByText(/there is nothing to search until you load another book/),
     ).toBeInTheDocument();
   });
 });
@@ -519,7 +530,7 @@ describe("Library: the review sheet (ADR-0027)", () => {
     s.view({ currentKey: currentKey ?? undefined });
     await screen.findByRole("list", { name: "Books" });
     pickFile();
-    const dialog = await screen.findByRole("dialog", { name: "Load a Book" });
+    const dialog = await screen.findByRole("dialog", { name: "Load Books" });
     return { s, dialog: within(dialog) };
   }
 
@@ -544,9 +555,9 @@ describe("Library: the review sheet (ADR-0027)", () => {
     expect(
       await screen.findByRole("progressbar", { name: "Reading the book" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Load a Book" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Load Books" })).toBeDisabled();
     finish(review());
-    expect(await screen.findByRole("dialog", { name: "Load a Book" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Load Books" })).toBeInTheDocument();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   });
 
@@ -745,13 +756,17 @@ describe("Library: the review sheet (ADR-0027)", () => {
 });
 
 describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", () => {
-  /** A review per file, named after it, with its own token. */
+  /** A review per file, named after it; the token is the file's number, and a later review of the
+   * same file has a token of its own ("t-1#2"), as the session would give it. */
   const queueSetup = () => {
     const s = setup({ rows: [row()] });
+    const reads = new Map<string, number>();
     s.admin.review.mockImplementation(async (file: File) => {
       if (file.name.startsWith("bad")) throw new Error("not readable");
       const n = file.name.slice(0, 1);
-      return review({ token: `t-${n}`, title: `Book ${n}` });
+      const times = (reads.get(n) ?? 0) + 1;
+      reads.set(n, times);
+      return review({ token: times === 1 ? `t-${n}` : `t-${n}#${times}`, title: `Book ${n}` });
     });
     s.admin.commit.mockImplementation(async (token: string) => ({
       ok: true as const,
@@ -761,7 +776,11 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     s.view({ currentKey: "mal" });
     return s;
   };
-  const sheet = () => screen.findByRole("dialog", { name: "Load a Book" });
+  const sheet = () => screen.findByRole("dialog", { name: "Load Books" });
+  const next = () => fireEvent.click(screen.getByRole("button", { name: "Next book" }));
+  const back = () => fireEvent.click(screen.getByRole("button", { name: "Previous book" }));
+  const load = () => fireEvent.click(screen.getByRole("button", { name: "Load Book" }));
+  const three = ["1.hymnbook.json.gz", "2.hymnbook.json.gz", "3.hymnbook.json.gz"];
 
   it("accepts several files at once, but one for Load Again", async () => {
     queueSetup();
@@ -769,10 +788,10 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     expect(screen.getByTestId("book-file")).toHaveAttribute("multiple");
   });
 
-  it("reviews them one after another: Book 1 of 3, then the next after Load Book", async () => {
+  it("reviews the first at once, and the next after Load Book", async () => {
     const s = queueSetup();
     await screen.findByRole("list", { name: "Books" });
-    pickFiles("1.hymnbook.json.gz", "2.hymnbook.json.gz", "3.hymnbook.json.gz");
+    pickFiles(...three);
     const first = within(await sheet());
     expect(await first.findByText("Book 1 of 3")).toBeInTheDocument();
     expect(first.getByRole("heading", { name: "Book 1" })).toBeInTheDocument();
@@ -786,56 +805,293 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     ]);
   });
 
-  it("Skip throws this one away, writes nothing for it, and moves on; the last has no Skip", async () => {
+  it("Next looks at the next book without deciding this one; Back returns to it, read again", async () => {
+    const s = queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles(...three);
+    await screen.findByText("Book 1 of 3");
+    next();
+    expect(await screen.findByText("Book 2 of 3")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Book 2" })).toBeInTheDocument();
+    expect(s.admin.commit).not.toHaveBeenCalled();
+    back();
+    expect(await screen.findByText("Book 1 of 3")).toBeInTheDocument();
+    // The books held may have changed, so what is shown is read again; the commit takes its token.
+    await waitFor(() => expect(s.admin.review).toHaveBeenCalledTimes(3));
+    expect(s.admin.review.mock.calls.map(([file]) => file.name)).toEqual([
+      "1.hymnbook.json.gz",
+      "2.hymnbook.json.gz",
+      "1.hymnbook.json.gz",
+    ]);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Load Book" })).toBeEnabled());
+    load();
+    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t-1#2", "keep-both"));
+  });
+
+  it("Back is off on the first book and Next on the last", async () => {
+    queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles(...three);
+    await screen.findByText("Book 1 of 3");
+    expect(screen.getByRole("button", { name: "Previous book" })).toBeDisabled();
+    next();
+    await screen.findByText("Book 2 of 3");
+    expect(screen.getByRole("button", { name: "Previous book" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Next book" })).toBeEnabled();
+    next();
+    await screen.findByText("Book 3 of 3");
+    expect(screen.getByRole("button", { name: "Next book" })).toBeDisabled();
+  });
+
+  it("a book returned to shows at once, but cannot be loaded until it is read again", async () => {
+    const s = queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles(...three);
+    await screen.findByText("Book 1 of 3");
+    next();
+    await screen.findByText("Book 2 of 3");
+    await waitFor(() => expect(s.admin.review).toHaveBeenCalledTimes(2));
+    let land: (r: LoadReview) => void = () => {};
+    s.admin.review.mockImplementationOnce(() => new Promise((resolve) => (land = resolve)));
+    back();
+    expect(await screen.findByText("Book 1 of 3")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Book 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Load Book" })).toBeDisabled();
+    land(review({ token: "fresh", title: "Book 1" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Load Book" })).toBeEnabled());
+    load();
+    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("fresh", "keep-both"));
+  });
+
+  it("the arrow keys go Back and Next", async () => {
+    queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles(...three);
+    await screen.findByText("Book 1 of 3");
+    const dialog = await sheet();
+    fireEvent.keyDown(within(dialog).getByRole("button", { name: "Next book" }), {
+      key: "ArrowRight",
+    });
+    expect(await screen.findByText("Book 2 of 3")).toBeInTheDocument();
+    fireEvent.keyDown(within(dialog).getByRole("button", { name: "Next book" }), {
+      key: "ArrowLeft",
+    });
+    expect(await screen.findByText("Book 1 of 3")).toBeInTheDocument();
+  });
+
+  it("books are decided out of order: each commits with the review in view, one at a time", async () => {
+    const s = queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles(...three);
+    await screen.findByText("Book 1 of 3");
+    next();
+    await screen.findByText("Book 2 of 3");
+    next();
+    await screen.findByText("Book 3 of 3");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Load Book" })).toBeEnabled());
+    // Book 3 first. 1 and 2 are still open, so the sheet goes on to the first open one (1).
+    load();
+    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t-3", "keep-both"));
+    expect(await screen.findByText("Book 1 of 3")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Load Book" })).toBeEnabled());
+    next();
+    await screen.findByText("Book 2 of 3");
+    // Book 3 is decided: it says so, with nothing to press.
+    next();
+    expect(await screen.findByText("Book 3 of 3")).toBeInTheDocument();
+    expect(screen.getByText("Loaded", { selector: "span" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Loaded" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Load Book" })).not.toBeInTheDocument();
+    back();
+    await screen.findByText("Book 2 of 3");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Load Book" })).toBeEnabled());
+    load();
+    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledTimes(2));
+    // Only book 1 is open now.
+    expect(await screen.findByText("Book 1 of 3")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Load Book" })).toBeEnabled());
+    load();
+    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledTimes(3));
+    // Every book decided: the sheet is done, and has nothing to say about it.
+    await waitFor(() => expect(screen.queryByText(/Book \d of 3/)).not.toBeInTheDocument());
+    const tokens = s.admin.commit.mock.calls.map(([token]) => token);
+    expect(tokens[0]).toBe("t-3");
+    expect(tokens).toHaveLength(3);
+    expect(new Set(tokens).size).toBe(3);
+    expect(s.onNotice).not.toHaveBeenCalled();
+  });
+
+  it("Back and Next are off while a book is being written", async () => {
+    const s = queueSetup();
+    let finish: (r: CommitResult) => void = () => {};
+    s.admin.commit.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles(...three);
+    await screen.findByText("Book 1 of 3");
+    load();
+    await waitFor(() => expect(s.admin.commit).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: "Next book" })).toBeDisabled();
+    finish({ ok: true, action: "loaded", key: "k1" });
+    expect(await screen.findByText("Book 2 of 3")).toBeInTheDocument();
+  });
+
+  it("a book read for the first time in the open sheet says so, and one overtaken by Back is thrown away", async () => {
+    const s = queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles(...three);
+    await screen.findByText("Book 1 of 3");
+    let land: (r: LoadReview) => void = () => {};
+    s.admin.review.mockImplementationOnce(() => new Promise((resolve) => (land = resolve)));
+    next();
+    // Book 2 is being read: the sheet says so, and nothing can be loaded from it.
+    expect(
+      await screen.findByText("Checking the file on this device. Nothing is sent anywhere."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load Book" })).not.toBeInTheDocument();
+    back();
+    expect(await screen.findByText("Book 1 of 3")).toBeInTheDocument();
+    land(review({ token: "t-2", title: "Book 2" }));
+    await waitFor(() => expect(s.admin.cancel).toHaveBeenCalledWith("t-2"));
+    // Book 1 is still what is in view.
+    expect(screen.getByRole("heading", { name: "Book 1" })).toBeInTheDocument();
+  });
+
+  it("closing the sheet leaves the undecided books unloaded, and says how many", async () => {
+    const s = queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles(...three);
+    const first = within(await sheet());
+    await first.findByText("Book 1 of 3");
+    fireEvent.click(first.getByRole("button", { name: "Load Book" }));
+    await screen.findByText("Book 2 of 3");
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(s.onNotice).toHaveBeenCalledWith("2 books not loaded"));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(s.admin.review).toHaveBeenCalledTimes(2);
+    expect(s.admin.commit).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/Book \d of 3/)).not.toBeInTheDocument();
+  });
+
+  it("says one book, singular", async () => {
     const s = queueSetup();
     await screen.findByRole("list", { name: "Books" });
     pickFiles("1.hymnbook.json.gz", "2.hymnbook.json.gz");
     const first = within(await sheet());
     await first.findByText("Book 1 of 2");
-    fireEvent.click(first.getByRole("button", { name: "Skip" }));
-    await waitFor(() => expect(s.admin.cancel).toHaveBeenCalledWith("t-1"));
-    expect(await screen.findByText("Book 2 of 2")).toBeInTheDocument();
-    expect(s.admin.commit).not.toHaveBeenCalled();
-    expect(screen.queryByRole("button", { name: "Skip" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Load Book" }));
-    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t-2", "keep-both"));
-    await waitFor(() => expect(screen.queryByText(/Book \d of 2/)).not.toBeInTheDocument());
-    expect(s.admin.review).toHaveBeenCalledTimes(2);
+    fireEvent.click(first.getByRole("button", { name: "Load Book" }));
+    await screen.findByText("Book 2 of 2");
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(s.onNotice).toHaveBeenCalledWith("1 book not loaded"));
   });
 
-  it("closing the sheet asks nothing and drops the rest of the queue", async () => {
+  it("closing a single book's review says nothing", async () => {
     const s = queueSetup();
     await screen.findByRole("list", { name: "Books" });
-    pickFiles("1.hymnbook.json.gz", "2.hymnbook.json.gz", "3.hymnbook.json.gz");
-    const first = within(await sheet());
-    await first.findByText("Book 1 of 3");
-    fireEvent.click(first.getByRole("button", { name: "Close" }));
+    pickFiles("1.hymnbook.json.gz");
+    await screen.findByRole("button", { name: "Load Book" });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(s.admin.cancel).toHaveBeenCalledWith("t-1"));
-    await new Promise((r) => setTimeout(r, 50));
-    expect(s.admin.review).toHaveBeenCalledTimes(1);
-    expect(s.admin.commit).not.toHaveBeenCalled();
-    expect(screen.queryByText(/Book \d of 3/)).not.toBeInTheDocument();
+    expect(s.onNotice).not.toHaveBeenCalled();
   });
 
-  it("a file that cannot be read is said, and the queue goes on", async () => {
+  it("a file that cannot be read is said, in the sheet too, and counts as not loaded", async () => {
     const s = queueSetup();
     await screen.findByRole("list", { name: "Books" });
     pickFiles("bad.hymnbook.json.gz", "2.hymnbook.json.gz");
-    expect(await screen.findByText("Book 2 of 2")).toBeInTheDocument();
+    const dialog = within(await sheet());
+    expect(await dialog.findByRole("heading", { name: "Book 2" })).toBeInTheDocument();
     expect(s.admin.review).toHaveBeenCalledTimes(2);
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    // One readable book left: no queue to speak of, but the file that failed is said here.
+    expect(dialog.queryByText(/Book \d of/)).not.toBeInTheDocument();
+    expect(
+      within(dialog.getByRole("list", { name: "Files not read" })).getByText(
+        /Couldn’t read bad\.hymnbook\.json\.gz: not readable/,
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(dialog.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(s.onNotice).toHaveBeenCalledWith("2 books not loaded"));
     expect(
       await screen.findByText(/Couldn’t read bad\.hymnbook\.json\.gz: not readable/),
     ).toBeInTheDocument();
   });
 
-  it("one file is not a queue: no position, no Skip", async () => {
+  it("the sheet stays open from one book to the next, and closes only after the last", async () => {
+    queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles(...three);
+    const dialog = (await sheet()) as HTMLDialogElement;
+    await screen.findByText("Book 1 of 3");
+    const closings: boolean[] = [];
+    const watch = new MutationObserver(() => closings.push(dialog.open));
+    watch.observe(dialog, { attributes: true, attributeFilter: ["open"] });
+    for (const n of [2, 3]) {
+      await waitFor(() => expect(screen.getByRole("button", { name: "Load Book" })).toBeEnabled());
+      load();
+      await screen.findByText(`Book ${n} of 3`);
+      expect(dialog.open).toBe(true);
+    }
+    await waitFor(() => expect(screen.getByRole("button", { name: "Load Book" })).toBeEnabled());
+    load();
+    await waitFor(() => expect(dialog.open).toBe(false));
+    watch.disconnect();
+    // Closed once, at the end: never closed and reopened between books.
+    expect(closings).toEqual([false]);
+  });
+
+  it("while a book is written and the list read, a new pick is not taken, and the buttons are off", async () => {
+    const s = queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles(...three);
+    await screen.findByText("Book 1 of 3");
+    let release: () => void = () => {};
+    s.admin.listBooks.mockImplementationOnce(
+      () => new Promise((resolve) => (release = () => resolve([row()]))),
+    );
+    const reads = s.admin.listBooks.mock.calls.length;
+    load();
+    await waitFor(() => expect(s.admin.commit).toHaveBeenCalled());
+    // The write is done and the list is being read: that read is the one held back.
+    await waitFor(() => expect(s.admin.listBooks.mock.calls.length).toBeGreaterThan(reads));
+    // A file picked now (the hidden input needs no button) begins nothing.
+    pickFiles("9.hymnbook.json.gz");
+    expect(s.admin.review).toHaveBeenCalledTimes(1);
+    release();
+    // The queue goes on where it was: book 2 of the first three.
+    expect(await screen.findByText("Book 2 of 3")).toBeInTheDocument();
+    expect(s.admin.review.mock.calls.map(([file]) => file.name)).toEqual([
+      "1.hymnbook.json.gz",
+      "2.hymnbook.json.gz",
+    ]);
+  });
+
+  it("when Next goes off under the focus, the focus moves to Back and the arrows keep working", async () => {
+    queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles(...three);
+    await screen.findByText("Book 1 of 3");
+    const nextButton = screen.getByRole("button", { name: "Next book" });
+    nextButton.focus();
+    next();
+    await screen.findByText("Book 2 of 3");
+    screen.getByRole("button", { name: "Next book" }).focus();
+    next();
+    await screen.findByText("Book 3 of 3");
+    expect(screen.getByRole("button", { name: "Next book" })).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Previous book" })).toHaveFocus(),
+    );
+    fireEvent.keyDown(document.activeElement as Element, { key: "ArrowLeft" });
+    expect(await screen.findByText("Book 2 of 3")).toBeInTheDocument();
+  });
+
+  it("one file is not a queue: no position, no Back or Next", async () => {
     queueSetup();
     await screen.findByRole("list", { name: "Books" });
     pickFiles("1.hymnbook.json.gz");
     const only = within(await sheet());
     await only.findByRole("button", { name: "Load Book" });
     expect(only.queryByText(/Book 1 of 1/)).not.toBeInTheDocument();
+    expect(only.queryByRole("button", { name: "Next book" })).not.toBeInTheDocument();
     expect(only.queryByRole("button", { name: "Skip" })).not.toBeInTheDocument();
   });
 });

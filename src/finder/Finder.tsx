@@ -4,6 +4,7 @@ import {
   createResource,
   createSignal,
   For,
+  on,
   onCleanup,
   Show,
 } from "solid-js";
@@ -21,10 +22,14 @@ import { RecentsList } from "../shell/RecentsList.tsx";
 const LYRIC_DEBOUNCE_MS = 200;
 /** Number suggestions shown at most. */
 const NUMBER_SUGGESTIONS = 8;
+/** How many of the book's first songs show while nothing is typed. */
+export const OPENING_SONGS = 20;
 
 export interface FinderProps {
   /** The book searched: its key (SDD-0004 §10). */
   hymnbookId: HymnbookId;
+  /** The book's title, said under the field so it is plain which book is searched. */
+  bookTitle?: string;
   /** Defaults to {@link getContentStore}; overridable for tests. */
   store?: ContentStore;
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
@@ -86,6 +91,19 @@ export function Finder(props: FinderProps) {
   const listId = `finder-options-${++nextId}`;
 
   const [hymns] = createResource(() => store().listHymns(id()));
+  // The book from its start, by number, while nothing is typed: there is
+  // always something to open (SDD-0001 §13).
+  const opening = createMemo(() =>
+    [...(hymns() ?? [])].sort((a, b) => a.number - b.number).slice(0, OPENING_SONGS),
+  );
+  // How many recents there are, once known; the list reports it.
+  const [recentCount, setRecentCount] = createSignal<number>();
+  // Another book: its recents are not known yet, and nothing of the last one's shows.
+  createEffect(on(id, () => setRecentCount(undefined), { defer: true }));
+  // The songs are in the list's place until it is known that there are none, and both lists
+  // appear together once both are read, so neither moves the other.
+  const songsExpected = () => hymns.loading || opening().length > 0;
+  const songsShown = () => !trimmed() && opening().length > 0 && recentCount() !== undefined;
 
   const [query, setQuery] = createSignal("");
   const trimmed = () => query().trim();
@@ -205,6 +223,18 @@ export function Finder(props: FinderProps) {
             aria-expanded={rows().length > 0}
             aria-controls={listId}
             aria-activedescendant={active() == null ? undefined : optionId(active() ?? 0)}
+            ref={(el) =>
+              // Opened over nothing (a book chosen in the Library), the next key typed is a
+              // search, with a keyboard to type on. Not where a screen keyboard would cover
+              // the songs: a touch screen taps the field. A sheet, or a control already
+              // focused, keeps its own focus.
+              queueMicrotask(() => {
+                const at = document.activeElement;
+                const keyboard = window.matchMedia?.("(pointer: fine)").matches ?? true;
+                if (keyboard && el.isConnected && (!at || at === document.body))
+                  el.focus({ preventScroll: true });
+              })
+            }
             value={query()}
             onInput={(event) => setQuery(event.currentTarget.value)}
             onKeyDown={onKeyDown}
@@ -216,8 +246,16 @@ export function Finder(props: FinderProps) {
             enterkeyhint="search"
             placeholder={props.commands ? "Song number, lyrics or action" : "Song number or lyrics"}
             aria-label={props.commands ? "Find a song or action" : "Find a song"}
+            aria-describedby={props.bookTitle ? `${listId}-scope` : undefined}
           />
         </div>
+        <Show when={props.bookTitle}>
+          {(title) => (
+            <p class="finder-scope body-medium on-surface-variant" id={`${listId}-scope`}>
+              Searching <b>{title()}</b>
+            </p>
+          )}
+        </Show>
       </form>
 
       <Show when={noMatch()}>
@@ -276,7 +314,9 @@ export function Finder(props: FinderProps) {
       </div>
 
       <Show when={!trimmed()}>
-        <section>
+        {/* Recents is there while it has entries (or while there are no songs
+            to show instead); its own count says which. */}
+        <section hidden={recentCount() === undefined || (recentCount() === 0 && songsExpected())}>
           <h2 class="title-medium on-surface-variant">Recents</h2>
           <RecentsList
             hymnbookId={id()}
@@ -284,8 +324,36 @@ export function Finder(props: FinderProps) {
             store={props.store}
             userState={props.userState}
             onSelect={props.onSelect}
+            quietWhenEmpty={songsExpected()}
+            onCount={setRecentCount}
           />
         </section>
+        <Show when={songsShown()}>
+          <section aria-label="Songs">
+            <h2 class="title-medium on-surface-variant">
+              {(hymns()?.length ?? 0) > OPENING_SONGS ? "From the start" : "Songs"}
+            </h2>
+            <div class="recents">
+              <ul class="list finder-songs">
+                <For each={opening()}>
+                  {(hymn) => (
+                    <li>
+                      <button
+                        type="button"
+                        class="list-row recents-row"
+                        aria-current={hymn.number === props.current ? "true" : undefined}
+                        onClick={() => props.onSelect(hymn.number)}
+                      >
+                        <span class="recents-number">#{hymn.number}</span>
+                        <span class="recents-title">{titleCase(hymn.title)}</span>
+                      </button>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </div>
+          </section>
+        </Show>
       </Show>
     </div>
   );

@@ -363,16 +363,16 @@ problem than a warm, devotional, legible-at-distance tool.
 
 ### Hierarchy
 
-| Token           | Size                                            | Weight | Line height | Use                                          |
-| --------------- | ----------------------------------------------- | ------ | ----------- | -------------------------------------------- |
-| `display-small` | 36px                                            | 400    | 44px        | The Library's empty first run: "No book yet" |
-| `title-large`   | 22px                                            | 500    | 28px        | Screen headers (hymn title in Operator)      |
-| `title-medium`  | 16px                                            | 500    | 24px        | Section labels (part label, "Recent")        |
-| `label-large`   | 14px                                            | 500    | 20px        | Buttons, chips                               |
-| `label-small`   | 11px                                            | 500    | 16px        | Assist chip (recurrence cue)                 |
-| `body-large`    | 16px                                            | 400    | 24px        | Running UI text                              |
-| `hymn-display`  | `clamp(1.25rem, 1.0625rem + 0.75vw, 2.1875rem)` | 400    | 1.7         | Lyric lines, Operator view                   |
-| `output-line`   | `clamp(2.2rem, 6.5vw, 5rem)`                    | 500    | 1.35        | Output view, every line (lit or dimmed)      |
+| Token           | Size                                            | Weight | Line height | Use                                                        |
+| --------------- | ----------------------------------------------- | ------ | ----------- | ---------------------------------------------------------- |
+| `display-small` | 36px                                            | 400    | 44px        | The Library's empty first run: "Bring your first songbook" |
+| `title-large`   | 22px                                            | 500    | 28px        | Screen headers (hymn title in Operator)                    |
+| `title-medium`  | 16px                                            | 500    | 24px        | Section labels (part label, "Recent")                      |
+| `label-large`   | 14px                                            | 500    | 20px        | Buttons, chips                                             |
+| `label-small`   | 11px                                            | 500    | 16px        | Assist chip (recurrence cue)                               |
+| `body-large`    | 16px                                            | 400    | 24px        | Running UI text                                            |
+| `hymn-display`  | `clamp(1.25rem, 1.0625rem + 0.75vw, 2.1875rem)` | 400    | 1.7         | Lyric lines, Operator view                                 |
+| `output-line`   | `clamp(2.2rem, 6.5vw, 5rem)`                    | 500    | 1.35        | Output view, every line (lit or dimmed)                    |
 
 ### Principles
 
@@ -639,7 +639,7 @@ view is close enough to the frame to need a smaller unit.
 - **The Library** (Board #28 part 5; SDD-0004 §9). A list of the books held, in
   the default width, the mockup's `Library` header sticking under the switcher
   row as the Finder's field does (title-large, "N books on this device", and a
-  tonal **Load a Book** with a file icon, always there). Never a card per book:
+  tonal **Load Books** with a file icon, always there). Never a card per book:
   **one panel** (`surface-container-low`, 22px, 8px inside), a row per book
   inside it (14px), no borders, in the order added, never reordered, so the
   current book is marked and not hoisted (§ Stability).
@@ -665,7 +665,7 @@ view is close enough to the frame to need a smaller unit.
   - **The menu** is the Menu component with its list kept for one item:
     **Remove…** with "Drops the book and its Recents". A shipped book's is
     disabled, "Shipped with the app".
-  - **From Text** (Board #34; SDD-0004 §9) is a text button left of Load a Book
+  - **From Text** (Board #34; SDD-0004 §9) is a text button left of Load Books
     (its icon dropped under 600px), and a tonal button under the filled one in
     the empty card. It opens the **text sheet**, a tall sheet of the review's
     kind: filled fields (the search field's fill, a 2px `primary` ring on
@@ -675,36 +675,39 @@ view is close enough to the frame to need a smaller unit.
     keyboard), ending in **Other…** to type a code; under it a quiet line,
     "Script: Malayalam (Mlym) · Change", the script derived from the language
     and a field only after Change; then two text areas in the hymn face (the
-    song text, with **Open .txt files**, several at once, and an optional source
-    text, with **Open a .txt**). The id and the optional song number sit under
-    an **Advanced** disclosure, which opens by itself when one of them is asked
-    for. The areas scroll inside themselves (at most 40% of the height); one
-    filled button, **Review the Book**, is pinned at the bottom as the review's
-    is. **Every error is a field error**: the field gets the `error` outline and
-    its helper text turns `error`, under the field. Parse errors are listed
-    under the song text, one line each, "Line 12: message"; "There is no song
-    text." is that field's error too. No callout, no table. The first field in
-    error is scrolled into view. The review that follows is the same sheet, with
-    a **Source check** row in its facts and, when lines differ, a neutral
-    callout and two lists (Added or altered, Dropped), each scrolling inside
-    itself.
-  - **Several books**: Load a Book takes several files at once (Load Again one),
+    song text, with **Open .txt files**, several at once, and the optional
+    **Original text, to check against**, with **Open a .txt** and a hint line:
+    paste the book as printed and Hymnal checks the songs against it). The id
+    and the optional song number sit under an **Advanced** disclosure, which
+    opens by itself when one of them is asked for. The areas scroll inside
+    themselves (at most 40% of the height); one filled button, **Review the
+    Book**, is pinned at the bottom as the review's is. **Every error is a field
+    error**: the field gets the `error` outline and its helper text turns
+    `error`, under the field. Parse errors are listed under the song text, one
+    line each, "Line 12: message"; "There is no song text." is that field's
+    error too. No callout, no table. The first field in error is scrolled into
+    view. The review that follows is the same sheet, with a **Source check** row
+    in its facts and, when lines differ, a neutral callout and two lists (Added
+    or altered, Dropped), each scrolling inside itself.
+  - **Several books**: Load Books takes several files at once (Load Again one),
     and **Open .txt files** joins several `.txt` files into one song text with
     `---` between. The review of several is a queue: the sheet says **Book 2 of
-    5** and the file's name, with **Skip** (throws this one away, writes
-    nothing, shows the next) beside the usual buttons, none on the last; the
-    header reads Close. Finishing or skipping one reads the next; a file that
+    5** and the file's name between **Back** and **Next** chevrons (48px,
+    disabled at the ends; the arrow keys too), so every book can be looked at
+    before any is decided; the header reads Close. A book loaded says **Loaded**
+    in place of its button; loading one shows the next open book. A file that
     cannot be read is said in the list and passed over. Closing the sheet asks
-    nothing and drops the rest.
+    nothing, leaves the open books unloaded and says "2 books not loaded" in a
+    snackbar.
   - **Reading a file**: the picked file's row appears first in the list, a tile,
     "Reading <file>", the line "Checking the file on this device. Nothing is
-    sent anywhere.", an indeterminate bar and Cancel, with Load a Book disabled.
+    sent anywhere.", an indeterminate bar and Cancel, with Load Books disabled.
     No spinner. From an empty Library the empty card turns into the same lines
     in its own shape.
   - **Nothing held** (the first run): the card keeps the skeleton's shape,
-    display-small "No book yet", a body line (what a book is, that it is read on
-    this device and never sent), and the filled **Load a Book**. Find and Go
-    Live are disabled.
+    display-small "Bring your first songbook", one body line (load a file or
+    type one in; it stays on this device), the filled **Load Books** and a tonal
+    **From Text**. Find and Go Live are disabled.
   - **The review** is a sheet, bottom under 840px and centred from it, taller
     than the others (88% of the height), its Cancel pinned, its content
     scrolling and its one action bar sticky. Read-only throughout: the book's

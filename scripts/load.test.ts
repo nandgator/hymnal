@@ -582,6 +582,97 @@ describe("overlapping calls", () => {
     ).toEqual(["a", "b"]);
   });
 
+  describe("a queue looked at out of order (SDD-0004 §9)", () => {
+    it("a book looked at again takes a fresh review, and only the last review's token commits", async () => {
+      const { ctx } = setup();
+      const s = session(ctx);
+      const a1 = await s.review(bytesOf("a"));
+      const b = await s.review(bytesOf("b", other));
+      const a2 = await s.review(bytesOf("a"));
+      // Each review replaced the one before: only the one in view can be committed.
+      expect(await s.commit(a1.token)).toMatchObject({ ok: false, reason: "no-review" });
+      expect(await s.commit(b.token)).toMatchObject({ ok: false, reason: "no-review" });
+      expect(await s.commit(a2.token)).toMatchObject({ ok: true, action: "loaded" });
+      expect(listBooks(ctx).map((x) => x.origin)).toEqual(["a"]);
+    });
+
+    it("books decided in the reverse of their order each load once, whatever was looked at between", async () => {
+      const { ctx, files } = setup();
+      const s = session(ctx);
+      const three = [bytesOf("a"), bytesOf("b", other), bytesOf("c", [hymn(20), hymn(21)])];
+      // Look through all three, Next, Next, then decide from the last back to the first.
+      for (const bytes of three) await s.review(bytes);
+      for (const bytes of [...three].reverse()) {
+        const review = await s.review(bytes);
+        expect(await s.commit(review.token)).toMatchObject({ ok: true, action: "loaded" });
+      }
+      expect(
+        listBooks(ctx)
+          .map((x) => x.origin)
+          .sort(),
+      ).toEqual(["a", "b", "c"]);
+      expect(files.list()).toHaveLength(3);
+    });
+
+    it("a verdict goes stale when an earlier decision changes the books, and the review read again is right", async () => {
+      const { ctx } = setup();
+      const s = session(ctx);
+      // Two editions of one book, looked at before either is loaded: both read as new.
+      const first = await s.review(bytesOf("a", v2));
+      expect(first.verdict).toMatchObject({ kind: "new" });
+      const second = await s.review(bytesOf("a", v3));
+      expect(second.verdict).toMatchObject({ kind: "new" });
+      expect(await s.commit(second.token)).toMatchObject({ ok: true, action: "loaded" });
+      // Back to the first: read again, it is another edition of the book now held.
+      const again = await s.review(bytesOf("a", v2));
+      expect(again.verdict).toMatchObject({ kind: "same-origin" });
+      expect(await s.commit(again.token, "keep-both")).toMatchObject({
+        ok: true,
+        action: "kept-both",
+      });
+      expect(listBooks(ctx)).toHaveLength(2);
+    });
+
+    it("commits run one at a time while the next book is already being reviewed, none touching another's file", async () => {
+      const { ctx, files } = setup();
+      const s = session(ctx);
+      const a = await s.review(bytesOf("a"));
+      // A is being written; B is read and decided, and C's review begins, before A is done.
+      const writingA = s.commit(a.token);
+      const b = await s.review(bytesOf("b", other));
+      const writingB = s.commit(b.token);
+      const c = await s.review(bytesOf("c", [hymn(20), hymn(21)]));
+      const [doneA, doneB] = await Promise.all([writingA, writingB]);
+      expect(doneA).toMatchObject({ ok: true, action: "loaded" });
+      expect(doneB).toMatchObject({ ok: true, action: "loaded" });
+      // C's review, begun during the writes, survives them.
+      expect(await s.commit(c.token)).toMatchObject({ ok: true, action: "loaded" });
+      const keys = listBooks(ctx).map((x) => x.key);
+      expect(new Set(keys).size).toBe(3);
+      expect(files.list().sort()).toEqual(keys.map((k) => `/${k}.1.sqlite3`).sort());
+    });
+
+    it("a failed write keeps its review only while no other has begun", async () => {
+      const { ctx, files } = setup();
+      const s = session(ctx);
+      const a = await s.review(bytesOf("a"));
+      files.failQuery.set("/key-1.1.sqlite3", new Error("disk full"));
+      expect(await s.commit(a.token)).toMatchObject({ ok: false, reason: "failed" });
+      files.failQuery.clear();
+      // Nothing else began: the same review can be committed again.
+      expect(await s.commit(a.token)).toMatchObject({ ok: true });
+      // A review begun while a write fails is kept, not pushed out by the failed one coming back.
+      const b = await s.review(bytesOf("b", other));
+      files.failQuery.set("/key-3.1.sqlite3", new Error("disk full"));
+      const failedB = s.commit(b.token);
+      const c = await s.review(bytesOf("c", [hymn(20), hymn(21)]));
+      expect(await failedB).toMatchObject({ ok: false, reason: "failed" });
+      files.failQuery.clear();
+      expect(await s.commit(b.token)).toMatchObject({ ok: false, reason: "no-review" });
+      expect(await s.commit(c.token)).toMatchObject({ ok: true });
+    });
+  });
+
   it("refuses a Replace choice on a verdict that has no such key, and keeps the review", async () => {
     const { ctx, files } = setup();
     const s = session(ctx);

@@ -154,7 +154,7 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     // The script is not asked for until a language says what it is.
     expect(dialog.queryByLabelText("Script code")).not.toBeInTheDocument();
     expect(dialog.queryByText(/^Script:/)).not.toBeInTheDocument();
-    expect(dialog.getByLabelText(/Source text/)).toBeInTheDocument();
+    expect(dialog.getByLabelText(/Original text, to check against/)).toBeInTheDocument();
     expect(dialog.getByRole("button", { name: /Open \.txt files/ })).toBeInTheDocument();
     expect(dialog.getByRole("button", { name: /Open a \.txt/ })).toBeInTheDocument();
     expect(s.admin.review).not.toHaveBeenCalled();
@@ -205,9 +205,9 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     const { s, dialog } = await openSheet();
     fill(dialog);
     type(dialog, "Song text", SAMPLE);
-    if (source) type(dialog, /Source text/, source);
+    if (source) type(dialog, /Original text, to check against/, source);
     review(dialog);
-    const reviewDialog = within(await screen.findByRole("dialog", { name: "Load a Book" }));
+    const reviewDialog = within(await screen.findByRole("dialog", { name: "Load Books" }));
     return { s, reviewDialog };
   };
 
@@ -216,7 +216,7 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     expect(reviewDialog.getByText("Not checked against a source")).toBeInTheDocument();
     expect(reviewDialog.getByText("A new book")).toBeInTheDocument();
     expect(reviewDialog.getByText("public-domain-sample")).toBeInTheDocument();
-    expect(screen.getByRole("dialog", { name: "Load a Book" })).toHaveTextContent("3 songs");
+    expect(screen.getByRole("dialog", { name: "Load Books" })).toHaveTextContent("3 songs");
     expect(s.admin.commit).not.toHaveBeenCalled();
   });
 
@@ -246,6 +246,8 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     fireEvent.click(reviewDialog.getByRole("button", { name: "Load Book" }));
     await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t1", "keep-both"));
     expect(await screen.findByText("Public Domain Sample")).toBeInTheDocument();
+    // The buttons stay off until the book is written and listed.
+    await waitFor(() => expect(screen.getByRole("button", { name: "From Text" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "From Text" }));
     const dialog = within(await screen.findByRole("dialog", { name: "Book from Text" }));
     expect(dialog.getByLabelText("Song text")).toHaveValue("");

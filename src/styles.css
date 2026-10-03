@@ -3240,10 +3240,40 @@ html[data-scrolling],
   top: var(--switcher-height, 0px);
   z-index: 1;
   display: flex;
-  gap: var(--space-xs);
+  flex-direction: column;
   align-items: stretch;
   padding-block: var(--space-sm);
   background-color: var(--md-sys-color-surface);
+}
+
+.finder-form .text-field {
+  flex: none;
+}
+
+/* The list of matches, while there are none, takes no row of the Finder's gap. */
+.finder > [role="listbox"]:empty {
+  display: none;
+}
+
+/* Which book the field searches: one quiet line under it. Its line-height
+   leaves Malayalam conjuncts room inside the clip. */
+.finder-scope {
+  margin: 0;
+  line-height: 1.6;
+  padding: var(--space-xxs) var(--space-md) 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The line belongs to the field: the gap below the pair is the Finder's own, less a step. */
+.finder-form:has(> .finder-scope) {
+  margin-bottom: calc(-1 * var(--space-xs));
+}
+
+.finder-scope b {
+  color: var(--md-sys-color-on-surface);
+  font-weight: 500;
 }
 
 /* In a sheet: the top of what scrolls, just under the header. */
@@ -4297,6 +4327,28 @@ fieldset.book-main {
   padding: var(--space-sm) var(--space-lg) var(--sheet-pad-bottom);
   background-color: var(--md-sys-color-surface-container-low);
 }
+/* Back and Next in the queue's header, the book's place between them. */
+.review:focus {
+  outline: none;
+}
+.review-queue {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-inline: calc(-1 * var(--space-xs));
+}
+.review-problems {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--md-sys-color-error);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+.review-position-loaded {
+  color: var(--md-sys-color-primary);
+  font-weight: 500;
+}
 .review-position {
   display: flex;
   flex-wrap: wrap;
@@ -4304,6 +4356,10 @@ fieldset.book-main {
   align-items: baseline;
   font-size: 0.8125rem;
   color: var(--md-sys-color-on-surface-variant);
+}
+.review-queue .review-position {
+  flex: 1;
+  min-width: 0;
 }
 .review-position b {
   color: var(--md-sys-color-on-surface);

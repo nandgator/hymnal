@@ -89,7 +89,8 @@ several songs, locations are approximate, because lines are matched across the
 whole source. Page numbers and headings are, and that is fine: it is a list for
 a person to read.
 
-It is optional (`--source`; a book loaded without one is marked "not checked
+It is optional (`--source`; in the Library's From Text it is the field "Original
+text, to check against"; a book loaded without one is marked "not checked
 against a source" in the review). It reports and you decide: it cannot tell a
 dropped stanza from a deliberate cut, and it exits 1 when it finds differences,
 so fix the text and run it again. Be most careful with a book that went through
