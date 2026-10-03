@@ -488,9 +488,10 @@ A hymn file is the domain `Hymn` minus `hymnbookId` (the directory supplies it):
 `number`, `title`, `parts`, `sequence`, `meta`. Source and runtime types are the
 same, so there is no second schema to maintain.
 
-The conversion is a pure function in `scripts/legacy-convert.ts`, unit tested;
-`scripts/migrate-legacy.ts` is the thin filesystem and git wrapper around it.
-Both are kept in the repo as the record of how the corpus was derived:
+The conversion was a one-time step: a pure function in
+`scripts/legacy-convert.ts` with a thin filesystem and git wrapper,
+`scripts/migrate-legacy.ts`. Both are now gone, kept in git history as the
+record of how the corpus was derived:
 
 - Reads the legacy JSON from git history (`155baea`), since `archive/` is gone.
 - **Refuses to run if the output directory exists**, so accumulated corrections
@@ -558,9 +559,11 @@ on a swap; it belongs to a singing, as timestamps do.
 ## 9. Content pipeline
 
 Turns `content/<hymnbook-id>/` into `public/content/<hymnbook-id>.sqlite` (Board
-#5). Run as `bun run build:content`: a plain Bun script, independent of Vite, so
-the future CMS (Board #11) can reuse it. It uses `bun:sqlite`: the spike showed
-FTS5 tokenisation is identical to the browser's SQLite Wasm build
+#5). Run as `bun run build:content` (superseded by SDD-0004 (ADR-0026): the
+songs left the repo and the deploy no longer runs it; the script remains for
+building containers): a plain Bun script, independent of Vite, so the future CMS
+(Board #11) can reuse it. It uses `bun:sqlite`: the spike showed FTS5
+tokenisation is identical to the browser's SQLite Wasm build
 ([ADR-0015](../decisions/0015-use-official-sqlite-wasm-not-wa-sqlite.md)), since
 both are the same C code.
 
@@ -592,11 +595,12 @@ repeated chorus is not weighted up.
 
 **Versioning.** `schema_version` gates compatibility with the application. An
 installed copy older than the app's is replaced by the app's own bundled one,
-once; a copy newer than the app says the app needs an update (ADR-0025, which
-took it to 2). `content_hash` is a SHA-256 over the source files (name and
-bytes, in a fixed order), so any lyric correction changes it and the same source
-always yields the same hash. It is deliberately not a build timestamp:
-rebuilding unchanged content must not look like an update.
+once (superseded by SDD-0004 (ADR-0026): nothing is bundled); a copy newer than
+the app says the app needs an update (ADR-0025, which took it to 2).
+`content_hash` is a SHA-256 over the source files (name and bytes, in a fixed
+order), so any lyric correction changes it and the same source always yields the
+same hash. It is deliberately not a build timestamp: rebuilding unchanged
+content must not look like an update.
 
 ---
 
@@ -631,11 +635,13 @@ On worker startup: `sqlite3.installOpfsSAHPoolVfs()`, then check
 (`new poolUtil.OpfsSAHPoolDb(name)`). If absent — first run, or OPFS was evicted
 (arc42 R4) — fetch the bundled package (a Vite build asset, the exact file §9
 produces) and hand its bytes to `poolUtil.importDb(name, bytes)`, which writes
-it directly; no SQL involved. Phase 1 has one bundled book and no download path
-(scope guard), so this only ever provisions from the build asset, never a
-network fetch of a separate package. Fetched via Vite's
-`import.meta.env.BASE_URL`, not a root-absolute path — the app must still work
-when served from a subpath, e.g. a GitHub Pages project page.
+it directly; no SQL involved. Superseded by SDD-0004 (ADR-0026): nothing is
+bundled, so there is no build asset to provision from; a book arrives as a
+container through the Library. As first written, Phase 1 had one bundled book
+and no download path, so this only ever provisioned from the build asset.
+Fetched via Vite's `import.meta.env.BASE_URL`, not a root-absolute path — the
+app must still work when served from a subpath, e.g. a GitHub Pages project
+page.
 
 A corrupt or partial file is a provisioning failure, reported as a distinct
 state rather than thrown as a generic error, so the app can offer "reinstall
@@ -805,10 +811,11 @@ singleton export.
 ## 12. Library
 
 Board #7. arc42 §5.1 defines Library as "list, install, remove hymnbooks; know
-which are available offline" — but Phase 1 ships exactly one hymnbook, bundled
-at build time, with no download path (§10.2). With nothing to choose between,
-Library is narrowed to the one thing that's real today: the first-run
-provisioning gate.
+which are available offline" — but Phase 1 shipped exactly one hymnbook, bundled
+at build time, with no download path (§10.2; superseded by SDD-0004 (ADR-0026):
+nothing is bundled, every book is loaded through the Library). With nothing to
+choose between, Library is narrowed to the one thing that's real today: the
+first-run provisioning gate.
 
 `src/library/Library.tsx` calls `ContentStore.ensureInstalled` for the one
 bundled `HymnbookId` on mount (a Solid `createResource`), and renders one of
@@ -1000,7 +1007,8 @@ every prior board deliberately left unstyled and undeployed.
 **Deployment.** There was no CI at all — the archived implementation's GitHub
 Pages workflow wasn't carried over. `.github/workflows/deploy.yml` adds one:
 `bun run check` (gate on it — the first CI this project has ever had is not the
-place to skip that), `bun run build:content`, `bun run build`, then the standard
+place to skip that), `bun run build:content` (superseded by SDD-0004 (ADR-0026):
+dropped from the deploy), `bun run build`, then the standard
 `actions/{configure-pages,upload-pages-artifact, deploy-pages}` sequence.
 `vite.config.ts` sets `base: "/hymnal/"` for the production build — GitHub Pages
 serves a project page from that subpath, not the domain root, which is exactly

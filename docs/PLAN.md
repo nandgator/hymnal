@@ -95,11 +95,11 @@ Ordered. Top unblocked item is next.
 | 38  | Search across books: one query over every loaded book (SDD-0001 §16)                                                      | —          |
 | 39  | Private windows: say the books go when the window closes; an in-memory store where OPFS is refused (Firefox private, Tor) | —          |
 
-Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. Next
-phase: the songs leave the repo, and every book, `content/`'s included, comes in
-as an import (format 1 as it is, or a PDF and the like), reversing ADR-0009's
-committed corpus (ADR-0026). 14–15 sit past the scope guard below. 16–25 are
+Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. The
+songs have left the repo (#28 done): nothing is bundled, and every book comes in
+through the Library (ADR-0026). 14–15 sit past the scope guard below. 16–25 are
 notes, not scheduled: the shell reserves room for them (DESIGN.md § Structure).
+37–39 were added from the maintainer's feedback and are not yet scheduled.
 
 ## Invariants
 

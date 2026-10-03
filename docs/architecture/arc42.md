@@ -14,8 +14,8 @@ implied.
 Hymnal presents hymn lyrics on a screen during corporate worship, and lets a
 reader find and follow a hymn on their own device. It presents songs; it doesn't
 publish them. Songs come from what the user imports, kept on their device, and
-from public-domain books that ship with it
-([ADR-0020](../decisions/0020-present-songs-do-not-publish-them.md)).
+from books the user loads, never bundled with the app
+([ADR-0020](../decisions/0020-present-songs-do-not-publish-them.md), ADR-0026).
 
 The existing implementation (now under [`archive/`](../../archive/)) generated
 1,631 frozen HTML slide decks at build time. Every hymn was a static file, the
@@ -134,18 +134,20 @@ flowchart LR
     Host -.->|hymnbook package, on demand| App
 ```
 
-The dotted edge is the only external dependency at runtime, and it is optional:
-the core hymnbook ships inside the application
-([ADR-0007](../decisions/0007-bundle-the-core-hymnbook.md)).
+The dotted edge is the only external dependency at runtime, and it is optional.
+Superseded by SDD-0004 (ADR-0026): nothing is bundled, so no hymnbook ships
+inside the application (was
+[ADR-0007](../decisions/0007-bundle-the-core-hymnbook.md)); books are loaded
+from container files through the Library.
 
 ### 3.2 Technical Context
 
-| Interface        | Direction    | Protocol               | Notes                                       |
-| ---------------- | ------------ | ---------------------- | ------------------------------------------- |
-| Hymnbook package | Host → App   | HTTPS GET, static file | Prebuilt SQLite; only for non-bundled books |
-| Content store    | App ↔ Device | OPFS                   | Installed hymnbooks                         |
-| User state       | App ↔ Device | IndexedDB              | Preferences, recents, last position         |
-| Bundled hymnbook | Build → App  | Build asset            | Malayalam YMEF 16th ed.                     |
+| Interface        | Direction    | Protocol               | Notes                                        |
+| ---------------- | ------------ | ---------------------- | -------------------------------------------- |
+| Hymnbook package | Host → App   | HTTPS GET, static file | Superseded (ADR-0026): no host fetch         |
+| Content store    | App ↔ Device | OPFS                   | Installed hymnbooks                          |
+| User state       | App ↔ Device | IndexedDB              | Preferences, recents, last position          |
+| Container file   | User → App   | File pick or drop      | A book loaded through the Library (SDD-0004) |
 
 ### 3.3 Out of Scope
 
@@ -375,8 +377,7 @@ flowchart TB
         Build[Build + content pipeline]
     end
     subgraph Host["Static host"]
-        AppBundle[App bundle + bundled hymnbook]
-        Extra[[Additional hymnbook packages]]
+        AppBundle[App bundle, no hymnbook]
     end
     subgraph Device["Device"]
         Browser[Browser / installed PWA]
@@ -526,7 +527,7 @@ clickers actually send.
 | [0004](../decisions/0004-build-a-responsive-web-application.md)              | Build a responsive web application                         | Accepted                                                                          |
 | [0005](../decisions/0005-use-solidjs.md)                                     | Use SolidJS as the frontend framework                      | Accepted                                                                          |
 | [0006](../decisions/0006-defer-the-native-wrapper-decision.md)               | Defer the native wrapper decision                          | Deferred                                                                          |
-| [0007](../decisions/0007-bundle-the-core-hymnbook.md)                        | Bundle the core hymnbook, download additional books        | Accepted                                                                          |
+| [0007](../decisions/0007-bundle-the-core-hymnbook.md)                        | Bundle the core hymnbook, download additional books        | Superseded by ADR-0026                                                            |
 | [0008](../decisions/0008-sqlite-as-the-on-device-content-store.md)           | SQLite as the on-device content store                      | Superseded by [0015](../decisions/0015-use-official-sqlite-wasm-not-wa-sqlite.md) |
 | [0009](../decisions/0009-migrate-the-corpus-by-rule.md)                      | Migrate the corpus by rule, refine in place                | Superseded by [0026](../decisions/0026-songs-leave-the-repository.md)             |
 | [0010](../decisions/0010-model-liveness-as-pluggable-follow-sources.md)      | Model liveness as pluggable follow sources                 | Accepted                                                                          |
