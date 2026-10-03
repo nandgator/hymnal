@@ -11,7 +11,7 @@ import type {
   PartKind,
   SequenceEntry,
 } from "../domain/types.ts";
-import { download, type InstallProgress } from "./download.ts";
+import type { InstallProgress } from "./download.ts";
 import { type Choice, type CommitResult, type LoadReview, LoadSession } from "./load.ts";
 import type { Sql, Value } from "./package-io.ts";
 import { guardPoolDirectories, poolHandlesFree, startPool } from "./pool-init.ts";
@@ -69,11 +69,6 @@ export interface ContentStore {
 const filenameFor = (id: HymnbookId) => `/${id}.sqlite3`;
 
 const SEARCH_LIMIT = 30;
-
-// "SQLite format 3\0" — https://www.sqlite.org/fileformat2.html#the_database_header
-const SQLITE_HEADER = [
-  0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00,
-];
 
 /** Books and the registry, for the Library and the dev hook (SDD-0004 §10). */
 export interface ContentAdmin {
@@ -395,45 +390,19 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
 
   ensureInstalled(
     id: HymnbookId,
-    onProgress?: (progress: InstallProgress) => void,
+    _onProgress?: (progress: InstallProgress) => void,
   ): Promise<ContentStatus> {
-    return this.#track(this.#install(id, onProgress));
+    return this.#track(this.#install(id));
   }
 
-  async #install(
-    id: HymnbookId,
-    onProgress?: (progress: InstallProgress) => void,
-    replacing = false,
-  ): Promise<ContentStatus> {
+  async #install(id: HymnbookId): Promise<ContentStatus> {
     const pool = await this.#poolReady;
     const ctx = await this.#ready; // null if the registry is unavailable: the book opens regardless
     const filename = filenameFor(id);
-    let fetched = false;
 
-    // The dev server re-imports on every load, so a rebuilt package (or a
-    // content-local/ test hymn) shows on reload; released builds install once.
-    const installed = pool.getFileNames().includes(filename);
-    if (replacing || !installed || (import.meta.env.DEV && !this.#conns.has(filename))) {
-      // BASE_URL, not a root-absolute path — a GitHub Pages *project* page
-      // serves from a subpath, not the domain root.
-      const response = await fetch(`${import.meta.env.BASE_URL}content/${id}.sqlite`);
-      if (!response.ok) return { state: "missing-asset" };
-      const bytes = await download(response, onProgress);
-      // A dev-server SPA fallback (or misconfigured host) can answer a
-      // missing asset with a 200 of something else entirely — check the
-      // actual SQLite file header rather than trusting response.ok alone.
-      if (!SQLITE_HEADER.every((byte, i) => bytes[i] === byte)) {
-        return { state: "missing-asset" };
-      }
-      try {
-        this.#close(filename);
-        await pool.reserveMinimumCapacity(pool.getFileCount() + INSTALL_SPARE_SLOTS);
-        await pool.importDb(filename, bytes);
-        fetched = true;
-      } catch {
-        return { state: "corrupt" };
-      }
-    }
+    // Nothing ships (ADR-0026, SDD-0004 §13 part 6): a book is on the device
+    // already, or it is not held. There is no bundle to fetch it from.
+    if (!pool.getFileNames().includes(filename)) return { state: "missing-asset" };
 
     const db = this.#conn(pool, filename);
 
@@ -444,23 +413,14 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
       // fall through — undefined means corrupt, same as an empty result
     }
     if (found === undefined) return { state: "corrupt" };
-    // A copy installed by an earlier app is replaced by the one this app
-    // ships (ADR-0025), once: if the shipped one is old too, that's said.
-    if (found < SCHEMA_VERSION && !replacing) {
-      this.#close(filename);
-      return this.#install(id, onProgress, true);
-    }
     if (found !== SCHEMA_VERSION)
       return { state: "schema-mismatch", found, expected: SCHEMA_VERSION };
-    // The book is held: register it (SDD-0004 §13, part 3). A copy just
-    // installed, or one with no row, is indexed from its file.
+    // The book is held: register it if it has no row (SDD-0004 §13, part 3).
     // Registering is best effort: a registry fault never fails a book that opens.
     if (ctx) {
       try {
         const row = listBooks(ctx).find((book) => book.file === filename);
-        if (fetched || !row || row.state !== "ok") {
-          await indexPackage(ctx, filename, SHIPPED_BOOK_IDS.includes(id) ? "shipped" : "loaded");
-        }
+        if (!row || row.state !== "ok") await indexPackage(ctx, filename, "loaded");
       } catch (error) {
         console.warn(`${id}: not registered:`, error);
       }

@@ -36,16 +36,18 @@ yarn-debug.log*
 yarn-error.log*
 bun-debug.log*
 
-# Local test hymns, merged into a hymnbook by build:content on this machine
-# only: never committed, never deployed (see scripts/build-content.ts).
+# The Malayalam book's source lives on the maintainer's machine only, backed up
+# there (ADR-0026). The songs are not in this repository.
+content/
+
+# Local test hymns: never committed, never deployed.
 content-local/
 
 # Song import drafts (SDD-0003 §5). Imported lyrics are usually under
-# copyright: reviewed by hand, moved into content/ only if rights allow.
+# copyright: reviewed by hand, packed into a container and loaded (ADR-0026).
 imports/
 
 # Generated hymnbook packages. Built by the content pipeline, never committed.
-# The corpus itself is source and IS committed.
 *.sqlite
 *.sqlite-journal
 *.sqlite-wal

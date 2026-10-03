@@ -660,9 +660,11 @@ Each part is built and reviewed on its own, in order. Each ends with
    screenshots at 390x844 and in the dark theme, with the worst cases: a title
    that just fits, a Malayalam title with glyph overhang, wide song counts, a
    long list. The empty first run is looked at.
-6. **The songs leave** (ADR-0026), last, once the maintainer has loaded the
-   Malayalam container through the Library. What depends on `content/` today,
-   from a search of the tree, and what happens to each:
+6. **The songs leave** (ADR-0026) — **done, pending the user** (prepared on the
+   branch `board-songsleave`; it lands once the maintainer has loaded the
+   container on their device and says go). Last, once the maintainer has loaded
+   the Malayalam container through the Library. What depends on `content/`
+   today, from a search of the tree, and what happens to each:
 
    | Depends                                   | On                                                       | Then                                                                                    |
    | ----------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------- |

@@ -228,34 +228,3 @@ describe("buildContent", () => {
     expect(existsSync(join(outDir, `${BOOK_ID}.sqlite`))).toBe(false);
   });
 });
-
-describe("local overlay (content-local/)", () => {
-  it("adds its test hymns to the book, validated with the rest", () => {
-    seed();
-    const overlayDir = join(root, "content-local", BOOK_ID);
-    mkdirSync(overlayDir, { recursive: true });
-    writeFileSync(join(overlayDir, "9001.json"), JSON.stringify(hymn(9001, ["Test", "line"])));
-
-    const result = buildContent({ contentDir, outDir, overlayDir });
-    expect(result.violations).toEqual([]);
-    const db = open(result.outFile as string);
-    expect(count(db, "hymn")).toBe(3);
-    db.close();
-  });
-
-  it("rejects a test hymn that clashes with a real number", () => {
-    seed();
-    const overlayDir = join(root, "content-local", BOOK_ID);
-    mkdirSync(overlayDir, { recursive: true });
-    writeFileSync(join(overlayDir, "0001.json"), JSON.stringify(hymn(1, ["Clash", "line"])));
-
-    const result = buildContent({ contentDir, outDir, overlayDir });
-    expect(result.violations.map((v) => v.rule)).toContain("I7");
-  });
-
-  it("builds as before without one", () => {
-    seed();
-    const result = buildContent({ contentDir, outDir, overlayDir: join(root, "nowhere") });
-    expect(result.violations).toEqual([]);
-  });
-});

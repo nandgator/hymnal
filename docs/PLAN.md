@@ -29,13 +29,12 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 ## Now
 
 **Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
-**Next: Board #28**: ADR-0026/0027 are accepted; its parts are in SDD-0004.
-Parts 1 (`bun run pack`), 2 (the reader, hashes, keys), 3 (schema 3, the
-registry), 4 (the verdict, review and commit, Replace, remove) and 5 (the
-Library) are done; part 6, the songs leave, next, once the Malayalam container
-has been loaded through the Library. It needs #27's parts 1–5, not the judge.
-#27 part 6, the Laya judge, runs last, on another machine or a Codespace (this
-one is short of memory).
+**Board #28 is done**: ADR-0026/0027, SDD-0004, all six parts. The songs have
+left the repository; every book, the Malayalam one included, is loaded as a
+container through the Library. Rewriting history to drop the songs from old
+commits is the maintainer's own later step (ADR-0026). #27 part 6, the Laya
+judge, runs last, on another machine or a Codespace (this one is short of
+memory).
 
 **Board #27 (song import, CLI)**: it touches no UI. Target: _Hymns of
 Fellowship_ (`Song Book Final.pdf`; `Songs.pdf` differs only in its index), the
@@ -68,8 +67,8 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 | Tooling | bun, biome, prettier, markdownlint — `bun run check` green               |
 | App     | Vite + SolidJS + TS scaffolded; vitest chosen as test runner             |
 | Domain  | Types, Sequence Engine, validation (`src/domain/`) — pure, tested        |
-| Corpus  | 1,631 hymns migrated to `content/`; 12 flagged for hand review           |
-| Content | `bun run build:content` builds `public/content/*.sqlite`, FTS5 + hash    |
+| Corpus  | 1,631 hymns migrated; kept on the maintainer's machine, not in git       |
+| Content | Books load as containers through the Library; nothing ships (ADR-0026)   |
 | Persist | Content store (SQLite/OPFS, worker) + user state (idb) — SDD-0001 §10-11 |
 | UI      | Library → Finder → Operator + Output window, MD3 — SDD-0001 §12-16       |
 | Deploy  | GitHub Actions → GitHub Pages, PWA shell, offline — SDD-0001 §15         |
@@ -78,21 +77,20 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                                            | Blocked by |
-| --- | ----------------------------------------------------------------------------------------------- | ---------- |
-| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                | —          |
-| 28  | Library: load songs and books in format 1, local only; keys, duplicates (SDD-0004, ADR-0026/27) | —          |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                     | —          |
-| 15  | Transliteration: search and display across scripts (ADR-0014)                                   | —          |
-| 16  | Feedback and corrections from users — where collected: TBD                                      | —          |
-| 17  | About: acknowledgements, copyright, credits                                                     | —          |
-| 18  | Over-the-air update notices (as Supabase announces changes)                                     | —          |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                 | 28         |
-| 21  | Hold: freeze the Output on what's showing, navigate, release                                    | —          |
-| 22  | Service queue: line up hymns for a service (a supporting pane)                                  | —          |
-| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved                       | 22         |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                      | Phase 2    |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                   | content    |
+| #   | Task                                                                      | Blocked by |
+| --- | ------------------------------------------------------------------------- | ---------- |
+| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                          | —          |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)               | —          |
+| 15  | Transliteration: search and display across scripts (ADR-0014)             | —          |
+| 16  | Feedback and corrections from users — where collected: TBD                | —          |
+| 17  | About: acknowledgements, copyright, credits                               | —          |
+| 18  | Over-the-air update notices (as Supabase announces changes)               | —          |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)           | 28         |
+| 21  | Hold: freeze the Output on what's showing, navigate, release              | —          |
+| 22  | Service queue: line up hymns for a service (a supporting pane)            | —          |
+| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved | 22         |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                | Phase 2    |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation             | content    |
 
 Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. Next
 phase: the songs leave the repo, and every book, `content/`'s included, comes in
@@ -134,6 +132,14 @@ only, here:
 
 ## Log
 
+- 2026-10-03 — #28 done: part 6 landed after the maintainer loaded the Malayalam
+  container on the same origin and the shipped copy was adopted as loaded, same
+  key, Recents kept
+- 2026-10-02 — #28 part 6 prepared, waits for the maintainer's load: `content/`
+  removed from the tree and ignored, `build:content` out of the deploy (the
+  script stays, taking a directory), `migrate-legacy` and the corpus test gone,
+  `SHIPPED_BOOK_IDS` empty, `ensureInstalled` fetches nothing. Branch
+  `board-songsleave`, not landed
 - 2026-10-02 — #36 done: a second tab shows "Hymnal is open in another tab" with
   Use here; the store is owned through a Web Lock (`src/shell/tabLock.ts`,
   `TabGate`), released on request unless an Output is live; SDD-0001 §10.4

@@ -332,10 +332,9 @@ Fetch package → verify → write to OPFS → register in Library → available
 offline. Failure at any step leaves the previous state intact; a partially
 written book is never registered.
 
-Implemented for the one bundled book: `ContentStore.ensureInstalled` (SDD-0001
-§10.2) is this flow — fetch the bundled asset, verify the SQLite header and
-schema version, import to OPFS. Library (SDD-0001 §12) runs it on every launch
-and surfaces a failure as a retryable error rather than crashing.
+Superseded by SDD-0004 (ADR-0026): nothing is bundled or fetched. A book is
+loaded from a container file through the Library; `ContentStore.ensureInstalled`
+only opens a package already on the device.
 
 `OPEN:` A real install/remove flow and list UI, once a second hymnbook exists;
 storage-eviction recovery (§11); Phase 2 audio follow.
@@ -394,8 +393,8 @@ flowchart TB
 ```
 
 Single artifact, static hosting, no runtime infrastructure. A service worker
-makes the app itself available offline; the bundled hymnbook means a first run
-with no network is still useful.
+makes the app itself available offline; a first run has no book until one is
+loaded from a file (ADR-0026), after which it works with no network.
 
 Implemented in Board #10 (SDD-0001 §15): `.github/workflows/deploy.yml` builds
 and deploys to GitHub Pages on every push to `main`, gated on `bun run check`.

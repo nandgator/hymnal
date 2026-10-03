@@ -29,7 +29,6 @@ jobs:
           node-version-file: .node-version
       - run: bun install --frozen-lockfile
       - run: bun run check
-      - run: bun run build:content
       - run: bun run build
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5

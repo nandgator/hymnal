@@ -96,9 +96,9 @@ export interface Books {
 }
 
 /**
- * The books held (SDD-0004 §9, §10). Lists the registry, and installs a shipped
- * book that is not held yet, as the first run always has: that is the one
- * download left, and it goes with the bundle (part 6).
+ * The books held (SDD-0004 §9, §10). Lists the registry. A shipped book that is
+ * not held would be installed first, but nothing ships (ADR-0026), so
+ * `SHIPPED_BOOK_IDS` is empty and the first run is the empty Library.
  */
 export function createBooks(
   admin: Pick<LibraryAdmin, "listBooks">,

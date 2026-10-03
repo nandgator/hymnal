@@ -52,12 +52,11 @@ export default defineConfig(({ command, isPreview }) => ({
       // shell offers Restart, never while the Output is live (SDD-0001 §15,
       // PLAN Board #32). autoUpdate skipped waiting and reloaded at once.
       registerType: "prompt",
-      // The bundled hymnbook (public/content/*.sqlite) is fetched once by
-      // ContentStore and persisted to OPFS itself (SDD-0001 §10) — it must
-      // not also sit in the service worker's precache, which exists only to
-      // make the app shell (JS/CSS/fonts/wasm) available offline (arc42 §7,
-      // §8.5: content and app-shell caching are deliberately separate
-      // lifecycles). wasm is the app shell, not content — sqlite3's own
+      // Books are loaded into OPFS by the content store (SDD-0004), never
+      // precached: the service worker's precache exists only to make the app
+      // shell (JS/CSS/fonts/wasm) available offline (arc42 §7, §8.5: content
+      // and app-shell caching are deliberately separate lifecycles). Nothing
+      // ships under content/ now (ADR-0026); the glob stays for a sample. wasm is the app shell, not content — sqlite3's own
       // binary, without which nothing else works — and was missing here
       // until offline testing against a real build caught it.
       workbox: {

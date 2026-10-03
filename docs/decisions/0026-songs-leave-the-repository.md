@@ -1,6 +1,8 @@
 # 0026 — Songs leave the repository
 
-- **Status:** Accepted
+- **Status:** Accepted. Part 6 (SDD-0004 §13) is prepared on a branch and waits
+  for the maintainer to load the Malayalam container on a device; it does not
+  land before.
 - **Date:** 2026-10-02
 - **Supersedes:** [ADR-0009](0009-migrate-the-corpus-by-rule.md)
 

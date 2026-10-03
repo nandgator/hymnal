@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
@@ -118,27 +118,6 @@ export function buildPackage({ hymnbook, hymns, contentHash, outFile }: PackageI
   renameSync(staging, outFile);
 }
 
-/**
- * Adds a local overlay's hymns to a loaded hymnbook: `content-local/<id>/`,
- * git-ignored, for test hymns that must never be committed or deployed (CI
- * builds from the repo, where it doesn't exist). Its hymns are validated
- * with the book's, so a clash with a real number is caught; the book's
- * count grows to match.
- */
-export function addOverlay(loaded: LoadedContent, overlayDir: string): number {
-  if (!existsSync(overlayDir)) return 0;
-  const overlay = loadContent(overlayDir);
-  const hymns = overlay.files;
-  loaded.files.push(...hymns);
-  loaded.sources.push(...overlay.sources.filter((s) => s.name !== HYMNBOOK_FILE));
-  loaded.violations.push(...overlay.violations.filter((v) => v.rule !== "missing-file"));
-  const book = loaded.hymnbook as { hymnCount?: unknown } | undefined;
-  if (book && typeof book.hymnCount === "number") {
-    loaded.hymnbook = { ...book, hymnCount: book.hymnCount + hymns.length };
-  }
-  return hymns.length;
-}
-
 /** Every violation of a loaded book: the load's own, the corpus rules, and an
  * id that does not match its directory name. Shared by build and pack. */
 export function bookViolations(loaded: LoadedContent, dir: string): Violation[] {
@@ -156,18 +135,9 @@ export function bookViolations(loaded: LoadedContent, dir: string): Violation[] 
 }
 
 /** Loads, validates and (only if nothing is wrong) builds one hymnbook
- * directory, with its local overlay if there is one. */
-export function buildContent({
-  contentDir,
-  outDir,
-  overlayDir,
-}: {
-  contentDir: string;
-  outDir: string;
-  overlayDir?: string;
-}) {
+ * directory. */
+export function buildContent({ contentDir, outDir }: { contentDir: string; outDir: string }) {
   const loaded = loadContent(contentDir);
-  const local = overlayDir ? addOverlay(loaded, overlayDir) : 0;
   const violations = bookViolations(loaded, contentDir);
 
   if (violations.length > 0) return { violations } satisfies BuildResult;
@@ -180,34 +150,32 @@ export function buildContent({
     contentHash,
     outFile,
   });
-  return { violations, outFile, contentHash, local } satisfies BuildResult & { local: number };
+  return { violations, outFile, contentHash } satisfies BuildResult;
 }
 
 if (import.meta.main) {
+  // A tool, not a deploy step: nothing ships today (ADR-0026). It builds the
+  // package of each directory named, for a sample once one exists.
+  const dirs = process.argv.slice(2);
+  if (dirs.length === 0) {
+    console.error("usage: bun run build:content <book-dir>...");
+    process.exit(1);
+  }
   const root = fileURLToPath(new URL("..", import.meta.url));
-  const contentRoot = join(root, "content");
   // public/ is copied verbatim into the Vite build and served as-is in dev;
   // dist/ is emptied on every `vite build` and doesn't exist in dev at all.
   const outDir = join(root, "public", "content");
-  const dirs = existsSync(contentRoot)
-    ? readdirSync(contentRoot, { withFileTypes: true }).filter((d) => d.isDirectory())
-    : [];
 
   let failed = false;
   for (const dir of dirs) {
-    const result = buildContent({
-      contentDir: join(contentRoot, dir.name),
-      outDir,
-      overlayDir: join(root, "content-local", dir.name),
-    });
+    const name = basename(resolve(dir));
+    const result = buildContent({ contentDir: resolve(dir), outDir });
     if (result.violations.length > 0) {
       failed = true;
-      console.error(`${dir.name}: ${result.violations.length} violation(s)`);
+      console.error(`${name}: ${result.violations.length} violation(s)`);
       for (const v of result.violations) console.error(`  [${v.rule}] ${v.where}: ${v.message}`);
     } else {
-      console.log(`${dir.name}: built ${result.outFile}`);
-      if ("local" in result && result.local)
-        console.log(`  + ${result.local} local test hymn(s) from content-local/ (never deployed)`);
+      console.log(`${name}: built ${result.outFile}`);
       console.log(`  content_hash ${result.contentHash}`);
     }
   }

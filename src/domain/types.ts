@@ -67,12 +67,12 @@ export interface Hymn {
   meta: HymnMeta;
 }
 
-/** `hymnbook.json` as stored in content/: the book, plus its format (SDD-0002). */
+/** `hymnbook.json` as stored in a book directory: the book, plus its format (SDD-0002). */
 export interface HymnbookSource extends Hymnbook {
   format: number;
 }
 
-/** A hymn as stored in content/: the directory supplies `hymnbookId`. */
+/** A hymn as stored in a book directory: the directory supplies `hymnbookId`. */
 export type HymnSource = Omit<Hymn, "hymnbookId">;
 
 /** Derived from the sequence, never stored — see SDD-0001 §2.2. */

@@ -71,6 +71,11 @@ is the input to the corpus migration (Board #4). Recover it with:
 git checkout 155baea -- archive/data/lyrics/mal
 ```
 
+The migrated corpus, once committed as `content/`, has left the tree too
+([ADR-0026](docs/decisions/0026-songs-leave-the-repository.md)): the repository
+holds the pipeline, not anyone's songs. `content/` is ignored and lives only on
+the maintainer's machine; books come into the app as files, through the Library.
+
 ## Licence
 
 The code is licensed under [Apache-2.0](LICENSE)
