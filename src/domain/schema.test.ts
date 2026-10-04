@@ -149,6 +149,7 @@ describe("the container schema", () => {
 });
 
 describe("the published schemas", () => {
+  // Imports the whole Vite config (plugins, PWA) cold: seconds, not a race.
   it("are emitted by the build plugin at their public URLs", async () => {
     const { default: config } = await import("../../vite.config.ts");
     const resolved =
@@ -173,5 +174,5 @@ describe("the published schemas", () => {
       );
       expect(f.source.equals(source)).toBe(true);
     }
-  });
+  }, 30_000);
 });
