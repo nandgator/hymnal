@@ -79,7 +79,7 @@ import { moveOutputTo, openOutputWindow } from "./shell/openOutput.ts";
 import { createOutputScreens, mayHaveSecondScreen } from "./shell/outputScreens.ts";
 import { isPaneShown, PANES, type PaneId } from "./shell/panes.ts";
 import { canAdjustScale, createPreferences, OUTPUT_CUES, Settings } from "./shell/Settings.tsx";
-import { Sheet } from "./shell/Sheet.tsx";
+import { Sheet, type SheetPage } from "./shell/Sheet.tsx";
 import { SnackbarHost, type SnackbarProps } from "./shell/Snackbar.tsx";
 import { SwapLabel } from "./shell/SwapLabel.tsx";
 import { installScrollReveal } from "./shell/scrollReveal.ts";
@@ -227,10 +227,10 @@ function Operator(props: Shared) {
   const [bookPickerOpen, setBookPickerOpen] = createSignal(false);
   const [hymnPickerOpen, setHymnPickerOpen] = createSignal(false);
   const [commandMenuOpen, setCommandMenuOpen] = createSignal(false);
-  const [shortcutsOpen, setShortcutsOpen] = createSignal(false);
-  // The sheet the shortcut sheet was opened from, if any: its Close then
-  // reads Back and returns there.
-  const [shortcutsReturn, setShortcutsReturn] = createSignal<(open: boolean) => void>();
+  // Keyboard Shortcuts is a page inside the Settings or Menu sheet, not a
+  // sheet of its own: pushed from its row (Back returns), or `direct` when
+  // the sheet was opened on it (? and the command), where it says Close.
+  const [shortcuts, setShortcuts] = createSignal<{ host: "settings" | "menu"; direct: boolean }>();
 
   // H: light the whole song, or only the current part, live.
   const toggleHighlight = () => {
@@ -689,7 +689,7 @@ function Operator(props: Shared) {
     setBookPickerOpen(false);
     setHymnPickerOpen(false);
     setCommandMenuOpen(false);
-    setShortcutsOpen(false);
+    setShortcuts(undefined);
   };
   const openSheet = (open: (value: boolean) => void) => {
     closeSheets();
@@ -807,15 +807,39 @@ function Operator(props: Shared) {
     openSheet(setCommandMenuOpen);
   };
 
-  const showShortcuts = (from?: (open: boolean) => void) => {
-    openSheet(setShortcutsOpen);
-    setShortcutsReturn(() => from);
+  const showShortcuts = (from?: "settings" | "menu") => {
+    // From the row, or with Settings or the Menu already open: push the page.
+    const host = from ?? (menuOpen() ? "menu" : settingsOpen() ? "settings" : undefined);
+    if (host) return setShortcuts({ host, direct: false });
+    batch(() => {
+      openSheet(setSettingsOpen);
+      setShortcuts({ host: "settings", direct: true });
+    });
   };
-  const closeShortcuts = () => {
-    const back = shortcutsReturn();
-    setShortcutsReturn(undefined);
-    if (back) openSheet(back);
-    else setShortcutsOpen(false);
+  const shortcutsPage = (host: "settings" | "menu"): SheetPage | undefined => {
+    const open = shortcuts();
+    if (open?.host !== host) return undefined;
+    return {
+      id: "shortcuts",
+      title: "Keyboard Shortcuts",
+      direct: open.direct,
+      content: () => (
+        <table class="shortcut-table">
+          <tbody>
+            <For each={SHORTCUTS}>
+              {(shortcut) => (
+                <tr>
+                  <th scope="row" class="shortcut-keys">
+                    <For each={shortcut.keys}>{(key) => <KeyCombo keys={key} />}</For>
+                  </th>
+                  <td class="body-large">{shortcut.label}</td>
+                </tr>
+              )}
+            </For>
+          </tbody>
+        </table>
+      ),
+    };
   };
 
   // The command menu's actions (SDD-0001 §16.5), each with its key.
@@ -1395,29 +1419,6 @@ function Operator(props: Shared) {
         </Sheet>
 
         <Sheet
-          open={shortcutsOpen()}
-          onClose={closeShortcuts}
-          closeLabel={shortcutsReturn() ? "Back" : undefined}
-          title="Keyboard Shortcuts"
-          placement={expanded() ? "center" : "bottom"}
-        >
-          <table class="shortcut-table">
-            <tbody>
-              <For each={SHORTCUTS}>
-                {(shortcut) => (
-                  <tr>
-                    <th scope="row" class="shortcut-keys">
-                      <For each={shortcut.keys}>{(key) => <KeyCombo keys={key} />}</For>
-                    </th>
-                    <td class="body-large">{shortcut.label}</td>
-                  </tr>
-                )}
-              </For>
-            </tbody>
-          </table>
-        </Sheet>
-
-        <Sheet
           open={bookPickerOpen()}
           onClose={() => setBookPickerOpen(false)}
           title="Hymnbooks"
@@ -1466,7 +1467,13 @@ function Operator(props: Shared) {
         </div>
         <SnackbarHost notice={snackbar()} />
 
-        <Sheet open={menuOpen()} onClose={() => setMenuOpen(false)} title="Menu">
+        <Sheet
+          open={menuOpen()}
+          onClose={() => setMenuOpen(false)}
+          title="Menu"
+          page={shortcutsPage("menu")}
+          onBack={() => setShortcuts(undefined)}
+        >
           <nav aria-label="Sections">
             <ul
               class="list glide-list"
@@ -1485,7 +1492,7 @@ function Operator(props: Shared) {
           <Settings
             controller={preferences}
             screens={screens}
-            onShowShortcuts={() => showShortcuts(setMenuOpen)}
+            onShowShortcuts={() => showShortcuts("menu")}
           />
         </Sheet>
 
@@ -1494,11 +1501,13 @@ function Operator(props: Shared) {
           onClose={() => setSettingsOpen(false)}
           title="Settings"
           placement={expanded() ? "center" : "bottom"}
+          page={shortcutsPage("settings")}
+          onBack={() => setShortcuts(undefined)}
         >
           <Settings
             controller={preferences}
             screens={screens}
-            onShowShortcuts={() => showShortcuts(setSettingsOpen)}
+            onShowShortcuts={() => showShortcuts("settings")}
           />
         </Sheet>
       </div>

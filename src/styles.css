@@ -3431,6 +3431,153 @@ html[data-scrolling],
   background-color: var(--md-sys-color-surface-container-low);
 }
 
+/* Sheet pages: a page pushed inside a sheet (Settings, Keyboard Shortcuts)
+   is one dialog whose content slides, never a second dialog (DESIGN.md §
+   Motion). The tab switch's timing (tab-in: 250ms, the emphasised easing,
+   a fade) with the rolling number's travel and 2px blur: the new page comes
+   from the inline-end, the old one steps a little toward the inline-start,
+   and the pages' box eases its height between the two. */
+.sheet-pages {
+  --sheet-flip: 1;
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sheet-pages:dir(rtl) {
+  --sheet-flip: -1;
+}
+
+.sheet-pages > .sheet-content {
+  flex: 1;
+}
+
+.sheet-page-off {
+  display: none;
+}
+
+.sheet-page-leaving {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  flex: none;
+  pointer-events: none;
+}
+
+.sheet-pages[data-sliding] {
+  flex: none;
+  animation: sheet-pages-height var(--motion-medium) var(--motion-emphasized) both;
+}
+
+.sheet-pages[data-sliding] > .sheet-content {
+  overflow: hidden;
+}
+
+.sheet-pages[data-sliding="push"] > .sheet-page:not(.sheet-page-leaving) {
+  animation: sheet-page-in-end var(--motion-medium) var(--motion-emphasized) backwards;
+}
+
+.sheet-pages[data-sliding="push"] > .sheet-page-leaving {
+  animation: sheet-page-out-start var(--motion-medium) var(--motion-emphasized) forwards;
+}
+
+.sheet-pages[data-sliding="pop"] > .sheet-root {
+  animation: sheet-page-in-start var(--motion-medium) var(--motion-emphasized) backwards;
+}
+
+.sheet-pages[data-sliding="pop"] > .sheet-page-leaving {
+  animation: sheet-page-out-end var(--motion-medium) var(--motion-emphasized) forwards;
+}
+
+@keyframes sheet-pages-height {
+  from {
+    height: var(--sheet-from);
+  }
+
+  to {
+    height: var(--sheet-to);
+  }
+}
+
+@keyframes sheet-page-in-end {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    translate: calc(var(--sheet-flip) * 2.5rem) 0;
+  }
+}
+
+@keyframes sheet-page-in-start {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    translate: calc(var(--sheet-flip) * -1.5rem) 0;
+  }
+}
+
+@keyframes sheet-page-out-start {
+  to {
+    opacity: 0;
+    filter: blur(2px);
+    translate: calc(var(--sheet-flip) * -1.5rem) 0;
+  }
+}
+
+@keyframes sheet-page-out-end {
+  to {
+    opacity: 0;
+    filter: blur(2px);
+    translate: calc(var(--sheet-flip) * 2.5rem) 0;
+  }
+}
+
+/* The header's title cross-fades with the page. */
+.sheet-titles {
+  display: grid;
+  min-width: 0;
+}
+
+.sheet-title {
+  grid-area: 1 / 1;
+  transition: opacity var(--motion-medium) var(--motion-standard);
+}
+
+.sheet-title:focus {
+  outline: none;
+}
+
+.sheet-title-page {
+  opacity: 0;
+  animation: fade-in var(--motion-medium) var(--motion-standard);
+}
+
+.sheet-titles-nested > .sheet-title:not(.sheet-title-page) {
+  opacity: 0;
+}
+
+.sheet-titles-nested > .sheet-title-page {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* A crossfade: no travel, no blur, no height glide. */
+  .sheet-pages[data-sliding] {
+    animation: none;
+  }
+
+  .sheet-pages[data-sliding="push"] > .sheet-page:not(.sheet-page-leaving),
+  .sheet-pages[data-sliding="pop"] > .sheet-root {
+    animation-name: fade-in;
+  }
+
+  .sheet-pages[data-sliding] > .sheet-page-leaving {
+    animation-name: fade-out;
+  }
+}
+
 .menu-item {
   gap: var(--space-md);
 }

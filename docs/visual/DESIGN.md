@@ -599,18 +599,21 @@ view is close enough to the frame to need a smaller unit.
   - **Settings, grouped**: one sheet, MD3 list sections. **Display**: theme
     (System | Light | Dark) and text size (A− 100% A+). **Workspace**: Show
     Live, Split the tab groups, and Scrolling the Output moves this screen
-    (switches). **Keyboard**: opens the shortcut sheet, whose Close then reads
-    Back and returns to Settings. **Presentation** (part 4): the Output theme
-    (Dark | Light | Contrast | Warm) and one switch per cue; and, in Chrome and
-    Edge only, **Output screen**: a choice menu (the Menu component with its
-    trigger a button showing the choice, a chevron after it, never a native
-    select) of Automatic and the screens by label and size ("Built-in" for the
-    laptop's panel, a remembered one not attached marked "not connected"; the
-    chosen one is the tonal pill; arrows, Enter and Esc work, and ArrowDown
-    opens it). With one screen attached there is no list: the text "One screen
-    attached" instead. A text **Detect Screens** button asks the browser to list
-    the screens; its supporting line says what Automatic picks, or that
-    permission is blocked. Hidden where the browser cannot place a window.
+    (switches). **Keyboard**: Keyboard Shortcuts is a page pushed inside the
+    Settings sheet (nested navigation, § Motion), not a second dialog: its
+    header says Back and returns to Settings, Escape too. Opened by `?` or the
+    command, the sheet opens straight on that page and says Close.
+    **Presentation** (part 4): the Output theme (Dark | Light | Contrast | Warm)
+    and one switch per cue; and, in Chrome and Edge only, **Output screen**: a
+    choice menu (the Menu component with its trigger a button showing the
+    choice, a chevron after it, never a native select) of Automatic and the
+    screens by label and size ("Built-in" for the laptop's panel, a remembered
+    one not attached marked "not connected"; the chosen one is the tonal pill;
+    arrows, Enter and Esc work, and ArrowDown opens it). With one screen
+    attached there is no list: the text "One screen attached" instead. A text
+    **Detect Screens** button asks the browser to list the screens; its
+    supporting line says what Automatic picks, or that permission is blocked.
+    Hidden where the browser cannot place a window.
   - **Show/hide**: Live, remembered, and the tab layout (SDD-0001 §16.4). This
     hymn and the dock never hide.
 - **One transport** (Board #26, PRINCIPLES.md). From 840px it sits at the
@@ -896,21 +899,32 @@ view is close enough to the frame to need a smaller unit.
   passes over the rows it crosses, not under; a heading whose group emptied
   fades out where it stood (150ms). A menu grows from its button and shrinks
   back to it, quicker (150ms, the exit easing); a sheet rises over a blurred
-  page and sinks away on close; every control's change of state eases.
-  **Press**: a control gives a little under the finger (96%) at once and springs
-  back with a slight overshoot, Material 3 Expressive's press kept small; an
-  icon that changes meaning (Blank to Restore) turns in. The Repeat count is a
-  rolling number (an odometer): the old count rolls out as the new one rolls in,
-  up as it grows and down on Undo. **Reset** counts it down through the numbers
-  (×9, ×8 … ×1), the first at once and each pause shorter, the whole run capped
-  at about 450ms however large the count (a big count skips numbers), then the
-  ×N fades; the last Undo rolls to ×1 and fades too. The state (and the Output)
-  change at once, only the display counts; reduced motion has no countdown, the
-  number just fades; the count's room stays, so Undo and Reset never move.
-  Moving to another part follows the count at once. It is in the text colour,
-  not Repeat's primary: coloured text means a control. Each rail section eases
-  in on arrival, the Library as the Operator. In the command menu the highlight
-  follows a moving pointer and leaves with it; Enter then takes the top match (§
+  page and sinks away on close; every control's change of state eases. **Sheet
+  pages** (nested navigation inside one sheet, `Sheet`'s `page`): the one
+  `<dialog>` stays open, so the scrim never blinks, and its content pushes and
+  pops. It is the tab switch's timing (`tab-in`: 250ms, the emphasised easing, a
+  fade) with the Repeat count's travel and 2px blur (`roll-in-*`): the new page
+  comes from the inline-end (2.5rem), the old one steps 1.5rem toward the
+  inline-start, both fading through the blur; Back is the mirror; the header's
+  title cross-fades; the sheet's height eases between the two pages' heights
+  (capped by the sheet's own maximum, so two tall pages hold still). Focus moves
+  to the new page's heading, and Back returns it to the row it left. Reduced
+  motion is a crossfade: no travel, blur or height glide. The root stays mounted
+  underneath, so its scroll position survives. **Press**: a control gives a
+  little under the finger (96%) at once and springs back with a slight
+  overshoot, Material 3 Expressive's press kept small; an icon that changes
+  meaning (Blank to Restore) turns in. The Repeat count is a rolling number (an
+  odometer): the old count rolls out as the new one rolls in, up as it grows and
+  down on Undo. **Reset** counts it down through the numbers (×9, ×8 … ×1), the
+  first at once and each pause shorter, the whole run capped at about 450ms
+  however large the count (a big count skips numbers), then the ×N fades; the
+  last Undo rolls to ×1 and fades too. The state (and the Output) change at
+  once, only the display counts; reduced motion has no countdown, the number
+  just fades; the count's room stays, so Undo and Reset never move. Moving to
+  another part follows the count at once. It is in the text colour, not Repeat's
+  primary: coloured text means a control. Each rail section eases in on arrival,
+  the Library as the Operator. In the command menu the highlight follows a
+  moving pointer and leaves with it; Enter then takes the top match (§
   Interaction states). Reduced motion shows the end state, with what appears and
   goes keeping its fade: a menu, a sheet and its scrim, a tab's content and a
   notice fade and lose their zoom, rise and sink. **The Lyrics tint** slides and

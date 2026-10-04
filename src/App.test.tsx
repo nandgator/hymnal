@@ -820,6 +820,28 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
+  it("pushes Keyboard Shortcuts inside the one Settings dialog: Back never closes it", async () => {
+    render(() => <App />);
+    await booksReady();
+
+    fireEvent.keyDown(window, { key: ",", ctrlKey: true });
+    const settings = await screen.findByRole("dialog", { name: "Settings" });
+    const opened: boolean[] = [];
+    new MutationObserver(() => opened.push(settings.hasAttribute("open"))).observe(settings, {
+      attributes: true,
+      attributeFilter: ["open"],
+    });
+    fireEvent.click(within(settings).getByRole("button", { name: /Keyboard Shortcuts/ }));
+    expect(settings).toHaveAttribute("aria-label", "Keyboard Shortcuts");
+    expect(document.querySelectorAll("dialog[open]")).toHaveLength(1);
+    // Escape goes back one level.
+    fireEvent(settings, new Event("cancel", { cancelable: true }));
+    expect(settings).toHaveAttribute("aria-label", "Settings");
+    expect(settings).toHaveAttribute("open");
+    await Promise.resolve();
+    expect(opened).not.toContain(false);
+  });
+
   it("hides Live with L, remembered in preferences, and shows it again (SDD-0001 §16.4)", async () => {
     render(() => <App />);
     await openFinder();
