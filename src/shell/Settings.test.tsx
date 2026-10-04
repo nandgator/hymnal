@@ -528,4 +528,21 @@ describe("Settings: Output screen (ADR-0028)", () => {
       await screen.findByRole("menuitemradio", { name: "EPSON PJ, 1280×800" }),
     ).toBeInTheDocument();
   });
+
+  it("explains how to extend only once Detect screens finds one screen", async () => {
+    attach([panel]);
+    Object.defineProperty(navigator, "platform", { value: "Win32", configurable: true });
+    try {
+      render(() => <Settings userState={fakeUserState()} />);
+      await screen.findByRole("button", { name: "Detect screens" });
+      expect(screen.queryByText(/Win\+P/)).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Detect screens" }));
+
+      expect(await screen.findByText(/Press Win\+P and choose Extend\./)).toBeInTheDocument();
+      expect(screen.getByText(/connected as a mirror/)).toBeInTheDocument();
+    } finally {
+      Reflect.deleteProperty(navigator, "platform");
+    }
+  });
 });

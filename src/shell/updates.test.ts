@@ -220,7 +220,7 @@ describe("pickNotice", () => {
 
   it("shows a screen notice first, and even while live", () => {
     const live = { ...idle, update: { ready: true, live: true }, safariHint: true };
-    expect(pickNotice({ ...live, screen: "gone" })).toBe("gone");
+    expect(pickNotice({ ...live, screen: "disconnected" })).toBe("disconnected");
     expect(pickNotice({ ...idle, update: { ready: true, live: false }, screen: "drag" })).toBe(
       "drag",
     );

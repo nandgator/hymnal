@@ -23,6 +23,7 @@ function fake(over: Partial<OutputScreens> = {}): OutputScreens {
     screens: () => [],
     current: () => laptop,
     status: () => "unknown",
+    extended: () => false,
     detect: async () => false,
     ...over,
   };

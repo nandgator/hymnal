@@ -8,6 +8,7 @@ import {
   onCleanup,
   Show,
 } from "solid-js";
+import { mirroredNote } from "../output/displayChange.ts";
 import {
   describeScreen,
   keyOf,
@@ -112,7 +113,6 @@ export const SETTING_COPY = {
       "The browser blocked screen access. Allow it in this site's settings, then detect again.",
     error: "Could not list the screens. Press Detect screens to try again.",
     none: "Press Detect screens so Automatic can find the projector.",
-    one: "Plug in a projector or second screen, then press Detect screens.",
     several: "Automatic picks an external screen, not your own.",
   },
 } as const;
@@ -346,7 +346,7 @@ export function Settings(props: SettingsProps) {
     if (screens.status() === "denied") return SETTING_COPY.screen.denied;
     if (screens.status() === "error") return SETTING_COPY.screen.error;
     if (screens.screens().length === 0) return SETTING_COPY.screen.none;
-    if (screens.screens().length === 1) return SETTING_COPY.screen.one;
+    if (screens.screens().length === 1) return mirroredNote();
     return SETTING_COPY.screen.several;
   };
 

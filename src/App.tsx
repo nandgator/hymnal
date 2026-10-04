@@ -25,6 +25,7 @@ import {
   subscribeOutputState,
   subscribePlacement,
 } from "./output/channel.ts";
+import { mirroredNote, reviewScreens, type ScreensSnapshot } from "./output/displayChange.ts";
 import { Output } from "./output/Output.tsx";
 import {
   moveGuidance,
@@ -102,12 +103,17 @@ const OUTPUT_WINDOW_NAME = "hymnal-output";
 
 /** How long a placed Output may go fullscreen on its own before the hint says how. */
 const FULLSCREEN_GRACE_MS = 1200;
+/** Monitors send several events for one change: wait for them to stop. */
+const SCREENS_SETTLE_MS = 300;
 /** How often the Output's real screen is read while it is open. */
 const TRACK_MS = 2000;
 
 /** Notices about where the Output window is (DESIGN.md § Snackbar). */
 const SCREEN_NOTICES: Record<
-  Exclude<ScreenNoticeId, "activate" | "move" | "unconfirmed">,
+  Exclude<
+    ScreenNoticeId,
+    "activate" | "move" | "unconfirmed" | "connected" | "disconnected" | "extend"
+  >,
   string
 > = {
   drag: "Drag the Output to the projector, then press F11 for fullscreen.",
@@ -115,7 +121,6 @@ const SCREEN_NOTICES: Record<
   fullscreen: "The Output is on the projector screen.",
   blocked:
     "The browser blocked the Output window. Allow pop-ups for this site, then Go Live again.",
-  gone: "The screen the Output was on is gone. The window stays where it is; drag it back.",
   back: "That screen is back. Move the Output to it?",
   stuck: "The Output could not move. Drag it to the screen yourself.",
 };
@@ -127,6 +132,10 @@ function screenNoticeText(id: ScreenNoticeId, screenLabel: string | undefined): 
   // The system cannot place the window: the person moves it (ADR-0028).
   if (id === "unconfirmed")
     return `The Output is fullscreen. If it isn't on ${named}, press Esc there, move it, and press F again.`;
+  if (id === "connected") return `A projector is connected: ${screenLabel ?? "a second screen"}`;
+  if (id === "disconnected")
+    return `The projector was disconnected; the Output is on ${screenLabel ?? "this screen"}.`;
+  if (id === "extend") return mirroredNote();
   if (id === "move") return [moveGuidance(named), moveShortcutHint()].filter(Boolean).join(" ");
   return SCREEN_NOTICES[id];
 }
@@ -331,6 +340,7 @@ function Operator(props: Shared) {
       if (open || !was) return;
       setPlacedOn(undefined);
       setGoneFrom(undefined);
+      setOffered(undefined);
       setVerified(false);
       setPlaceLabel(undefined);
       outputReports = false;
@@ -390,22 +400,61 @@ function Operator(props: Shared) {
           setScreenNotice(placementRefused() ? "move" : "activate");
       }, FULLSCREEN_GRACE_MS);
     } else if (mayHaveSecondScreen()) showHintOnce("drag");
-  };
-  // The screens change under an open Output: it stays where it is. A screen it
-  // was on going is a hint; its return is an offer, never a jump.
-  const checkScreens = (now: readonly ScreenInfo[]) => {
-    const placed = placedOn();
-    if (placed && !now.some((screen) => sameKey(screen, placed))) {
-      setGoneFrom(placed);
-      setPlacedOn(undefined);
-      setScreenNotice("gone");
-      return;
+    else if (outcome.kind === "plain" && outcome.reason === "single" && !extendHintShown) {
+      // One screen, with the API: a projector may be attached as a mirror
+      // (the browser sees one screen), which only the OS can change.
+      extendHintShown = true;
+      setScreenNotice("extend");
     }
-    const gone = goneFrom();
-    if (gone && presentingOutput() && now.some((screen) => sameKey(screen, gone)))
-      setScreenNotice("back");
   };
-  createEffect(on(screens.screens, checkScreens));
+  let extendHintShown = false;
+  // The displays change under an open Output (ADR-0028): it stays where it is.
+  // A burst of events is one change, judged once it settles; nothing is ever
+  // moved while live without the person asking.
+  const [offered, setOffered] = createSignal<ScreenInfo>();
+  let reviewed: ScreensSnapshot = { screens: screens.screens(), extended: screens.extended() };
+  const review = () => {
+    const after: ScreensSnapshot = { screens: screens.screens(), extended: screens.extended() };
+    const before = reviewed;
+    reviewed = after;
+    const result = reviewScreens({
+      before,
+      after,
+      live: presentingOutput(),
+      placed: placedOn(),
+      goneFrom: goneFrom(),
+      current: screens.current(),
+    });
+    if (result.kind === "disconnected") {
+      if (result.gone) {
+        setGoneFrom(keyOf(result.gone));
+        setPlacedOn(undefined);
+      }
+      setPlaceLabel(result.remaining ? describeScreen(result.remaining) : undefined);
+      setScreenNotice("disconnected");
+    } else if (result.kind === "back") setScreenNotice("back");
+    else if (result.kind === "connected") {
+      setOffered(result.screen);
+      setPlaceLabel(result.screen ? describeScreen(result.screen) : undefined);
+      setScreenNotice("connected");
+    }
+  };
+  let reviewTimer: ReturnType<typeof setTimeout> | undefined;
+  createEffect(
+    on(
+      [screens.screens, screens.extended],
+      () => {
+        // The screens becoming known (Detect screens, a permission granted
+        // before) is a baseline, not a change.
+        if (reviewed.screens.length === 0 && screens.screens().length > 0)
+          reviewed = { screens: screens.screens(), extended: screens.extended() };
+        clearTimeout(reviewTimer);
+        reviewTimer = setTimeout(review, SCREENS_SETTLE_MS);
+      },
+      { defer: true },
+    ),
+  );
+  onCleanup(() => clearTimeout(reviewTimer));
   // Where the Output really is, from its own position: dragged to another
   // screen, that is where it is "placed" now.
   onMount(() => {
@@ -434,6 +483,17 @@ function Operator(props: Shared) {
     setGoneFrom(undefined);
     setScreenNotice(undefined);
     if (screen) void moveTo(screen);
+  };
+  // The offer to move to a projector that has just appeared: only on the
+  // person's word. Where the system refuses to place windows (Wayland), the
+  // move is theirs, so the notice says how.
+  const moveToConnected = () => {
+    const screen = offered();
+    setOffered(undefined);
+    if (screen && !placementRefused()) {
+      setScreenNotice(undefined);
+      void moveTo(screen);
+    } else setScreenNotice("move");
   };
   // Choosing a screen in Settings moves an open Output there. A memo, so it
   // answers a change of the choice only: `on` alone re-runs on every
@@ -505,6 +565,25 @@ function Operator(props: Shared) {
   // live) wins; the rest are the picked one (DESIGN.md § Snackbar).
   const snackbar = (): SnackbarProps | undefined => {
     const shown = screenNotice();
+    if (shown === "connected")
+      return {
+        message: screenNoticeText(shown, placeLabel()),
+        action: "Move the Output there",
+        onAction: moveToConnected,
+        dismissLabel: "Not now",
+        onDismiss: () => setScreenNotice(undefined),
+      };
+    if (shown === "disconnected")
+      return {
+        message: screenNoticeText(shown, placeLabel()),
+        action: "Blank",
+        onAction: () => {
+          if (!blanked()) toggleBlank();
+          setScreenNotice(undefined);
+        },
+        dismissLabel: "Dismiss",
+        onDismiss: () => setScreenNotice(undefined),
+      };
     if (shown)
       return {
         message: screenNoticeText(shown, placeLabel()),

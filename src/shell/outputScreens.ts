@@ -53,6 +53,8 @@ export interface OutputScreens {
   /** The screen the operator's window is on. */
   current: Accessor<ScreenInfo | undefined>;
   status: Accessor<ScreenStatus>;
+  /** `screen.isExtended`, kept live through `screen.onchange`; needs no permission. */
+  extended: Accessor<boolean>;
   /** Asks for the screens: the browser's permission prompt the first time.
    * Never rejects. Call it from a gesture. */
   detect: () => Promise<boolean>;
@@ -69,6 +71,7 @@ export function createOutputScreens(): OutputScreens {
   const [screens, setScreens] = createSignal<ScreenInfo[]>([]);
   const [current, setCurrent] = createSignal<ScreenInfo>();
   const [status, setStatus] = createSignal<ScreenStatus>("unknown");
+  const [extended, setExtended] = createSignal(screenIsExtended());
   let details: ScreenDetailsLike | undefined;
   let pending: Promise<boolean> | undefined;
   const owner = getOwner();
@@ -77,6 +80,7 @@ export function createOutputScreens(): OutputScreens {
     if (!details) return;
     setScreens(details.screens.map(infoOf));
     setCurrent(infoOf(details.currentScreen));
+    setExtended(details.screens.length > 1);
   };
 
   const detect = () => {
@@ -113,19 +117,32 @@ export function createOutputScreens(): OutputScreens {
   };
 
   // A permission granted before is used without a prompt.
-  if (supported && screenIsExtended()) {
-    void (async () => {
-      try {
-        const state = await navigator.permissions?.query({
-          name: "window-management" as PermissionName,
-        });
-        if (state?.state === "granted") await detect();
-        else if (state?.state === "denied") setStatus("denied");
-      } catch {
-        // Unknown permission name, or no Permissions API: Go live asks.
-      }
-    })();
-  }
+  const detectIfGranted = async () => {
+    try {
+      const state = await navigator.permissions?.query({
+        name: "window-management" as PermissionName,
+      });
+      if (state?.state === "granted") await detect();
+      else if (state?.state === "denied") setStatus("denied");
+    } catch {
+      // Unknown permission name, or no Permissions API: Go live asks.
+    }
+  };
+  if (supported && screenIsExtended()) void detectIfGranted();
 
-  return { supported, screens, current, status, detect };
+  // A display plugged in or out: `isExtended` follows, with or without the
+  // permission. Where the screens are not yet known and the permission was
+  // granted, they are read now.
+  const onScreenChange = () => {
+    setExtended(details ? details.screens.length > 1 : screenIsExtended());
+    if (supported && !details && screenIsExtended()) void detectIfGranted();
+  };
+  const hostScreen = globalThis.screen as unknown as EventTarget | undefined;
+  hostScreen?.addEventListener?.("change", onScreenChange);
+  if (owner)
+    runWithOwner(owner, () =>
+      onCleanup(() => hostScreen?.removeEventListener?.("change", onScreenChange)),
+    );
+
+  return { supported, screens, current, status, extended, detect };
 }

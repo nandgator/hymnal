@@ -73,7 +73,9 @@ export const SCREEN_NOTICE_IDS = [
   "move",
   "unconfirmed",
   "blocked",
-  "gone",
+  "connected",
+  "disconnected",
+  "extend",
   "back",
   "stuck",
 ] as const;

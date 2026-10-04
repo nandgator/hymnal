@@ -307,3 +307,26 @@ same idle timer that hides the cursor), or while hovered or focused. It is gone
 while fullscreen, and the Linux shortcut is not on the Output at all. F and a
 click behave as before. The notes above that say the Output "says" these lines
 mean this tooltip.
+
+### Displays plugged in or out while the app is open (2026-10-04)
+
+`screenschange` on the `ScreenDetails`, and `screen.onchange` with `isExtended`
+where the details are not granted, keep Settings' screen list and notes live.
+While live, a projector that appears while the Output is on the main screen is
+_offered_ ("A projector is connected: <name>", "Move the Output there"), never
+moved to: where placement was refused this session the action gives the move
+guidance instead. The Output's screen disappearing says where the Output is now
+and offers Blank, since the audience screen is gone and the Output may be on the
+operator's own. Bursts of events are debounced (300 ms). Not live, nothing is
+said, and Go Live picks the new screen as Automatic does. This replaces step 6's
+"gone" hint.
+
+### Mirrored displays are an OS setting (2026-10-04)
+
+A projector connected as a mirror (duplicate) is one screen to the browser, and
+a web page cannot switch the OS from mirror to extend: that is OS-only. The app
+says so where it matters (Settings after Detect screens with one screen, and Go
+Live with one screen) and gives the step per OS: Windows Win+P → Extend; macOS
+System Settings → Displays, set as Extended display (not Mirror); GNOME Settings
+→ Displays → Join Displays (Super+P cycles modes on many setups). A native
+wrapper could call the OS display APIs later.

@@ -1403,16 +1403,41 @@ screen, so a plain `requestFullscreen()` fullscreens there. The Operator cannot
 fullscreen another window's document from its own click, and does not try. The
 channel is untouched: `placed` is a URL parameter, not a message.
 
-`screenschange` (on the shared `ScreenDetails`) keeps the list live. A screen
-the Output was placed on that vanishes leaves the window where it is, with a
-notice; if it returns the notice offers to move the Output there ("Move it" or
-"Stay") and never jumps. Choosing a screen in Settings moves an open Output
-(`moveTo` and `resizeTo` on the window `open` returned, leaving fullscreen
-first, which re-arms the Output's click and F). A move that did not land (its
-`screenX`/`screenY` checked after) says so, and the placed screen is not
-updated. The screen the Output is on is read from its own position every two
-seconds, so a window the operator dragged is tracked where it is, and the
-fullscreen hint is skipped if the Output went fullscreen by itself.
+`screenschange` (on the shared `ScreenDetails`) keeps the list live, and
+`screen.onchange` with `isExtended` stands in where the details are not granted
+(`createOutputScreens`). Settings' Output screen list and note update at once.
+Not live, nothing else happens: Go Live picks the new screen as Automatic does.
+While live, a burst of events is judged once, 300 ms after the last (monitors
+send several), by the pure `reviewScreens` (`src/output/displayChange.ts`), and
+nothing is ever moved without the person asking:
+
+- **A projector appears while the Output is on the main screen:** the notice "A
+  projector is connected: <name>" with "Move the Output there". Where windows
+  can be placed it moves the Output (it fullscreens on the next F or click);
+  where placement was refused this session (Wayland) it gives the move guidance
+  instead.
+- **The Output's screen disappears:** "The projector was disconnected; the
+  Output is on <remaining screen>", with Blank as its action, since the audience
+  screen is gone and the Output may now be on the operator's own. The window
+  stays where it is; if the screen returns the notice offers to move the Output
+  there ("Move it" or "Stay") and never jumps.
+
+**Mirrored displays.** A projector connected as a mirror is one screen to the
+browser, and a web page cannot switch the OS to extend (ADR-0028). With one
+screen known, Settings' note (after Detect screens) and a notice at Go Live
+(once per session, only where the Window Management API says one screen) say so
+and give the step for the OS (`osOf`: `navigator.userAgentData?.platform`, then
+`navigator.platform`): Windows "Press Win+P and choose Extend."; macOS System
+Settings → Displays; Linux Settings → Displays → Join Displays (GNOME; Super+P
+on many setups). Other systems get a generic line.
+
+Choosing a screen in Settings moves an open Output (`moveTo` and `resizeTo` on
+the window `open` returned, leaving fullscreen first, which re-arms the Output's
+click and F). A move that did not land (its `screenX`/`screenY` checked after)
+says so, and the placed screen is not updated. The screen the Output is on is
+read from its own position every two seconds, so a window the operator dragged
+is tracked where it is, and the fullscreen hint is skipped if the Output went
+fullscreen by itself.
 
 Hints, each shown once and marked in preferences when first shown: on a placed
 open, "click it or press F" (`fullscreenHintDismissed`); on any plain open with

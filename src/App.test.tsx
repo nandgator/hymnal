@@ -1191,9 +1191,9 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     await waitFor(() => expect(noticeText(/press F there/)).toBe(0));
 
     unplug(details as never);
-    await screen.findAllByText(/screen the Output was on is gone/);
+    await screen.findAllByText(/projector was disconnected/);
     fireEvent.keyDown(window, { key: "Escape" });
-    await waitFor(() => expect(noticeText(/is gone/)).toBe(0));
+    await waitFor(() => expect(noticeText(/projector was disconnected/)).toBe(0));
 
     // Escaping the gone notice leaves it to come back as an offer; Escape on
     // that offer is Stay, and no more is offered.
@@ -1209,7 +1209,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
   it("leaves the Output where it is when its screen goes, and offers it back, never jumping", async () => {
     const { details, win } = await goLive();
     unplug(details as never);
-    await screen.findAllByText(/is gone/);
+    await screen.findAllByText(/projector was disconnected/);
     expect(win.moveTo).not.toHaveBeenCalled();
 
     replug(details as never);
@@ -1224,7 +1224,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
   it("Stay leaves the Output alone", async () => {
     const { details, win } = await goLive();
     unplug(details as never);
-    await screen.findAllByText(/is gone/);
+    await screen.findAllByText(/projector was disconnected/);
     replug(details as never);
     await screen.findAllByText(/That screen is back/);
     fireEvent.click(screen.getByRole("button", { name: "Stay" }));
@@ -1232,10 +1232,123 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     expect(win.moveTo).not.toHaveBeenCalled();
   });
 
+  it("offers a projector plugged in while live, never moving the Output by itself", async () => {
+    const { details, win } = await goLive([laptop]);
+    replug(details as never);
+
+    await screen.findAllByText(/A projector is connected: EPSON PJ, 1280×800/);
+    expect(win.moveTo).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Move the Output there" }));
+    await waitFor(() => expect(win.moveTo).toHaveBeenCalledWith(1440, 0));
+    await waitFor(() => expect(noticeText(/A projector is connected/)).toBe(0));
+  });
+
+  it("where placement was refused, the offer gives the move guidance instead", async () => {
+    sessionStorage.setItem("placementRefused", "1");
+    try {
+      const { details, win } = await goLive([laptop]);
+      replug(details as never);
+      await screen.findAllByText(/A projector is connected: EPSON PJ/);
+
+      fireEvent.click(screen.getByRole("button", { name: "Move the Output there" }));
+
+      await screen.findAllByText(/Move this window to EPSON PJ, 1280×800, then press F\./);
+      expect(win.moveTo).not.toHaveBeenCalled();
+    } finally {
+      sessionStorage.removeItem("placementRefused");
+    }
+  });
+
+  it("says nothing about a plugged-in projector when not live", async () => {
+    Object.defineProperty(navigator, "permissions", {
+      value: { query: async () => ({ state: "granted" }) },
+      configurable: true,
+    });
+    try {
+      const { details, getScreenDetails } = attach([laptop]);
+      render(() => <App />);
+      await waitFor(() => expect(getScreenDetails).toHaveBeenCalled());
+      replug(details as never);
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      expect(noticeText(/A projector is connected/)).toBe(0);
+    } finally {
+      Reflect.deleteProperty(navigator, "permissions");
+    }
+  });
+
+  it("without screen access, a screen appearing is still offered, unnamed", async () => {
+    Reflect.deleteProperty(window, "getScreenDetails");
+    Object.defineProperty(window.screen, "isExtended", { value: false, configurable: true });
+    // jsdom's Screen is no EventTarget; Chromium's is.
+    const target = new EventTarget();
+    Object.assign(window.screen, {
+      addEventListener: target.addEventListener.bind(target),
+      removeEventListener: target.removeEventListener.bind(target),
+      dispatchEvent: target.dispatchEvent.bind(target),
+    });
+    const win = fakeWindow();
+    vi.spyOn(window, "open").mockReturnValue(win as unknown as Window);
+    render(() => <App />);
+    await clickGoLive();
+    const output = new BroadcastChannel("hymnal-output");
+    output.postMessage({ type: "hello", id: "test-output" });
+    await screen.findByRole("button", { name: "On Air" });
+
+    Object.defineProperty(window.screen, "isExtended", { value: true, configurable: true });
+    target.dispatchEvent(new Event("change"));
+
+    await screen.findAllByText(/A projector is connected/);
+    output.close();
+    for (const key of ["addEventListener", "removeEventListener", "dispatchEvent"])
+      Reflect.deleteProperty(window.screen, key);
+  });
+
+  it("when the Output's screen goes, says where it is now and offers Blank", async () => {
+    const { details, win } = await goLive();
+    unplug(details as never);
+
+    await screen.findAllByText(
+      /The projector was disconnected; the Output is on Built-in, 1440×900/,
+    );
+    expect(win.moveTo).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Blank" }));
+    await screen.findByRole("button", { name: "Blanked" });
+    await waitFor(() => expect(noticeText(/projector was disconnected/)).toBe(0));
+    // Blank is held across the tests: restore it.
+    fireEvent.keyDown(window, { key: "b" });
+    await screen.findByRole("button", { name: "On Air" });
+  });
+
+  it("a burst of screen events is one change: a screen that went and came straight back is no news", async () => {
+    const { details } = await goLive();
+    unplug(details as never);
+    replug(details as never);
+    unplug(details as never);
+    replug(details as never);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    expect(noticeText(/projector was disconnected/)).toBe(0);
+    expect(noticeText(/That screen is back/)).toBe(0);
+  });
+
+  it("with one screen at Go Live, explains how to extend a mirrored projector", async () => {
+    attach([laptop]);
+    Object.defineProperty(window.screen, "isExtended", { value: false, configurable: true });
+    Object.defineProperty(navigator, "platform", { value: "Win32", configurable: true });
+    try {
+      vi.spyOn(window, "open").mockReturnValue({} as Window);
+      render(() => <App />);
+      await clickGoLive();
+      await screen.findAllByText(/connected as a mirror.*Press Win\+P and choose Extend\./);
+    } finally {
+      Reflect.deleteProperty(navigator, "platform");
+    }
+  });
+
   it("says so when the Output cannot be moved", async () => {
     const { details, win } = await goLive();
     unplug(details as never);
-    await screen.findAllByText(/is gone/);
+    await screen.findAllByText(/projector was disconnected/);
     replug(details as never);
     await screen.findAllByText(/That screen is back/);
     win.moveTo.mockImplementation(() => {});
