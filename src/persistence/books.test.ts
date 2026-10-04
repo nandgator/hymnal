@@ -61,7 +61,7 @@ describe("commitAndPersist", () => {
   it("passes the token and the choice on", async () => {
     const a = admin({ ok: true, action: "replaced", key: "k" });
     await commitAndPersist(a, "tok", { replace: "k" });
-    expect(a.commit).toHaveBeenCalledWith("tok", { replace: "k" });
+    expect(a.commit).toHaveBeenCalledWith("tok", { replace: "k" }, undefined);
   });
 });
 

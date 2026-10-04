@@ -6,6 +6,7 @@ import type {
   CommitResult,
   ContentStatus,
   LoadReview,
+  OnLoadProgress,
 } from "../persistence/content-store.ts";
 import { createBooks, type LibraryAdmin } from "./books.ts";
 import { Library } from "./Library.tsx";
@@ -62,14 +63,17 @@ function setup(options: Setup = {}) {
   let rows = options.rows ?? [row()];
   const admin = {
     listBooks: vi.fn(async () => rows),
-    review: vi.fn(async (_file: File, _target?: string) => {
+    review: vi.fn(async (_file: File, _target?: string, _onProgress?: OnLoadProgress) => {
       const r = options.review ?? review();
       if (r instanceof Error) throw r;
       return r;
     }),
     commit: vi.fn(
-      async (_token: string, _choice?: Choice): Promise<CommitResult> =>
-        options.commit ?? { ok: true, action: "loaded", key: "k1" },
+      async (
+        _token: string,
+        _choice?: Choice,
+        _onProgress?: OnLoadProgress,
+      ): Promise<CommitResult> => options.commit ?? { ok: true, action: "loaded", key: "k1" },
     ),
     cancel: vi.fn(async () => true),
     removeBook: vi.fn(async (key: string) => {
@@ -247,9 +251,7 @@ describe("Library: nothing held, the first run (ADR-0026)", () => {
     s.view();
     await screen.findByRole("heading", { name: "Bring a songbook" });
     pickFile();
-    expect(
-      await screen.findByRole("progressbar", { name: "Reading the book" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("progressbar", { name: "Reading…" })).toBeInTheDocument();
     expect(screen.getByText("Reading hof.hymnbook.json.gz")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
@@ -363,11 +365,13 @@ describe("Library: Load Again aims the review at the book (decided with SDD-0004
     fireEvent.click(await screen.findByRole("button", { name: "Load Again" }));
     pickFile();
     const dialog = await screen.findByRole("dialog", { name: "Load Again" });
-    expect(s.admin.review).toHaveBeenCalledWith(expect.any(File), "a");
+    expect(s.admin.review).toHaveBeenCalledWith(expect.any(File), "a", expect.any(Function));
     expect(within(dialog).getByText("Brings a book back")).toBeInTheDocument();
     expect(within(dialog).queryByText("Not the same title")).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "Restore Book" }));
-    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t1", "keep-both"));
+    await waitFor(() =>
+      expect(s.admin.commit).toHaveBeenCalledWith("t1", "keep-both", expect.any(Function)),
+    );
     // A load never moves the current book; this one was not asked to.
     expect(s.onChoose).not.toHaveBeenCalled();
   });
@@ -562,19 +566,128 @@ describe("Library: the review sheet (ADR-0027)", () => {
     s.view({ currentKey: "mal" });
     await screen.findByRole("list", { name: "Books" });
     pickFile();
-    expect(
-      await screen.findByRole("progressbar", { name: "Reading the book" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("progressbar", { name: "Reading…" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Load Books" })).toBeDisabled();
     finish(review());
     expect(await screen.findByRole("dialog", { name: "Load Books" })).toBeInTheDocument();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   });
 
+  it("shows the worker's phase and count on a determinate bar, only after the wait is long enough to notice", async () => {
+    const s = setup({ rows: [row()] });
+    let report: OnLoadProgress = () => {};
+    s.admin.review.mockImplementation((_file, _target, onProgress) => {
+      report = onProgress ?? report;
+      return new Promise(() => {});
+    });
+    s.view({ currentKey: "mal" });
+    await screen.findByRole("list", { name: "Books" });
+    pickFile();
+    report({ phase: "checking", done: 812, total: 1631 });
+    // A fast read shows nothing at all.
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    const bar = await screen.findByRole("progressbar", { name: "Checking 812 of 1,631 songs" });
+    expect(bar).toHaveAttribute("aria-valuenow", "50");
+    expect(screen.getByText("Checking 812 of 1,631 songs")).toBeInTheDocument();
+    report({ phase: "hashing", done: 100, total: 1631 });
+    expect(await screen.findByText("Comparing 100 of 1,631 songs")).toBeInTheDocument();
+  });
+
+  it("shows no bar at all for a read that finishes at once", async () => {
+    const { dialog } = await open({});
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(dialog.getByRole("button", { name: "Load Book" })).toBeEnabled();
+  });
+
+  describe("writing the book (SDD-0004 §14)", () => {
+    const write = async () => {
+      const { s, dialog } = await open({});
+      let report: OnLoadProgress = () => {};
+      let finish: (r: CommitResult) => void = () => {};
+      s.admin.commit.mockImplementation((_token, _choice, onProgress) => {
+        report = onProgress ?? report;
+        return new Promise((resolve) => (finish = resolve));
+      });
+      fireEvent.click(dialog.getByRole("button", { name: "Load Book" }));
+      await waitFor(() => expect(s.admin.commit).toHaveBeenCalled());
+      return { s, dialog, report: (p: Parameters<OnLoadProgress>[0]) => report(p), finish };
+    };
+
+    it("the button gives way to the bar, with no Cancel, only Close", async () => {
+      const { dialog, report } = await write();
+      // At first, a button that is off, and nothing else to see.
+      expect(dialog.getByRole("button", { name: "Load Book" })).toBeDisabled();
+      expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+      report({ phase: "saving", done: 1200, total: 1631 });
+      const bar = await screen.findByRole("progressbar", { name: "Saving 1,200 of 1,631 songs" });
+      expect(bar).toHaveAttribute("aria-valuenow", "74");
+      expect(dialog.queryByRole("button", { name: "Load Book" })).not.toBeInTheDocument();
+      expect(dialog.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+      expect(dialog.getByRole("button", { name: "Close" })).toBeInTheDocument();
+      report({ phase: "indexing", done: 0, total: 0 });
+      const sweep = await screen.findByRole("progressbar", { name: "Indexing for search…" });
+      expect(sweep).not.toHaveAttribute("aria-valuenow");
+    });
+
+    it("a write that lands quickly shows no bar", async () => {
+      const { s, dialog } = await open({});
+      fireEvent.click(dialog.getByRole("button", { name: "Load Book" }));
+      await waitFor(() => expect(s.admin.listBooks.mock.calls.length).toBeGreaterThan(1));
+      expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    });
+
+    it("closing the sheet lets the save finish; the Library's row shows the same bar", async () => {
+      const { s, dialog, report, finish } = await write();
+      fireEvent.click(dialog.getByRole("button", { name: "Close" }));
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog", { name: "Load Books" })).not.toBeInTheDocument(),
+      );
+      // A save is not taken back: nothing is cancelled.
+      expect(s.admin.cancel).not.toHaveBeenCalled();
+      report({ phase: "saving", done: 10, total: 275 });
+      expect(await screen.findByText("Saving Hymns of Fellowship")).toBeInTheDocument();
+      expect(screen.getByRole("progressbar", { name: "Saving 10 of 275 songs" })).toHaveAttribute(
+        "aria-valuenow",
+        "4",
+      );
+      expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+      // Nothing new can begin under it.
+      expect(screen.getByRole("button", { name: "Load Books" })).toBeDisabled();
+      finish({ ok: true, action: "loaded", key: "k1" });
+      await waitFor(() => expect(screen.queryByText(/^Saving /)).not.toBeInTheDocument());
+      expect(screen.getByRole("button", { name: "Load Books" })).toBeEnabled();
+      expect(s.onNotice).not.toHaveBeenCalled();
+    });
+
+    it("a save that fails after the sheet was closed says so in the snackbar", async () => {
+      const { s, dialog, finish } = await write();
+      fireEvent.click(dialog.getByRole("button", { name: "Close" }));
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog", { name: "Load Books" })).not.toBeInTheDocument(),
+      );
+      finish({ ok: false, reason: "failed", message: "storage is full" });
+      await waitFor(() =>
+        expect(s.onNotice).toHaveBeenCalledWith(
+          "Hymns of Fellowship: Couldn’t load the book: storage is full",
+        ),
+      );
+      expect(screen.getByRole("button", { name: "Load Books" })).toBeEnabled();
+    });
+
+    it("a save that fails with the sheet open says so there, and the button returns", async () => {
+      const { dialog, finish } = await write();
+      finish({ ok: false, reason: "failed", message: "storage is full" });
+      expect(await dialog.findByRole("alert")).toHaveTextContent("storage is full");
+      expect(dialog.getByRole("button", { name: "Load Book" })).toBeEnabled();
+    });
+  });
+
   it("new: Load Book writes it; the current book stays when there is one", async () => {
     const { s, dialog } = await open({});
     fireEvent.click(dialog.getByRole("button", { name: "Load Book" }));
-    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t1", "keep-both"));
+    await waitFor(() =>
+      expect(s.admin.commit).toHaveBeenCalledWith("t1", "keep-both", expect.any(Function)),
+    );
     await waitFor(() => expect(s.admin.listBooks.mock.calls.length).toBeGreaterThan(1));
     expect(s.onChoose).not.toHaveBeenCalled();
   });
@@ -713,7 +826,9 @@ describe("Library: the review sheet (ADR-0027)", () => {
     expect(dialog.getByText(/its Recents and position still point at it/)).toBeInTheDocument();
     expect(dialog.getByRole("button", { name: "Keep Both" })).toBeInTheDocument();
     fireEvent.click(dialog.getByRole("button", { name: "Keep Both" }));
-    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t1", "keep-both"));
+    await waitFor(() =>
+      expect(s.admin.commit).toHaveBeenCalledWith("t1", "keep-both", expect.any(Function)),
+    );
   });
 
   it("same origin: choosing Replace changes the button, warns it cannot be undone, and replaces that book", async () => {
@@ -731,7 +846,9 @@ describe("Library: the review sheet (ADR-0027)", () => {
     fireEvent.click(dialog.getByRole("radio", { name: /Replace Hymns of Fellowship/ }));
     expect(dialog.getByText(/Replace can’t be undone/)).toBeInTheDocument();
     fireEvent.click(dialog.getByRole("button", { name: "Replace" }));
-    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t1", { replace: "k1" }));
+    await waitFor(() =>
+      expect(s.admin.commit).toHaveBeenCalledWith("t1", { replace: "k1" }, expect.any(Function)),
+    );
   });
 
   it("says why a commit was refused, and keeps the sheet", async () => {
@@ -807,7 +924,9 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     expect(first.getByRole("heading", { name: "Book 1" })).toBeInTheDocument();
     expect(s.admin.review).toHaveBeenCalledTimes(1);
     fireEvent.click(first.getByRole("button", { name: "Load Book" }));
-    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t-1", "keep-both"));
+    await waitFor(() =>
+      expect(s.admin.commit).toHaveBeenCalledWith("t-1", "keep-both", expect.any(Function)),
+    );
     expect(await screen.findByText("Book 2 of 3")).toBeInTheDocument();
     expect(s.admin.review.mock.calls.map(([file]) => file.name)).toEqual([
       "1.hymnbook.json.gz",
@@ -835,7 +954,9 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     ]);
     await waitFor(() => expect(screen.getByRole("button", { name: "Load Book" })).toBeEnabled());
     load();
-    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t-1#2", "keep-both"));
+    await waitFor(() =>
+      expect(s.admin.commit).toHaveBeenCalledWith("t-1#2", "keep-both", expect.any(Function)),
+    );
   });
 
   it("Back is off on the first book and Next on the last", async () => {
@@ -870,7 +991,9 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     land(review({ token: "fresh", title: "Book 1" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Load Book" })).toBeEnabled());
     load();
-    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("fresh", "keep-both"));
+    await waitFor(() =>
+      expect(s.admin.commit).toHaveBeenCalledWith("fresh", "keep-both", expect.any(Function)),
+    );
   });
 
   it("the arrow keys go Back and Next", async () => {
@@ -901,7 +1024,9 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     await waitFor(() => expect(screen.getByRole("button", { name: "Load Book" })).toBeEnabled());
     // Book 3 first. 1 and 2 are still open, so the sheet goes on to the first open one (1).
     load();
-    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t-3", "keep-both"));
+    await waitFor(() =>
+      expect(s.admin.commit).toHaveBeenCalledWith("t-3", "keep-both", expect.any(Function)),
+    );
     expect(await screen.findByText("Book 1 of 3")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("button", { name: "Load Book" })).toBeEnabled());
     next();
@@ -929,6 +1054,29 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     expect(tokens).toHaveLength(3);
     expect(new Set(tokens).size).toBe(3);
     expect(s.onNotice).not.toHaveBeenCalled();
+  });
+
+  it("a book read for the first time in the open sheet shows the worker's progress", async () => {
+    const s = queueSetup();
+    let report: OnLoadProgress = () => {};
+    s.admin.review.mockImplementation((file: File, _target, onProgress) => {
+      if (file.name.startsWith("1"))
+        return Promise.resolve(review({ token: "t-1", title: "Book 1" }));
+      report = onProgress ?? report;
+      return new Promise(() => {});
+    });
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles("1.hymnbook.json.gz", "2.hymnbook.json.gz");
+    await screen.findByText("Book 1 of 2");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Load Book" })).toBeEnabled());
+    next();
+    report({ phase: "checking", done: 40, total: 275 });
+    expect(
+      await screen.findByRole("progressbar", { name: "Checking 40 of 275 songs" }),
+    ).toBeInTheDocument();
+    // Reading can still be given up: the sheet closes, and the read is thrown away.
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument());
   });
 
   it("Back and Next are off while a book is being written", async () => {

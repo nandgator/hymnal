@@ -434,7 +434,8 @@ Library; this says what it shows and does.
   then the **summary** (ADR-0027): title, language and script, song count, the
   violations if any (all of them, by song and rule; none repaired), the verdict
   and its choices (§8), and how many songs are held elsewhere, by book. Nothing
-  is written until a button is pressed. Cancel throws the parsed book away.
+  is written until a button is pressed. Cancel throws the parsed book away. A
+  long read or write shows its phase and count on a bar (§14).
 - **Remove**: chosen, by the maintainer: a loaded book only, after a
   confirmation that names it. It removes the package file and the registry rows
   and drops its recents; if it was the current book, the next held book becomes
@@ -585,8 +586,9 @@ hook go, along with the defaults that read it (`Library`, `Finder`, `Presenter`,
   for the key, not from its name, so a Replace (a new file under the same key)
   needs nothing invalidated. `ensureInstalled(id)` stays for the shipped book
   until part 6; the Library uses it only for a shipped book not yet held. The
-  worker adds `listBooks`, `review(file, target?)`, `commit(token, choice)`,
-  `cancel(token)` and `removeBook(key)`.
+  worker adds `listBooks`, `review(file, target?, onProgress?)`,
+  `commit(token, choice?, onProgress?)`, `cancel(token)` and `removeBook(key)`;
+  `onProgress` hears the phases of §14.
 - The app's current book (`App.tsx`) starts as §9 says, not from
   `BUNDLED_HYMNBOOK_ID`; the book the hymn on screen is from is kept apart, so
   choosing another book does not blank the Output (SDD-0001 §16.4). **Decided
@@ -734,3 +736,108 @@ Each part is built and reviewed on its own, in order. Each ends with
 
 `OPEN:` loose songs, which belong to no book, are a later Board item (ADR-0021).
 The registry's `kind` would gain a third value for them.
+
+## 14. Progress and speed
+
+**Decided after the maintainer's report: a large book looked stuck.** Loading
+the Malayalam container (1,631 songs, 35,725 lines) showed an indeterminate bar
+while it was read and a dead, disabled button while it was written. The old
+shipped-book install had a determinate bar with a count; the load did not.
+
+### Measured first
+
+Headless Chromium, a fresh profile, the dev server, on a loaded machine (load
+average about 7, so read the numbers as ranges, not points). The worker's own
+clock, phase by phase:
+
+| Phase                                                  | Before         | After          |
+| ------------------------------------------------------ | -------------- | -------------- |
+| Read the file, hash its bytes                          | 5 to 45 ms     | the same       |
+| Gunzip                                                 | 35 to 70 ms    | the same       |
+| Parse                                                  | 30 to 75 ms    | the same       |
+| Validate                                               | 35 to 180 ms   | 50 to 65 ms    |
+| Song hashes                                            | 130 to 510 ms  | 160 to 520 ms  |
+| Verdict, summary                                       | under 20 ms    | the same       |
+| Commit: build the rows                                 | 40 to 60 ms    | the same       |
+| Commit: fill the scratch package (tables)              | 4,500 to 7,500 | 1,300 to 1,600 |
+| Commit: search index, export, `importDb`, registry row | 650 to 900 ms  | 360 to 570 ms  |
+| Refresh the list                                       | under 20 ms    | the same       |
+| Click on Load Book to the sheet closed                 | 5.1 to 8.9 s   | 2.2 to 3.4 s   |
+
+Where the time went: the scratch fill, one `exec` per row, each statement parsed
+again (35,725 line rows, 13,353 sequence entries, 8,333 parts: about 80
+microseconds a row). Everything else was small. A minute is not what this
+machine shows; the maintainer's disk and CPU may differ, and the per-row cost is
+the part that scales with them, so the fix is the same.
+
+### Faster, where it was wasteful
+
+- **Prepared statements.** `Sql.prepare` (optional, so a test double without it
+  still works) parses each insert once and runs it for every row; `insertRows`
+  and the registry's `song` rows use it. A test writes one book both ways and
+  compares every table.
+- **A song at a time.** `insertRows` writes a song's row, parts, lines and
+  sequence entries together (the keys are met per song), then the search index
+  once at the end. The tables hold the same rows as before; only the order
+  across tables changed, which nothing reads.
+- **Hashing in batches.** Song hashes are taken a hundred at a time, so the
+  count moves and the worker answers its messages between them.
+- Nothing else was wasteful: it is already one transaction in a scratch
+  database, one `importDb`, one registry transaction; the file is read once in
+  the worker; the page is sent a summary, never the book; there is no structured
+  clone of the songs across the boundary. The crash-safety of §6 and §7 is
+  untouched: the package is still built whole in memory and installed with
+  `importDb`, and the registry transaction is still the commit.
+
+### Showing it
+
+The worker reports `{ phase, done, total }` (`src/domain/progress.ts`), through
+the callback pattern of `InstallProgress`: the caller passes a plain function,
+`getContentAdmin` proxies it (as `getContentStore` does), and the worker calls
+it. `review(file, target?, onProgress?)` and
+`commit(token, choice?, onProgress?)` take it. At most one report in a hundred
+milliseconds passes, except a phase's first and last, so thousands of songs do
+not flood the channel.
+
+| Phase      | Belongs to | Counted by                 | The line                     |
+| ---------- | ---------- | -------------------------- | ---------------------------- |
+| `reading`  | review     | nothing (gunzip, parse)    | Reading…                     |
+| `checking` | review     | songs validated            | Checking 812 of 1,631 songs  |
+| `hashing`  | review     | songs hashed               | Comparing 400 of 1,631 songs |
+| `saving`   | commit     | songs written              | Saving 1,200 of 1,631 songs  |
+| `indexing` | commit     | nothing (search, registry) | Indexing for search…         |
+
+`LoadStatus` (`src/shell/Loading.tsx`) is the bar and the line under it, the
+`ProgressBar` of the shipped-book install: determinate where counted, sweeping
+where not.
+
+- **Only after 300 ms.** The same delay as `AfterDelay` (`createDelayed`): a
+  load that finishes sooner shows nothing.
+- **Reading** is the Library's row (or the empty Library's card) when the sheet
+  is closed, and the sheet's own panel for a book read in the open sheet. It can
+  still be cancelled, as before.
+- **Writing** replaces the Load Book button in the sheet's action bar. There is
+  no Cancel, because a write is not taken back safely, and the sheet's own
+  button says Close, not Cancel. Until the delay passes the button stays, off.
+- **Closing the sheet during a write** is allowed. The save finishes; the
+  Library shows a row (or the empty card) "Saving <title>" with the same bar and
+  the line "It can’t be cancelled"; Load Books and From Text stay off until it
+  lands. The books not yet decided are left unloaded, as any close does, and not
+  counting the one being saved. A failure after the close is said in the
+  snackbar, since the sheet is gone. A review of song text does not reopen the
+  text sheet while its book is being saved.
+- Stale reports are dropped: a read overtaken by another book, or thrown away,
+  no longer moves the bar.
+
+### Testing
+
+Unit: the phase lines, the fraction and the throttle (`progress.test.ts`);
+`readContainer` reports in order and in batches; a review and each commit (new,
+Replace) report through `LoadSession`; prepared and unprepared writes make the
+same package, go a song at a time, and roll back whole. The Library is tested
+with a fake admin that calls `onProgress`: the bar and the line after the delay
+and not before; a fast load shows nothing; the sheet in a write (no Cancel, only
+Close, the bar sweeping at Indexing); closing during a write (the row shows the
+bar, nothing is cancelled, the buttons are off until it lands); a failure after
+the close in the snackbar; a book read in the open sheet. The worker's own
+wiring (Comlink, OPFS) is checked by hand in a browser, as §12 says.

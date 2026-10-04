@@ -3,6 +3,7 @@ import sqlite3InitModule, { type Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 import * as Comlink from "comlink";
 import { SCHEMA_VERSION } from "../../scripts/content-schema.ts";
 import { SHIPPED_BOOK_IDS } from "../config.ts";
+import type { OnLoadProgress } from "../domain/progress.ts";
 import type {
   Hymnbook,
   HymnbookId,
@@ -50,7 +51,7 @@ export type ContentStatus =
  * Runtime counterpart to scripts/build-content.ts — see SDD-0001 §10.
  * Read-only: content is immutable at runtime.
  */
-export type { InstallProgress };
+export type { InstallProgress, OnLoadProgress };
 
 export interface ContentStore {
   /** Must succeed before any other method is called for this hymnbook.
@@ -65,6 +66,18 @@ export interface ContentStore {
   searchLyrics(id: HymnbookId, query: string): Promise<SearchResult[]>;
 }
 
+/** A progress callback from the page, which a closed page or a released proxy must not break. */
+function quiet(onProgress?: OnLoadProgress): OnLoadProgress | undefined {
+  if (!onProgress) return undefined;
+  return (progress) => {
+    try {
+      void Promise.resolve(onProgress(progress)).catch(() => {});
+    } catch {
+      // nobody is listening; the load goes on
+    }
+  };
+}
+
 // opfs-sahpool requires absolute paths.
 const filenameFor = (id: HymnbookId) => `/${id}.sqlite3`;
 
@@ -77,10 +90,11 @@ export interface ContentAdmin {
    * an unreadable package (SDD-0004 §10). Replaces `ensureInstalled` for every held book. */
   openBook(key: string): Promise<ContentStatus>;
   /** Reads a container and returns its summary and verdict; nothing is written (ADR-0027).
-   * `target` aims it at a held book that could not be opened (Load Again, §9). */
-  review(file: File, target?: string): Promise<LoadReview>;
-  /** Writes what the verdict allows (SDD-0004 §8). */
-  commit(token: string, choice?: Choice): Promise<CommitResult>;
+   * `target` aims it at a held book that could not be opened (Load Again, §9).
+   * `onProgress` hears the phases as it goes (SDD-0004 §14). */
+  review(file: File, target?: string, onProgress?: OnLoadProgress): Promise<LoadReview>;
+  /** Writes what the verdict allows (SDD-0004 §8). `onProgress` hears the songs written. */
+  commit(token: string, choice?: Choice, onProgress?: OnLoadProgress): Promise<CommitResult>;
   /** Throws the parsed book away. */
   cancel(token: string): Promise<boolean>;
   /** A loaded book only; a shipped one is refused. Its recents go with it: see `removeBookAndRecents`. */
@@ -235,6 +249,17 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
       exec: (sql) => {
         db.exec(sql);
       },
+      prepare: (sql) => {
+        const stmt = db.prepare(sql);
+        return {
+          run: (bind) => {
+            stmt.bind(bind).stepReset();
+          },
+          finalize: () => {
+            stmt.finalize();
+          },
+        };
+      },
     };
   }
 
@@ -301,8 +326,10 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     return listBooks(await this.#registry());
   }
 
-  async review(file: File, target?: string): Promise<LoadReview> {
-    return this.#session.review(new Uint8Array(await file.arrayBuffer()), target);
+  async review(file: File, target?: string, onProgress?: OnLoadProgress): Promise<LoadReview> {
+    const report = quiet(onProgress);
+    report?.({ phase: "reading", done: 0, total: 0 });
+    return this.#session.review(new Uint8Array(await file.arrayBuffer()), target, report);
   }
 
   async openBook(key: string): Promise<ContentStatus> {
@@ -333,8 +360,8 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     return this.#writes.size > 0;
   }
 
-  commit(token: string, choice?: Choice): Promise<CommitResult> {
-    return this.#track(this.#session.commit(token, choice));
+  commit(token: string, choice?: Choice, onProgress?: OnLoadProgress): Promise<CommitResult> {
+    return this.#track(this.#session.commit(token, choice, quiet(onProgress)));
   }
 
   async cancel(token: string): Promise<boolean> {

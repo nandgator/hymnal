@@ -1,11 +1,14 @@
 // @vitest-environment node
 
+import { DatabaseSync } from "node:sqlite";
 import { type GzipOptions, gzipSync } from "fflate";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { songHash } from "../src/domain/hash.ts";
+import { insertRows, packageRows } from "../src/domain/package-rows.ts";
 import type { HymnSource } from "../src/domain/types.ts";
 import { removeBookAndRecents } from "../src/persistence/books.ts";
 import { LoadSession } from "../src/persistence/load.ts";
+import { writePackage } from "../src/persistence/package-io.ts";
 import {
   addBook,
   heldBooks,
@@ -16,7 +19,8 @@ import {
   removeBook,
   replaceBook,
 } from "../src/persistence/registry.ts";
-import { book, container, hymn, hymns, setup } from "./registry-fixtures.ts";
+import { SCHEMA_VERSION } from "./content-schema.ts";
+import { book, container, hymn, hymns, setup, sqlOf } from "./registry-fixtures.ts";
 
 const bytesOf = (id: string, h: HymnSource[] = hymns, level: GzipOptions["level"] = 9) =>
   gzipSync(new TextEncoder().encode(JSON.stringify({ hymnbook: book(id, h.length), hymns: h })), {
@@ -806,5 +810,102 @@ describe("Load Again: a review aimed at a held book (SDD-0004 §9)", () => {
     ctx.registry.run("UPDATE book SET state = 'needs-newer-app' WHERE key = 'key-1'");
     expect(await s.commit(review.token)).toMatchObject({ ok: false, reason: "stale" });
     expect(files.list()).toEqual(["/key-1.1.sqlite3"]);
+  });
+});
+
+describe("progress (SDD-0004 §14)", () => {
+  const many = (n: number) => Array.from({ length: n }, (_, i) => hymn(i + 1));
+
+  it("a review reports reading, then the songs checked, then the songs hashed", async () => {
+    const { ctx } = setup();
+    const heard: { phase: string; done: number; total: number }[] = [];
+    await session(ctx).review(bytesOf("b", many(3)), undefined, (p) => heard.push(p));
+    expect(heard[0]).toEqual({ phase: "reading", done: 0, total: 0 });
+    expect(heard.at(-1)).toEqual({ phase: "hashing", done: 3, total: 3 });
+    expect(heard.some((p) => p.phase === "checking" && p.done === 3 && p.total === 3)).toBe(true);
+  });
+
+  it("a commit reports each song written, then the indexing, and nothing after the book is held", async () => {
+    const { ctx } = setup();
+    const s = session(ctx);
+    const review = await s.review(bytesOf("b", many(3)));
+    const heard: string[] = [];
+    const result = await s.commit(review.token, undefined, (p) =>
+      heard.push(`${p.phase} ${p.done}/${p.total}`),
+    );
+    expect(result).toMatchObject({ ok: true, action: "loaded" });
+    expect(heard).toEqual(["saving 1/3", "saving 3/3", "indexing 0/0"]);
+    expect(listBooks(ctx)).toHaveLength(1);
+  });
+
+  it("a Replace reports its writing too", async () => {
+    const { ctx } = setup();
+    const s = session(ctx);
+    await load(s, bytesOf("a", many(2)));
+    const review = await s.review(bytesOf("a", many(3)));
+    const heard: string[] = [];
+    await s.commit(review.token, { replace: "key-1" }, (p) => heard.push(p.phase));
+    expect(heard).toContain("saving");
+    expect(heard.at(-1)).toBe("indexing");
+  });
+
+  it("a commit without a listener writes the same", async () => {
+    const { ctx, files } = setup();
+    expect(await load(session(ctx), bytesOf("b", many(3)))).toMatchObject({ ok: true });
+    expect(files.list()).toEqual(["/key-1.1.sqlite3"]);
+  });
+});
+
+describe("writing a package", () => {
+  const forty = Array.from({ length: 40 }, (_, i) => hymn(i + 1));
+  const rowsOf = (songs: HymnSource[]) =>
+    packageRows(book("p", songs.length), songs, {
+      key: "p",
+      origin: "p",
+      sources: ["s"],
+      contentHash: "c",
+      schemaVersion: SCHEMA_VERSION,
+    });
+  const dump = (sql: ReturnType<typeof sqlOf>) =>
+    ["hymnbook", "hymn", "part", "line", "sequence_entry"].map((t) =>
+      sql.all(`SELECT * FROM ${t} ORDER BY 1, 2, 3`),
+    );
+
+  it("prepared statements and one statement per row write the same package", () => {
+    const rows = rowsOf(forty);
+    const prepared = sqlOf(new DatabaseSync(":memory:"));
+    const plain = { ...sqlOf(new DatabaseSync(":memory:")), prepare: undefined };
+    writePackage(prepared, rows);
+    writePackage(plain, rows);
+    expect(dump(prepared)).toEqual(dump(plain));
+    expect(prepared.all("SELECT COUNT(*) AS n FROM hymn_fts_docsize")).toEqual(
+      plain.all("SELECT COUNT(*) AS n FROM hymn_fts_docsize"),
+    );
+    expect(prepared.all("SELECT COUNT(*) AS n FROM line")[0].n).toBe(40 * 4);
+  });
+
+  it("goes a song at a time, then the search index once", () => {
+    const order: string[] = [];
+    insertRows(
+      (sql, bind) => order.push(`${sql.split(" ")[2]}:${bind[0]}`),
+      rowsOf(forty.slice(0, 3)),
+      {
+        onSong: (done, total) => order.push(`song ${done}/${total}`),
+        onIndex: () => order.push("index"),
+      },
+    );
+    const at = (label: string) => order.indexOf(label);
+    expect(at("song 1/3")).toBeLessThan(at("hymn:2"));
+    expect(at("song 3/3")).toBeLessThan(at("index"));
+    expect(order.slice(at("index") + 1).every((x) => x.startsWith("hymn_fts:"))).toBe(true);
+  });
+
+  it("rolls back whole if a row fails, leaving no tables in the scratch", () => {
+    const rows = rowsOf(forty.slice(0, 2));
+    // A second song numbered 1 breaks the primary key.
+    rows.hymn.push([1, "again", null, null, null]);
+    const db = new DatabaseSync(":memory:");
+    expect(() => writePackage(sqlOf(db), rows)).toThrow();
+    expect(() => db.prepare("SELECT 1 FROM hymn").all()).toThrow(/no such table/);
   });
 });

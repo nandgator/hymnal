@@ -18,6 +18,16 @@ export const sqlOf = (db: DatabaseSync): Sql => ({
     db.prepare(sql).run(...bind);
   },
   exec: (sql) => db.exec(sql),
+  prepare: (sql) => {
+    const statement = db.prepare(sql);
+    return {
+      run: (bind) => {
+        statement.run(...bind);
+      },
+      // node:sqlite finalizes a statement when it is collected.
+      finalize: () => {},
+    };
+  },
 });
 
 export const book = (id = "test-book", count = 2): HymnbookSource => ({

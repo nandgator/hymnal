@@ -136,6 +136,10 @@ only, here:
 
 ## Log
 
+- 2026-10-05 — Loading a large book: the write is about three times faster
+  (prepared statements, a song at a time), and the review sheet and the Library
+  row show a determinate bar with the phase and count after 300 ms; a save has
+  no Cancel and the sheet may be closed meanwhile (SDD-0004 §14)
 - 2026-10-04 — Board #21 Hold: the Output frozen on what it shows while the
   Operator browses; Release sends the current; Shift+H, a button beside Blank, a
   command (SDD-0001 §16.6)

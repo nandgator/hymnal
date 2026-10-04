@@ -8,9 +8,10 @@ import {
   Show,
   Switch,
 } from "solid-js";
+import type { LoadProgress } from "../domain/progress.ts";
 import type { SourceCheck } from "../import/sourcecheck.ts";
 import type { Choice, LoadReview } from "../persistence/content-store.ts";
-import { ProgressBar } from "../shell/Loading.tsx";
+import { AfterDelay, createDelayed, LoadStatus } from "../shell/Loading.tsx";
 import { Sheet } from "../shell/Sheet.tsx";
 import { SwapLabel } from "../shell/SwapLabel.tsx";
 import { selectGlide } from "../shell/selectGlide.ts";
@@ -27,6 +28,13 @@ export interface ReviewSheetProps {
   /** What went wrong committing, in words; the review stays so the choice can be made again. */
   error?: string;
   busy: boolean;
+  /**
+   * The book is being written (SDD-0004 §14): it cannot be taken back, so there is no Cancel,
+   * but the sheet may be closed and the save goes on. The button gives way to the progress.
+   */
+  committing?: boolean;
+  /** Where the read or the write is, as the worker last said. */
+  progress?: LoadProgress;
   /** The review shown is being read again: it cannot be committed (its token is old) but can be left. */
   refreshing?: boolean;
   /** The book was made from song text (ADR-0029): its source check, and "back" means the text. */
@@ -194,6 +202,8 @@ export function ReviewSheet(props: ReviewSheetProps) {
     queueMicrotask(rescueFocus);
     requestAnimationFrame(rescueFocus);
   });
+  // The save's bar takes the button's place once the wait is long enough to show.
+  const saving = createDelayed(() => !!props.committing);
   const refused = () => ["not-a-book", "newer", "violations"].includes(panel() ?? "");
   const choice = (): Choice => {
     const key = replace();
@@ -227,7 +237,9 @@ export function ReviewSheet(props: ReviewSheetProps) {
       open={props.open}
       onClose={props.onCancel}
       title={panel() === "restore" ? "Load Again" : "Load Books"}
-      closeLabel={panel() === "same-file" || refused() || queued() ? "Close" : "Cancel"}
+      closeLabel={
+        props.committing || panel() === "same-file" || refused() || queued() ? "Close" : "Cancel"
+      }
       placement={props.placement}
       tall
     >
@@ -279,7 +291,9 @@ export function ReviewSheet(props: ReviewSheetProps) {
                 <div class="review-book">
                   <h3 class="review-file">{props.reading}</h3>
                   <p>Checking the file on this device. Nothing is sent anywhere.</p>
-                  <ProgressBar label="Reading the book" />
+                  <AfterDelay>
+                    <LoadStatus progress={props.progress} idle="Reading…" />
+                  </AfterDelay>
                 </div>
               }
             >
@@ -532,33 +546,38 @@ export function ReviewSheet(props: ReviewSheetProps) {
                   }
                 >
                   <Show
-                    when={!refused()}
-                    fallback={
-                      <button type="button" class="btn-tonal" onClick={props.onChooseAnother}>
-                        {props.source ? "Edit the Text" : "Choose Another File"}
-                      </button>
-                    }
+                    when={!saving()}
+                    fallback={<LoadStatus progress={props.progress} idle="Saving…" />}
                   >
-                    <button
-                      type="button"
-                      class="btn-filled"
-                      disabled={props.busy || props.refreshing}
-                      onClick={() => props.onCommit(choice())}
+                    <Show
+                      when={!refused()}
+                      fallback={
+                        <button type="button" class="btn-tonal" onClick={props.onChooseAnother}>
+                          {props.source ? "Edit the Text" : "Choose Another File"}
+                        </button>
+                      }
                     >
-                      <Switch>
-                        <Match when={panel() === "same-file" || panel() === "same-songs"}>
-                          Open Book
-                        </Match>
-                        <Match when={panel() === "restore"}>Restore Book</Match>
-                        <Match when={panel() === "same-origin"}>
-                          <SwapLabel
-                            labels={["Keep Both", "Replace"]}
-                            current={replace() === undefined ? "Keep Both" : "Replace"}
-                          />
-                        </Match>
-                        <Match when={true}>Load Book</Match>
-                      </Switch>
-                    </button>
+                      <button
+                        type="button"
+                        class="btn-filled"
+                        disabled={props.busy || props.refreshing}
+                        onClick={() => props.onCommit(choice())}
+                      >
+                        <Switch>
+                          <Match when={panel() === "same-file" || panel() === "same-songs"}>
+                            Open Book
+                          </Match>
+                          <Match when={panel() === "restore"}>Restore Book</Match>
+                          <Match when={panel() === "same-origin"}>
+                            <SwapLabel
+                              labels={["Keep Both", "Replace"]}
+                              current={replace() === undefined ? "Keep Both" : "Replace"}
+                            />
+                          </Match>
+                          <Match when={true}>Load Book</Match>
+                        </Switch>
+                      </button>
+                    </Show>
                   </Show>
                 </Show>
               </div>

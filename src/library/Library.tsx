@@ -9,6 +9,7 @@ import {
   Show,
   Switch,
 } from "solid-js";
+import type { LoadProgress } from "../domain/progress.ts";
 import type { TextError } from "../import/songtext.ts";
 import { commitAndPersist, removeBookAndRecents } from "../persistence/books.ts";
 import {
@@ -20,7 +21,7 @@ import {
 } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
 import { glideList } from "../shell/glideList.ts";
-import { AfterDelay, ProgressBar } from "../shell/Loading.tsx";
+import { AfterDelay, createDelayed, LoadStatus, ProgressBar } from "../shell/Loading.tsx";
 import { Menu } from "../shell/Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "../shell/media.ts";
 import {
@@ -171,6 +172,12 @@ export function Library(props: LibraryProps) {
   const [reviewOpen, setReviewOpen] = createSignal(false);
   const [reviewError, setReviewError] = createSignal<string>();
   const [busy, setBusy] = createSignal(false);
+  // The book in view is being written (busy as well), and where the worker says the read or the
+  // write has got to (SDD-0004 §14). Shown only once the wait has lasted long enough to notice.
+  const [committing, setCommitting] = createSignal(false);
+  const [progress, setProgress] = createSignal<LoadProgress>();
+  const readingShown = createDelayed(() => !!reading());
+  const savingShown = createDelayed(() => committing() && !reviewOpen());
   // A book from song text (ADR-0029): the sheet's draft, what its last Review found wrong,
   // and, while its review is open, the source check that goes with it.
   const draft = createTextDraft();
@@ -218,21 +225,24 @@ export function Library(props: LibraryProps) {
 
   /** Closes the review sheet. Of several books, those not decided stay unloaded, and it says so. */
   const closeReview = (quiet = false) => {
-    // A commit in flight is not taken back by closing the sheet.
-    if (busy()) return;
+    // A save in flight is not taken back by closing the sheet: it finishes, and the Library's
+    // row shows it. Anything else that is busy (a removal) is not interrupted.
+    const saving = committing();
+    if (busy() && !saving) return;
     const token = review()?.token;
-    if (token) void admin().cancel(token);
+    if (token && !saving) void admin().cancel(token);
     // A read still going is thrown away when it lands.
     nextId++;
     setReading(undefined);
     setReviewOpen(false);
     setReviewError(undefined);
-    setBusy(false);
-    const left = queue && queue.entries.length > 1 ? unloaded(queue) : 0;
+    // The book being saved is not left unloaded.
+    const left = queue && queue.entries.length > 1 ? unloaded(queue) - (saving ? 1 : 0) : 0;
     endQueue();
     if (left > 0 && !quiet) props.onNotice?.(`${left} ${left === 1 ? "book" : "books"} not loaded`);
-    // A review of song text goes back to the text, which is kept to fix.
-    if (reviewSource()) setTextOpen(true);
+    // A review of song text goes back to the text, which is kept to fix; not while that book
+    // is being saved, which clears the text when it lands.
+    if (reviewSource() && !saving) setTextOpen(true);
   };
 
   const openText = () => {
@@ -317,7 +327,11 @@ export function Library(props: LibraryProps) {
       setReading({ id, fileName: entry.file.name, target: now.target });
     }
     try {
-      const result = await admin().review(entry.file, now.target);
+      setProgress(undefined);
+      const result = await admin().review(entry.file, now.target, (next) => {
+        // A read overtaken by another book, or thrown away, is not shown.
+        if (id === nextId) setProgress(next);
+      });
       // Cancelled, or another book brought into view, while it read: this one is thrown away.
       if (id !== nextId) {
         if (result.token) void admin().cancel(result.token);
@@ -386,21 +400,31 @@ export function Library(props: LibraryProps) {
     const now = queue;
     const here = now?.entries[now.at];
     setBusy(true);
+    setCommitting(true);
+    setProgress(undefined);
     setReviewError(undefined);
-    const result = await commitAndPersist(admin(), current.token, choice, props.persist).catch(
-      (error: unknown) => ({
-        ok: false as const,
-        reason: "failed" as const,
-        message: error instanceof Error ? error.message : String(error),
-      }),
-    );
+    const result = await commitAndPersist(
+      admin(),
+      current.token,
+      choice,
+      props.persist,
+      setProgress,
+    ).catch((error: unknown) => ({
+      ok: false as const,
+      reason: "failed" as const,
+      message: error instanceof Error ? error.message : String(error),
+    }));
     if (!result.ok) {
       setBusy(false);
-      setReviewError(
+      setCommitting(false);
+      setProgress(undefined);
+      const said =
         result.reason === "stale"
           ? "The books on this device changed since the file was read. Cancel, then pick the file again."
-          : `Couldn’t load the book: ${result.message}`,
-      );
+          : `Couldn’t load the book: ${result.message}`;
+      // The sheet was closed while it wrote, so it cannot say so: the snackbar does.
+      if (reviewOpen()) setReviewError(said);
+      else props.onNotice?.(`${current.title || "The book"}: ${said}`);
       return;
     }
     if (reviewSource()) {
@@ -417,6 +441,8 @@ export function Library(props: LibraryProps) {
     // Busy until the list is read too, so no new pick can begin in the meantime.
     await props.books.refresh();
     setBusy(false);
+    setCommitting(false);
+    setProgress(undefined);
     const opened = result.action === "opened" || result.action === "recorded";
     // A load never switches the current book under the operator, unless
     // there is none (the first load); Open Book is the user choosing it.
@@ -561,11 +587,30 @@ export function Library(props: LibraryProps) {
           </div>
           <div class="book-meta">Checking the file on this device. Nothing is sent anywhere.</div>
         </div>
-        <ProgressBar label="Reading the book" />
+        <LoadStatus progress={progress()} idle="Reading…" />
       </div>
       <button type="button" class="btn-text" onClick={cancelReading}>
         Cancel
       </button>
+    </li>
+  );
+
+  /**
+   * A book being written while the sheet is closed: the row it will take, with the same bar. There
+   * is no Cancel, since a write is not taken back safely (SDD-0004 §14).
+   */
+  const savingRow = () => (
+    <li class="book reading" aria-busy="true">
+      <span class="book-tile">
+        <span class="icon icon-file-open" aria-hidden="true" />
+      </span>
+      <div class="reading-body">
+        <div>
+          <div class="title-medium reading-name">Saving {review()?.title || "the book"}</div>
+          <div class="book-meta">Writing the book on this device. It can’t be cancelled.</div>
+        </div>
+        <LoadStatus progress={progress()} idle="Saving…" />
+      </div>
     </li>
   );
 
@@ -719,7 +764,8 @@ export function Library(props: LibraryProps) {
           )
         }
       >
-        <Show when={reading()}>{(now) => readingRow(now())}</Show>
+        <Show when={reading() && readingShown() && reading()}>{(now) => readingRow(now())}</Show>
+        <Show when={savingShown()}>{savingRow()}</Show>
         <For each={rows()}>{bookRow}</For>
       </ul>
       <p class="lib-foot">
@@ -731,25 +777,36 @@ export function Library(props: LibraryProps) {
   const empty = (): JSX.Element => (
     <div class="card-elevated library lib-empty">
       <Show
-        when={reading()}
+        when={reading() && readingShown() && reading()}
         fallback={
-          <>
-            <h1 class="display-small">Bring a songbook</h1>
-            <p class="body-large on-surface-variant">
-              Load a songbook file, or type one in. It stays on this device.
-            </p>
-            <For each={readErrors()}>
-              {(message) => (
-                <p class="review-error" role="alert">
-                  {message}
+          <Show
+            when={savingShown()}
+            fallback={
+              <>
+                <h1 class="display-small">Bring a songbook</h1>
+                <p class="body-large on-surface-variant">
+                  Load a songbook file, or type one in. It stays on this device.
                 </p>
-              )}
-            </For>
-            <div class="lib-empty-actions">
-              {loadButton("btn-filled")}
-              {textButton("btn-tonal")}
-            </div>
-          </>
+                <For each={readErrors()}>
+                  {(message) => (
+                    <p class="review-error" role="alert">
+                      {message}
+                    </p>
+                  )}
+                </For>
+                <div class="lib-empty-actions">
+                  {loadButton("btn-filled")}
+                  {textButton("btn-tonal")}
+                </div>
+              </>
+            }
+          >
+            <h1 class="title-large reading-name">Saving {review()?.title || "the book"}</h1>
+            <p class="body-large on-surface-variant">
+              Writing the book on this device. It can’t be cancelled.
+            </p>
+            <LoadStatus progress={progress()} idle="Saving…" />
+          </Show>
         }
       >
         {(now) => (
@@ -758,7 +815,7 @@ export function Library(props: LibraryProps) {
             <p class="body-large on-surface-variant">
               Checking the file on this device. Nothing is sent anywhere.
             </p>
-            <ProgressBar label="Reading the book" />
+            <LoadStatus progress={progress()} idle="Reading…" />
             <button type="button" class="btn-text lib-retry" onClick={cancelReading}>
               Cancel
             </button>
@@ -827,6 +884,8 @@ export function Library(props: LibraryProps) {
         fileName={reviewFile()}
         error={reviewError()}
         busy={busy()}
+        committing={committing()}
+        progress={progress()}
         refreshing={refreshing()}
         reading={sheetReading()}
         problems={reviewSource() ? [] : readErrors()}

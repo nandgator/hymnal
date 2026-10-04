@@ -1,5 +1,5 @@
 import { PACKAGE_MIGRATIONS, SCHEMA_SQL, SCHEMA_VERSION } from "../../scripts/content-schema.ts";
-import { insertRows, type PackageRows } from "../domain/package-rows.ts";
+import { type InsertOptions, insertRows, type PackageRows } from "../domain/package-rows.ts";
 import type { HymnSource, Part, PartKind } from "../domain/types.ts";
 
 export type Value = string | number | null;
@@ -14,6 +14,11 @@ export interface Sql {
   run(sql: string, bind?: Value[]): void;
   /** One or more statements, no binds. */
   exec(sql: string): void;
+  /**
+   * A statement parsed once, to run for many rows. Optional: an implementation
+   * without it is used a row at a time, which is slower and no less correct.
+   */
+  prepare?(sql: string): { run(bind: Value[]): void; finalize(): void };
 }
 
 /** Runs `fn` in a transaction: committed if it returns, rolled back if it throws. */
@@ -214,10 +219,17 @@ export function migratePackage(sql: Sql, from: number): boolean {
 }
 
 /** Writes a whole package in one transaction: nothing of it is there unless all of it is. */
-export function writePackage(sql: Sql, rows: PackageRows): void {
+export function writePackage(
+  sql: Sql,
+  rows: PackageRows,
+  progress?: Pick<InsertOptions, "onSong" | "onIndex">,
+): void {
   transaction(sql, () => {
     sql.exec(SCHEMA_SQL);
-    insertRows((statement, bind) => sql.run(statement, bind), rows);
+    insertRows((statement, bind) => sql.run(statement, bind), rows, {
+      prepare: sql.prepare?.bind(sql),
+      ...progress,
+    });
   });
 }
 

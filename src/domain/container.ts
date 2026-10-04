@@ -1,4 +1,5 @@
 import { type SongHashes, songHash, sourceHash } from "./hash.ts";
+import type { OnLoadProgress } from "./progress.ts";
 import type { HymnbookSource, HymnSource } from "./types.ts";
 import { CONTENT_FORMAT, hymnFileName, type Violation, validateCorpus } from "./validate.ts";
 
@@ -61,11 +62,20 @@ async function gunzip(bytes: Uint8Array, ceiling: number): Promise<string | null
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
-/** Reads a container file's bytes: gunzip, parse, shape, validate, hash. Never throws. */
+/** Songs hashed together before the next report: one await each, not one per song. */
+const HASH_BATCH = 100;
+
+/**
+ * Reads a container file's bytes: gunzip, parse, shape, validate, hash. Never
+ * throws. `onProgress` hears the phases (SDD-0004 §14): reading, then each
+ * song checked, then each song hashed.
+ */
 export async function readContainer(
   bytes: Uint8Array,
   ceiling = MAX_INFLATED_BYTES,
+  onProgress?: OnLoadProgress,
 ): Promise<ContainerRead> {
+  onProgress?.({ phase: "reading", done: 0, total: 0 });
   const hash = await sourceHash(bytes);
   const text = await gunzip(bytes, ceiling);
   if (text === null) return refuse(hash, "container", NOT_CONTAINER);
@@ -92,7 +102,11 @@ export async function readContainer(
         : `hymns[${i}]`,
     hymn,
   }));
-  const violations = validateCorpus(doc.hymnbook, files);
+  const violations = validateCorpus(
+    doc.hymnbook,
+    files,
+    onProgress && ((done, total) => onProgress({ phase: "checking", done, total })),
+  );
   if (violations.length > 0) {
     // A newer format reads "needs a newer app", naming both versions (ADR-0019).
     const format = isRecord(doc.hymnbook) ? doc.hymnbook.format : undefined;
@@ -114,7 +128,14 @@ export async function readContainer(
   }
 
   const book = { hymnbook: doc.hymnbook as HymnbookSource, hymns: doc.hymns as HymnSource[] };
-  const hashes = await Promise.all(book.hymns.map(songHash));
+  // In batches, so the count moves and the worker answers its other messages between them.
+  const hashes: string[] = [];
+  const total = book.hymns.length;
+  onProgress?.({ phase: "hashing", done: 0, total });
+  for (let at = 0; at < total; at += HASH_BATCH) {
+    hashes.push(...(await Promise.all(book.hymns.slice(at, at + HASH_BATCH).map(songHash))));
+    onProgress?.({ phase: "hashing", done: hashes.length, total });
+  }
   const songHashes = new Map(book.hymns.map((h, i) => [h.number, hashes[i]] as const));
   return { ok: true, sourceHash: hash, book, songHashes };
 }

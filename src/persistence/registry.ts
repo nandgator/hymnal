@@ -3,6 +3,7 @@ import type { ContainerBook } from "../domain/container.ts";
 import type { HeldBook } from "../domain/duplicates.ts";
 import { songHash } from "../domain/hash.ts";
 import { packageRows } from "../domain/package-rows.ts";
+import type { OnLoadProgress } from "../domain/progress.ts";
 import {
   isUnreadableDatabase,
   migratePackage,
@@ -215,12 +216,16 @@ function insertBook(
         row.addedAt,
       ]);
     }
-    for (const [number, hash] of hashes) {
-      registry.run("INSERT INTO song (book_key, number, hash) VALUES (?, ?, ?)", [
-        row.key,
-        number,
-        hash,
-      ]);
+    // One parsed statement for every song: a book of thousands is one transaction, one parse.
+    const sql = "INSERT INTO song (book_key, number, hash) VALUES (?, ?, ?)";
+    const insert = registry.prepare?.(sql);
+    try {
+      for (const [number, hash] of hashes) {
+        if (insert) insert.run([row.key, number, hash]);
+        else registry.run(sql, [row.key, number, hash]);
+      }
+    } finally {
+      insert?.finalize();
     }
   });
 }
@@ -237,6 +242,7 @@ async function writeNewPackage(
   file: string,
   key: string,
   read: ContainerRead,
+  onProgress?: OnLoadProgress,
 ): Promise<void> {
   await ctx.files.reserve();
   // Never open over a file that is there: it is another write's, or a kept leftover,
@@ -251,7 +257,17 @@ async function writeNewPackage(
     schemaVersion: SCHEMA_VERSION,
   });
   // Atomic: a failure, or a kill, leaves nothing under `file`, so there is nothing to remove.
-  ctx.files.write(file, (sql) => writePackage(sql, rows));
+  const total = hymns.length;
+  ctx.files.write(file, (sql) =>
+    writePackage(
+      sql,
+      rows,
+      onProgress && {
+        onSong: (done) => onProgress({ phase: "saving", done, total }),
+        onIndex: () => onProgress({ phase: "indexing", done: 0, total: 0 }),
+      },
+    ),
+  );
 }
 
 function rowOf(
@@ -301,9 +317,10 @@ export async function addBook(
   key: string,
   read: ContainerRead,
   n = 1,
+  onProgress?: OnLoadProgress,
 ): Promise<BookRow> {
   const file = `/${key}.${n}.sqlite3`;
-  await writeNewPackage(ctx, file, key, read);
+  await writeNewPackage(ctx, file, key, read, onProgress);
   const row = rowOf(ctx, key, file, read);
   commitRow(ctx, row, read);
   return row;
@@ -323,7 +340,7 @@ export async function replaceBook(
   key: string,
   read: ContainerRead,
   /** Restoring a book that cannot be opened (SDD-0004 §9): the user picked its file again. */
-  options: { restore?: boolean } = {},
+  options: { restore?: boolean; onProgress?: OnLoadProgress } = {},
 ): Promise<BookRow> {
   const old = bookBy(ctx, "key", key);
   if (!old) throw new Error(`${key} is not held`);
@@ -340,7 +357,7 @@ export async function replaceBook(
         .map(generationOf),
     ) + 1;
   const file = `/${key}.${n}.sqlite3`;
-  await writeNewPackage(ctx, file, key, read);
+  await writeNewPackage(ctx, file, key, read, options.onProgress);
   const row = rowOf(ctx, key, file, read, old.addedAt);
   commitRow(ctx, row, read, old.file);
   try {

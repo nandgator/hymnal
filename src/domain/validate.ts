@@ -138,7 +138,12 @@ const relabel = (violations: Violation[], where: string) =>
   violations.map((v) => ({ ...v, where }));
 
 /** Checks a whole hymnbook directory: the metadata, every hymn, and cross-hymn rules. */
-export function validateCorpus(hymnbook: unknown, files: HymnFile[]): Violation[] {
+export function validateCorpus(
+  hymnbook: unknown,
+  files: HymnFile[],
+  /** Told after each song, so a long check can show how far it has got. */
+  onHymn?: (done: number, total: number) => void,
+): Violation[] {
   const out: Violation[] = [];
   const add: Add = (rule, message) => out.push({ rule, where: "hymnbook", message });
 
@@ -169,8 +174,10 @@ export function validateCorpus(hymnbook: unknown, files: HymnFile[]): Violation[
   }
 
   const seen = new Map<number, string>();
+  let checked = 0;
   for (const { file, hymn } of files) {
     out.push(...validateHymn(hymn, file));
+    onHymn?.(++checked, files.length);
     const number = isRecord(hymn) ? hymn.number : undefined;
     if (typeof number !== "number") continue;
     if (file !== hymnFileName(number)) {

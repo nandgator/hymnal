@@ -13,7 +13,7 @@ export function forgetBook(key: HymnbookId): void {
 }
 
 let store: ContentStore | undefined;
-let admin: Comlink.Remote<ContentAdmin> | undefined;
+let admin: ContentAdmin | undefined;
 
 /** The one content-store instance for this tab. Owns a dedicated Worker — see SDD-0001 §10.1. */
 export function getContentStore(): ContentStore {
@@ -44,9 +44,31 @@ export function getContentStore(): ContentStore {
   return store;
 }
 
-/** The books held and the registry: the same worker as the store's (SDD-0004 §10). */
-export function getContentAdmin(): Comlink.Remote<ContentAdmin> {
-  if (!admin) admin = connect();
+/**
+ * The books held and the registry: the same worker as the store's (SDD-0004
+ * §10). As with the store, a progress callback is proxied here, so callers
+ * pass a plain function.
+ */
+export function getContentAdmin(): ContentAdmin {
+  if (!admin) {
+    const remote = connect();
+    admin = {
+      listBooks: () => remote.listBooks(),
+      openBook: (key) => remote.openBook(key),
+      review: (file, target, onProgress) =>
+        remote.review(file, target, onProgress && Comlink.proxy(onProgress)),
+      commit: (token, choice, onProgress) =>
+        remote.commit(token, choice, onProgress && Comlink.proxy(onProgress)),
+      cancel: (token) => remote.cancel(token),
+      removeBook: (key) => remote.removeBook(key),
+      busy: () => remote.busy(),
+      close: () => remote.close(),
+      // Comlink proxies a nested object's methods; the typings do not know.
+      get dev() {
+        return remote.dev as unknown as ContentAdmin["dev"];
+      },
+    } satisfies ContentAdmin;
+  }
   return admin;
 }
 
@@ -94,6 +116,7 @@ export type {
   ContentStore,
   HymnSummary,
   InstallProgress,
+  OnLoadProgress,
   SearchResult,
 } from "./content-store.worker.ts";
 export type { Choice, CommitResult, LoadReview } from "./load.ts";

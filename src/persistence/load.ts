@@ -7,6 +7,7 @@ import {
   verdict as verdictOf,
 } from "../domain/duplicates.ts";
 import { uuidv7 } from "../domain/key.ts";
+import { type OnLoadProgress, throttled } from "../domain/progress.ts";
 import type { Violation } from "../domain/validate.ts";
 import {
   addBook,
@@ -116,13 +117,17 @@ export class LoadSession {
    * could not be opened): committing then replaces that book under its key,
    * whatever the file's origin, and the duplicate verdict is not asked.
    */
-  async review(bytes: Uint8Array, target?: string): Promise<LoadReview> {
+  async review(
+    bytes: Uint8Array,
+    target?: string,
+    onProgress?: OnLoadProgress,
+  ): Promise<LoadReview> {
     // A second pick replaces the first at once, and only the latest review to
     // be asked for may become pending, whatever order they finish in.
     const generation = ++this.#generation;
     this.#pending = undefined;
     const ctx = await this.#registry();
-    const read = await readContainer(bytes);
+    const read = await readContainer(bytes, undefined, throttled(onProgress));
     if (!read.ok) {
       return {
         token: "",
@@ -205,7 +210,11 @@ export class LoadSession {
    * together never race for a file name; and a commit that finishes late
    * never touches a review begun while it wrote.
    */
-  commit(token: string, choice: Choice = "keep-both"): Promise<CommitResult> {
+  commit(
+    token: string,
+    choice: Choice = "keep-both",
+    onProgress?: OnLoadProgress,
+  ): Promise<CommitResult> {
     const pending = this.#pending;
     if (!pending || pending.token !== token) {
       return Promise.resolve({
@@ -216,7 +225,8 @@ export class LoadSession {
     }
     this.#pending = undefined;
     const generation = this.#generation;
-    const run = this.#tail.then(() => this.#commit(pending, choice, generation));
+    const report = throttled(onProgress);
+    const run = this.#tail.then(() => this.#commit(pending, choice, generation, report));
     this.#tail = run.then(
       () => {},
       () => {},
@@ -224,7 +234,12 @@ export class LoadSession {
     return run;
   }
 
-  async #commit(pending: Pending, choice: Choice, generation: number): Promise<CommitResult> {
+  async #commit(
+    pending: Pending,
+    choice: Choice,
+    generation: number,
+    report?: OnLoadProgress,
+  ): Promise<CommitResult> {
     const ctx = await this.#registry();
     const { read } = pending;
     const { hymnbook } = read.book;
@@ -233,7 +248,7 @@ export class LoadSession {
     const keep = () => {
       if (generation === this.#generation && !this.#pending) this.#pending = pending;
     };
-    if (pending.target !== undefined) return this.#restore(ctx, pending, keep);
+    if (pending.target !== undefined) return this.#restore(ctx, pending, keep, report);
     // The registry may have changed since the review (another tab, a removal).
     const now = verdictOf(
       { sourceHash: read.sourceHash, origin: hymnbook.id, songHashes: read.songHashes },
@@ -268,13 +283,13 @@ export class LoadSession {
                 message: `Replace is not offered for ${choice.replace}`,
               };
             }
-            const row = await replaceBook(ctx, target.key, read);
+            const row = await replaceBook(ctx, target.key, read, { onProgress: report });
             return { ok: true, action: "replaced", key: row.key };
           }
-          return await this.#load(ctx, read, "kept-both");
+          return await this.#load(ctx, read, "kept-both", report);
         }
         case "new":
-          return await this.#load(ctx, read, "loaded");
+          return await this.#load(ctx, read, "loaded", report);
       }
     } catch (error) {
       keep();
@@ -287,7 +302,12 @@ export class LoadSession {
   }
 
   /** Load Again: the file replaces the held book under its key (SDD-0004 §9). */
-  async #restore(ctx: RegistryContext, pending: Pending, keep: () => void): Promise<CommitResult> {
+  async #restore(
+    ctx: RegistryContext,
+    pending: Pending,
+    keep: () => void,
+    report?: OnLoadProgress,
+  ): Promise<CommitResult> {
     const pinned = pending.target as NonNullable<Pending["target"]>;
     const key = pinned.key;
     const row = listBooks(ctx).find((b) => b.key === key);
@@ -305,7 +325,10 @@ export class LoadSession {
       return { ok: false, reason: "stale", message: "the book changed since the file was read" };
     }
     try {
-      const written = await replaceBook(ctx, key, pending.read, { restore: true });
+      const written = await replaceBook(ctx, key, pending.read, {
+        restore: true,
+        onProgress: report,
+      });
       return { ok: true, action: row.state === "ok" ? "replaced" : "restored", key: written.key };
     } catch (error) {
       keep();
@@ -321,9 +344,10 @@ export class LoadSession {
     ctx: RegistryContext,
     read: Pending["read"],
     action: "loaded" | "kept-both",
+    report?: OnLoadProgress,
   ): Promise<CommitResult> {
     const first = !listBooks(ctx).some((b) => b.kind === "loaded");
-    const row = await addBook(ctx, this.#newKey(), read);
+    const row = await addBook(ctx, this.#newKey(), read, 1, report);
     return { ok: true, action, key: row.key, ...(first ? { firstLoad: true as const } : {}) };
   }
 }

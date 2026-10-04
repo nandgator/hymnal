@@ -1,3 +1,4 @@
+import type { OnLoadProgress } from "../domain/progress.ts";
 import type { Choice, CommitResult } from "./load.ts";
 import type { UserState } from "./user-state.ts";
 
@@ -35,12 +36,15 @@ export type CommittedBook = CommitResult & {
  * and the one-time note that says to keep the file is the Library's.
  */
 export async function commitAndPersist(
-  admin: { commit(token: string, choice?: Choice): Promise<CommitResult> },
+  admin: {
+    commit(token: string, choice?: Choice, onProgress?: OnLoadProgress): Promise<CommitResult>;
+  },
   token: string,
   choice?: Choice,
   persist: () => Promise<PersistResult> = askPersist,
+  onProgress?: OnLoadProgress,
 ): Promise<CommittedBook> {
-  const result = await admin.commit(token, choice);
+  const result = await admin.commit(token, choice, onProgress);
   if (result.ok && result.firstLoad) return { ...result, persist: await persist() };
   return result;
 }

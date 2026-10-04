@@ -56,6 +56,32 @@ describe("readContainer", () => {
     expect(read.songHashes.get(1)).toBe(await songHash(hymn(1)));
   });
 
+  it("reports reading, then each song checked, then each song hashed, in batches", async () => {
+    const songs = Array.from({ length: 250 }, (_, i) => hymn(i + 1));
+    const heard: { phase: string; done: number; total: number }[] = [];
+    const read = await readContainer(await pack(book(songs)), undefined, (p) => heard.push(p));
+    expect(read.ok).toBe(true);
+    expect(heard[0]).toEqual({ phase: "reading", done: 0, total: 0 });
+    const checking = heard.filter((p) => p.phase === "checking");
+    expect(checking).toHaveLength(250);
+    expect(checking.at(-1)).toEqual({ phase: "checking", done: 250, total: 250 });
+    const hashing = heard.filter((p) => p.phase === "hashing").map((p) => p.done);
+    expect(hashing).toEqual([0, 100, 200, 250]);
+    // The phases come in order, never back.
+    const order = heard.map((p) => p.phase).filter((p, i, all) => p !== all[i - 1]);
+    expect(order).toEqual(["reading", "checking", "hashing"]);
+  });
+
+  it("reports no hashing for a rejected book", async () => {
+    const heard: string[] = [];
+    const bad = { ...hymn(1), parts: [] };
+    const read = await readContainer(await pack(book([bad])), undefined, (p) =>
+      heard.push(p.phase),
+    );
+    expect(read.ok).toBe(false);
+    expect(heard).not.toContain("hashing");
+  });
+
   it("refuses a file that is not gzip", async () => {
     const read = await readContainer(new TextEncoder().encode(JSON.stringify(book([hymn(1)]))));
     expect(read.ok).toBe(false);

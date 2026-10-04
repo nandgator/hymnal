@@ -244,7 +244,9 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
   it("commits through the same button; the new book is listed and the text is cleared", async () => {
     const { s, reviewDialog } = await toReview("");
     fireEvent.click(reviewDialog.getByRole("button", { name: "Load Book" }));
-    await waitFor(() => expect(s.admin.commit).toHaveBeenCalledWith("t1", "keep-both"));
+    await waitFor(() =>
+      expect(s.admin.commit).toHaveBeenCalledWith("t1", "keep-both", expect.any(Function)),
+    );
     expect(await screen.findByText("Public Domain Sample")).toBeInTheDocument();
     // The buttons stay off until the book is written and listed.
     await waitFor(() => expect(screen.getByRole("button", { name: "From Text" })).toBeEnabled());

@@ -1,4 +1,5 @@
-import { createSignal, type JSX, onCleanup, Show } from "solid-js";
+import { type Accessor, createEffect, createSignal, type JSX, onCleanup, Show } from "solid-js";
+import { fraction, type LoadProgress, phaseLine } from "../domain/progress.ts";
 
 /** How long a wait lasts before it's shown (DESIGN.md § Structure): a fast
  * load shows nothing at all, rather than a flash of skeleton. */
@@ -31,6 +32,40 @@ export function ProgressBar(props: { value?: number; label: string }) {
         class="progress-indicator"
         style={props.value === undefined ? undefined : { transform: `scaleX(${props.value})` }}
       />
+    </div>
+  );
+}
+
+/**
+ * True once `when` has held for {@link LOADING_DELAY_MS}, and false again as
+ * soon as it stops: the same delay as {@link AfterDelay}, for a wait whose
+ * start is a signal, not a mounting.
+ */
+export function createDelayed(when: Accessor<boolean>, ms = LOADING_DELAY_MS): Accessor<boolean> {
+  const [shown, setShown] = createSignal(false);
+  createEffect(() => {
+    if (!when()) {
+      setShown(false);
+      return;
+    }
+    const timer = setTimeout(() => setShown(true), ms);
+    onCleanup(() => clearTimeout(timer));
+  });
+  return shown;
+}
+
+/**
+ * A book load's bar and its phase line (SDD-0004 §14): determinate where the
+ * phase is counted ("Saving 1,200 of 1,631 songs"), else indeterminate
+ * ("Indexing for search…"). `idle` says what it is before the worker has
+ * reported a phase.
+ */
+export function LoadStatus(props: { progress?: LoadProgress; idle: string }) {
+  const line = () => (props.progress ? phaseLine(props.progress) : props.idle);
+  return (
+    <div class="load-status">
+      <ProgressBar value={props.progress && fraction(props.progress)} label={line()} />
+      <p class="body-medium on-surface-variant library-progress-text">{line()}</p>
     </div>
   );
 }

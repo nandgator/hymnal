@@ -82,10 +82,73 @@ export function packageRows(
   return rows;
 }
 
-/** Inserts every row through `run`, in an order that satisfies the keys. */
-export function insertRows(run: (sql: string, bind: Value[]) => void, rows: PackageRows): void {
-  run(INSERTS.hymnbook, rows.hymnbook);
-  for (const table of ["hymn", "part", "line", "sequenceEntry", "fts"] as const) {
-    for (const row of rows[table]) run(INSERTS[table], row);
+/** A statement parsed once and run many times (SQLite's prepared statement). */
+export interface Prepared {
+  run(bind: Value[]): void;
+  finalize(): void;
+}
+
+export interface InsertOptions {
+  /**
+   * Parses each statement once and reuses it for every row; without it each row
+   * is parsed again, which is most of the time a large book takes to write.
+   */
+  prepare?: (sql: string) => Prepared;
+  /** Told after each song's rows are in, the count a progress bar shows. */
+  onSong?: (done: number, total: number) => void;
+  /** Told once, when the songs are in and the search index is about to be filled. */
+  onIndex?: () => void;
+}
+
+/**
+ * Inserts every row through `run`, a song at a time (its row, then its parts,
+ * lines and sequence entries, which satisfies the keys), then the search index
+ * once at the end. `packageRows` lists each table in song order, so a pointer
+ * per table finds a song's rows without a lookup.
+ */
+export function insertRows(
+  run: (sql: string, bind: Value[]) => void,
+  rows: PackageRows,
+  options: InsertOptions = {},
+): void {
+  const { prepare, onSong, onIndex } = options;
+  const statements: Prepared[] = [];
+  const stmt = (sql: string): ((bind: Value[]) => void) => {
+    if (!prepare) return (bind) => run(sql, bind);
+    const prepared = prepare(sql);
+    statements.push(prepared);
+    return (bind) => prepared.run(bind);
+  };
+  try {
+    run(INSERTS.hymnbook, rows.hymnbook);
+    const insertHymn = stmt(INSERTS.hymn);
+    const insertPart = stmt(INSERTS.part);
+    const insertLine = stmt(INSERTS.line);
+    const insertEntry = stmt(INSERTS.sequenceEntry);
+    const at = { part: 0, line: 0, entry: 0 };
+    const through = (
+      table: "part" | "line" | "sequenceEntry",
+      slot: keyof typeof at,
+      number: Value,
+      insert: (bind: Value[]) => void,
+    ) => {
+      const list = rows[table];
+      for (let row = list[at[slot]]; row && row[0] === number; row = list[at[slot]]) {
+        insert(row);
+        at[slot]++;
+      }
+    };
+    rows.hymn.forEach((hymn, i) => {
+      insertHymn(hymn);
+      through("part", "part", hymn[0] as Value, insertPart);
+      through("line", "line", hymn[0] as Value, insertLine);
+      through("sequenceEntry", "entry", hymn[0] as Value, insertEntry);
+      onSong?.(i + 1, rows.hymn.length);
+    });
+    onIndex?.();
+    const insertFts = stmt(INSERTS.fts);
+    for (const row of rows.fts) insertFts(row);
+  } finally {
+    for (const s of statements) s.finalize();
   }
 }

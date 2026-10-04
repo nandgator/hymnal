@@ -662,6 +662,11 @@ describe("writes and removes", () => {
         if (q.includes("INTO song")) throw new Error("registry full");
         real.run(q, b);
       },
+      // The song rows go through a prepared statement; it fails the same way.
+      prepare: (q) => {
+        if (q.includes("INTO song")) throw new Error("registry full");
+        return (real.prepare as NonNullable<Sql["prepare"]>)(q);
+      },
     };
     await expect(addBook({ ...ctx, registry: failing }, "k", await container())).rejects.toThrow(
       "registry full",
