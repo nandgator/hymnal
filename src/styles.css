@@ -4090,7 +4090,21 @@ html[data-scrolling],
 .full-marker {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   height: 0.825em;
+}
+
+/* Where the marker sits follows the part's own text-align (placeMarker sets
+   data-align from it): centred lines, a centred marker. flex-start/-end are
+   logical: they follow the direction, so right-to-left starts at the right. */
+.full-marker[data-align="center"],
+.output-part-marker[data-align="center"] {
+  justify-content: center;
+}
+
+.full-marker[data-align="end"],
+.output-part-marker[data-align="end"] {
+  justify-content: flex-end;
 }
 
 .full-marker-text {
@@ -4341,8 +4355,9 @@ html[data-scrolling],
 
 /* A part's marker in the scroll (SDD-0005 § 1): the same as Full Song's, above
    the part's first line and inside its box, so it scrolls with the part and
-   the height arithmetic counts it. Start-aligned: --marker-x (OutputView) is
-   the left edge of the part's widest line, the lines being centred. Its row is
+   the height arithmetic counts it. It follows the lines' text-align (data-align,
+   as Full Song's does); start-aligned only, --marker-x (OutputView) is the
+   inline-start edge of the part's widest line. Its row is
    a fixed 0.825em, the text centred in it, so a script's tall glyphs never
    move a line. It recedes like its lines, and lights with them, in the
    theme's muted ink, never the lit ink. */

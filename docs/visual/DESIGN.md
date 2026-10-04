@@ -405,18 +405,21 @@ problem than a warm, devotional, legible-at-distance tool.
     in the bottom margin, no container. ×N shows only on a repeat.
   - **The part marker, on its part**: as in the whole-song layout, a small
     marker above the part's first line, inside its box so it scrolls with it,
-    start-aligned with the part's text: the glyph's ink edge, not the box, on
-    the ink edge of its widest line (measured, under a pixel, Latin and
-    Malayalam), in the whole-song markers' type. That type is the Library
-    language picker's gloss to its endonym ("français — French"): 0.55 of the
-    lyrics' size, weight 400 (lyrics 500), no tracking, normal case, a fixed
-    0.825em row so Malayalam glyphs never collide, in `output-ink-muted` (a step
-    under the lit ink, at least 3:1 on each preset's ground: Warm 5.2, Dark 7.4,
-    Light 3.2, Contrast 6.3) when its part is lit, and `output-ink-muted-dimmed`
-    (muted at 55% over the ground, derived in every preset) when it recedes with
-    the lines around it. A stanza reads its number, other parts by kind (Chorus,
-    Bridge, Tag). It is not a detail of the bands: the text, not the marker,
-    centres, and "Show parts" off lays the scroll out again without it.
+    aligned as the part's text is, read from its computed `text-align`: centred
+    over a centred part, on the lines' axis; at the start (logical, so it goes
+    right in a right-to-left script) over a start-aligned one, the glyph's ink
+    edge, not the box, on the ink edge of its widest line (measured, under a
+    pixel, Latin and Malayalam), in the whole-song markers' type. That type is
+    the Library language picker's gloss to its endonym ("français — French"):
+    0.55 of the lyrics' size, weight 400 (lyrics 500), no tracking, normal case,
+    a fixed 0.825em row so Malayalam glyphs never collide, in `output-ink-muted`
+    (a step under the lit ink, at least 3:1 on each preset's ground: Warm 5.2,
+    Dark 7.4, Light 3.2, Contrast 6.3) when its part is lit, and
+    `output-ink-muted-dimmed` (muted at 55% over the ground, derived in every
+    preset) when it recedes with the lines around it. A stanza reads its number,
+    other parts by kind (Chorus, Bridge, Tag). It is not a detail of the bands:
+    the text, not the marker, centres, and "Show parts" off lays the scroll out
+    again without it.
   - **The number badge**, for those following in a printed songbook: the hymn's
     number in a FAB-like tonal tile (9% ink over the ground,
     `output-ink-muted`), top left, larger than the caption so it reads from the

@@ -14,7 +14,7 @@ import type { BandSize, Highlight, OutputCues } from "../persistence/user-state.
 import type { OutputMessage } from "./channel.ts";
 import { FullSong, prepareFullSong, sungOf } from "./FullSong.tsx";
 import { signature } from "./fullSongText.ts";
-import { nudgeMarker } from "./inkEdge.ts";
+import { placeMarker } from "./inkEdge.ts";
 import { cancelSwap, swapLayouts } from "./layoutSwap.ts";
 
 type ContentMessage = Extract<OutputMessage, { type: "content" }>;
@@ -565,13 +565,19 @@ export function OutputView(props: OutputViewProps) {
     position("instant");
   };
 
-  // A marker sits at the start of its part's text: the left edge (the ink's)
-  // of its widest line, the lines being centred. Measured once laid out.
+  // A marker follows its part's own text alignment (SDD-0005 § 1): centred
+  // lines, a centred marker on their axis; start-aligned lines, a marker at
+  // the start, on the ink's edge. Read from the lines' computed text-align,
+  // measured once laid out.
   const alignMarkers = () => {
     if (!view) return;
-    const lefts = (lines: HTMLElement[]) => {
-      const left = lines[0]?.getBoundingClientRect().left ?? 0;
-      let min = Number.POSITIVE_INFINITY;
+    // How far the lines' ink starts from the start edge of the first line's
+    // box (its right edge, right-to-left).
+    const inset = (lines: HTMLElement[]) => {
+      const box = lines[0]?.getBoundingClientRect();
+      if (!box) return 0;
+      const rtl = lines[0] && getComputedStyle(lines[0]).direction === "rtl";
+      let edge = rtl ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
       for (const line of lines) {
         const text = [...line.childNodes].find(
           (n) => n.nodeType === Node.TEXT_NODE && n.textContent,
@@ -580,19 +586,25 @@ export function OutputView(props: OutputViewProps) {
         const range = document.createRange();
         range.selectNodeContents(text);
         if (typeof range.getClientRects !== "function") continue;
-        for (const rect of range.getClientRects()) min = Math.min(min, rect.left);
+        for (const rect of range.getClientRects())
+          edge = rtl ? Math.max(edge, rect.right) : Math.min(edge, rect.left);
       }
-      return Number.isFinite(min) ? Math.max(0, min - left) : 0;
+      if (!Number.isFinite(edge)) return 0;
+      return Math.max(0, rtl ? box.right - edge : edge - box.left);
     };
     const set = (lines: (HTMLElement | undefined)[]) => {
       const first = lines[0]?.firstElementChild;
       if (!(first instanceof HTMLElement) || !first.classList.contains("output-part-marker"))
         return;
       const own = lines.filter((l): l is HTMLElement => !!l);
-      first.style.setProperty("--marker-x", `${lefts(own)}px`);
       // Boxes are aligned; the ink is what the eye sees: a few tenths of a px.
-      const text = first.querySelector<HTMLElement>(".output-part-marker-text");
-      if (text) nudgeMarker(text, own);
+      const align = placeMarker(
+        first,
+        first.querySelector<HTMLElement>(".output-part-marker-text"),
+        own,
+      );
+      if (align === "start") first.style.setProperty("--marker-x", `${inset(own)}px`);
+      else first.style.removeProperty("--marker-x");
     };
     for (const { start, end } of blocks()) set(lineRefs.slice(start, end));
     set([...view.querySelectorAll<HTMLElement>(".output-pinned > .output-line")]);

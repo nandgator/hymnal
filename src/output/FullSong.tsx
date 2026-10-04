@@ -22,7 +22,7 @@ import {
   onFontsChange,
   signature,
 } from "./fullSongText.ts";
-import { nudgeMarker } from "./inkEdge.ts";
+import { placeMarker } from "./inkEdge.ts";
 
 export { signature };
 
@@ -504,8 +504,11 @@ export function FullSong(props: FullSongProps) {
   // measured once the page is in the DOM, again as fonts arrive.
   const alignMarkers = () => {
     for (const part of root.querySelectorAll<HTMLElement>(".full-part")) {
-      const text = part.querySelector<HTMLElement>(".full-marker-text");
-      if (text) nudgeMarker(text, [...part.querySelectorAll(".full-line")]);
+      const row = part.querySelector<HTMLElement>(".full-marker");
+      if (row)
+        placeMarker(row, row.querySelector<HTMLElement>(".full-marker-text"), [
+          ...part.querySelectorAll(".full-line"),
+        ]);
     }
   };
   createEffect(on([layout, mounted, fontsEpoch], alignMarkers, { defer: true }));

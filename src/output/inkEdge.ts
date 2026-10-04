@@ -107,6 +107,51 @@ const inkLefts = (el: Element): number[] | null => {
   return lefts;
 };
 
+export type MarkerAlign = "start" | "center" | "end";
+
+/** Where a part's marker sits across its row, from the lines' own computed
+ * `text-align` (the lines are the authority, never a per-layout guess):
+ * centred lines get a centred marker on the same axis, start- or
+ * end-aligned lines a marker at that edge. Physical `left`/`right` are
+ * resolved against the direction, so a right-to-left script follows. */
+export const markerAlign = (line: Element): MarkerAlign => {
+  const style = getComputedStyle(line);
+  const rtl = style.direction === "rtl";
+  switch (style.textAlign) {
+    case "center":
+    case "-webkit-center":
+    case "-moz-center":
+      return "center";
+    case "end":
+      return "end";
+    case "left":
+      return rtl ? "end" : "start";
+    case "right":
+      return rtl ? "start" : "end";
+    default:
+      return "start"; // start, justify, match-parent
+  }
+};
+
+/** Sets `row`'s `data-align` (the CSS puts the marker at that edge or
+ * centres it) and returns it. The ink nudge is for start alignment in a
+ * left-to-right script only: elsewhere it is dropped. */
+export const placeMarker = (
+  row: HTMLElement,
+  text: HTMLElement | null,
+  lines: Element[],
+): MarkerAlign => {
+  const [first] = lines;
+  const align = first ? markerAlign(first) : "start";
+  row.dataset.align = align;
+  if (text) {
+    const ltr = first ? getComputedStyle(first).direction !== "rtl" : true;
+    if (align === "start" && ltr) nudgeMarker(text, lines);
+    else text.style.removeProperty("--ink-nudge");
+  }
+  return align;
+};
+
 /** Shifts `marker` (the text span of a part's marker) so its first glyph's ink
  * is on the leftmost ink of `lines`: sets `--ink-nudge`, a px length the CSS
  * puts on the marker's inline start. Measured, not assumed, so it holds for
