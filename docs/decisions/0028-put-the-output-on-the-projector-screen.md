@@ -271,3 +271,21 @@ For automatic placement, run Chromium under XWayland, where window positioning
 works: start it with `--ozone-platform=x11`, or set chrome://flags "Preferred
 Ozone platform" to X11 and relaunch. The full answer is the native wrapper
 (Tauri, later), which can place a window on an output itself.
+
+### Wayland: F is never gated, and the report can be "unconfirmed" (2026-10-04)
+
+Found on the same hardware: after Super+Shift+Arrow moved the Output to the
+projector, F did nothing. The previous note gated F and click on `currentScreen`
+being the target, but on GNOME Wayland Chromium does not update `currentScreen`
+(or fire `currentscreenchange`) when the compositor moves the window, so the
+gate never opened. A person's explicit F is never gated now:
+
+- once placement has been refused, F and a click always call a bare
+  `requestFullscreen()`, which fills the screen the window is on;
+- the Output then re-reads the screens with a fresh `getScreenDetails()` (the
+  cached object may be stale) after the request, on `fullscreenchange`, on
+  `resize` and on `visibilitychange`, which a Wayland move does fire;
+- it reports `onTarget` only if that fresh `currentScreen` is the target.
+  Otherwise the report is fullscreen with `unconfirmed: true`, and the Operator
+  says what is true: "The Output is fullscreen. If it isn't on <screen>, press
+  Esc there, move it, and press F again." The move guidance stays until then.

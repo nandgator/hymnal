@@ -374,3 +374,102 @@ describe("positionOfLine", () => {
     expect(positionOfLine(engine, 1.5)).toBeUndefined();
   });
 });
+
+describe("stepping over a part that is always in view (a pinned chorus)", () => {
+  // c, s1, c, s2, c — the chorus is `skip`.
+  const at = (engine: ReturnType<typeof createSequenceEngine>) => engine.cursor.occurrenceIndex;
+
+  it("next and previous step over the chorus, and the stored sequence is unchanged", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.next("c"); // from the opening chorus
+    expect(at(engine)).toBe(1);
+    engine.next("c");
+    expect(at(engine)).toBe(3);
+    engine.next("c"); // only the closing chorus is left: nothing to step to
+    expect(at(engine)).toBe(3);
+    engine.previous("c");
+    expect(at(engine)).toBe(1);
+    engine.previous("c");
+    expect(at(engine)).toBe(1);
+    expect(engine.length).toBe(5);
+  });
+
+  it("without a part to skip, stepping is as ever", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.next();
+    engine.next();
+    expect(at(engine)).toBe(2);
+    expect(engine.current().part.id).toBe("c");
+  });
+
+  it("a part step from line focus widens to the whole part even with nowhere to go", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(3, 1);
+    engine.next("c");
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 3, lineIndex: null });
+    engine.goTo(1, 0);
+    engine.previous("c");
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 1, lineIndex: null });
+  });
+
+  it("a tapped chorus still selects, and stepping leaves it for a verse", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(2); // a direct tap
+    expect(engine.current().part.id).toBe("c");
+    engine.next("c");
+    expect(at(engine)).toBe(3);
+    engine.goTo(2);
+    engine.previous("c");
+    expect(at(engine)).toBe(1);
+  });
+
+  it("a repeat of the chorus stays in the sequence; stepping skips all its showings", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(2);
+    engine.repeatCurrent(); // c, s1, c, c', s2, c
+    expect(engine.length).toBe(6);
+    expect(engine.canUndoRepeat()).toBe(true);
+    engine.goTo(1);
+    engine.next("c");
+    expect(engine.current().part.id).toBe("s2");
+    expect(at(engine)).toBe(4);
+    engine.previous("c");
+    expect(at(engine)).toBe(1);
+    engine.goTo(3);
+    engine.undoRepeat();
+    expect(engine.length).toBe(5);
+  });
+
+  it("line steps skip the chorus's lines", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(1, 0); // s1's only line
+    engine.nextLine("c");
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 3, lineIndex: null });
+    engine.nextLine("c");
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 3, lineIndex: 0 });
+    engine.nextLine("c");
+    engine.nextLine("c"); // past s2's last line: only the chorus follows
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 3, lineIndex: 1 });
+
+    engine.goTo(3, null);
+    engine.previousLine("c"); // back over the chorus to s1's last line
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 1, lineIndex: 0 });
+    engine.previousLine("c");
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 1, lineIndex: null });
+    engine.previousLine("c"); // only the chorus lies behind
+    expect(engine.cursor).toMatchObject({ occurrenceIndex: 1, lineIndex: null });
+  });
+
+  it("reports whether a step has anywhere to go", () => {
+    const engine = createSequenceEngine(fixtureHymn());
+    engine.goTo(3);
+    expect(engine.hasNext()).toBe(true);
+    expect(engine.hasNext("c")).toBe(false);
+    expect(engine.hasPrevious("c")).toBe(true);
+    engine.goTo(1);
+    expect(engine.hasPrevious()).toBe(true);
+    expect(engine.hasPrevious("c")).toBe(false);
+    engine.goTo(1, 0);
+    expect(engine.hasPrevious("c")).toBe(true); // widens to the whole part
+  });
+});

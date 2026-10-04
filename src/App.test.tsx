@@ -936,6 +936,25 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     output.close();
   });
 
+  it("says the Output is fullscreen but its screen unconfirmed, and what to do", async () => {
+    const { output } = await goLive();
+    output.postMessage({ type: "placement", onTarget: false, fullscreen: false, refused: true });
+    await screen.findAllByText(/Move this window to EPSON PJ/);
+    output.postMessage({
+      type: "placement",
+      onTarget: false,
+      fullscreen: true,
+      refused: true,
+      unconfirmed: true,
+    });
+    await screen.findAllByText(
+      /The Output is fullscreen\. If it isn't on EPSON PJ, 1280×800, press Esc there, move it, and press F again\./,
+    );
+    expect(noticeText(/The Output is on the projector screen/)).toBe(0);
+    sessionStorage.clear();
+    output.close();
+  });
+
   it("stays quiet when the Output verified the placement before the grace ran out", async () => {
     const { output } = await goLive();
     output.postMessage({ type: "placement", onTarget: true, fullscreen: true });

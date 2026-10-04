@@ -203,13 +203,23 @@ export function Presenter(props: PresenterProps) {
     version();
     return engine()?.current();
   });
-  // At either end, a part step still widens line focus to the whole part.
-  const onLine = () => cursor()?.lineIndex != null;
-  const canPrevious = createMemo(() => (cursor()?.occurrenceIndex ?? 0) > 0 || onLine());
+  // A pinned chorus under a whole-song highlight is always in view, so a step
+  // goes past it (SDD-0001 §5.5): a navigation filter only, the path is
+  // untouched. Full Song shows no pinned chorus, so it never skips.
+  const skipped = createMemo((): string | undefined => {
+    const fullSong = !!props.wholeSong && props.liveLandscape !== false;
+    if (!props.pinChorus || props.highlight !== "song" || fullSong) return undefined;
+    const parts = engine()?.hymn.parts ?? [];
+    const chorus = parts.find((part) => part.kind === "chorus");
+    return chorus && parts.some((part) => part.kind !== "chorus") ? chorus.id : undefined;
+  });
+  const canPrevious = createMemo(() => {
+    version();
+    return engine()?.hasPrevious(skipped()) ?? false;
+  });
   const canNext = createMemo(() => {
-    const e = engine();
-    const at = cursor()?.occurrenceIndex;
-    return e !== undefined && at !== undefined && (at < e.length - 1 || onLine());
+    version();
+    return engine()?.hasNext(skipped()) ?? false;
   });
 
   // The path as runs, a part and its back-to-back repeats as one.
@@ -385,13 +395,13 @@ export function Presenter(props: PresenterProps) {
       return;
     }
     const action: ((e: SequenceEngine) => void) | undefined = {
-      ArrowRight: (e: SequenceEngine) => e.next(),
-      PageDown: (e: SequenceEngine) => e.next(),
-      " ": (e: SequenceEngine) => (event.shiftKey ? e.previous() : e.next()),
-      ArrowLeft: (e: SequenceEngine) => e.previous(),
-      PageUp: (e: SequenceEngine) => e.previous(),
-      ArrowDown: (e: SequenceEngine) => e.nextLine(),
-      ArrowUp: (e: SequenceEngine) => e.previousLine(),
+      ArrowRight: (e: SequenceEngine) => e.next(skipped()),
+      PageDown: (e: SequenceEngine) => e.next(skipped()),
+      " ": (e: SequenceEngine) => (event.shiftKey ? e.previous(skipped()) : e.next(skipped())),
+      ArrowLeft: (e: SequenceEngine) => e.previous(skipped()),
+      PageUp: (e: SequenceEngine) => e.previous(skipped()),
+      ArrowDown: (e: SequenceEngine) => e.nextLine(skipped()),
+      ArrowUp: (e: SequenceEngine) => e.previousLine(skipped()),
       Home: (e: SequenceEngine) => e.goTo(0),
       End: (e: SequenceEngine) => e.goTo(e.length - 1),
       c: (e: SequenceEngine) => {
@@ -645,19 +655,26 @@ export function Presenter(props: PresenterProps) {
         "Part",
         { id: "previous-part" },
         "icon-chevron-left",
-        (e) => e.previous(),
+        (e) => e.previous(skipped()),
         { disabled: () => !canPrevious() },
       )}
       {dockButton("Previous line", "Line", { id: "lines", index: 1 }, "icon-arrow-up", (e) =>
-        e.previousLine(),
+        e.previousLine(skipped()),
       )}
       {dockButton("Next line", "Line", { id: "lines", index: 0 }, "icon-arrow-down", (e) =>
-        e.nextLine(),
+        e.nextLine(skipped()),
       )}
-      {dockButton("Next part", "Part", { id: "next-part" }, "icon-chevron-right", (e) => e.next(), {
-        iconEnd: true,
-        disabled: () => !canNext(),
-      })}
+      {dockButton(
+        "Next part",
+        "Part",
+        { id: "next-part" },
+        "icon-chevron-right",
+        (e) => e.next(skipped()),
+        {
+          iconEnd: true,
+          disabled: () => !canNext(),
+        },
+      )}
     </div>
   );
 

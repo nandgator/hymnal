@@ -125,6 +125,9 @@ export function Output() {
   let details: ScreenDetailsLike | undefined;
   let picked: DetailedScreen | undefined;
   let fullscreenOnPicked = false;
+  // A fresh getScreenDetails() read: on Wayland the cached object's
+  // currentScreen can stay stale after the compositor moves the window.
+  let freshScreen: DetailedScreen | undefined;
   // Without a target there is nothing to look up: ready at once, so a click
   // goes fullscreen synchronously, while its activation is surely live.
   let detailsDone = !target;
@@ -135,16 +138,30 @@ export function Output() {
   // the attempt and goes straight to asking the person to move it.
   const [placementFailed, setPlacementFailed] = createSignal(placementWasRefused());
   const [onTarget, setOnTarget] = createSignal(false);
-  const placementNow = (): PlacementReport => ({
-    ...reportPlacement({
+  const placementNow = (): PlacementReport => {
+    const base = reportPlacement({
       target,
       picked,
-      currentScreen: details?.currentScreen,
+      currentScreen: freshScreen ?? details?.currentScreen,
       fullscreen: !!document.fullscreenElement,
       fullscreenOnPicked,
-    }),
-    ...(placementFailed() ? { refused: true } : {}),
-  });
+    });
+    return {
+      ...base,
+      ...(placementFailed() ? { refused: true } : {}),
+      // The person's own fullscreen where the screen cannot be confirmed:
+      // the Operator says so rather than "on the projector".
+      ...(placementFailed() && base.fullscreen && !base.onTarget ? { unconfirmed: true } : {}),
+    };
+  };
+  const refreshScreen = async () => {
+    if (!target) return;
+    try {
+      const fresh = await (window as WindowWithScreens).getScreenDetails?.();
+      if (fresh?.currentScreen) freshScreen = fresh.currentScreen;
+    } catch {}
+    report();
+  };
   const report = () => {
     if (!target) return;
     const now = placementNow();
@@ -172,7 +189,11 @@ export function Output() {
             picked = pickTarget(live.screens, target);
             report();
           });
-          live.addEventListener("currentscreenchange", report);
+          live.addEventListener("currentscreenchange", () => {
+            // The event is newer than any earlier fresh read.
+            freshScreen = undefined;
+            report();
+          });
         } catch {
           // No permission or no API: today's behaviour, and never "verified".
         } finally {
@@ -184,9 +205,9 @@ export function Output() {
   const requestNow = async () => {
     const root = document.documentElement;
     if (!root.requestFullscreen) return;
-    // Once placement has failed, a fullscreen is only right on the screen the
-    // window is already on, and only if that is the target: a bare request.
-    if (placementFailed() && !placementNow().onTarget) return;
+    // Once placement has failed, a bare request fills the screen the window
+    // is on. The person's F or click is never gated on currentScreen, which
+    // Wayland does not keep current when the compositor moves the window.
     const chosen = placementFailed() ? undefined : picked;
     try {
       await (chosen
@@ -199,7 +220,10 @@ export function Output() {
       setRefused(true);
       setWantsFullscreen(true);
     }
+    // An earlier fresh read predates this request.
+    freshScreen = undefined;
     report();
+    await refreshScreen();
   };
   const goFullscreen = (): Promise<void> | undefined => {
     if (detailsDone) return requestNow();
@@ -219,8 +243,12 @@ export function Output() {
     // Leaving fullscreen (a move to another screen) re-arms the click and F.
     if (!document.fullscreenElement) fullscreenOnPicked = false;
     setWantsFullscreen(placed && !document.fullscreenElement);
+    freshScreen = undefined;
     report();
+    void refreshScreen();
   };
+  // A Wayland move fires resize or visibility changes, not currentscreenchange.
+  const onMoved = () => void refreshScreen();
   const onFirstClick = (event: MouseEvent) => {
     if (!wantsFullscreen()) return;
     event.stopPropagation();
@@ -229,10 +257,16 @@ export function Output() {
   onMount(() => {
     document.addEventListener("fullscreenchange", onFullscreenChange);
     window.addEventListener("click", onFirstClick, true);
+    if (target) {
+      window.addEventListener("resize", onMoved);
+      document.addEventListener("visibilitychange", onMoved);
+    }
   });
   onCleanup(() => {
     document.removeEventListener("fullscreenchange", onFullscreenChange);
     window.removeEventListener("click", onFirstClick, true);
+    window.removeEventListener("resize", onMoved);
+    document.removeEventListener("visibilitychange", onMoved);
   });
 
   // Keys pressed here act as in the Operator (SDD-0001 §16.1): with the

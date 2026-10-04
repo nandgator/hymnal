@@ -105,7 +105,10 @@ const FULLSCREEN_GRACE_MS = 1200;
 const TRACK_MS = 2000;
 
 /** Notices about where the Output window is (DESIGN.md § Snackbar). */
-const SCREEN_NOTICES: Record<Exclude<ScreenNoticeId, "activate" | "move">, string> = {
+const SCREEN_NOTICES: Record<
+  Exclude<ScreenNoticeId, "activate" | "move" | "unconfirmed">,
+  string
+> = {
   drag: "Drag the Output to the projector, then press F11 for fullscreen.",
   // Said only once the Output has verified it (ADR-0028, Wayland).
   fullscreen: "The Output is on the projector screen.",
@@ -121,6 +124,8 @@ function screenNoticeText(id: ScreenNoticeId, screenLabel: string | undefined): 
   const named = screenLabel ?? "the projector";
   if (id === "activate") return `Click the Output window (or press F there) to put it on ${named}.`;
   // The system cannot place the window: the person moves it (ADR-0028).
+  if (id === "unconfirmed")
+    return `The Output is fullscreen. If it isn't on ${named}, press Esc there, move it, and press F again.`;
   if (id === "move") return [moveGuidance(named), moveShortcutHint()].filter(Boolean).join(" ");
   return SCREEN_NOTICES[id];
 }
@@ -292,7 +297,9 @@ function Operator(props: Shared) {
           rememberPlacementRefused();
         }
         const shown = screenNotice();
-        if (report.onTarget) {
+        if (report.unconfirmed) {
+          if (shown === "activate" || shown === "move") setScreenNotice("unconfirmed");
+        } else if (report.onTarget) {
           if (shown === "activate" || shown === "move") setScreenNotice("fullscreen");
         } else if (report.refused) setScreenNotice("move");
       }),
@@ -309,6 +316,7 @@ function Operator(props: Shared) {
       shown !== "drag" &&
       shown !== "fullscreen" &&
       shown !== "activate" &&
+      shown !== "unconfirmed" &&
       shown !== "blocked" &&
       shown !== "stuck"
     )
@@ -377,7 +385,7 @@ function Operator(props: Shared) {
         // a hint about a gone window would also hold back the update notice
         // for its whole stay.
         if (outputWin !== win) return;
-        if (!verified() && screenNotice() !== "move")
+        if (!verified() && screenNotice() !== "move" && screenNotice() !== "unconfirmed")
           setScreenNotice(placementRefused() ? "move" : "activate");
       }, FULLSCREEN_GRACE_MS);
     } else if (mayHaveSecondScreen()) showHintOnce("drag");

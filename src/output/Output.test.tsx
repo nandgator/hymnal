@@ -1015,9 +1015,11 @@ describe("Output on the Operator's screen, Wayland included (ADR-0028)", () => {
 
   beforeEach(() => {
     channel.reportOutputPlacement.mockClear();
+    sessionStorage.clear();
   });
   afterEach(() => {
     window.history.replaceState(null, "", "/");
+    sessionStorage.clear();
     Reflect.deleteProperty(window, "getScreenDetails");
     Reflect.deleteProperty(document.documentElement, "requestFullscreen");
     Reflect.deleteProperty(document, "fullscreenElement");
@@ -1188,9 +1190,6 @@ describe("Output where the system cannot place windows (GNOME on Wayland, ADR-00
     const { request } = fullscreenApi();
     render(() => <Output />);
     await screen.findByText(/Move this window to HXA/);
-    // F before the move must not take the main screen.
-    fireEvent.keyDown(window, { key: "f" });
-    expect(request).toHaveBeenCalledTimes(1);
 
     details.currentScreen = hxa;
     details.dispatchEvent(new Event("currentscreenchange"));
@@ -1213,6 +1212,78 @@ describe("Output where the system cannot place windows (GNOME on Wayland, ADR-00
       }),
     );
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("F always fills the screen it is on, even when currentScreen never changes, and says screen unconfirmed", async () => {
+    // Wayland: the compositor moved the window, Chromium never noticed.
+    const details = attach();
+    const { request, exit } = fullscreenApi();
+    render(() => <Output />);
+    await screen.findByText(/Move this window to HXA/);
+    expect(request).toHaveBeenCalledTimes(1);
+
+    fireEvent.keyDown(window, { key: "f" });
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    expect(request).toHaveBeenLastCalledWith();
+    expect(details.currentScreen).toBe(builtIn);
+    await vi.waitFor(() =>
+      expect(channel.reportOutputPlacement).toHaveBeenLastCalledWith({
+        onTarget: false,
+        fullscreen: true,
+        refused: true,
+        unconfirmed: true,
+      }),
+    );
+    // Never let go again: the person pressed F on purpose.
+    expect(exit).toHaveBeenCalledTimes(1);
+    expect(document.fullscreenElement).toBe(document.documentElement);
+  });
+
+  it("a click fills the screen too, whatever currentScreen says", async () => {
+    attach();
+    const { request } = fullscreenApi();
+    render(() => <Output />);
+    await screen.findByText(/Move this window to HXA/);
+    fireEvent.click(window);
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    expect(request).toHaveBeenLastCalledWith();
+  });
+
+  it("verifies from a fresh getScreenDetails() when the cached currentScreen is stale", async () => {
+    const details = attach();
+    const { request } = fullscreenApi();
+    render(() => <Output />);
+    await screen.findByText(/Move this window to HXA/);
+    const fresh = Object.assign(new EventTarget(), { screens: [builtIn, hxa], currentScreen: hxa });
+    Object.assign(window, { getScreenDetails: vi.fn(async () => fresh) });
+    fireEvent.keyDown(window, { key: "f" });
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    expect(details.currentScreen).toBe(builtIn);
+    await vi.waitFor(() =>
+      expect(channel.reportOutputPlacement).toHaveBeenLastCalledWith({
+        onTarget: true,
+        fullscreen: true,
+        refused: true,
+      }),
+    );
+  });
+
+  it("re-checks the screen on resize, which Wayland moves do fire", async () => {
+    attach();
+    fullscreenApi();
+    render(() => <Output />);
+    await screen.findByText(/Move this window to HXA/);
+    const fresh = Object.assign(new EventTarget(), { screens: [builtIn, hxa], currentScreen: hxa });
+    Object.assign(window, { getScreenDetails: vi.fn(async () => fresh) });
+    window.dispatchEvent(new Event("resize"));
+    await vi.waitFor(() =>
+      expect(channel.reportOutputPlacement).toHaveBeenLastCalledWith({
+        onTarget: true,
+        fullscreen: false,
+        refused: true,
+      }),
+    );
+    expect(await screen.findByText(/Press F or click to fill this screen/)).toBeInTheDocument();
   });
 
   it("skips the futile cross-screen attempt once the system has refused", async () => {

@@ -1157,3 +1157,100 @@ describe("Presenter", () => {
     expect(glides.stills.every(Boolean)).toBe(true);
   });
 });
+
+describe("stepping with the chorus pinned and the whole song lit (SDD-0001 §5.5)", () => {
+  type Props = { pinChorus?: boolean; highlight?: "part" | "song"; wholeSong?: boolean };
+  const open = async (props: Props) => {
+    render(() => (
+      <Presenter
+        hymnbookId="book"
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        liveLandscape={true}
+        {...props}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+  };
+  const heading = () => currentPart().getByRole("heading", { level: 3 });
+  const key = (k: string, extra: KeyboardEventInit = {}) =>
+    fireEvent.keyDown(window, { key: k, ...extra });
+
+  it("Next and Previous part, the arrows and Space step over the chorus", async () => {
+    await open({ pinChorus: true, highlight: "song" });
+    expect(heading()).toHaveTextContent("1");
+    key("ArrowRight");
+    expect(heading()).toHaveTextContent("2");
+    // Only the closing chorus is left, which is always in view: nowhere to go.
+    expect(screen.getByRole("button", { name: "Next part" })).toBeDisabled();
+    key("ArrowRight");
+    expect(heading()).toHaveTextContent("2");
+    key("ArrowLeft");
+    expect(heading()).toHaveTextContent("1");
+    expect(screen.getByRole("button", { name: "Previous part" })).toBeDisabled();
+    key(" ");
+    expect(heading()).toHaveTextContent("2");
+    key(" ", { shiftKey: true });
+    key("PageDown");
+    expect(heading()).toHaveTextContent("2");
+    fireEvent.click(screen.getByRole("button", { name: "Previous part" }));
+    expect(heading()).toHaveTextContent("1");
+    fireEvent.click(screen.getByRole("button", { name: "Next part" }));
+    expect(heading()).toHaveTextContent("2");
+  });
+
+  it("the Output's forwarded keys step the same way", async () => {
+    await open({ pinChorus: true, highlight: "song" });
+    // The Output forwards a key as a keydown in the Operator (channel.ts).
+    key("PageDown");
+    expect(heading()).toHaveTextContent("2");
+  });
+
+  it("line steps skip the chorus's lines", async () => {
+    await open({ pinChorus: true, highlight: "song" });
+    key("ArrowDown");
+    key("ArrowDown");
+    key("ArrowDown"); // past 1b: the chorus is skipped, 2 is next, whole
+    expect(heading()).toHaveTextContent("2");
+    key("ArrowDown");
+    expect(screen.getByRole("button", { name: "Line 2a" })).toHaveAttribute("aria-current", "true");
+    key("ArrowUp");
+    key("ArrowUp"); // back over the chorus to 1's last line
+    expect(heading()).toHaveTextContent("1");
+    expect(screen.getByRole("button", { name: "Line 1b" })).toHaveAttribute("aria-current", "true");
+  });
+
+  it("a direct tap on the chorus still selects it", async () => {
+    await open({ pinChorus: true, highlight: "song" });
+    fireEvent.click(
+      within(screen.getByRole("region", { name: "Jump to part" })).getByRole("button", {
+        name: "Chorus",
+      }),
+    );
+    expect(heading()).toHaveTextContent("Chorus");
+    key("ArrowRight");
+    expect(heading()).toHaveTextContent("2");
+  });
+
+  it("walks the chorus as ever when the highlight is This part", async () => {
+    await open({ pinChorus: true, highlight: "part" });
+    key("ArrowRight");
+    expect(heading()).toHaveTextContent("Chorus");
+    key("ArrowDown");
+    key("ArrowDown");
+    expect(heading()).toHaveTextContent("2");
+  });
+
+  it("walks the chorus as ever when the chorus is not pinned", async () => {
+    await open({ pinChorus: false, highlight: "song" });
+    key("ArrowRight");
+    expect(heading()).toHaveTextContent("Chorus");
+  });
+
+  it("walks the chorus as ever in Full Song, which shows no pinned chorus", async () => {
+    await open({ pinChorus: true, highlight: "song", wholeSong: true });
+    key("ArrowRight");
+    expect(heading()).toHaveTextContent("Chorus");
+  });
+});

@@ -79,6 +79,8 @@ export interface PlacementReport {
   fullscreen: boolean;
   /** This system cannot place a window by fullscreen (Wayland): the person moves it. */
   refused?: boolean;
+  /** Fullscreen by the person's own F or click where the screen cannot be confirmed. */
+  unconfirmed?: boolean;
 }
 
 /**

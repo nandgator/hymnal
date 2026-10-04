@@ -274,6 +274,7 @@ export function subscribePlacement(handler: (report: PlacementReport) => void): 
         onTarget: data.onTarget,
         fullscreen: data.fullscreen,
         ...(data.refused ? { refused: true } : {}),
+        ...(data.unconfirmed ? { unconfirmed: true } : {}),
       });
     else if (data.type === "hello" && data.placement) handler(data.placement);
   };

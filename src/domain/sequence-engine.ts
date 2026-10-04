@@ -13,10 +13,20 @@ export interface SequenceEngine {
   occurrenceAt(index: number): Occurrence | undefined;
   current(): Occurrence;
 
-  next(): void;
-  previous(): void;
-  nextLine(): void;
-  previousLine(): void;
+  /**
+   * Step by part or by line. `skip` names a part that is always in view (a
+   * pinned chorus under a whole-song highlight): stepping goes past all its
+   * showings, repeats included, and does nothing when only they remain. The
+   * path itself is never changed (SDD-0001 §5.4).
+   */
+  next(skip?: PartId): void;
+  previous(skip?: PartId): void;
+  nextLine(skip?: PartId): void;
+  previousLine(skip?: PartId): void;
+  /** Whether a part step has anything to do: a showing to go to, or line
+   * focus to widen. */
+  hasNext(skip?: PartId): boolean;
+  hasPrevious(skip?: PartId): boolean;
 
   goTo(occurrenceIndex: number, lineIndex?: number | null): void;
 
@@ -126,35 +136,55 @@ class HymnSequenceEngine implements SequenceEngine {
   // Part steps always land on a whole part. At either end there's no part
   // to go to, but from line focus they still widen to the whole part the
   // cursor is in, rather than doing nothing.
-  next(): void {
-    if (this.cursorIndex < this.length - 1) this.cursorIndex++;
+  /** The nearest showing from the cursor, in `step` direction, whose part is not `skip`. */
+  private stepTarget(step: 1 | -1, skip?: PartId): number | undefined {
+    for (let i = this.cursorIndex + step; i >= 0 && i < this.length; i += step) {
+      if (this.path[i].partId !== skip) return i;
+    }
+    return undefined;
+  }
+
+  hasNext(skip?: PartId): boolean {
+    return this.cursorLineIndex !== null || this.stepTarget(1, skip) !== undefined;
+  }
+
+  hasPrevious(skip?: PartId): boolean {
+    return this.cursorLineIndex !== null || this.stepTarget(-1, skip) !== undefined;
+  }
+
+  next(skip?: PartId): void {
+    this.cursorIndex = this.stepTarget(1, skip) ?? this.cursorIndex;
     this.cursorLineIndex = null;
   }
 
-  previous(): void {
-    if (this.cursorIndex > 0) this.cursorIndex--;
+  previous(skip?: PartId): void {
+    this.cursorIndex = this.stepTarget(-1, skip) ?? this.cursorIndex;
     this.cursorLineIndex = null;
   }
 
-  nextLine(): void {
+  nextLine(skip?: PartId): void {
     const position = this.cursorLineIndex ?? -1;
     const { lines } = this.current().part;
     if (position + 1 < lines.length) {
       this.cursorLineIndex = position + 1;
-    } else if (this.cursorIndex < this.length - 1) {
-      this.cursorIndex++;
-      this.cursorLineIndex = null;
+      return;
     }
+    const target = this.stepTarget(1, skip);
+    if (target === undefined) return;
+    this.cursorIndex = target;
+    this.cursorLineIndex = null;
   }
 
-  previousLine(): void {
+  previousLine(skip?: PartId): void {
     const position = this.cursorLineIndex ?? -1;
     if (position >= 1) {
       this.cursorLineIndex = position - 1;
     } else if (position === 0) {
       this.cursorLineIndex = null;
-    } else if (this.cursorIndex > 0) {
-      this.cursorIndex--;
+    } else {
+      const target = this.stepTarget(-1, skip);
+      if (target === undefined) return;
+      this.cursorIndex = target;
       this.cursorLineIndex = this.current().part.lines.length - 1;
     }
   }

@@ -339,6 +339,27 @@ reason.
 `OPEN:` Whether the default on arrival should be whole-part or first-line. This
 is a feel question, answerable only with something on screen.
 
+### 5.5 Stepping over a pinned chorus
+
+With "Pin the chorus" on and the Output's highlight on Whole song (nothing
+dimmed), the chorus is always in view, so stepping onto it does nothing useful.
+Then Next and Previous part, the arrow keys, Space, Page Up/Down, the dock's
+buttons and the Output's own forwarded keys go past every showing of the chorus,
+its repeats included, and line steps (`nextLine`, `previousLine`) skip its
+lines. The engine takes the part to skip as an optional argument (`next(skip)`,
+`hasNext(skip)` and so on); the Presenter passes the chorus only under that
+condition. It is a filter on stepping: the stored path, repeats and Undo are
+untouched, so a repeated chorus stays in the sequence and Undo still removes it.
+
+With nothing but the chorus ahead, a step does nothing (from line focus it still
+widens to the whole part, as in §5.4), and the dock's part button is disabled. A
+direct tap on the chorus (a chip, a block, a line, the Output's own scroll or
+tap) still selects it, and stepping from there leaves it for the nearest verse.
+With highlight "This part", with pinning off, and in Full Song (which shows no
+pinned chorus), navigation is unchanged. A pinned chorus that does not fit and
+so flows with the verses is still skipped: the Presenter does not know the
+Output's layout, and the rule stays predictable.
+
 ---
 
 ## 6. Storage schema
