@@ -803,17 +803,26 @@ view is close enough to the frame to need a smaller unit.
   position and size together over 250ms (never a scale, so its corners keep
   their radius) and softening to a 2px blur at the middle of the move, crisp on
   landing (the pill alone; not under reduced motion or forced colours), as the
-  label's colour changes over the same time. Both label colours are dark on the
-  pad's light fills (light on its dark ones), so the text reads whether the pill
-  is under it or not. With no pill yet (the pad shown anew, a song just changed)
-  it appears in place, and a pad that reflows, from a window resize, a phone or
-  a desktop width, keeps it on its key without animating (`padGlide.ts`). A song
-  chosen from Recents glides to the top, every row moving from where it was to
-  where it lands, the group headings (Today, Yesterday, Before) with them; the
-  rising row passes over the rows it crosses, not under; a heading whose group
-  emptied fades out where it stood (150ms). A menu grows from its button and
-  shrinks back to it, quicker (150ms, the exit easing); a sheet rises over a
-  blurred page and sinks away on close; every control's change of state eases.
+  label's colour changes over the same time. It travels the real way, as one
+  object: where a plain move of the two boxes would send an edge against the
+  travel (a key on the right floating left into the full-width Chorus bar would
+  swell its right edge rightward; the bar narrowing to a key on the right would
+  pull its right edge leftward) that edge holds while the rest sets off, starts
+  30% of the way in (75ms) and arrives with the others, so the pill is seen
+  moving, then stretching, never swelling out of its middle (`glidePath`,
+  `glideGeometry.ts`: sampled in time, the emphasised curve applied there).
+  Between keys, on a row or across rows, nothing goes against the travel and the
+  glide is the plain one. Both label colours are dark on the pad's light fills
+  (light on its dark ones), so the text reads whether the pill is under it or
+  not. With no pill yet (the pad shown anew, a song just changed) it appears in
+  place, and a pad that reflows, from a window resize, a phone or a desktop
+  width, keeps it on its key without animating (`padGlide.ts`). A song chosen
+  from Recents glides to the top, every row moving from where it was to where it
+  lands, the group headings (Today, Yesterday, Before) with them; the rising row
+  passes over the rows it crosses, not under; a heading whose group emptied
+  fades out where it stood (150ms). A menu grows from its button and shrinks
+  back to it, quicker (150ms, the exit easing); a sheet rises over a blurred
+  page and sinks away on close; every control's change of state eases.
   **Press**: a control gives a little under the finger (96%) at once and springs
   back with a slight overshoot, Material 3 Expressive's press kept small; an
   icon that changes meaning (Blank to Restore) turns in. The Repeat count is a
@@ -1065,8 +1074,25 @@ glide and brings it up by fading in place, with no side: a stale pointer never
 gives it one. A list whose highlight is something else's as well (the Finder's
 and the language list's active row, Enter's target) shows that row with the same
 layer (`show(row)`). The rows paint no hover of their own. Touch has no hover:
-no layer there. Reduced motion: no glide and no blur; the layer fades up and
-down where it is, and between rows it moves at once.
+no layer there, and a tap leaves nothing behind.
+
+**Buttons wear it too.** A group of adjacent buttons (a pane's toolbar: expand,
+move, close; the text sizer's A− and A+; Repeat, Undo and Reset) is a list: one
+layer glides between them (`hoverGroup`, `.glide-group`; Repeat's row waits
+300ms over the count between its buttons before it lets go). A lone button (a
+sheet's Close or Back, Back to search, Blank and Restore, the menu button) has
+the layer inside it, entering from the side the pointer came by and leaving by
+the side it went (`hoverButton`, `.glide-self`). Neither paints a hover or focus
+fill of its own; a press still shows its state layer and squeeze. A pressed
+control (Blanked) keeps its tone and shows no layer. The lyrics card is a list
+too, of lines and blocks: one layer glides between them, wearing each one's
+corner radius (a row says so with `--glide-row-radius`; it glides with the
+move), over the current part's tint so a line of it is lit, though the current
+block as a whole is not. The parts pad's keys are rows of the pad: the layer
+sits over the keys' fills and **under the current key's pill**, which wins, so
+the chosen key keeps its tone under the pointer (fill, hover, pill, key).
+Reduced motion: no glide and no blur; the layer fades up and down where it is,
+and between rows it moves at once.
 
 **Selection is the tonal pill, everywhere**: `secondary-container` with
 `on-secondary-container` text, with no check and no accent-coloured text. It is
@@ -1095,8 +1121,10 @@ travels 20px and scales in 300ms (`--motion-switch`) at
 `cubic-bezier(0.34, 1.3, 0.64, 1)` (`--motion-switch-ease`), which overshoots
 its travel by about 4%: a touch of spring, never a bounce. The track's colour
 and the thumb's ease over the same 300ms at the standard easing. A 40px halo
-follows the thumb, 8% on hover and 10% pressed, fading at the hover duration.
-Reduced motion: the thumb is where it is at once; colours still fade.
+follows the thumb, 10% for keyboard focus (`:focus-visible`) and pressed, fading
+at the hover duration. Not on pointer hover: a switch sits in a settings row,
+and the row is the target, so hover shows the row's highlight alone. Reduced
+motion: the thumb is where it is at once; colours still fade.
 
 `list-row` covers what the component list above otherwise lacks: a Finder search
 result or recent hymn is one full-width, tappable row, the title in `on-surface`

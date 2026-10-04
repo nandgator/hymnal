@@ -31,6 +31,7 @@ import {
 } from "../persistence/user-state.ts";
 import { titleCase } from "../shell/case.ts";
 import { glideList } from "../shell/glideList.ts";
+import { glideRows, hoverButton, hoverGroup } from "../shell/hoverGlide.ts";
 import { ariaKeys, ignoresShortcuts, type ShortcutId, withKey } from "../shell/keymap.ts";
 import { AfterDelay } from "../shell/Loading.tsx";
 import { Menu, type MenuItem } from "../shell/Menu.tsx";
@@ -553,7 +554,12 @@ export function Presenter(props: PresenterProps) {
 
   const backButton = () => (
     <Show when={props.onBack}>
-      <button type="button" class="btn-text" onClick={() => props.onBack?.()}>
+      <button
+        type="button"
+        class="btn-text"
+        ref={(el) => onCleanup(hoverButton(el))}
+        onClick={() => props.onBack?.()}
+      >
         <span class="icon icon-arrow-back" aria-hidden="true" />
         Back to search
       </button>
@@ -652,6 +658,7 @@ export function Presenter(props: PresenterProps) {
     <button
       type="button"
       class="live-control"
+      ref={(el) => onCleanup(hoverButton(el))}
       aria-pressed={!!props.blanked}
       aria-keyshortcuts={ariaKeys("blank")}
       title={withKey(
@@ -713,7 +720,12 @@ export function Presenter(props: PresenterProps) {
       <div class="parts-navigator">
         {/* Above the chips, so it sits in the same place for every hymn; the
           count and Undo appear after it, moving nothing. */}
-        <div class="repeat-row">
+        <div
+          class="repeat-row"
+          // Repeat and Undo have the count between them: the layer waits
+          // longer for the next button while the pointer crosses it.
+          ref={(el) => onCleanup(hoverGroup(el, ".btn-text:enabled", { gap: 300 }))}
+        >
           {/* A text button: occasional, so low emphasis, like Undo and Reset
             beside it (PRINCIPLES.md, hierarchy). */}
           <button
@@ -759,7 +771,15 @@ export function Presenter(props: PresenterProps) {
             </button>
           </span>
         </div>
-        <section aria-label="Jump to part" ref={pad}>
+        <section
+          aria-label="Jump to part"
+          ref={(el) => {
+            pad = el;
+            // The hover highlight follows the pointer over the keys, under
+            // the current key's pill (styles.css).
+            onCleanup(glideRows(el, "button:enabled").stop);
+          }}
+        >
           {/* The current key's fill, behind the keys: it glides from key to
             key (padGlide.ts). */}
           <span class="chip-pill" aria-hidden="true" />
@@ -829,7 +849,16 @@ export function Presenter(props: PresenterProps) {
 
     return (
       <div class="lyrics-navigator">
-        <section class="sequence" aria-label="Lyrics" ref={list}>
+        <section
+          class="sequence"
+          aria-label="Lyrics"
+          ref={(el) => {
+            list = el;
+            // One highlight glides between blocks and lines; the current
+            // block keeps its tint (styles.css).
+            onCleanup(glideRows(el, '.seq-line, .seq-block:not([aria-current="step"])').stop);
+          }}
+        >
           <div class="seq-tint" aria-hidden="true" />
           <ol class="seq-list">
             {/* One block per run: a part and its back-to-back repeats show
@@ -978,7 +1007,10 @@ export function Presenter(props: PresenterProps) {
           </Show>
           {/* On a phone there's no room to split, so no toolbar either. */}
           <Show when={expanded()}>
-            <div class="area-actions">
+            <div
+              class="area-actions"
+              ref={(el) => onCleanup(hoverGroup(el, ".area-icon:enabled, .menu-button"))}
+            >
               <Show
                 when={split()}
                 fallback={

@@ -25,6 +25,24 @@ const GAP_MS = 60;
 
 export const DEFAULT_ROWS = "button:enabled, a[href]";
 
+export interface RowGlideOptions {
+  /** The list is itself the one row: a lone button wearing the layer, which
+   * enters from the side the pointer came by and leaves by the side it went. */
+  whole?: boolean;
+  /** How long (ms) the layer waits, over what is no row, for the next row
+   * before it lets go. Wider for a group whose buttons have room between. */
+  gap?: number;
+}
+
+/** A row that wants its own corner radius for the layer (a line inside a
+ * block) sets this, in px; the layer's radius then glides with it. */
+const ROW_RADIUS = "--glide-row-radius";
+
+const radiusOf = (row: HTMLElement): number | null => {
+  const value = getComputedStyle(row).getPropertyValue(ROW_RADIUS).trim();
+  return /^[\d.]+px$/.test(value) ? Number.parseFloat(value) : null;
+};
+
 const blurOf = (layer: HTMLElement) => {
   const match = /blur\(([\d.]+)px\)/.exec(getComputedStyle(layer).filter);
   return match ? Number.parseFloat(match[1] ?? "0") : 0;
@@ -62,7 +80,11 @@ export interface RowGlide {
  * layer is placed by layout offsets) and isolated (`.glide-list`); give its
  * rows no hover fill of their own. Touch has no hover: no layer.
  */
-export function glideRows(list: HTMLElement, rows = DEFAULT_ROWS): RowGlide {
+export function glideRows(
+  list: HTMLElement,
+  rows = DEFAULT_ROWS,
+  options: RowGlideOptions = {},
+): RowGlide {
   const layer = document.createElement("div");
   layer.className = "hover-glide";
   layer.setAttribute("aria-hidden", "true");
@@ -76,8 +98,12 @@ export function glideRows(list: HTMLElement, rows = DEFAULT_ROWS): RowGlide {
   let on: HTMLElement | null = null;
   let entry: Side | null = null;
   let gap: ReturnType<typeof setTimeout> | undefined;
+  // The radius the layer wears where a row asks for its own (px), else null:
+  // the stylesheet's.
+  let radiusAt: number | null = null;
 
   const rowOf = (target: EventTarget | null) => {
+    if (options.whole) return list.matches(":disabled") ? null : list;
     const row = (target as Element | null)?.closest?.(rows) as HTMLElement | null | undefined;
     return row && list.contains(row) ? row : null;
   };
@@ -106,6 +132,19 @@ export function glideRows(list: HTMLElement, rows = DEFAULT_ROWS): RowGlide {
     const blur = lit ? blurOf(layer) : 0;
     anim?.cancel();
     anim = null;
+    // The corner radius, if this row's differs from the last one's.
+    const radius = radiusOf(row);
+    let corners: [string, string] | null = null;
+    if (radius !== radiusAt) {
+      layer.style.borderRadius = "";
+      const base = getComputedStyle(layer).borderTopLeftRadius;
+      corners = [
+        radiusAt === null ? base : `${radiusAt}px`,
+        radius === null ? base : `${radius}px`,
+      ];
+    }
+    radiusAt = radius;
+    layer.style.borderRadius = radius === null ? "" : `${radius}px`;
     paint(layer, to);
     layer.style.opacity = "1";
     if (noAnimations()) {
@@ -135,8 +174,18 @@ export function glideRows(list: HTMLElement, rows = DEFAULT_ROWS): RowGlide {
     ) {
       anim = layer.animate(
         [
-          { ...frame(from), opacity, filter: `blur(${blur}px)` },
-          { ...frame(to), opacity: 1, filter: "blur(0px)" },
+          {
+            ...frame(from),
+            opacity,
+            filter: `blur(${blur}px)`,
+            ...(corners && { borderRadius: corners[0] }),
+          },
+          {
+            ...frame(to),
+            opacity: 1,
+            filter: "blur(0px)",
+            ...(corners && { borderRadius: corners[1] }),
+          },
         ],
         glideTiming(layer),
       );
@@ -214,7 +263,9 @@ export function glideRows(list: HTMLElement, rows = DEFAULT_ROWS): RowGlide {
   };
 
   const focusedRow = () => {
-    const focused = list.querySelector<HTMLElement>(":focus-visible");
+    const focused = list.matches(":focus-visible")
+      ? list
+      : list.querySelector<HTMLElement>(":focus-visible");
     return focused && rowOf(focused) ? rowOf(focused) : null;
   };
 
@@ -232,7 +283,7 @@ export function glideRows(list: HTMLElement, rows = DEFAULT_ROWS): RowGlide {
     // row's): the layer lets go, unless a row comes next, a moment later.
     if (visible && !focusedRow()) {
       clearTimeout(gap);
-      gap = setTimeout(hide, GAP_MS);
+      gap = setTimeout(hide, options.gap ?? GAP_MS);
     }
   };
   const onLeave = (event: PointerEvent) => {
@@ -273,4 +324,32 @@ export function glideRows(list: HTMLElement, rows = DEFAULT_ROWS): RowGlide {
  * cleanup, so a Solid `ref` is `(el) => onCleanup(hoverGlide(el, rows))`. */
 export function hoverGlide(list: HTMLElement, rows = DEFAULT_ROWS): () => void {
   return glideRows(list, rows).stop;
+}
+
+/** A group of adjacent buttons (a pane toolbar, a stepper): one layer glides
+ * between them, and the buttons paint no hover of their own (`.glide-group`,
+ * styles.css). Returns its cleanup. */
+export function hoverGroup(
+  group: HTMLElement,
+  rows = DEFAULT_ROWS,
+  options: RowGlideOptions = {},
+): () => void {
+  group.classList.add("glide-list", "glide-group");
+  const glide = glideRows(group, rows, options);
+  return () => {
+    glide.stop();
+    group.classList.remove("glide-list", "glide-group");
+  };
+}
+
+/** A lone button's hover highlight: the layer sits in the button and enters
+ * from the side the pointer came by (`.glide-self`, styles.css). Returns its
+ * cleanup: `ref={(el) => onCleanup(hoverButton(el))}`. */
+export function hoverButton(button: HTMLElement): () => void {
+  button.classList.add("glide-self");
+  const glide = glideRows(button, DEFAULT_ROWS, { whole: true });
+  return () => {
+    glide.stop();
+    button.classList.remove("glide-self");
+  };
 }

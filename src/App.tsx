@@ -47,6 +47,7 @@ import {
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { titleCase } from "./shell/case.ts";
 import { glideList } from "./shell/glideList.ts";
+import { hoverButton } from "./shell/hoverGlide.ts";
 import {
   ariaKeys,
   ignoresShortcuts,
@@ -851,6 +852,7 @@ function Operator(props: Shared) {
             <button
               type="button"
               class="btn-text icon-button"
+              ref={(el) => onCleanup(hoverButton(el))}
               aria-haspopup="dialog"
               onClick={() => setMenuOpen(true)}
             >

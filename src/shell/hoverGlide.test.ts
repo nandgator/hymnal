@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { hoverGlide } from "./hoverGlide.ts";
+import { hoverButton, hoverGlide, hoverGroup } from "./hoverGlide.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -39,5 +39,45 @@ describe("hoverGlide", () => {
       new PointerEvent("pointerover", { bubbles: true, pointerType: "touch" }),
     );
     expect(ul.querySelector<HTMLElement>(".hover-glide")?.style.opacity).toBe("");
+  });
+});
+
+describe("hoverButton and hoverGroup", () => {
+  it("a lone button wears its own layer, and takes it off with its class", () => {
+    document.body.innerHTML = "<button>Back</button>";
+    const button = document.querySelector("button") as HTMLButtonElement;
+    const stop = hoverButton(button);
+    expect(button.classList.contains("glide-self")).toBe(true);
+    const layer = () => button.querySelector<HTMLElement>(":scope > .hover-glide");
+    expect(layer()).not.toBeNull();
+
+    over(button);
+    expect(layer()?.style.opacity).toBe("1");
+    button.dispatchEvent(new PointerEvent("pointerleave", { pointerType: "mouse" }));
+    expect(layer()?.style.opacity).toBe("0");
+
+    stop();
+    expect(layer()).toBeNull();
+    expect(button.classList.contains("glide-self")).toBe(false);
+  });
+
+  it("a disabled lone button shows nothing", () => {
+    document.body.innerHTML = "<button disabled>Undo</button>";
+    const button = document.querySelector("button") as HTMLButtonElement;
+    hoverButton(button);
+    over(button);
+    expect(button.querySelector<HTMLElement>(".hover-glide")?.style.opacity).toBe("");
+  });
+
+  it("a group shares one layer over its buttons", () => {
+    const ul = list();
+    const stop = hoverGroup(ul, "button");
+    expect(ul.classList.contains("glide-group")).toBe(true);
+    expect(ul.querySelectorAll(".hover-glide")).toHaveLength(1);
+    over(ul.querySelectorAll("button")[1] as HTMLElement);
+    expect(ul.querySelector<HTMLElement>(".hover-glide")?.style.opacity).toBe("1");
+    stop();
+    expect(ul.querySelectorAll(".hover-glide")).toHaveLength(0);
+    expect(ul.classList.contains("glide-group")).toBe(false);
   });
 });

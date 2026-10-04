@@ -32,6 +32,7 @@ import {
   wholeSongOf,
 } from "../persistence/user-state.ts";
 import { glideList } from "./glideList.ts";
+import { hoverGroup } from "./hoverGlide.ts";
 import { ariaKeys, keyHint, withKey } from "./keymap.ts";
 import { Menu } from "./Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "./media.ts";
@@ -336,7 +337,10 @@ export function Settings(props: SettingsProps) {
         </div>
         <div class="settings-row">
           <span class="settings-label">Text size</span>
-          <div class="settings-stepper">
+          <div
+            class="settings-stepper"
+            ref={(el) => onCleanup(hoverGroup(el, ".btn-text:enabled"))}
+          >
             <button
               type="button"
               class="btn-text"

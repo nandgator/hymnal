@@ -17,6 +17,7 @@ import {
 import type { UserState } from "../persistence/user-state.ts";
 import { titleCase } from "../shell/case.ts";
 import { type GlideList, glideList } from "../shell/glideList.ts";
+import { hoverButton } from "../shell/hoverGlide.ts";
 import { RecentsList } from "../shell/RecentsList.tsx";
 
 /** How long typing must pause before a lyric search runs. */
@@ -220,7 +221,12 @@ export function Finder(props: FinderProps) {
   return (
     <div class="finder">
       <Show when={props.onBack}>
-        <button type="button" class="btn-text back-button" onClick={() => props.onBack?.()}>
+        <button
+          type="button"
+          class="btn-text back-button"
+          ref={(el) => onCleanup(hoverButton(el))}
+          onClick={() => props.onBack?.()}
+        >
           <span class="icon icon-arrow-back" aria-hidden="true" />
           Back to hymnbooks
         </button>

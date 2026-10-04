@@ -1,4 +1,5 @@
-import { createEffect, createSignal, type JSX, Show } from "solid-js";
+import { createEffect, createSignal, type JSX, onCleanup, Show } from "solid-js";
+import { hoverButton } from "./hoverGlide.ts";
 
 export interface SheetProps {
   open: boolean;
@@ -90,7 +91,12 @@ export function Sheet(props: SheetProps) {
               by a wheel or by scrollIntoView, and the card ends at the last control. */}
           <div class="sheet-header">
             <h2 class="title-medium">{props.title}</h2>
-            <button type="button" class="btn-text" onClick={() => props.onClose()}>
+            <button
+              type="button"
+              class="btn-text"
+              ref={(el) => onCleanup(hoverButton(el))}
+              onClick={() => props.onClose()}
+            >
               {props.closeLabel ?? "Close"}
             </button>
           </div>

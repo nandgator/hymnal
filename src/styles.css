@@ -1172,10 +1172,10 @@ input[type="checkbox"].switch:checked::after {
   background-color: var(--md-sys-color-on-primary);
 }
 
-@media (hover: hover) {
-  input[type="checkbox"].switch:hover:not(:disabled)::after {
-    opacity: 0.08;
-  }
+/* Pointer hover shows the row's own highlight, not the halo: the row is the
+   target. The halo is for keyboard focus and the press. */
+input[type="checkbox"].switch:focus-visible:not(:disabled)::after {
+  opacity: 0.1;
 }
 
 /* Pressed: the thumb swells to 28px, quickly, and settles back with the
@@ -2194,6 +2194,17 @@ input[type="checkbox"].switch:disabled {
   will-change: transform, height, opacity, filter;
 }
 
+/* Where a list has layers of its own to sit among: the lyrics' hover layer
+   goes over the current part's tint (so a line of it is lit); the pad's goes
+   over the keys' fills and under the current key's pill (which wins). */
+.sequence > .hover-glide {
+  z-index: 0;
+}
+
+.parts-navigator > section > .hover-glide {
+  z-index: 1;
+}
+
 .select-pill {
   z-index: -1;
   background-color: var(--md-sys-color-secondary-container);
@@ -2219,6 +2230,39 @@ input[type="checkbox"].switch:disabled {
    down. */
 [data-hover-glide] .list-row:is(:hover, :focus-visible):not(:disabled) {
   --state-a: 0;
+}
+
+/* Buttons that wear the layer (hoverGlide.ts): a lone one carries it itself
+   (`.glide-self`), the layer entering from the pointer's side; a group of
+   adjacent ones (`.glide-group`: a pane toolbar, the text sizer, Repeat's
+   row) shares one that glides between them. Either way they paint no hover
+   or focus fill of their own, the layer shows both (focus fades in place);
+   a press still shows its state layer. A pressed (tonal) control keeps its
+   tone, with no layer. */
+.glide-self {
+  position: relative;
+  isolation: isolate;
+  --glide-radius: var(--button-shape);
+}
+
+.glide-group {
+  --glide-radius: var(--button-shape);
+}
+
+:is(.glide-self, .glide-group :is(.btn-text, .area-icon, .menu-button)):is(
+  :hover,
+  :focus-visible
+):not(:active, :disabled, [aria-pressed="true"]) {
+  --state-a: 0;
+}
+
+.glide-group :is(.area-icon, .menu-button):hover,
+.glide-self:is(.area-icon, .menu-button, .live-control):not([aria-pressed="true"]):hover {
+  background-color: transparent;
+}
+
+.live-control.glide-self[aria-pressed="true"] > .hover-glide {
+  display: none;
 }
 
 [data-select-glide] :is(.list-row, .menu-popover-item)[aria-current],
@@ -3096,6 +3140,24 @@ html[data-scrolling],
   }
 }
 
+/* With the hover layer (hoverGlide.ts: one highlight that glides between
+   blocks and lines, wearing each one's corner radius), they paint no hover of
+   their own. It sits over the tint (z-index 0, with the base rule), so a line
+   of the current part is lit too, while the current block as a whole is not
+   (the rows exclude it). */
+.seq-block {
+  --glide-row-radius: 18px;
+}
+
+.seq-line {
+  --glide-row-radius: 4px;
+}
+
+[data-hover-glide] .seq-block:not([aria-current="step"]):hover,
+[data-hover-glide] .seq-line:hover {
+  background-color: transparent;
+}
+
 .seq-block:active,
 .seq-line:active {
   background-color: color-mix(in srgb, currentColor 10%, transparent);
@@ -3240,6 +3302,7 @@ html[data-scrolling],
 .parts-navigator > section:has(> .chip-pill) {
   position: relative;
   isolation: isolate;
+  --glide-radius: var(--button-shape);
 }
 
 /* The pill's blur halo (about 6px) spills past it, and the section scrolls, so
@@ -3256,7 +3319,7 @@ html[data-scrolling],
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1;
+  z-index: 2;
   width: 0;
   height: 0;
   border-radius: var(--button-shape);
@@ -3300,8 +3363,16 @@ html[data-scrolling],
 
 .chip-set .chip-filter,
 .chip-set .chip-filter[aria-pressed="true"] {
-  z-index: 2;
+  z-index: 3;
   background-color: transparent;
+}
+
+/* The hover highlight (hoverGlide.ts) is one layer over the keys' fills and
+   under the pill (z-index 1, with the base rule), so the current key keeps its
+   tone under the pointer: fill, hover, pill, key. The keys paint no hover of
+   their own; a press still squeezes. */
+[data-hover-glide] .chip-filter:is(:hover, :focus-visible):not(:active, :disabled) {
+  --state-a: 0;
 }
 
 .chip-set .chip-filter {
