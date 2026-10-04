@@ -4,7 +4,9 @@ import {
   publishOutput,
   requestSeek,
   setOutputBlanked,
+  setOutputHeld,
   setOutputPresentation,
+  subscribeHold,
   subscribeOutput,
   subscribeOutputShape,
   subscribeOutputState,
@@ -346,5 +348,124 @@ describe("output channel", () => {
       whole: false,
     });
     presenterWindow.close();
+  });
+
+  describe("hold (Board #21)", () => {
+    const song = (
+      title: string,
+    ): Extract<Parameters<typeof publishOutput>[0], { type: "content" }> => ({
+      type: "content",
+      hymnbookId: "book",
+      number: 1,
+      title,
+      lines: [{ text: "x", partId: "s1", isPartStart: true }],
+      focus: { start: 0, end: 1 },
+    });
+
+    it("stops content and settings reaching the Output while held, and Release sends the current ones", async () => {
+      const otherWindow = new BroadcastChannel(CHANNEL_NAME);
+      const seen: { type: string; title?: string; theme?: string }[] = [];
+      otherWindow.onmessage = record(seen);
+      publishOutput(song("First"));
+      setOutputHeld(true);
+      publishOutput(song("Second"));
+      setOutputPresentation({ theme: "warm", cues: {}, pinChorus: false, bandSize: "part" });
+      await settle(otherWindow);
+      expect(seen.map((m) => m.type)).toEqual(["content", "hold"]);
+      expect(seen[0]?.title).toBe("First");
+
+      seen.length = 0;
+      setOutputHeld(false);
+      await settle(otherWindow);
+      expect(seen.map((m) => m.type)).toEqual(["hold", "presentation", "content"]);
+      expect(seen.at(-1)?.title).toBe("Second");
+      otherWindow.close();
+    });
+
+    it("replays the held content, not the current, to a late Output, with hold last", async () => {
+      const otherWindow = new BroadcastChannel(CHANNEL_NAME);
+      publishOutput(song("Held one"));
+      setOutputHeld(true);
+      publishOutput(song("Current"));
+      await settle(otherWindow);
+      const seen: { type: string; title?: string; held?: boolean }[] = [];
+      otherWindow.onmessage = record(seen);
+      otherWindow.postMessage({ type: "hello", id: "late" });
+      await settle(otherWindow);
+      expect(seen.map((m) => m.type)).toEqual(["presentation", "content", "hold"]);
+      expect(seen[1]?.title).toBe("Held one");
+      expect(seen[2]).toEqual({ type: "hold", held: true });
+      setOutputHeld(false);
+      otherWindow.close();
+    });
+
+    it("keeps Blank working on top of Hold", async () => {
+      const otherWindow = new BroadcastChannel(CHANNEL_NAME);
+      const seen: unknown[] = [];
+      otherWindow.onmessage = record(seen);
+      setOutputHeld(true);
+      setOutputBlanked(true);
+      await settle(otherWindow);
+      expect(seen).toContainEqual({ type: "blank", blanked: true });
+      setOutputBlanked(false);
+      setOutputHeld(false);
+      otherWindow.close();
+    });
+
+    it("End Live cancels Hold, and the next window opens on the current content", async () => {
+      const otherWindow = new BroadcastChannel(CHANNEL_NAME);
+      const heard: unknown[] = [];
+      const unsubscribe = subscribeHold((held) => heard.push(held));
+      publishOutput(song("Held one"));
+      setOutputHeld(true);
+      publishOutput(song("Current"));
+      closeOutput();
+      expect(heard.at(-1)).toBeUndefined();
+      await settle(otherWindow);
+      const seen: { type: string; title?: string }[] = [];
+      otherWindow.onmessage = record(seen);
+      otherWindow.postMessage({ type: "hello", id: "next" });
+      await settle(otherWindow);
+      expect(seen.map((m) => m.type)).toEqual(["presentation", "content"]);
+      expect(seen[1]?.title).toBe("Current");
+      unsubscribe();
+      otherWindow.close();
+    });
+
+    it("tells listeners what is held, and nothing once released", async () => {
+      const heard: unknown[] = [];
+      const unsubscribe = subscribeHold((held) => heard.push(held));
+      publishOutput(song("Held one"));
+      setOutputHeld(true);
+      expect(heard.at(-1)).toMatchObject({ content: { title: "Held one" } });
+      setOutputHeld(false);
+      expect(heard.at(-1)).toBeUndefined();
+      unsubscribe();
+    });
+
+    it("a reloaded Operator adopts the hold, and the content, the Output reports", async () => {
+      const otherWindow = new BroadcastChannel(CHANNEL_NAME);
+      const heard: unknown[] = [];
+      const unsubscribe = subscribeHold((held) => heard.push(held));
+      const held = song("From the Output");
+      otherWindow.postMessage({
+        type: "hello",
+        id: "held",
+        state: { blanked: false, held: { content: held } },
+      });
+      await settle(otherWindow);
+      expect(heard.at(-1)).toMatchObject({ content: { title: "From the Output" } });
+      // The reloaded Presenter publishes its own current: it does not reach
+      // the Output, and a late window is shown the held one.
+      publishOutput(song("Reloaded current"));
+      const seen: { type: string; title?: string }[] = [];
+      otherWindow.onmessage = record(seen);
+      otherWindow.postMessage({ type: "hello", id: "late" });
+      await settle(otherWindow);
+      expect(seen.find((m) => m.type === "content")?.title).toBe("From the Output");
+      setOutputHeld(false);
+      unsubscribe();
+      otherWindow.close();
+    });
   });
 });

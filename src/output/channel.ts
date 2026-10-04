@@ -34,6 +34,9 @@ export type OutputMessage =
   /** Hides what's presented, or shows it again — distinct from `idle`,
    * which means nothing is presented (SDD-0001 §16.5). */
   | { type: "blank"; blanked: boolean }
+  /** Hold freezes the Output on what it shows, or lets it follow again; the
+   * Output ignores content and settings while held (SDD-0001 §16.6). */
+  | { type: "hold"; held: boolean }
   /** End Live: the Output window closes itself (SDD-0001 §16.4). A command,
    * never held or replayed, so a window opened later is not closed by it. */
   | { type: "close" }
@@ -56,7 +59,18 @@ export type PresentationMessage = {
 
 /** Whether the Output window itself is blanked: it is the source of truth,
  * and tells a reloaded Operator (SDD-0001 §16.4). */
-export type OutputState = { blanked: boolean };
+export type OutputState = {
+  blanked: boolean;
+  /** Present only while held: what the Output froze on (SDD-0001 §16.6). */
+  held?: HeldView;
+};
+
+/** What a held Output shows: its content (none if it showed nothing) and
+ * its settings, as of the moment it was held. */
+export type HeldView = {
+  content?: Extract<OutputMessage, { type: "content" }>;
+  presentation?: PresentationMessage;
+};
 
 /** Output → Operator: "I'm open — send me what's showing." Sent on
  * opening and in answer to a ping; each Output window has its own id. */
@@ -124,9 +138,40 @@ const stateListeners = new Set<(state: OutputState) => void>();
 let reported: OutputState | undefined;
 
 let channel: BroadcastChannel | undefined;
-let lastPublished: OutputMessage | undefined;
-let blanked = false;
+/** What the Output shows, and what a late window is replayed. */
+let lastPublished: Extract<OutputMessage, { type: "content" | "idle" }> | undefined;
 let presentation: PresentationMessage | undefined;
+/** What the Operator last asked for. While held it runs ahead of what is
+ * shown, and Release sends it. */
+let wantedContent: typeof lastPublished;
+let wantedPresentation: PresentationMessage | undefined;
+let held = false;
+const holdListeners = new Set<(view: HeldView | undefined) => void>();
+let blanked = false;
+
+const heldView = (): HeldView | undefined =>
+  held
+    ? {
+        ...(lastPublished?.type === "content" ? { content: lastPublished } : {}),
+        ...(presentation ? { presentation } : {}),
+      }
+    : undefined;
+const notifyHold = () => {
+  const view = heldView();
+  for (const listener of [...holdListeners]) listener(view);
+};
+/** Held ends: what is wanted becomes what is shown, and is sent. */
+function release(send: boolean): void {
+  held = false;
+  presentation = wantedPresentation;
+  lastPublished = wantedContent;
+  if (send) {
+    channel?.postMessage({ type: "hold", held: false } satisfies OutputMessage);
+    if (presentation) channel?.postMessage(presentation);
+    if (lastPublished) channel?.postMessage(lastPublished);
+  }
+  notifyHold();
+}
 
 function getChannel(): BroadcastChannel {
   if (!channel) {
@@ -143,12 +188,24 @@ function getChannel(): BroadcastChannel {
       if ((data.type === "hello" || data.type === "shape") && data.state) {
         blanked = data.state.blanked;
         reported = data.state;
+        // The Output is the truth for Hold too: a reloaded Operator takes
+        // what it froze on as what is shown, and what it publishes meanwhile
+        // as only wanted.
+        if (data.state.held) {
+          held = true;
+          lastPublished = data.state.held.content ?? { type: "idle" };
+          presentation = data.state.held.presentation;
+          notifyHold();
+        } else if (held) release(false);
         for (const listener of [...stateListeners]) listener(data.state);
       }
       if (data.type !== "hello") return;
       if (presentation) channel?.postMessage(presentation);
       if (blanked) channel?.postMessage({ type: "blank", blanked } satisfies OutputMessage);
       if (lastPublished) channel?.postMessage(lastPublished);
+      // Last, so a window applies the held content before it starts
+      // ignoring any.
+      if (held) channel?.postMessage({ type: "hold", held: true } satisfies OutputMessage);
     });
   }
   return channel;
@@ -161,6 +218,8 @@ export function revealCues(): void {
 }
 
 export function publishOutput(message: Extract<OutputMessage, { type: "content" | "idle" }>): void {
+  wantedContent = message;
+  if (held) return;
   lastPublished = message;
   getChannel().postMessage(message);
 }
@@ -174,6 +233,8 @@ export function setOutputBlanked(next: boolean): void {
 /** Ends Live: every Output window closes itself. Not held: the next window
  * opens lit (Go Live), or blank if blank is still held. */
 export function closeOutput(): void {
+  // End Live cancels Hold: the next window opens on the current content.
+  if (held) release(false);
   getChannel().postMessage({ type: "close" } satisfies OutputMessage);
 }
 
@@ -192,8 +253,38 @@ export function subscribeOutputState(handler: (state: OutputState) => void): () 
 /** Sends the Output's theme, cues and band size; held and replayed to a late Output
  * like blank. */
 export function setOutputPresentation(settings: Omit<PresentationMessage, "type">): void {
-  presentation = { type: "presentation", ...settings };
+  wantedPresentation = { type: "presentation", ...settings };
+  if (held) return;
+  presentation = wantedPresentation;
   getChannel().postMessage(presentation);
+}
+
+/**
+ * Hold (SDD-0001 §16.6): the Output keeps exactly what it shows, and
+ * nothing the Operator does afterwards reaches it, until released, which
+ * sends the Operator's current state with the usual transition.
+ */
+export function setOutputHeld(next: boolean): void {
+  if (next === held) return;
+  getChannel();
+  if (!next) {
+    release(true);
+    return;
+  }
+  held = true;
+  channel?.postMessage({ type: "hold", held: true } satisfies OutputMessage);
+  notifyHold();
+}
+
+/**
+ * Operator: what the Output is held on, or undefined when it is not held.
+ * Called at once with the present state. Returns an unsubscribe function.
+ */
+export function subscribeHold(handler: (view: HeldView | undefined) => void): () => void {
+  getChannel();
+  holdListeners.add(handler);
+  handler(heldView());
+  return () => holdListeners.delete(handler);
 }
 
 /**
@@ -242,6 +333,7 @@ export function subscribeOutput(
       data.type === "content" ||
       data.type === "idle" ||
       data.type === "blank" ||
+      data.type === "hold" ||
       data.type === "close" ||
       data.type === "presentation" ||
       data.type === "reveal"

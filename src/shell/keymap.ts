@@ -22,6 +22,7 @@ export type ShortcutId =
   | "repeat"
   | "undo-repeat"
   | "blank"
+  | "hold"
   | "output"
   | "end-live"
   | "tab"
@@ -43,6 +44,7 @@ export const SHORTCUTS: Shortcut[] = [
   { id: "repeat", keys: ["R"], label: "Repeat this part" },
   { id: "undo-repeat", keys: ["U"], label: "Undo the last repeat" },
   { id: "blank", keys: ["B", "."], label: "Blank the Output / restore" },
+  { id: "hold", keys: ["Shift+H"], label: "Hold the Output on what it shows / release" },
   { id: "output", keys: ["O"], label: "Go live: open the Output, or bring it forward" },
   { id: "end-live", keys: ["Shift+E"], label: "End Live: close the Output window" },
   { id: "tab", keys: ["N"], label: "Next tab" },

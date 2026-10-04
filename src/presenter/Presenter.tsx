@@ -20,7 +20,12 @@ import {
   type SequenceEngine,
 } from "../domain/sequence-engine.ts";
 import type { Hymn, HymnbookId, HymnNumber, Part } from "../domain/types.ts";
-import { type OutputMessage, publishOutput, subscribeSeek } from "../output/channel.ts";
+import {
+  type HeldView,
+  type OutputMessage,
+  publishOutput,
+  subscribeSeek,
+} from "../output/channel.ts";
 import { OutputView } from "../output/OutputView.tsx";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import {
@@ -117,6 +122,12 @@ export interface PresenterProps {
   blanked?: boolean;
   /** Blanks or restores the Output — the button in Live's heading. */
   onToggleBlank?: () => void;
+  /** What the Output is held on (SDD-0001 §16.6), or undefined when it is
+   * not held; the channel keeps it. Live shows it, not the current state. */
+  held?: HeldView;
+  /** Holds the Output on what it shows, or releases it: the button beside
+   * Blank. */
+  onToggleHold?: () => void;
   /** An Output window is open: Live's dot is the on-air light. */
   presenting?: boolean;
   /** Which supporting panes show, by id; absent means shown (SDD-0001
@@ -681,22 +692,36 @@ export function Presenter(props: PresenterProps) {
   // Live is the Output itself, scaled to its box — the same component, so
   // the preview can't disagree with the audience screen (DESIGN.md §
   // Structure).
+  // While held (SDD-0001 §16.6) it is the held content and settings the
+  // audience sees, tagged; This Song, beside it, is what Release will show.
+  const liveMessage = () => (props.held ? props.held.content : outputMessage());
   const livePreview = () => (
-    <Show when={outputMessage()}>
-      {(message) => (
-        <OutputView
-          message={message()}
-          variant="mini"
-          cues={props.cues}
-          reveal={props.revealCues}
-          pinChorus={props.pinChorus}
-          wholeSong={props.wholeSong}
-          landscape={props.liveLandscape}
-          highlight={props.highlight}
-          classList={{ "live-blanked": !!props.blanked }}
-        />
-      )}
-    </Show>
+    <>
+      <Show when={liveMessage()}>
+        {(message) => (
+          <OutputView
+            message={message()}
+            variant="mini"
+            cues={props.held?.presentation ? props.held.presentation.cues : props.cues}
+            reveal={props.revealCues}
+            pinChorus={
+              props.held?.presentation ? props.held.presentation.pinChorus : props.pinChorus
+            }
+            wholeSong={
+              props.held?.presentation ? !!props.held.presentation.wholeSong : props.wholeSong
+            }
+            landscape={props.liveLandscape}
+            highlight={
+              props.held?.presentation ? props.held.presentation.highlight : props.highlight
+            }
+            classList={{ "live-blanked": !!props.blanked }}
+          />
+        )}
+      </Show>
+      <Show when={props.held}>
+        <span class="live-held-tag">Held</span>
+      </Show>
+    </>
   );
 
   // Blank and Restore (SDD-0001 §16.5), in Live's heading and its phone
@@ -726,6 +751,37 @@ export function Presenter(props: PresenterProps) {
     </button>
   );
 
+  // Hold and Release (SDD-0001 §16.6), beside Blank: pressed while the
+  // Output is held. Off until an Output window is open, since there is
+  // nothing to hold; a hold already on stays releasable.
+  const holdControl = () => (
+    <button
+      type="button"
+      class="live-control"
+      ref={(el) => onCleanup(hoverButton(el))}
+      aria-pressed={!!props.held}
+      aria-keyshortcuts={ariaKeys("hold")}
+      disabled={!props.held && !props.presenting}
+      title={
+        !props.held && !props.presenting
+          ? "Open the Output first"
+          : withKey(
+              props.held ? "Release the Output" : "Hold the Output on what it shows",
+              "hold",
+              expanded(),
+            )
+      }
+      onClick={() => props.onToggleHold?.()}
+    >
+      {props.held ? (
+        <span class="icon icon-release icon-swap" aria-hidden="true" />
+      ) : (
+        <span class="icon icon-hold icon-swap" aria-hidden="true" />
+      )}
+      <SwapLabel labels={["Hold", "Release"]} current={props.held ? "Release" : "Hold"} />
+    </button>
+  );
+
   // Phone: Live collapses to a strip showing the current line; a tap
   // expands it (DESIGN.md § Structure).
   const liveStrip = () => (
@@ -740,11 +796,12 @@ export function Presenter(props: PresenterProps) {
         >
           <span class="live-strip-label">Live</span>
           <span class="live-strip-text">
-            {outputMessage()?.lines[outputMessage()?.focus.start ?? 0]?.text}
+            {liveMessage()?.lines[liveMessage()?.focus.start ?? 0]?.text}
           </span>
           <span class="icon icon-expand" aria-hidden="true" />
         </button>
         {blankControl()}
+        {holdControl()}
       </div>
       <Show when={liveExpanded()}>{livePreview()}</Show>
     </div>
@@ -1239,9 +1296,10 @@ export function Presenter(props: PresenterProps) {
                           Live
                         </h3>
                         {/* What changes the audience screen sits in Live's
-                            own heading; Hold and the follow status join it
+                            own heading; the follow status joins it
                             later. */}
                         {blankControl()}
+                        {holdControl()}
                       </div>
                     </Show>
                     <Show when={roomy()} fallback={<div class="stage-strip">{liveStrip()}</div>}>

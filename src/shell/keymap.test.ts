@@ -14,6 +14,12 @@ describe("keymap", () => {
     expect(keyHint("undo-repeat")).toBe("U");
   });
 
+  it("lists Hold as Shift+H, leaving H the highlight toggle (Board #21)", () => {
+    expect(keyHint("hold")).toBe("Shift+H");
+    expect(keyHint("highlight")).toBe("H");
+    expect(ariaKeys("hold")).toBe("Shift+H");
+  });
+
   it("derives a hint from the table: the first key, or the one at an index", () => {
     expect(keyHint("blank")).toBe("B");
     expect(keyHint("next-part")).toBe("→");

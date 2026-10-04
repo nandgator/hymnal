@@ -7,7 +7,7 @@ export interface UpdateState {
   /** A new version has downloaded and is waiting (the service worker's
    * "waiting" state). */
   ready: boolean;
-  /** The Output is open: Go live has been pressed, so it is On Air or Blanked
+  /** The Output is open: Go live has been pressed, so it is On Air, Blanked or Held
    * (SDD-0001 §16.4), whichever it shows. */
   live: boolean;
 }

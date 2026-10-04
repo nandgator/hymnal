@@ -8,7 +8,7 @@ import { OutputView, type OutputViewProps } from "./OutputView.tsx";
 
 const channel = vi.hoisted(() => ({
   handler: undefined as ((message: OutputMessage) => void) | undefined,
-  stateOf: undefined as (() => { blanked: boolean } | undefined) | undefined,
+  stateOf: undefined as (() => { blanked: boolean; held?: unknown } | undefined) | undefined,
   unsubscribe: vi.fn(),
   requestSeek: vi.fn(),
   forwardKey: vi.fn(),
@@ -17,7 +17,7 @@ const channel = vi.hoisted(() => ({
 vi.mock("./channel.ts", () => ({
   subscribeOutput: (
     handler: (message: OutputMessage) => void,
-    stateOf?: () => { blanked: boolean } | undefined,
+    stateOf?: () => { blanked: boolean; held?: unknown } | undefined,
   ) => {
     channel.handler = handler;
     channel.stateOf = stateOf;
@@ -160,6 +160,61 @@ describe("Output", () => {
 
     channel.handler?.({ type: "blank", blanked: false });
     expect(view).not.toHaveClass("output-blanked");
+  });
+
+  it("while held ignores content, idle and settings, keeps blank, and follows again on release (Board #21)", () => {
+    render(() => <Output />);
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: {},
+      pinChorus: false,
+      bandSize: "part",
+    });
+    show(1);
+    channel.handler?.({ type: "hold", held: true });
+    show(2);
+    expect(screen.getByText("Line 1b")).toHaveClass("output-line-current");
+    channel.handler?.({
+      type: "presentation",
+      theme: "dark",
+      cues: {},
+      pinChorus: false,
+      bandSize: "part",
+    });
+    expect(document.documentElement.getAttribute("data-output-theme")).toBe("warm");
+    channel.handler?.({ type: "idle" });
+    expect(screen.getByText("Line 1b")).toBeInTheDocument();
+    // Blank still works on top of it.
+    const view = screen.getByText("Line 1b").closest(".output-view");
+    channel.handler?.({ type: "blank", blanked: true });
+    expect(view).toHaveClass("output-blanked");
+    channel.handler?.({ type: "blank", blanked: false });
+
+    channel.handler?.({ type: "hold", held: false });
+    show(2);
+    expect(screen.getByText("Chorus line")).toHaveClass("output-line-current");
+  });
+
+  it("reports what it is held on in its state, for a reloaded Operator", () => {
+    render(() => <Output />);
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: {},
+      pinChorus: false,
+      bandSize: "part",
+    });
+    show(1);
+    channel.handler?.({ type: "hold", held: true });
+    show(2);
+    const state = channel.stateOf?.();
+    expect(state?.held).toMatchObject({
+      content: { title: "Test Hymn", focus: { start: 1, end: 2 } },
+      presentation: { theme: "warm" },
+    });
+    channel.handler?.({ type: "hold", held: false });
+    expect(channel.stateOf?.()).toEqual({ blanked: false });
   });
 
   it("is dark until it has been told its state, and paints a dark state dark from its first frame", () => {

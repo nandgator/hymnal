@@ -86,7 +86,6 @@ Ordered. Top unblocked item is next.
 | 17  | About: acknowledgements, copyright, credits                                                                               | —          |
 | 18  | Over-the-air update notices (as Supabase announces changes)                                                               | —          |
 | 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                                           | —          |
-| 21  | Hold: freeze the Output on what's showing, navigate, release                                                              | —          |
 | 22  | Service queue: line up hymns for a service (a supporting pane)                                                            | —          |
 | 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved                                                 | 22         |
 | 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                | Phase 2    |
@@ -137,6 +136,9 @@ only, here:
 
 ## Log
 
+- 2026-10-04 — Board #21 Hold: the Output frozen on what it shows while the
+  Operator browses; Release sends the current; Shift+H, a button beside Blank, a
+  command (SDD-0001 §16.6)
 - 2026-10-04 — Settings: Presentation's layout is a choice (Part by part | Whole
   song) with only the chosen layout's settings under it; nesting at most one
   level, nothing depends on an off (SDD-0001 §16.1)

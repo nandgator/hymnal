@@ -17,9 +17,12 @@ import { createBooks } from "./library/books.ts";
 import { Library } from "./library/Library.tsx";
 import {
   closeOutput,
+  type HeldView,
   revealCues,
   setOutputBlanked,
+  setOutputHeld,
   setOutputPresentation,
+  subscribeHold,
   subscribeKeys,
   subscribeOutputShape,
   subscribeOutputState,
@@ -267,6 +270,24 @@ function Operator(props: Shared) {
   // On air status, and Live's dot the on-air light.
   const presence = props.presence;
   const presentingOutput = presence.open;
+  // Hold (SDD-0001 §16.6): the channel owns it (and what it froze on), the
+  // Output being the truth; here is only its view. Nothing to hold without
+  // an Output, so it can't start then, and it ends with the window.
+  const [held, setHeld] = createSignal<HeldView>();
+  onMount(() => onCleanup(subscribeHold(setHeld)));
+  const toggleHold = () => {
+    if (held()) setOutputHeld(false);
+    else if (presentingOutput()) setOutputHeld(true);
+  };
+  createEffect(
+    on(
+      presentingOutput,
+      (open) => {
+        if (!open && held()) setOutputHeld(false);
+      },
+      { defer: true },
+    ),
+  );
   // End Live (SDD-0001 §16.4): the Output window closes; Go Live opens it
   // again. The window's own bye is what turns the header back to Go Live.
   const endLive = () => {
@@ -729,6 +750,15 @@ function Operator(props: Shared) {
         hint: keyHint("blank"),
         run: run(toggleBlank),
       },
+      ...(held() || presentingOutput()
+        ? [
+            {
+              label: held() ? "Release the Output" : "Hold the Output",
+              hint: keyHint("hold"),
+              run: run(toggleHold),
+            },
+          ]
+        : []),
       ...(!canGoLive()
         ? []
         : [
@@ -894,6 +924,12 @@ function Operator(props: Shared) {
     if (event.key === "E" && event.shiftKey) {
       event.preventDefault();
       endLive();
+      return;
+    }
+    // Shift+H holds the Output; plain H is the highlight.
+    if (event.key === "H" && event.shiftKey) {
+      event.preventDefault();
+      toggleHold();
       return;
     }
     const action = (
@@ -1085,6 +1121,7 @@ function Operator(props: Shared) {
               classList={{
                 presenting: presentingOutput(),
                 "present-blanked": presentingOutput() && blanked(),
+                "present-held": presentingOutput() && !blanked() && !!held(),
               }}
               aria-keyshortcuts={ariaKeys("output")}
               disabled={!canGoLive()}
@@ -1096,7 +1133,9 @@ function Operator(props: Shared) {
                     ? withKey("Open the Output", "output", expanded())
                     : blanked()
                       ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
-                      : withKey("Bring the Output forward", "output", expanded())
+                      : held()
+                        ? `The Output is held${expanded() ? `; ${keyHint("hold")} releases it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
+                        : withKey("Bring the Output forward", "output", expanded())
               }
               onClick={openOutput}
             >
@@ -1107,8 +1146,16 @@ function Operator(props: Shared) {
                 <span class="on-air" aria-hidden="true" />
               </Show>
               <SwapLabel
-                labels={["Go Live", "On Air", "Blanked"]}
-                current={!presentingOutput() ? "Go Live" : blanked() ? "Blanked" : "On Air"}
+                labels={["Go Live", "On Air", "Blanked", "Held"]}
+                current={
+                  !presentingOutput()
+                    ? "Go Live"
+                    : blanked()
+                      ? "Blanked"
+                      : held()
+                        ? "Held"
+                        : "On Air"
+                }
               />
             </button>
             {/* End Live: closes the Output window. Beside the
@@ -1164,6 +1211,8 @@ function Operator(props: Shared) {
                 onBack={openHymnPicker}
                 blanked={blanked()}
                 onToggleBlank={toggleBlank}
+                held={held()}
+                onToggleHold={toggleHold}
                 presenting={presentingOutput()}
                 panes={preferences.preferences().panes}
                 workspace={preferences.preferences().workspace}

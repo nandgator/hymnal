@@ -1626,6 +1626,7 @@ work too.
 | B or .                  | Blank the Output / restore      |
 | O                       | Open or focus the Output window |
 | Shift+E                 | End Live: close the Output      |
+| Shift+H                 | Hold the Output / release       |
 | N                       | Next tab (see below)            |
 | L                       | Show or hide Live Preview       |
 | / or Ctrl/⌘+K           | Command menu: hymns and actions |
@@ -1638,9 +1639,9 @@ work too.
   `SHORTCUTS`), rendered by the `?` sheet and read by every other place a key
   shows, so none can disagree: a control's tooltip and `aria-keyshortcuts`, and
   the command menu's hints all derive from it, with no hardcoded key strings.
-  The shell handles the keys that work on every screen (B, O, Shift+E, L, /,
-  Ctrl/⌘+K, +, −, ?); the Presenter handles the ones that move an engine (parts,
-  lines, stanzas, chorus, R, U) and N, which switches tabs inside the
+  The shell handles the keys that work on every screen (B, O, Shift+E, Shift+H,
+  L, /, Ctrl/⌘+K, +, −, ?); the Presenter handles the ones that move an engine
+  (parts, lines, stanzas, chorus, R, U) and N, which switches tabs inside the
   Presenter's own workspace.
 - **Keys follow the layout.** A control with a key shows it in its tooltip
   ("Repeat this part (R)"); on a phone (under 840px, usually no keyboard)
@@ -1691,14 +1692,58 @@ Finder (§13) with actions listed ahead of the hymn results: an action shows whe
 every word typed starts a word of its name, so "bl" finds "Blank the Output". A
 number matches no action, so the Finder's fast path holds: `/`, a number, Enter.
 With the box empty, the actions show, each with its key. Actions: Blank or
-Restore the Output, Go live (Bring the Output forward, while one is open), End
-Live (while one is open), Next tab, Split or merge the tabs and Make the other
-tab group main (only where two groups fit, from 1400px; they glide as the pane
-toolbar's do), Show or hide each pane, Switch hymnbook, Library, Settings, Text
-size up and down, Keyboard shortcuts, and the Output's band size. Repeat and
-Undo repeat show R and U; Show the details now has no key.
+Restore the Output, Hold or Release the Output (while one is open), Go live
+(Bring the Output forward, while one is open), End Live (while one is open),
+Next tab, Split or merge the tabs and Make the other tab group main (only where
+two groups fit, from 1400px; they glide as the pane toolbar's do), Show or hide
+each pane, Switch hymnbook, Library, Settings, Text size up and down, Keyboard
+shortcuts, and the Output's band size. Repeat and Undo repeat show R and U; Show
+the details now has no key.
 
-### 16.6 Testing
+### 16.6 Hold
+
+A pastor opens another song to find the next one, or steps through parts to
+rehearse a transition, while the audience screen must not move. **Hold** freezes
+the Output on exactly what it shows: song, part, layout, highlight, scroll and
+Presentation settings alike. Everything visual is held; only Blank still works
+(on top of Hold, §16.5). Cues revealed by hand (`reveal`) and keys forwarded
+from the Output are not content and still pass.
+
+- **Held at the channel, enforced at the Output.** `setOutputHeld(true)` posts
+  `{ type: "hold", held: true }`. From then on `publishOutput` and
+  `setOutputPresentation` only record what the Operator wants (`wanted`) and
+  post nothing; the channel's replay state (what a late window is shown) stays
+  what the Output shows. The Output also ignores `content`, `idle` and
+  `presentation` while it is held, so a message already in flight, or an
+  Operator that has just reloaded and republished before it has heard, cannot
+  move it.
+- **Late join.** A window opened while held is replayed the held settings, blank
+  and content, then `hold` last, so it applies the held content before it starts
+  ignoring any (§16.1).
+- **Release** posts `hold: false`, then the Operator's current settings and
+  content: the ordinary messages, so a song change animates as usual and a part
+  step glides (§16.1). **End Live cancels Hold**, as does the Output window
+  going away by any other means; the next window opens on the current content.
+  Hold needs an Output open: the control is off without one.
+- **The Output is the truth, as with Blank.** Its state, reported in `hello` and
+  `shape`, carries `held` (its content and settings) while held, and a reloaded
+  Operator adopts it: Hold stays on, Live shows the held content, and what the
+  reloaded Presenter publishes meanwhile is only recorded as wanted. If nothing
+  has been wanted yet, Release leaves the Output as it is. Nothing is persisted
+  by the Operator.
+- **The Operator shows it.** A **Hold** control sits beside Blank (in Live's
+  heading, and on the phone strip), pressed and reading **Release** while held
+  (DESIGN.md § Hold). The header's status reads **Held** instead of On Air, and
+  **Blanked** wins if both are on, since that is what the audience sees. Live
+  keeps showing what the audience sees (the held content, with the held
+  settings) under a small Held tag; This Song shows what Release will show. The
+  update gate treats Hold as live, as it is (§15).
+- **Controls.** The button; **Shift+H** (a chord, like Shift+E: plain H stays
+  the highlight toggle, §16.5), which the Output window forwards; and the
+  command menu's Hold the Output / Release the Output, listed while an Output is
+  open or held.
+
+### 16.7 Testing
 
 Screen choice is pure and unit-tested (`screens.test.ts`); the opening, the
 Settings row, the hints and the Output's fullscreen are tested against a mocked

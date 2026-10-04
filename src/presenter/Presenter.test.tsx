@@ -809,6 +809,73 @@ describe("Presenter", () => {
     expect(onToggleBlank).toHaveBeenCalled();
   });
 
+  it("offers Hold beside Blank while presenting, pressed and reading Release while held, and Live shows what is held", async () => {
+    const onToggleHold = vi.fn();
+    const view = render(() => (
+      <Presenter
+        hymnbookId="book"
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        presenting
+        onToggleHold={onToggleHold}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    const hold = screen.getByRole("button", { name: /^Hold/ });
+    expect(hold).toHaveAttribute("aria-pressed", "false");
+    expect(hold).toHaveAttribute("aria-keyshortcuts", "Shift+H");
+    expect(document.querySelector(".live-held-tag")).toBeNull();
+    fireEvent.click(hold);
+    expect(onToggleHold).toHaveBeenCalled();
+    view.unmount();
+
+    render(() => (
+      <Presenter
+        hymnbookId="book"
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        presenting
+        held={{
+          content: {
+            type: "content",
+            hymnbookId: "book",
+            number: 7,
+            title: "Frozen Title",
+            lines: [{ text: "Frozen line", partId: "s1", isPartStart: true }],
+            focus: { start: 0, end: 1 },
+          },
+        }}
+        onToggleHold={onToggleHold}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    expect(screen.getByRole("button", { name: /^Release/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(document.querySelector(".live-held-tag")).not.toBeNull();
+    // Live is what the audience sees: the held content, not the Operator's.
+    expect(screen.getByRole("img", { name: "Live output preview" })).toHaveTextContent(
+      "Frozen line",
+    );
+  });
+
+  it("disables Hold while no Output is open", async () => {
+    render(() => (
+      <Presenter
+        hymnbookId="book"
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        onToggleHold={vi.fn()}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    expect(screen.getByRole("button", { name: /^Hold/ })).toBeDisabled();
+  });
+
   it("hides Live when preferences hide it, keeping Parts", async () => {
     render(() => (
       <Presenter

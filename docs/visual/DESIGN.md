@@ -482,10 +482,10 @@ view is close enough to the frame to need a smaller unit.
   so a new feature joins an area instead of adding a row of controls:
   - **What they see**, a rail on the right from 840px: **Live** (the anchor, a
     true miniature of the Output at its 16:9 shape, with the part before and
-    after dimmed), its controls underneath (follow status, Blank, later Hold;
-    the open outputs), then a divider and **Parts**: the Repeat row (Repeat · ×2
-    · Undo · Reset, holding its height) and the keypad (Chorus full width,
-    verses in fixed-width cells).
+    after dimmed), its controls underneath (follow status, Blank, Hold; the open
+    outputs), then a divider and **Parts**: the Repeat row (Repeat · ×2 · Undo ·
+    Reset, holding its height) and the keypad (Chorus full width, verses in
+    fixed-width cells).
   - **This hymn**: the lyrics in sung order, tap a part or a line to send it
     live (ProPresenter's click-a-slide-to-go-live).
   - **Coming up**: Recents now, the service queue later (Board #22).
@@ -556,6 +556,13 @@ view is close enough to the frame to need a smaller unit.
     the same control). The operator can keep navigating behind it (SDD-0001
     §16.5). The On Air status reads **Blanked**, its dot emptied to a ring, so
     it shows on every screen, Live on screen or not.
+  - **Hold**: a quiet text control beside Blank, in Live's heading and on the
+    phone strip (a square icon, like Blank's). Pressed (tonal) and reading
+    **Release** while the Output is held; off while no Output is open. Live
+    keeps showing what the audience sees, undimmed, with a small tonal **Held**
+    tag at its corner (under the strip, on a phone), and the On Air status reads
+    **Held**, its dot squared like a pause mark; **Blanked** wins if both are on
+    (SDD-0001 §16.6).
   - **Phone** (and anything under 840px): Live collapses to a thin strip showing
     the current line, expanding on tap. Below it the tabs, merged, with
     **Parts** as a third tab: This Song | Recents | Parts. On a phone one thing
@@ -604,9 +611,10 @@ view is close enough to the frame to need a smaller unit.
   window forward. Live's dot is the same on-air light: grey until then. On air
   is a custom colour, red harmonised to the amber seed (Material's method), with
   its own roles in both themes. Blanked is On Air's other state: **Blanked**,
-  the dot a ring. Beside it a quiet text button, **End Live** (an icon alone on
-  a phone), closes the Output window; the status then reads Go Live again. To go
-  dark and keep the window, Blank.
+  the dot a ring; Held is the third, the dot a small square. Beside it a quiet
+  text button, **End Live** (an icon alone on a phone), closes the Output
+  window; the status then reads Go Live again. To go dark and keep the window,
+  Blank.
 - **Another tab** (Board #36; SDD-0001 §10.4). A tab that cannot hold the books
   (another tab has them) is a full page: the empty card's own shape centred on
   the page background, display-small **Hymnal is open in another tab**, one body
@@ -774,9 +782,10 @@ view is close enough to the frame to need a smaller unit.
   **Key caps** (shortcuts, the command menu, Ctrl K) share one height and a 6px
   corner nested in the 12px controls, a tone above what they sit on, with a
   lower edge that keeps them reading as keys; a combination is caps side by
-  side. A control whose label changes (Blank and Restore; Go Live, On Air and
-  Blanked) is as wide as its longest label, so the swap never resizes it.
-  Repeat, Undo and Reset are text buttons: occasional, so quiet.
+  side. A control whose label changes (Blank and Restore; Hold and Release; Go
+  Live, On Air, Blanked and Held) is as wide as its longest label, so the swap
+  never resizes it. Repeat, Undo and Reset are text buttons: occasional, so
+  quiet.
 - **Motion** explains change, at Material's emphasised easing: areas glide to
   their places on expand, collapse, close and split (View Transitions of the
   panels only, not the whole page, which halved the frame rate); a panel

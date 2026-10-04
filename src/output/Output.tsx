@@ -4,6 +4,7 @@ import { easeThemeChange } from "../shell/theme.ts";
 import {
   forwardKey,
   type OutputMessage,
+  type PresentationMessage,
   reportOutputPlacement,
   requestSeek,
   subscribeOutput,
@@ -69,6 +70,10 @@ export function Output() {
   const [wholeSong, setWholeSong] = createSignal(false);
   const [highlight, setHighlight] = createSignal<Highlight>("part");
   const [bandSize, setBandSize] = createSignal<BandSize>("part");
+  // Hold (SDD-0001 §16.6): while held, content and settings are ignored,
+  // and the window reports what it froze on, for a reloaded Operator.
+  const [held, setHeld] = createSignal(false);
+  let lastPresentation: PresentationMessage | undefined;
   // Theme and cues follow the Operator's Settings live (SDD-0001 §16.1).
   const receive = (next: OutputMessage) => {
     if (next.type === "close") {
@@ -76,10 +81,18 @@ export function Output() {
       window.close();
       return;
     }
+    if (next.type === "hold") {
+      setStated(true);
+      setHeld(next.held);
+      return;
+    }
+    if (held() && (next.type === "content" || next.type === "idle" || next.type === "presentation"))
+      return;
     if (next.type === "blank" || next.type === "presentation") setStated(true);
     if (next.type === "blank") setBlanked(next.blanked);
     else if (next.type === "reveal") setReveal((n) => n + 1);
     else if (next.type === "presentation") {
+      lastPresentation = next;
       const root = document.documentElement;
       const current = root.getAttribute("data-output-theme");
       const apply = () => root.setAttribute("data-output-theme", next.theme);
@@ -296,7 +309,20 @@ export function Output() {
   onMount(() => {
     const unsubscribe = subscribeOutput(
       receive,
-      () => (stated() ? { blanked: blanked() } : undefined),
+      () =>
+        stated()
+          ? {
+              blanked: blanked(),
+              ...(held()
+                ? {
+                    held: {
+                      ...(content() ? { content: content() } : {}),
+                      ...(lastPresentation ? { presentation: lastPresentation } : {}),
+                    },
+                  }
+                : {}),
+            }
+          : undefined,
       () => (target && detailsDone ? placementNow() : undefined),
     );
     onCleanup(unsubscribe);
