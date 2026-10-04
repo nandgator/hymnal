@@ -152,6 +152,31 @@ describe("Settings", () => {
     expect(screen.getByText(/No settings match/)).toBeInTheDocument();
   });
 
+  it("search skips a setting inside a closed disclosure, and follows the layout as it changes", async () => {
+    render(() => <Settings userState={fakeUserState()} />);
+    await screen.findByText("100%");
+    const search = screen.getByRole("searchbox", { name: "Search settings" });
+    const pin = () => screen.getByText("Pin the chorus").closest(".settings-row");
+    // The search hides the Layout row itself ("pin" is not in it): reach it hidden.
+    const layoutChoice = (name: string) =>
+      within(screen.getByRole("group", { name: "Layout", hidden: true })).getByRole("radio", {
+        name,
+        hidden: true,
+      });
+
+    // Part by part (the default) opens "Pin the chorus".
+    fireEvent.input(search, { target: { value: "pin" } });
+    expect(pin()).toBeVisible();
+
+    // Whole song closes it: the search still active, it drops out.
+    fireEvent.click(layoutChoice("Whole song"));
+    expect(pin()).not.toBeVisible();
+
+    // And back: it returns.
+    fireEvent.click(layoutChoice("Part by part"));
+    expect(pin()).toBeVisible();
+  });
+
   it("splits or merges the tab groups (SDD-0001 §16.4)", async () => {
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);

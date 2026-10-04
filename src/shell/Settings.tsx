@@ -353,12 +353,16 @@ export function Settings(props: SettingsProps) {
   // Search (a Settings sheet grows): rows whose text holds every word typed
   // stay, the rest hide, and a section left empty hides its heading too.
   // It reads what's on screen, so a new row is searchable with no list to
-  // keep in step.
+  // keep in step. A row inside a closed disclosure is hidden from a search
+  // (it is out of reach, and a match there would show nothing to act on); the
+  // effect reads the preferences so it re-runs when a disclosure opens or
+  // closes, after the disclosure has set `data-open`.
   const [query, setQuery] = createSignal("");
   const [noMatch, setNoMatch] = createSignal(false);
   let settingsRef: HTMLDivElement | undefined;
   createEffect(() => {
     const words = query().toLowerCase().split(/\s+/).filter(Boolean);
+    preferences();
     const root = settingsRef;
     if (!root) return;
     let any = false;
@@ -366,7 +370,9 @@ export function Settings(props: SettingsProps) {
       let shown = false;
       for (const row of section.querySelectorAll<HTMLElement>(".settings-row, .settings-link")) {
         const text = row.textContent?.toLowerCase() ?? "";
-        const match = words.every((word) => text.includes(word));
+        const closed =
+          words.length > 0 && row.closest('.settings-disclosure[data-open="false"]') !== null;
+        const match = !closed && words.every((word) => text.includes(word));
         row.hidden = !match;
         shown ||= match;
       }

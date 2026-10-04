@@ -420,7 +420,7 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     if (ctx) {
       try {
         const row = listBooks(ctx).find((book) => book.file === filename);
-        if (!row || row.state !== "ok") await indexPackage(ctx, filename, "loaded");
+        if (row?.state !== "ok") await indexPackage(ctx, filename, "loaded");
       } catch (error) {
         console.warn(`${id}: not registered:`, error);
       }

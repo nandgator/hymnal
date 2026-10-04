@@ -28,8 +28,7 @@ export function autoHover(root: Document | HTMLElement = document): () => void {
     if (over.pointerType === "touch") return;
     const button = (over.target as Element | null)?.closest?.<HTMLButtonElement>(AUTO_BUTTONS);
     if (
-      !button ||
-      button.tagName !== "BUTTON" ||
+      button?.tagName !== "BUTTON" ||
       button.disabled ||
       button.classList.contains("glide-self") ||
       button.closest("[data-hover-glide]")

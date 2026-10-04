@@ -1806,15 +1806,6 @@ input[type="checkbox"].switch:disabled {
   opacity: 0;
 }
 
-/* A countdown rolls its numbers quicker, so several can overlap in a blur. */
-.rolling-number[data-rapid] .rolling-face {
-  animation-duration: 120ms;
-}
-
-.rolling-number[data-rapid] .rolling-face-leaving {
-  animation-duration: 90ms;
-}
-
 /* A rolling number (RollingNumber): the old value rolls out as the new one
    rolls in, up as the count grows and down as it shrinks — quick, at the
    emphasised easing, clipped to one line, a slight blur on the move, as a
@@ -1859,6 +1850,15 @@ input[type="checkbox"].switch:disabled {
 
 .rolling-face-leaving::before {
   content: attr(data-value);
+}
+
+/* A countdown rolls its numbers quicker, so several can overlap in a blur. */
+.rolling-number[data-rapid] .rolling-face {
+  animation-duration: 120ms;
+}
+
+.rolling-number[data-rapid] .rolling-face-leaving {
+  animation-duration: 90ms;
 }
 
 @keyframes roll-in-up {
@@ -2272,6 +2272,13 @@ input[type="checkbox"].switch:disabled {
   z-index: 0;
 }
 
+/* A group of filled buttons (the transport, Go Live and End Live): their
+   fills would hide a layer behind them, so theirs is over them, a veil the
+   text shows through. The crumbs' own hover fill stands down for it. */
+:is(.transport, .live-controls) > .hover-glide {
+  z-index: 1;
+}
+
 .parts-navigator > section > .hover-glide {
   z-index: 1;
 }
@@ -2326,13 +2333,6 @@ input[type="checkbox"].switch:disabled {
     :is(.btn-text, .area-icon, .menu-button, .dock-button, .present-button, .snackbar-close)
 ):is(:hover, :focus-visible):not(:active, :disabled, [aria-pressed="true"]) {
   --state-a: 0;
-}
-
-/* A group of filled buttons (the transport, Go Live and End Live): their
-   fills would hide a layer behind them, so theirs is over them, a veil the
-   text shows through. The crumbs' own hover fill stands down for it. */
-:is(.transport, .live-controls) > .hover-glide {
-  z-index: 1;
 }
 
 .crumbs.glide-group {
@@ -3206,10 +3206,6 @@ html[data-scrolling],
   text-transform: uppercase;
 }
 
-.seq-block[aria-current="step"] .seq-head {
-  color: var(--md-sys-color-primary);
-}
-
 /* Text changes colour with the tint's glide: same time, same easing, so the
    old part dims and the new one brightens as the tint travels. Only the
    label and the lines transition (the block's colour just passes down), or
@@ -3219,6 +3215,10 @@ html[data-scrolling],
   transition:
     color var(--motion-medium) var(--motion-emphasized),
     background-color var(--motion-hover) var(--motion-standard);
+}
+
+.seq-block[aria-current="step"] .seq-head {
+  color: var(--md-sys-color-primary);
 }
 
 /* lyricsGlide.ts marks a list whose tint snaps: the text goes at once too. */
@@ -4382,7 +4382,7 @@ html[data-scrolling],
   background-color: color-mix(in srgb, currentColor 8%, transparent);
 }
 
-.snackbar-close .icon {
+.snackbar .snackbar-close .icon {
   width: 1.25rem;
   height: 1.25rem;
 }
