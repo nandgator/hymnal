@@ -3,7 +3,7 @@ import { hoverGroup } from "./hoverGlide.ts";
 
 export interface SnackbarProps {
   message: string;
-  /** The single action, text-weight — "Restart", "Got it". */
+  /** The single action, text-weight — "Restart", "Got It". */
   action: string;
   onAction: () => void;
   /** Closes without acting; absent when the action itself closes. */

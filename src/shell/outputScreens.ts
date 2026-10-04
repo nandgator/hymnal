@@ -64,7 +64,7 @@ export interface OutputScreens {
  * The attached screens (ADR-0028), kept live through `screenschange`. Nothing
  * is asked at start-up: a permission already granted is used quietly (no
  * prompt), so Go live can place the window synchronously; otherwise the
- * first Go live or the Detect screens button asks. Call under a reactive owner.
+ * first Go live or the Detect Screens button asks. Call under a reactive owner.
  */
 export function createOutputScreens(): OutputScreens {
   const supported = screensSupported();

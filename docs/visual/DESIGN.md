@@ -494,10 +494,10 @@ view is close enough to the frame to need a smaller unit.
   so a new feature joins an area instead of adding a row of controls:
   - **What they see**, a rail on the right from 840px: **Live** (the anchor, a
     true miniature of the Output at its 16:9 shape, with the part before and
-    after dimmed), its controls underneath (follow status, Blank, Hold; the open
-    outputs), then a divider and **Parts**: the Repeat row (Repeat · ×2 · Undo ·
-    Reset, holding its height) and the keypad (Chorus full width, verses in
-    fixed-width cells).
+    after dimmed), its controls at the end of its heading (one toolbar: Blank,
+    Hold, End Live; the follow status joins it), then a divider and **Parts**:
+    the Repeat row (Repeat · ×2 · Undo · Reset, holding its height) and the
+    keypad (Chorus full width, verses in fixed-width cells).
   - **This hymn**: the lyrics in sung order, tap a part or a line to send it
     live (ProPresenter's click-a-slide-to-go-live).
   - **Coming up**: Recents now, the service queue later (Board #22).
@@ -568,6 +568,13 @@ view is close enough to the frame to need a smaller unit.
     the same control). The operator can keep navigating behind it (SDD-0001
     §16.5). The On Air status reads **Blanked**, its dot emptied to a ring, so
     it shows on every screen, Live on screen or not.
+  - **The Live toolbar**: Blank, Hold and **End Live** are one group of three
+    quiet buttons at the end of Live's heading (and the phone strip's end), the
+    same height and gap (4px; 12px, 48px squares, on the strip), centred on the
+    heading's own line so they share the "Live" label's baseline; none floats at
+    the middle. Each carries an icon and its word (an icon alone on the strip).
+    End Live closes the Output window and waits, disabled, for one, as Hold
+    does; it is the third member, not the header's.
   - **Hold**: a quiet text control beside Blank, in Live's heading and on the
     phone strip (a square icon, like Blank's). Pressed (tonal) and reading
     **Release** while the Output is held; off while no Output is open. Live
@@ -601,7 +608,7 @@ view is close enough to the frame to need a smaller unit.
     laptop's panel, a remembered one not attached marked "not connected"; the
     chosen one is the tonal pill; arrows, Enter and Esc work, and ArrowDown
     opens it). With one screen attached there is no list: the text "One screen
-    attached" instead. A text **Detect screens** button asks the browser to list
+    attached" instead. A text **Detect Screens** button asks the browser to list
     the screens; its supporting line says what Automatic picks, or that
     permission is blocked. Hidden where the browser cannot place a window.
   - **Show/hide**: Live, remembered, and the tab layout (SDD-0001 §16.4). This
@@ -618,42 +625,53 @@ view is close enough to the frame to need a smaller unit.
   runs out all four go icon-only together (the stage's own width, or the
   dock's).
 - **Go live → On air.** Opening the Output is a one-off, so it sits top right on
-  every screen (where Slides and Keynote put theirs) as a tonal **Go live**, and
-  once an Output window is open becomes the **On air** status, which brings that
+  every screen (where Slides and Keynote put theirs) as a tonal **Go Live**, and
+  once the Output is open becomes the **On Air** status, which brings that
   window forward. Live's dot is the same on-air light: grey until then. On air
   is a custom colour, red harmonised to the amber seed (Material's method), with
   its own roles in both themes. Blanked is On Air's other state: **Blanked**,
-  the dot a ring; Held is the third, the dot a small square. Beside it a quiet
-  text button, **End Live** (an icon alone on a phone), closes the Output
-  window; the status then reads Go Live again. To go dark and keep the window,
-  Blank.
-- **Present here** (Board #41; SDD-0001 §16.7). Beside Go Live, a tonal button
-  with the fullscreen icon and the label **Present here**: the primary action,
-  before Go Live, where only one screen is known, and Go Live is then a quiet
-  icon-only button; with two screens Present here is the icon-only text button
-  (tooltip and name "Present here") after Go Live, so the crumb keeps its room.
-  The primary one is an icon alone on a phone. It is gone while an Output window
-  is open. Presenting, the app tab is the Output's own view full-bleed on its
-  ground, with nothing of the shell on it and no notice. The one thing laid over
-  it is the **quick switcher**: no card, the search field itself at the bottom
-  centre, at most 30rem, its list (five rows, small, single-line titles with an
-  ellipsis) above it, in the Output's preset colours, never the Operator's
-  theme. Behind it a full-width band of the Output's ground over a blur (18px)
-  rises 1.5rem above the top of the list and fades out upward, so the list sits
-  inside the soft blur, not on its edge. While it is open the Output's bottom
-  caption (book, title, repeat count) fades out. Nothing else is ever laid over
-  the audience's screen unasked: there is no hint where the switcher is. The
-  cursor is the Output window's: shown while the mouse moves, gone after 2s
-  still. It opens and closes with no motion beyond the list changing.
+  the dot a ring; Held is the third, the dot a small square. To go dark and keep
+  the window, Blank.
+- **One live button, one width** The header holds a single live control, in a
+  box of fixed width (`.live-split`, 9.75rem; 5rem on a phone), so the search
+  beside it never moves, whatever the state: the box is the longest label's room
+  (**Blanked**, SwapLabel keeps every label's room) plus the chevron's, kept
+  whether the chevron shows or not. Not live, the button fills the box. Live, it
+  becomes a **split button** (Material 3): the main part, the status, brings the
+  Output forward; a small attached chevron (a 2px seam, outer corners round, the
+  seam's square) opens a menu of **End Live** (stop icon, Shift+E) and **Present
+  on This Screen** (fullscreen icon, Shift+P), each with its key. Ending is one
+  click on the chevron and one on the row; the common actions are never two
+  steps: Go Live is one click, Blank and Hold one click in Live. **Go Live
+  decides for you:** with an external screen known (Window Management lists a
+  second screen, or the chosen screen is attached) it opens the Output window
+  there; otherwise it **presents here**. Its tooltip says which. The explicit
+  choices stay in the command menu (Open the Output Window, O; Present on This
+  Screen, Shift+P).
+- **Present here** (Board #41; SDD-0001 §16.7) is no button of its own: Go Live
+  starts it where no external screen is known, and the chevron's menu and
+  Shift+P offer it otherwise. Presenting, the app tab is the Output's own view
+  full-bleed on its ground, with nothing of the shell on it and no notice. The
+  one thing laid over it is the **quick switcher**: no card, the search field
+  itself at the bottom centre, at most 30rem, its list (five rows, small,
+  single-line titles with an ellipsis) above it, in the Output's preset colours,
+  never the Operator's theme. Behind it a full-width band of the Output's ground
+  over a blur (18px) rises 1.5rem above the top of the list and fades out
+  upward, so the list sits inside the soft blur, not on its edge. While it is
+  open the Output's bottom caption (book, title, repeat count) fades out.
+  Nothing else is ever laid over the audience's screen unasked: there is no hint
+  where the switcher is. The cursor is the Output window's: shown while the
+  mouse moves, gone after 2s still. It opens and closes with no motion beyond
+  the list changing.
 - **Another tab** (Board #36; SDD-0001 §10.4). A tab that cannot hold the books
   (another tab has them) is a full page: the empty card's own shape centred on
   the page background, display-small **Hymnal is open in another tab**, one body
   line ("Only one tab can hold your books at a time. Use it here, and the other
-  tab will let go.") and the filled **Use here**. Calm, not an error: no error
+  tab will let go.") and the filled **Use Here**. Calm, not an error: no error
   colour, no icon, no alert role. The tab that let go shows the same note at
   once. While the request waits the button is disabled; if the other tab is
   presenting (its Output is open) the line becomes "The other tab is presenting.
-  Close its Output window first, then use Hymnal here." and Use here stays for
+  Close its Output window first, then use Hymnal here." and Use Here stays for
   another try. Two more lines in the same place: "The other tab is saving a
   book. Try again in a moment." and, after 5 seconds without an answer, "The
   other tab didn't answer. Close it, or try again." The Output window is never
@@ -661,7 +679,7 @@ view is close enough to the frame to need a smaller unit.
 - **Snackbar.** The shell's one notice, for what needs a word but not a stop:
   **Update ready** with **Restart** and a close (Later), the note about keeping
   the book file after a first load whose storage request was refused, with **Got
-  It**, and the Safari note about keeping books, with **Got it**. One pattern at
+  It**, and the Safari note about keeping books, with **Got It**. One pattern at
   every width, for every notice: a **floating card** on the current theme's
   `surface-container-highest` (text `on-surface`, the action in `primary`),
   elevation 3, 12px corners, never wider than 36rem, **bottom-left of the
@@ -677,12 +695,12 @@ view is close enough to the frame to need a smaller unit.
   the update first, then the keep-your-file note, then Safari's, and **never
   while the Output is live** (On Air or Blanked). It takes no focus; a
   persistent live region announces its message. Keyboard: Esc puts it away
-  (Later; the note's Got it), and the command menu has **Restart to update**,
+  (Later; the note's Got It), and the command menu has **Restart to update**,
   **Dismiss the storage note** and **Dismiss the Home Screen note**. Its buttons
   have a visible focus ring. Undo still stays in the Repeat row, not here.
   **Screen notices** are the exception to "never while live": they are about the
   Output window itself and caused by it, so they show at once, are dismissed
-  (**Got it**) and never repeat once seen. They use the same card, in the same
+  (**Got It**) and never repeat once seen. They use the same card, in the same
   place, so the layout does not move live, and they come before the update. Six:
   "Drag the Output to the projector, then press F11" (a plain popup, once, and
   **only when a second screen may exist**: `screen.isExtended` is true, with or
@@ -731,7 +749,7 @@ view is close enough to the frame to need a smaller unit.
     keyboard), ending in **Other…** to type a code; under it a quiet line,
     "Script: Malayalam (Mlym) · Change", the script derived from the language
     and a field only after Change; then two text areas in the hymn face (the
-    song text, with **Open .txt files**, several at once, and the optional
+    song text, with **Open .txt Files**, several at once, and the optional
     **Original text, to check against**, with **Open a .txt** and a hint line:
     paste the book as printed and Hymnal checks the songs against it). The id
     and the optional song number sit under an **Advanced** disclosure, which
@@ -746,7 +764,7 @@ view is close enough to the frame to need a smaller unit.
     in its facts and, when lines differ, a neutral callout and two lists (Added
     or altered, Dropped), each scrolling inside itself.
   - **Several books**: Load Books takes several files at once (Load Again one),
-    and **Open .txt files** joins several `.txt` files into one song text with
+    and **Open .txt Files** joins several `.txt` files into one song text with
     `---` between. The review of several is a queue: the sheet says **Book 2 of
     5** and the file's name between **Back** and **Next** chevrons (48px,
     disabled at the ends; the arrow keys too), so every book can be looked at
@@ -946,15 +964,15 @@ view is close enough to the frame to need a smaller unit.
 - **Words**: "song" on screen (This Song, Find a Song, 1,632 songs); the code
   and domain keep "hymn". **Case, after Apple:** Title Case (Chicago: a, an,
   the, and, or, to, of, on, in stay lower unless first or after a colon) for
-  what's pressed or navigated — buttons, tabs, menu and command names, sheet
-  titles, statuses (Go Live, On Air, Bring the Output Forward); sentence case
-  for what reads as a sentence — switch labels and their descriptions, field
-  names, placeholders, tooltips, empty states (Find a song or action, No recent
-  songs yet). `titleCase()` titles the command menu. Small-caps area titles stay
-  uppercase. **Song titles** are Title Case wherever shown (I Serve a Risen
-  Savior; a bracketed subtitle starts afresh); content keeps them in sentence
-  case, which keeps which words are names, and a script without case is left as
-  it is.
+  what's pressed or navigated — every button (also a notice's action), tab, menu
+  and command name, sheet title, status (Go Live, On Air, Bring the Output
+  Forward, Present Here); sentence case for what reads as a sentence — switch
+  labels and their descriptions, field names, placeholders, tooltips, empty
+  states (Find a song or action, No recent songs yet). `titleCase()` titles the
+  command menu. Small-caps area titles stay uppercase. **Song titles** are Title
+  Case wherever shown (I Serve a Risen Savior; a bracketed subtitle starts
+  afresh); content keeps them in sentence case, which keeps which words are
+  names, and a script without case is left as it is.
 - **Output: nothing ever bleeds off the screen.** The type is sized **per hymn**
   so its longest part fits between the 16% bands, then held for the whole hymn,
   so the text never changes size between parts. It's re-fitted on resize and
@@ -1052,6 +1070,29 @@ mid-service. Three rules follow:
   user's text size, so a button's width isn't a fixed number a breakpoint could
   be tuned to.
 
+### Buttons: icons, groups and names
+
+One rule, for every button in the app, so a row never looks half-dressed:
+
+- **A group carries icons all or none.** Text buttons side by side in one
+  toolbar, row or button group (the Repeat row: Repeat, Undo, Reset; Live's
+  toolbar: Blank, Hold, End Live; the transport) either all have an icon or none
+  do. When the group is narrow, all of them go icon-only together, never one by
+  one.
+- **A lone text action has no icon**, unless the icon carries meaning the word
+  does not: the one standalone button of a sheet, card or notice (Done, Cancel,
+  Retry, Got It, Use Here) is its word. An icon that is part of what the button
+  _is_ (Load Books, Open .txt Files: a file; Back to Search: an arrow) stays.
+- **An icon-only button always has a name and a tooltip:** an `aria-label` (or
+  visually hidden text) and a `title`, with its key in the tooltip when it has
+  one. Where a text button drops its word to fit, the word stays as the name.
+- **Icons are masks** in the existing style (`.icon-*` in `styles.css`: a
+  Material Symbols path as `mask-image`, so the icon takes the text colour),
+  never an image or a glyph. A new icon is added there, once.
+- **Names are in Title Case** (§ Words): every button, tab, menu item and
+  command, including a notice's action (Got It, Move the Output There) and a
+  split menu's rows (Present on This Screen). Sentences stay in sentence case.
+
 ### Register: composed, not cozy
 
 Default M3 is a consumer register: pill buttons, large radii, soft bubbles.
@@ -1146,7 +1187,7 @@ Repeat's row waits 300ms over the count between its buttons before it lets go).
 A pointer still moving within 28px of a row, over the space between two, keeps
 the layer and restarts that wait, so a slow hand crossing the rail's gap glides
 from item to item on either axis, never out and back in place. A lone button (a
-sheet's Close or Back, Back to search, Blank and Restore, the menu button, the
+sheet's Close or Back, Back to Search, Blank and Restore, the menu button, the
 search box) has the layer inside it, entering from the side the pointer came by
 and leaving by the side it went (`hoverButton`, `.glide-self`). Neither paints a
 hover or focus fill of its own; a press still shows its state layer and squeeze.

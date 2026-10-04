@@ -73,6 +73,7 @@ import {
   SHORTCUTS,
   withKey,
 } from "./shell/keymap.ts";
+import { Menu } from "./shell/Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { moveOutputTo, openOutputWindow } from "./shell/openOutput.ts";
 import { createOutputScreens, mayHaveSecondScreen } from "./shell/outputScreens.ts";
@@ -407,7 +408,7 @@ function Operator(props: Shared) {
       setScreenNotice(undefined);
     }),
   );
-  // A word from the Library (books left unloaded), put away by itself or by Got it.
+  // A word from the Library (books left unloaded), put away by itself or by Got It.
   const [libraryNote, setLibraryNote] = createSignal<string>();
   createEffect(() => {
     if (!libraryNote() || presentingHere()) return;
@@ -503,7 +504,7 @@ function Operator(props: Shared) {
     on(
       [screens.screens, screens.extended],
       () => {
-        // The screens becoming known (Detect screens, a permission granted
+        // The screens becoming known (Detect Screens, a permission granted
         // before) is a baseline, not a change.
         if (reviewed.screens.length === 0 && screens.screens().length > 0)
           reviewed = { screens: screens.screens(), extended: screens.extended() };
@@ -629,7 +630,7 @@ function Operator(props: Shared) {
     if (shown === "connected")
       return {
         message: screenNoticeText(shown, placeLabel()),
-        action: "Move the Output there",
+        action: "Move the Output There",
         onAction: moveToConnected,
         dismissLabel: "Not now",
         onDismiss: () => setScreenNotice(undefined),
@@ -648,7 +649,7 @@ function Operator(props: Shared) {
     if (shown)
       return {
         message: screenNoticeText(shown, placeLabel()),
-        action: shown === "back" ? "Move it" : "Got it",
+        action: shown === "back" ? "Move It" : "Got It",
         onAction: shown === "back" ? moveBack : () => setScreenNotice(undefined),
         dismissLabel: shown === "back" ? "Stay" : undefined,
         onDismiss:
@@ -660,7 +661,7 @@ function Operator(props: Shared) {
             : undefined,
       };
     const note = libraryNote();
-    if (note) return { message: note, action: "Got it", onAction: () => setLibraryNote(undefined) };
+    if (note) return { message: note, action: "Got It", onAction: () => setLibraryNote(undefined) };
     const picked = notice();
     if (picked === "update")
       return {
@@ -671,9 +672,9 @@ function Operator(props: Shared) {
         onDismiss: () => setUpdateDismissed(true),
       };
     if (picked === "keep-file")
-      return { message: noticeMessage(), action: "Got it", onAction: () => setKeepFile(false) };
+      return { message: noticeMessage(), action: "Got It", onAction: () => setKeepFile(false) };
     if (picked === "safari-hint")
-      return { message: noticeMessage(), action: "Got it", onAction: dismissHomeScreenHint };
+      return { message: noticeMessage(), action: "Got It", onAction: dismissHomeScreenHint };
     return undefined;
   };
   const presenting = () => section() === "present" && !!hymnNumber();
@@ -695,9 +696,25 @@ function Operator(props: Shared) {
     open(true);
   };
 
-  // One screen known: no Window Management, or no second screen (§16.7).
-  const oneScreen = () => !screens.supported || !screens.extended();
   const canPresentHere = () => canGoLive() && !presentingOutput() && !presentingHere();
+  // Go Live decides for you (SDD-0001 §16.7): an external screen is known
+  // when Window Management lists a second one, or the one the operator chose
+  // is attached; the Output window then goes there. Otherwise this tab
+  // presents. The permission prompt is not a reason to wait: a browser that
+  // shows an extended desktop asks at the click, as before.
+  const externalKnown = () => {
+    if (!screens.supported) return false;
+    if (screens.extended()) return true;
+    const chosen = remembered();
+    return (
+      !!chosen && screens.screens().length > 1 && screens.screens().some((s) => sameKey(s, chosen))
+    );
+  };
+  const goLive = () => {
+    if (!canGoLive() || presentingOutput() || presentingHere()) return;
+    if (externalKnown()) void openOutput();
+    else presentHere();
+  };
   // The click or key is the activation fullscreen needs, so the request is
   // made at once, before anything is awaited.
   const presentHere = () => {
@@ -712,6 +729,21 @@ function Operator(props: Shared) {
       ?.lock?.(["Escape"])
       ?.catch?.(() => {});
   };
+
+  // "Present on This Screen" from the live menu: the window ends first (it
+  // would take the audience back), and this tab presents once its bye lands.
+  const [switchingHere, setSwitchingHere] = createSignal(false);
+  const switchToHere = () => {
+    if (!presentingOutput()) return presentHere();
+    setSwitchingHere(true);
+    setTimeout(() => setSwitchingHere(false), 3000);
+    endLive();
+  };
+  createEffect(() => {
+    if (!switchingHere() || presentingOutput()) return;
+    setSwitchingHere(false);
+    presentHere();
+  });
 
   const go = (next: Section) => {
     setSection(next);
@@ -821,7 +853,7 @@ function Operator(props: Shared) {
         ? []
         : [
             {
-              label: presentingOutput() ? "Bring the Output forward" : "Go live: open the Output",
+              label: presentingOutput() ? "Bring the Output forward" : "Open the Output window",
               hint: keyHint("output"),
               run: run(openOutput),
             },
@@ -981,7 +1013,7 @@ function Operator(props: Shared) {
       }
     }
     if (ignoresShortcuts(event)) return;
-    // Escape puts a notice away (Later; the Safari note's Got it).
+    // Escape puts a notice away (Later; the Safari note's Got It).
     if (event.key === "Escape" && notice()) {
       event.preventDefault();
       dismissNotice();
@@ -1182,95 +1214,83 @@ function Operator(props: Shared) {
             <div
               class="live-controls"
               ref={(el) =>
-                onCleanup(
-                  hoverGroup(
-                    el,
-                    ".present-button:enabled, .present-here-button:enabled, .end-live-button:enabled",
-                  ),
-                )
+                onCleanup(hoverGroup(el, ".present-button:enabled, .live-chevron:enabled"))
               }
             >
-              {/* Present here (SDD-0001 §16.7): this tab, fullscreen. The
-                primary action on one screen, where a popup is what you would
-                have to drag nowhere; a quieter choice beside Go Live where a
-                projector may be. Not offered while an Output window is. */}
-              <Show when={canPresentHere()}>
+              {/* One button, one width (DESIGN.md § Go Live): the label
+                swaps in place and the chevron's room is kept whether it
+                shows or not, so nothing beside it ever moves. Not live, one
+                click decides (an external screen known: the Output window;
+                else this tab, SDD-0001 §16.7). Live, the main part brings
+                the Output forward and the chevron opens End Live and the
+                other way to present. */}
+              <div class="live-split" classList={{ "live-split-open": presentingOutput() }}>
                 <button
                   type="button"
-                  class={
-                    oneScreen()
-                      ? "present-button present-here-first"
-                      : "btn-text present-here-button"
-                  }
-                  aria-keyshortcuts={ariaKeys("present-here")}
-                  aria-label="Present here"
+                  class="present-button"
+                  classList={{
+                    presenting: presentingOutput(),
+                    "present-blanked": presentingOutput() && blanked(),
+                    "present-held": presentingOutput() && !blanked() && !!held(),
+                  }}
+                  aria-keyshortcuts={ariaKeys("output")}
                   disabled={!canGoLive()}
-                  title={withKey("Present on this screen, full screen", "present-here", expanded())}
-                  onClick={presentHere}
-                >
-                  <span class="icon icon-fullscreen" aria-hidden="true" />
-                  <span class="present-here-label">Present here</span>
-                </button>
-              </Show>
-              <button
-                type="button"
-                class="present-button"
-                classList={{
-                  "present-secondary": oneScreen() && canPresentHere(),
-                  presenting: presentingOutput(),
-                  "present-blanked": presentingOutput() && blanked(),
-                  "present-held": presentingOutput() && !blanked() && !!held(),
-                }}
-                aria-keyshortcuts={ariaKeys("output")}
-                disabled={!canGoLive()}
-                aria-description={!canGoLive() ? "Load a songbook first" : undefined}
-                title={
-                  !canGoLive()
-                    ? "Load a songbook first"
-                    : !presentingOutput()
-                      ? withKey("Open the Output", "output", expanded())
-                      : blanked()
-                        ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
-                        : held()
-                          ? `The Output is held${expanded() ? `; ${keyHint("hold")} releases it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
-                          : withKey("Bring the Output forward", "output", expanded())
-                }
-                onClick={openOutput}
-              >
-                <Show
-                  when={presentingOutput()}
-                  fallback={<span class="icon icon-present" aria-hidden="true" />}
-                >
-                  <span class="on-air" aria-hidden="true" />
-                </Show>
-                <SwapLabel
-                  labels={["Go Live", "On Air", "Blanked", "Held"]}
-                  current={
-                    !presentingOutput()
-                      ? "Go Live"
-                      : blanked()
-                        ? "Blanked"
-                        : held()
-                          ? "Held"
-                          : "On Air"
+                  aria-description={!canGoLive() ? "Load a songbook first" : undefined}
+                  title={
+                    !canGoLive()
+                      ? "Load a songbook first"
+                      : !presentingOutput()
+                        ? externalKnown()
+                          ? withKey("Go Live: open the Output window", "output", expanded())
+                          : withKey("Go Live: present on this screen", "present-here", expanded())
+                        : blanked()
+                          ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
+                          : held()
+                            ? `The Output is held${expanded() ? `; ${keyHint("hold")} releases it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
+                            : withKey("Bring the Output forward", "output", expanded())
                   }
-                />
-              </button>
-              {/* End Live: closes the Output window. Beside the
-              status, not in it, so the status never doubles as the way out;
-              an icon alone on a phone. */}
-              <Show when={presentingOutput()}>
-                <button
-                  type="button"
-                  class="btn-text end-live-button"
-                  aria-keyshortcuts={ariaKeys("end-live")}
-                  title={withKey("End Live: close the Output window", "end-live", expanded())}
-                  onClick={endLive}
+                  onClick={() => (presentingOutput() ? void openOutput() : goLive())}
                 >
-                  <span class="icon icon-stop" aria-hidden="true" />
-                  <span class="end-live-label">End Live</span>
+                  <Show
+                    when={presentingOutput()}
+                    fallback={<span class="icon icon-present" aria-hidden="true" />}
+                  >
+                    <span class="on-air" aria-hidden="true" />
+                  </Show>
+                  <SwapLabel
+                    labels={["Go Live", "On Air", "Blanked", "Held"]}
+                    current={
+                      !presentingOutput()
+                        ? "Go Live"
+                        : blanked()
+                          ? "Blanked"
+                          : held()
+                            ? "Held"
+                            : "On Air"
+                    }
+                  />
                 </button>
-              </Show>
+                <Show when={presentingOutput()}>
+                  <Menu
+                    split
+                    label="Live options"
+                    items={[
+                      {
+                        label: "End Live",
+                        icon: "icon-stop",
+                        hint: keyHint("end-live"),
+                        run: endLive,
+                      },
+                      {
+                        label: "Present on This Screen",
+                        icon: "icon-fullscreen",
+                        hint: keyHint("present-here"),
+                        run: switchToHere,
+                      },
+                    ]}
+                  />
+                </Show>
+              </div>
             </div>
           </header>
 
@@ -1311,6 +1331,7 @@ function Operator(props: Shared) {
                   onToggleBlank={toggleBlank}
                   held={held()}
                   onToggleHold={toggleHold}
+                  onEndLive={endLive}
                   presenting={presentingOutput() || presentingHere()}
                   panes={preferences.preferences().panes}
                   workspace={preferences.preferences().workspace}

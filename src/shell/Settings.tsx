@@ -112,8 +112,8 @@ export const SETTING_COPY = {
   screen: {
     denied:
       "The browser blocked screen access. Allow it in this site's settings, then detect again.",
-    error: "Could not list the screens. Press Detect screens to try again.",
-    none: "Press Detect screens so Automatic can find the projector.",
+    error: "Could not list the screens. Press Detect Screens to try again.",
+    none: "Press Detect Screens so Automatic can find the projector.",
     several: "Automatic picks an external screen, not your own.",
   },
 } as const;
@@ -530,7 +530,7 @@ export function Settings(props: SettingsProps) {
                 />
               </Show>
               <button type="button" class="btn-text" onClick={() => void screens.detect()}>
-                Detect screens
+                Detect Screens
               </button>
             </div>
           </div>

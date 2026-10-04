@@ -751,23 +751,23 @@ shell's use of it.
 
 - The Operator asks for the lock before it shows the app, and before any worker
   starts. A tab that cannot get it shows the full-page note "Hymnal is open in
-  another tab" with **Use here** (DESIGN.md § Another tab).
-- **Use here** queues for the lock and sends `release-request` on a
+  another tab" with **Use Here** (DESIGN.md § Another tab).
+- **Use Here** queues for the lock and sends `release-request` on a
   `BroadcastChannel` (`hymnal-tabs`). The holder, unless it is live, closes the
   store (`releaseContent()`: every connection closed, the pool paused, the
   worker ended), then lets the lock go, and shows the same note itself with its
-  own Use here. The lock is not given up until the store is closed.
+  own Use Here. The lock is not given up until the store is closed.
 - A holder that is **live** (an Output window is open, or not yet known not to
   be: the same `presence.live` the update gate uses) refuses with
   `release-refused`; the asking tab says the other tab is presenting and keeps
-  Use here for when the Output has closed.
+  Use Here for when the Output has closed.
 - A holder that is **writing** (a Library load, replace or remove in flight, or
   a first install) refuses the same way (reason `saving`); a store is never let
   go mid-write. A review not yet committed is thrown away on release: nothing
   was written. The holder answers with `release-ack` as soon as it starts
   letting go; an asking tab that hears nothing in 5s withdraws its queued lock
   request (so it cannot take the lock later) and says the other tab did not
-  answer. Use here stays offered after each.
+  answer. Use Here stays offered after each.
 - The Output window is not an app tab: it never opens the store and never takes
   the lock.
 - #32's update takeover is unchanged: presence and `createAppUpdates` live in
@@ -949,7 +949,7 @@ only carries `hymnNumber`.
 — its ready state now also renders a "Find a hymn" button that calls it — and
 `App` uses it to flip `view` to `"finder"`. `Finder`'s `onSelect` flips `view`
 to `"presenter"` and carries the chosen number in a second `App`-level signal.
-Still no router (§12) — `Presenter`'s own "Back to search" flips `view` back to
+Still no router (§12) — `Presenter`'s own "Back to Search" flips `view` back to
 `"finder"` directly, not through history.
 
 **Testing.** `Finder` takes `hymnbookId`, `store` and `userState` as optional
@@ -1093,7 +1093,7 @@ WebKit clears script-writable storage, OPFS and IndexedDB included, after 7 days
 without use unless the site is installed (its ITP cap). In Safari, in a tab and
 not as an installed app, once the first book is loaded (and never while live), a
 snackbar says so and suggests Add to Home Screen (iPhone, iPad) or Add to Dock
-(Mac); "Got it" is remembered as `Preferences.homeScreenHintDismissed`. One
+(Mac); "Got It" is remembered as `Preferences.homeScreenHintDismissed`. One
 notice shows at a time, the update first. Verified on a production build with a
 second build swapped in: no prompt while On Air or Blanked, prompt after the
 Output closed, Restart applied it, the book and recents survived, and offline
@@ -1429,7 +1429,7 @@ send several), by the pure `reviewScreens` (`src/output/displayChange.ts`), and
 nothing is ever moved without the person asking:
 
 - **A projector appears while the Output is on the main screen:** the notice "A
-  projector is connected: <name>" with "Move the Output there". Where windows
+  projector is connected: <name>" with "Move the Output There". Where windows
   can be placed it moves the Output (it fullscreens on the next F or click);
   where placement was refused this session (Wayland) it gives the move guidance
   instead.
@@ -1441,7 +1441,7 @@ nothing is ever moved without the person asking:
 
 **Mirrored displays.** A projector connected as a mirror is one screen to the
 browser, and a web page cannot switch the OS to extend (ADR-0028). With one
-screen known, Settings' note (after Detect screens) and a notice at Go Live
+screen known, Settings' note (after Detect Screens) and a notice at Go Live
 (once per session, only where the Window Management API says one screen) say so
 and give the step for the OS (`osOf`: `navigator.userAgentData?.platform`, then
 `navigator.platform`): Windows "Press Win+P and choose Extend."; macOS System
@@ -1578,21 +1578,29 @@ workspace, the dock.
   where the browser allows. It is one channel command, `{ type: "close" }`,
   never held and never replayed, so a window opened later is not closed by it;
   the Output answers it with `window.close()`, and its own `bye` is what turns
-  the header to Go Live (the one way presence is known). It is reached from a
-  button beside On Air in the switcher row (an icon alone on a phone), the
-  command menu ("End Live", while an Output is open) and **Shift+E** (§16.5).
-  **Blank** is how to go dark and keep the window. A blank held when Live ends
-  is still held when it opens again, as it is held across anything. The Output
-  window is the source of truth for its blank: once told anything it reports it
-  in its `hello` and `shape`, and a reloaded Operator adopts it. A late join
-  replays the settings and the blank before the content, and a window not yet
-  told anything stays dark, so a blanked Output never paints the song and fades
-  it. Closing the window ends the presence, and the update gate (Board #32: no
-  update prompt while live) opens with it, though not before. A book it showed
-  may be removed once the window is gone (the Library's Remove Book sheet offers
-  End Live, which now closes the window). With several outputs one day
-  (ADR-0028), End Live closes them all; closing one would be an item in that
-  output's own menu. Not built: there is one Output.
+  the header to Go Live (the one way presence is known). It is reached from the
+  chevron of the live button (below), the command menu ("End Live", while an
+  Output is open), **Shift+E** (§16.5) and the Live pane's toolbar (a third
+  button beside Blank and Hold, off while closed). **Blank** is how to go dark
+  and keep the window. A blank held when Live ends is still held when it opens
+  again, as it is held across anything. The Output window is the source of truth
+  for its blank: once told anything it reports it in its `hello` and `shape`,
+  and a reloaded Operator adopts it. A late join replays the settings and the
+  blank before the content, and a window not yet told anything stays dark, so a
+  blanked Output never paints the song and fades it. Closing the window ends the
+  presence, and the update gate (Board #32: no update prompt while live) opens
+  with it, though not before. A book it showed may be removed once the window is
+  gone (the Library's Remove Book sheet offers End Live, which now closes the
+  window). With several outputs one day (ADR-0028), End Live closes them all;
+  closing one would be an item in that output's own menu. Not built: there is
+  one Output.
+- **One live button.** The header's live controls are one box of fixed width
+  (`.live-split`: the longest label's room, Blanked, plus the chevron's), so the
+  search never moves between Go Live, On Air, Held and Blanked. Live, it is a
+  split button: the main part brings the Output forward, the chevron (`Menu`
+  with `split`) opens End Live (Shift+E) and Present on This Screen (Shift+P),
+  each row with its icon and key. Not live, Go Live decides between the Output
+  window and presenting here (§16.7).
 - **The Live pane's control is "Hide Live Preview"**, not "Hide Live", so it is
   never confused with ending Live: it hides the preview (the pane toggle, **L**,
   Settings' "Show Live Preview") and does nothing to the Output.
@@ -1707,14 +1715,14 @@ Finder (§13) with actions listed ahead of the hymn results: an action shows whe
 every word typed starts a word of its name, so "bl" finds "Blank the Output". A
 number matches no action, so the Finder's fast path holds: `/`, a number, Enter.
 With the box empty, the actions show, each with its key. Actions: Blank or
-Restore the Output, Hold or Release the Output (while one is open), Go live
-(Bring the Output forward, while one is open), End Live (while one is open),
-Present on this screen (§16.7; not while an Output window is open), Next tab,
-Split or merge the tabs and Make the other tab group main (only where two groups
-fit, from 1400px; they glide as the pane toolbar's do), Show or hide each pane,
-Switch hymnbook, Library, Settings, Text size up and down, Keyboard shortcuts,
-and the Output's band size. Repeat and Undo repeat show R and U; Show the
-details now has no key.
+Restore the Output, Hold or Release the Output (while one is open), Open the
+Output Window (Bring the Output forward, while one is open), End Live (while one
+is open), Present on this screen (§16.7; not while an Output window is open),
+Next tab, Split or merge the tabs and Make the other tab group main (only where
+two groups fit, from 1400px; they glide as the pane toolbar's do), Show or hide
+each pane, Switch hymnbook, Library, Settings, Text size up and down, Keyboard
+shortcuts, and the Output's band size. Repeat and Undo repeat show R and U; Show
+the details now has no key.
 
 ### 16.6 Hold
 
@@ -1753,12 +1761,12 @@ press of Freeze) moves on.
   has been wanted yet, Release leaves the Output as it is. Nothing is persisted
   by the Operator.
 - **The Operator shows it.** A **Hold** control sits beside Blank (in Live's
-  heading, and on the phone strip), pressed and reading **Release** while held
-  (DESIGN.md § Hold). The header's status reads **Held** instead of On Air, and
-  **Blanked** wins if both are on, since that is what the audience sees. Live
-  keeps showing what the audience sees (the held content, with the held
-  settings) under a small Held tag; This Song shows what Release will show. The
-  update gate treats Hold as live, as it is (§15).
+  toolbar, at the end of its heading and on the phone strip), pressed and
+  reading **Release** while held (DESIGN.md § Hold). The header's status reads
+  **Held** instead of On Air, and **Blanked** wins if both are on, since that is
+  what the audience sees. Live keeps showing what the audience sees (the held
+  content, with the held settings) under a small Held tag; This Song shows what
+  Release will show. The update gate treats Hold as live, as it is (§15).
 - **Controls.** The button; **Shift+H** (a chord, like Shift+E: plain H stays
   the highlight toggle, §16.5), which the Output window forwards; and the
   command menu's Hold the Output / Release the Output, listed while an Output is
@@ -1771,15 +1779,19 @@ is nowhere to drag an Output window to. Google Slides' Slideshow makes its own
 tab fullscreen, and so does this: **Present here** shows the Output's view in
 the app's own tab, fullscreen, with the Operator's state its only source.
 
-- **Entry.** A button beside Go Live, the command "Present on this screen" and
-  Shift+P (a chord, so a stray key cannot take the tab over; ADR-0028's Output
-  window keeps O). Where only one screen is known (no Window Management API, or
-  `screen.isExtended` false) Present here is the primary action and Go Live,
-  which still opens the popup, the quieter one beside it; with two screens Go
-  Live stays primary and Present here is a text button after it. It needs a
-  book, as Go Live does (a song may be chosen from the switcher), and is **not
-  offered while an Output window is open**: one audience, one place. An Output
-  window that opens or answers late while presenting here ends presenting here.
+- **Entry.** The header has one live button, **Go Live**, and it decides: when
+  an external screen is known (Window Management is granted and
+  `screen.isExtended`, or the screen the operator chose is attached) it opens
+  the Output window as before (ADR-0028); otherwise it presents here. Present
+  here has no button of its own. The explicit choices remain: the commands "Open
+  the Output Window" (O) and "Present on This Screen" (Shift+P, a chord, so a
+  stray key cannot take the tab over), and, while an Output window is open, the
+  **Present on This Screen** row of the live button's menu (§16.4), which closes
+  the window and then presents here once its `bye` has landed (the click's
+  activation still serves fullscreen). It needs a book, as Go Live does (a song
+  may be chosen from the switcher), and is **not offered while an Output window
+  is open**: one audience, one place. An Output window that opens or answers
+  late while presenting here ends presenting here.
 - **What it shows.** `PresentHere` (`src/output/PresentHere.tsx`) renders the
   same `OutputView` as the Output window, full-bleed over the shell
   (`position: fixed`, above everything, the shell `inert` underneath), in the

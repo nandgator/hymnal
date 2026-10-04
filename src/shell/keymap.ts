@@ -47,7 +47,7 @@ export const SHORTCUTS: Shortcut[] = [
   { id: "undo-repeat", keys: ["U"], label: "Undo the last repeat" },
   { id: "blank", keys: ["B", "."], label: "Blank the Output / restore" },
   { id: "hold", keys: ["Shift+H"], label: "Hold the Output on what it shows / release" },
-  { id: "output", keys: ["O"], label: "Go live: open the Output, or bring it forward" },
+  { id: "output", keys: ["O"], label: "Open the Output window, or bring it forward" },
   { id: "end-live", keys: ["Shift+E"], label: "End Live: close the Output window" },
   { id: "present-here", keys: ["Shift+P"], label: "Present on this screen, full screen" },
   { id: "leave-present", keys: ["F", "Esc"], label: "Leave presenting on this screen" },

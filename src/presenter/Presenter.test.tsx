@@ -189,7 +189,7 @@ describe("Presenter", () => {
     ));
 
     expect(await screen.findByText("No song numbered 9999.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Back to search" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to Search" }));
     expect(onBack).toHaveBeenCalled();
   });
 
@@ -860,6 +860,64 @@ describe("Presenter", () => {
     expect(screen.getByRole("img", { name: "Live output preview" })).toHaveTextContent(
       "Frozen line",
     );
+  });
+
+  it("groups Blank, Hold and End Live in one toolbar at the end of Live's heading", async () => {
+    const onEndLive = vi.fn();
+    render(() => (
+      <Presenter
+        hymnbookId="book"
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        presenting
+        onEndLive={onEndLive}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    const toolbar = screen.getByRole("toolbar", { name: "Output controls" });
+    const names = [...toolbar.querySelectorAll("button")].map((b) => b.textContent);
+    expect(names).toEqual(["BlankRestore", "HoldRelease", "End Live"]);
+    // One toolbar in the heading beside the label, each member with an icon.
+    expect(toolbar.parentElement).toHaveClass("area-header");
+    for (const button of toolbar.querySelectorAll("button"))
+      expect(button.querySelector(".icon")).not.toBeNull();
+    const end = screen.getByRole("button", { name: /^End Live/ });
+    expect(end).toHaveAttribute("aria-keyshortcuts", "Shift+E");
+    fireEvent.click(end);
+    expect(onEndLive).toHaveBeenCalled();
+  });
+
+  it("disables End Live in the toolbar while no Output is open", async () => {
+    render(() => (
+      <Presenter
+        hymnbookId="book"
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        onEndLive={vi.fn()}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    expect(screen.getByRole("button", { name: /^End Live/ })).toBeDisabled();
+  });
+
+  it("gives every button of the Repeat group an icon, and the icon-only ones a name and tooltip", async () => {
+    render(() => (
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
+    ));
+    await screen.findByText("Test Hymn");
+    const row = document.querySelector(".repeat-row") as HTMLElement;
+    const buttons = [...row.querySelectorAll("button")];
+    expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual([
+      "Repeat",
+      "Undo repeat",
+      "Reset repeat",
+    ]);
+    for (const button of buttons) {
+      expect(button.querySelector(".icon")).not.toBeNull();
+      expect(button).toHaveAttribute("title");
+    }
   });
 
   it("disables Hold while no Output is open", async () => {

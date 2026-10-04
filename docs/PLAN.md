@@ -170,7 +170,7 @@ only, here:
   `SHIPPED_BOOK_IDS` empty, `ensureInstalled` fetches nothing. Branch
   `board-songsleave`, not landed
 - 2026-10-02 — #36 done: a second tab shows "Hymnal is open in another tab" with
-  Use here; the store is owned through a Web Lock (`src/shell/tabLock.ts`,
+  Use Here; the store is owned through a Web Lock (`src/shell/tabLock.ts`,
   `TabGate`), released on request unless an Output is live; SDD-0001 §10.4
 - 2026-10-02 — #34 done: the Library's From Text (a sheet with the book's
   fields, song text and optional source text; parse errors with line numbers;

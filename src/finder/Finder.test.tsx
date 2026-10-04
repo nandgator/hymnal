@@ -384,7 +384,7 @@ describe("Finder", () => {
       />
     ));
 
-    fireEvent.click(await screen.findByRole("button", { name: "Back to hymnbooks" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Back to Hymnbooks" }));
     expect(onBack).toHaveBeenCalled();
   });
 

@@ -240,7 +240,7 @@ export function Finder(props: FinderProps) {
           onClick={() => props.onBack?.()}
         >
           <span class="icon icon-arrow-back" aria-hidden="true" />
-          Back to hymnbooks
+          Back to Hymnbooks
         </button>
       </Show>
       <form

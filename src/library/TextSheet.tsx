@@ -349,7 +349,7 @@ export function TextSheet(props: TextSheetProps) {
             </label>
             <button type="button" class="btn-text" onClick={() => songFile()?.click()}>
               <span class="icon icon-file-open" aria-hidden="true" />
-              Open .txt files
+              Open .txt Files
             </button>
             {picker(setSongFile, (texts) => d.setSongText(joinSongTexts(texts)), true)}
           </div>

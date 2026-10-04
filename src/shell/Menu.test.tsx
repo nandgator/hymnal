@@ -50,6 +50,24 @@ describe("Menu", () => {
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
+  it("a split menu is a chevron button, its rows carrying an icon and their key", () => {
+    const run = vi.fn();
+    render(() => (
+      <Menu
+        split
+        label="Live options"
+        items={[{ label: "End Live", icon: "icon-stop", hint: "Shift+E", run }]}
+      />
+    ));
+    // Even a lone item keeps the list: the chevron is not its own action.
+    fireEvent.click(screen.getByRole("button", { name: "Live options" }));
+    const item = screen.getByRole("menuitem", { name: /End Live/ });
+    expect(item.querySelector(".icon-stop")).not.toBeNull();
+    expect(item).toHaveTextContent(/Shift\W*E/);
+    fireEvent.click(item);
+    expect(run).toHaveBeenCalled();
+  });
+
   it("a choice menu shows the choice, marks it, and opens on the arrow keys", async () => {
     const pick = vi.fn();
     render(() => (

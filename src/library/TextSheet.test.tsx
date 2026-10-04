@@ -155,7 +155,7 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     expect(dialog.queryByLabelText("Script code")).not.toBeInTheDocument();
     expect(dialog.queryByText(/^Script:/)).not.toBeInTheDocument();
     expect(dialog.getByLabelText(/Original text, to check against/)).toBeInTheDocument();
-    expect(dialog.getByRole("button", { name: /Open \.txt files/ })).toBeInTheDocument();
+    expect(dialog.getByRole("button", { name: /Open \.txt Files/ })).toBeInTheDocument();
     expect(dialog.getByRole("button", { name: /Open a \.txt/ })).toBeInTheDocument();
     expect(s.admin.review).not.toHaveBeenCalled();
     expect(s.admin.commit).not.toHaveBeenCalled();

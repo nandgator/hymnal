@@ -188,7 +188,7 @@ The user answered on 2026-10-02, each as recommended:
    and let its first click or F key go fullscreen, with the hint. Prototyped on
    real two-screen hardware before the design is final.
 3. **Permission**: asked on Go live, the first time, only when a second screen
-   is attached (`screen.isExtended`); a "Detect screens" button in the Output
+   is attached (`screen.isExtended`); a "Detect Screens" button in the Output
    screen setting as well.
 
 ## Implementation notes
@@ -313,7 +313,7 @@ mean this tooltip.
 `screenschange` on the `ScreenDetails`, and `screen.onchange` with `isExtended`
 where the details are not granted, keep Settings' screen list and notes live.
 While live, a projector that appears while the Output is on the main screen is
-_offered_ ("A projector is connected: <name>", "Move the Output there"), never
+_offered_ ("A projector is connected: <name>", "Move the Output There"), never
 moved to: where placement was refused this session the action gives the move
 guidance instead. The Output's screen disappearing says where the Output is now
 and offers Blank, since the audience screen is gone and the Output may be on the
@@ -325,7 +325,7 @@ said, and Go Live picks the new screen as Automatic does. This replaces step 6's
 
 A projector connected as a mirror (duplicate) is one screen to the browser, and
 a web page cannot switch the OS from mirror to extend: that is OS-only. The app
-says so where it matters (Settings after Detect screens with one screen, and Go
+says so where it matters (Settings after Detect Screens with one screen, and Go
 Live with one screen) and gives the step per OS: Windows Win+P → Extend; macOS
 System Settings → Displays, set as Extended display (not Mirror); GNOME Settings
 → Displays → Join Displays (Super+P cycles modes on many setups). A native

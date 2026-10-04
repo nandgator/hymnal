@@ -419,14 +419,14 @@ describe("Settings: Output screen (ADR-0028)", () => {
   const choice = () => screen.getByRole("button", { name: /^Output screen/ });
   const options = () => screen.getAllByRole("menuitemradio").map((item) => item.textContent);
 
-  it("lists Automatic, then the screens after Detect screens, built-in named as such", async () => {
+  it("lists Automatic, then the screens after Detect Screens, built-in named as such", async () => {
     const { getScreenDetails } = attach([panel, projector]);
     render(() => <Settings userState={fakeUserState()} />);
-    await screen.findByRole("button", { name: "Detect screens" });
+    await screen.findByRole("button", { name: "Detect Screens" });
     expect(choice()).toHaveTextContent("Automatic");
     expect(getScreenDetails).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Detect screens" }));
+    fireEvent.click(screen.getByRole("button", { name: "Detect Screens" }));
 
     await vi.waitFor(() => expect(getScreenDetails).toHaveBeenCalled());
     fireEvent.click(choice());
@@ -439,7 +439,7 @@ describe("Settings: Output screen (ADR-0028)", () => {
     attach([panel, projector]);
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Detect screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Detect Screens" }));
     await vi.waitFor(() =>
       expect(screen.getByRole("button", { name: /^Output screen/ })).toBeTruthy(),
     );
@@ -466,7 +466,7 @@ describe("Settings: Output screen (ADR-0028)", () => {
     attach([panel, projector]);
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Detect screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Detect Screens" }));
     await vi.waitFor(() => {
       fireEvent.click(choice());
       expect(screen.getAllByRole("menuitemradio")).toHaveLength(3);
@@ -507,17 +507,17 @@ describe("Settings: Output screen (ADR-0028)", () => {
   it("explains a blocked permission", async () => {
     attach([panel, projector], Object.assign(new Error("no"), { name: "NotAllowedError" }));
     render(() => <Settings userState={fakeUserState()} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Detect screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Detect Screens" }));
     expect(await screen.findByText(/blocked screen access/)).toBeInTheDocument();
   });
 
   it("follows screenschange, offering no list for one screen", async () => {
     const { details } = attach([panel]);
     render(() => <Settings userState={fakeUserState()} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Detect screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Detect Screens" }));
     await screen.findByText("One screen attached");
     expect(screen.queryByRole("button", { name: /^Output screen/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Detect screens" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Detect Screens" })).toBeInTheDocument();
 
     (details.screens as object[]).push(projector);
     details.dispatchEvent(new Event("screenschange"));
@@ -529,15 +529,15 @@ describe("Settings: Output screen (ADR-0028)", () => {
     ).toBeInTheDocument();
   });
 
-  it("explains how to extend only once Detect screens finds one screen", async () => {
+  it("explains how to extend only once Detect Screens finds one screen", async () => {
     attach([panel]);
     Object.defineProperty(navigator, "platform", { value: "Win32", configurable: true });
     try {
       render(() => <Settings userState={fakeUserState()} />);
-      await screen.findByRole("button", { name: "Detect screens" });
+      await screen.findByRole("button", { name: "Detect Screens" });
       expect(screen.queryByText(/Win\+P/)).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole("button", { name: "Detect screens" }));
+      fireEvent.click(screen.getByRole("button", { name: "Detect Screens" }));
 
       expect(await screen.findByText(/Press Win\+P and choose Extend\./)).toBeInTheDocument();
       expect(screen.getByText(/connected as a mirror/)).toBeInTheDocument();

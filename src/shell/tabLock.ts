@@ -1,7 +1,7 @@
 /**
  * One tab owns the content store (SDD-0001 §10.4): the OPFS pool allows one
  * connection, so the tab that holds the store holds an exclusive Web Lock for
- * its life. Another tab says so, and its "Use here" asks the holder over a
+ * its life. Another tab says so, and its "Use Here" asks the holder over a
  * channel to let go. The holder lets go unless it is live (an Output is open:
  * it is presenting), in which case it refuses. Pure of the DOM: the locks and
  * the channel are passed in, so the protocol is tested with fakes.
@@ -15,9 +15,9 @@ export type TabState =
   | "checking"
   /** This tab holds the store. */
   | "owner"
-  /** Another tab holds it (or this one let it go): the note and "Use here". */
+  /** Another tab holds it (or this one let it go): the note and "Use Here". */
   | "other"
-  /** "Use here" is pressed and the holder has not answered. */
+  /** "Use Here" is pressed and the holder has not answered. */
   | "asking"
   /** The holder refused: it is presenting. */
   | "presenting"
@@ -47,7 +47,7 @@ export interface TabChannel {
   close?(): void;
 }
 
-/** How long "Use here" waits for the holder to answer. */
+/** How long "Use Here" waits for the holder to answer. */
 export const ANSWER_TIMEOUT_MS = 5000;
 
 export interface TabLockOptions {
@@ -58,7 +58,7 @@ export interface TabLockOptions {
   /** The holder is writing (saving, replacing or removing a book): it is never
    * let go mid-write. */
   isBusy?: () => boolean | Promise<boolean>;
-  /** How long "Use here" waits for an answer. */
+  /** How long "Use Here" waits for an answer. */
   timeoutMs?: number;
   /** Closes the store, so the next holder can open it; resolves when it has. */
   release: () => Promise<void>;
@@ -70,7 +70,7 @@ export interface TabLock {
   onChange(handler: (state: TabState) => void): () => void;
   /** Asks for the lock; says which state it landed in first. */
   start(): void;
-  /** "Use here": waits for the lock and asks the holder to let go. */
+  /** "Use Here": waits for the lock and asks the holder to let go. */
   useHere(): void;
   /** The tab ends: a held lock goes, a waiting request is withdrawn. */
   dispose(): void;

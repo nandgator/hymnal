@@ -89,7 +89,7 @@ describe("tab lock", () => {
     expect(b.state()).toBe("other");
   });
 
-  it("Use here releases the holder, which then shows the note itself", async () => {
+  it("Use Here releases the holder, which then shows the note itself", async () => {
     const calls: string[] = [];
     const { make } = tabs({
       release: async () => {
@@ -148,7 +148,7 @@ describe("tab lock", () => {
     expect(b.state()).toBe("presenting");
   });
 
-  it("after a refusal, Use here can be tried again when the Output has closed", async () => {
+  it("after a refusal, Use Here can be tried again when the Output has closed", async () => {
     let live = true;
     const { make } = tabs({ live: () => live });
     const a = make("a");

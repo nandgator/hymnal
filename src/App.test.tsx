@@ -115,11 +115,19 @@ vi.mock("./shell/updates.ts", async (importOriginal) => {
 /** The Library has listed the books: the first run's wait is over. */
 const booksReady = () => screen.findByRole("heading", { name: "Library" });
 
-/** Go Live, once a book is held (it is off until then). */
+/** Opens the Output window, once a book is held (it is off until then): the
+ * O key, the explicit choice. The Go Live button decides by the screens
+ * (SDD-0001 §16.7), and has its own tests. */
 async function clickGoLive() {
   const button = screen.getByRole("button", { name: "Go Live" });
   await waitFor(() => expect(button).toBeEnabled());
-  fireEvent.click(button);
+  fireEvent.keyDown(window, { key: "o" });
+}
+
+/** End Live, from the live button's chevron menu (SDD-0001 §16.4). */
+async function endLiveFromMenu() {
+  fireEvent.click(screen.getByRole("button", { name: "Live options" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: /End Live/ }));
 }
 
 /** Present, from the rail: the Finder of the current book. */
@@ -383,7 +391,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     expect(dialog.getByRole("alert")).toHaveTextContent(/End Live first/);
   });
 
-  it("shows the keep-your-file note after a first load when storage was refused, and Got it puts it away", async () => {
+  it("shows the keep-your-file note after a first load when storage was refused, and Got It puts it away", async () => {
     vi.stubGlobal("navigator", {
       ...navigator,
       storage: { persist: async () => false, persisted: async () => false },
@@ -397,7 +405,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       fireEvent.click(dialog.getByRole("button", { name: "Load Book" }));
       const note = await screen.findAllByText(/Your browser may clear stored books/);
       expect(note.length).toBeGreaterThan(0);
-      fireEvent.click(screen.getByRole("button", { name: "Got it" }));
+      fireEvent.click(screen.getByRole("button", { name: "Got It" }));
       await waitFor(() =>
         expect(screen.queryByText(/Your browser may clear stored books/)).not.toBeInTheDocument(),
       );
@@ -415,7 +423,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     expect(await dialog.findByText("Book 1 of 3")).toBeInTheDocument();
     fireEvent.click(dialog.getByRole("button", { name: "Close" }));
     expect((await screen.findAllByText("3 books not loaded")).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: "Got it" }));
+    fireEvent.click(screen.getByRole("button", { name: "Got It" }));
     await waitFor(() => expect(screen.queryByText("3 books not loaded")).not.toBeInTheDocument());
   });
 });
@@ -516,7 +524,7 @@ describe("App", () => {
     render(() => <App />);
     await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
 
-    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    fireEvent.keyDown(window, { key: "o" });
 
     expect(open).toHaveBeenCalledWith(
       expect.stringMatching(/\?output=1$/),
@@ -669,8 +677,10 @@ describe("App", () => {
     fireEvent.input(box, { target: { value: "bl" } });
     expect(within(menu).getByRole("option", { name: /Blank the Output/ })).toBeInTheDocument();
 
-    fireEvent.input(box, { target: { value: "go li" } });
-    expect(within(menu).getByRole("option", { name: /Go Live/ })).toBeInTheDocument();
+    fireEvent.input(box, { target: { value: "open the" } });
+    expect(
+      within(menu).getByRole("option", { name: /Open the Output Window/ }),
+    ).toBeInTheDocument();
 
     // Cleared, the actions and the book's songs are back.
     fireEvent.input(box, { target: { value: "" } });
@@ -738,7 +748,7 @@ describe("App", () => {
     expect(settings).toHaveAttribute("title", "Settings (Ctrl+,)");
     expect(settings).toHaveAttribute("aria-keyshortcuts", "Control+,");
     const goLive = screen.getByRole("button", { name: "Go Live" });
-    expect(goLive).toHaveAttribute("title", "Open the Output (O)");
+    expect(goLive).toHaveAttribute("title", "Go Live: present on this screen (Shift+P)");
     expect(goLive).toHaveAttribute("aria-keyshortcuts", "O");
   });
 
@@ -950,7 +960,7 @@ describe("App", () => {
       const { output, seen } = await liveOutput();
       fireEvent.keyDown(window, { key: "H", shiftKey: true });
       await screen.findByRole("button", { name: "Held" });
-      fireEvent.click(screen.getByRole("button", { name: "End Live" }));
+      await endLiveFromMenu();
       output.postMessage({ type: "bye", id: "test-output" });
       await screen.findByRole("button", { name: "Go Live" });
       // The next window opens on the current content, not held.
@@ -1212,11 +1222,11 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     closesOnCommand(output, seen);
     const opened = vi.mocked(window.open).mock.calls.length;
 
-    fireEvent.click(screen.getByRole("button", { name: "End Live" }));
+    await endLiveFromMenu();
     await waitFor(() => expect(seen).toContainEqual({ type: "close" }));
     expect(await screen.findByRole("button", { name: "Go Live" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "On Air" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "End Live" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Live options" })).not.toBeInTheDocument();
 
     await clickGoLive();
     await waitFor(() => expect(vi.mocked(window.open).mock.calls.length).toBe(opened + 1));
@@ -1236,7 +1246,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     updates.set(true);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(noticeText(/Update ready/)).toBe(0);
-    fireEvent.click(screen.getByRole("button", { name: "End Live" }));
+    await endLiveFromMenu();
     await screen.findByRole("button", { name: "Go Live" });
     await new Promise((resolve) => setTimeout(resolve, 600));
     await waitFor(() => expect(noticeText(/Update ready/)).toBeGreaterThan(0));
@@ -1320,7 +1330,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     vi.spyOn(window, "open").mockReturnValue({} as Window);
     const second = render(() => <App />);
     await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
-    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    fireEvent.keyDown(window, { key: "o" });
     await screen.findAllByText(/Drag the Output to the projector/);
     fireEvent.keyDown(window, { key: "Escape" });
     await waitFor(() => expect(noticeText(/Drag the Output to the projector/)).toBe(0));
@@ -1359,7 +1369,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     await screen.findAllByText(/That screen is back/);
     expect(win.moveTo).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Move it" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move It" }));
     await waitFor(() => expect(win.moveTo).toHaveBeenCalledWith(1440, 0));
     await waitFor(() => expect(noticeText(/That screen is back/)).toBe(0));
   });
@@ -1382,7 +1392,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     await screen.findAllByText(/A projector is connected: EPSON PJ, 1280×800/);
     expect(win.moveTo).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Move the Output there" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move the Output There" }));
     await waitFor(() => expect(win.moveTo).toHaveBeenCalledWith(1440, 0));
     await waitFor(() => expect(noticeText(/A projector is connected/)).toBe(0));
   });
@@ -1394,7 +1404,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
       replug(details as never);
       await screen.findAllByText(/A projector is connected: EPSON PJ/);
 
-      fireEvent.click(screen.getByRole("button", { name: "Move the Output there" }));
+      fireEvent.click(screen.getByRole("button", { name: "Move the Output There" }));
 
       await screen.findAllByText(/Move this window to EPSON PJ, 1280×800, then press F\./);
       expect(win.moveTo).not.toHaveBeenCalled();
@@ -1496,7 +1506,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     await screen.findAllByText(/That screen is back/);
     win.moveTo.mockImplementation(() => {});
     win.screenX = 50;
-    fireEvent.click(screen.getByRole("button", { name: "Move it" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move It" }));
     await screen.findAllByText(/could not move/, {}, { timeout: 5000 });
   });
 
@@ -1538,7 +1548,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
     render(() => <App />);
     await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
-    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    fireEvent.keyDown(window, { key: "o" });
     await waitFor(() => expect(open).toHaveBeenCalled());
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(noticeText(/Drag the Output to the projector/)).toBe(0);
@@ -1612,19 +1622,21 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
   const region = () => screen.queryByRole("region", { name: "Presenting on this screen" });
   const lit = () => region()?.querySelector(".output-line-current")?.textContent;
   async function presentHere() {
-    fireEvent.click(await screen.findByRole("button", { name: "Present here" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Go Live" }));
     await screen.findByRole("region", { name: "Presenting on this screen" });
   }
 
-  it("offers Present here as the primary action on one screen, with Go Live beside it as the popup", async () => {
-    render(() => <App />);
-    const here = await screen.findByRole("button", { name: "Present here" });
-    const popup = screen.getByRole("button", { name: "Go Live" });
-    expect(here).toHaveClass("present-button");
-    expect(popup).toHaveClass("present-secondary");
+  it("Go Live presents here when no external screen is known, with no second button", async () => {
+    const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
+    await songUp();
+    expect(screen.queryByRole("button", { name: /Present here/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await screen.findByRole("region", { name: "Presenting on this screen" });
+    expect(requestFullscreen).toHaveBeenCalledTimes(1);
+    expect(open).not.toHaveBeenCalled();
   });
 
-  it("with two screens, Go Live stays primary and Present here is the quieter second choice", async () => {
+  it("Go Live opens the Output window when Window Management shows a second screen", async () => {
     const screens = [
       { label: "A", width: 1440, height: 900, left: 0, top: 0, isPrimary: true },
       { label: "B", width: 1280, height: 800, left: 1440, top: 0 },
@@ -1634,10 +1646,15 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
         Object.assign(new EventTarget(), { screens, currentScreen: screens[0] }),
     });
     Object.defineProperty(window.screen, "isExtended", { value: true, configurable: true });
+    const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
     render(() => <App />);
-    const here = await screen.findByRole("button", { name: "Present here" });
-    expect(here).not.toHaveClass("present-button");
-    expect(screen.getByRole("button", { name: "Go Live" })).not.toHaveClass("present-secondary");
+    const goLive = await screen.findByRole("button", { name: "Go Live" });
+    await waitFor(() => expect(goLive).toBeEnabled());
+    expect(goLive).toHaveAttribute("title", expect.stringContaining("open the Output window"));
+    fireEvent.click(goLive);
+    await waitFor(() => expect(open).toHaveBeenCalled());
+    expect(region()).toBeNull();
+    expect(requestFullscreen).not.toHaveBeenCalled();
   });
 
   it("asks the browser for fullscreen on the click and shows the song full-bleed", async () => {
@@ -1645,7 +1662,6 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     await presentHere();
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
     expect(lit()).toContain("First line");
-    expect(screen.queryByRole("button", { name: "Present here" })).not.toBeInTheDocument();
   });
 
   it("is also entered from Shift+P and from the command list", async () => {
@@ -1756,7 +1772,7 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     // The Operator's own Presenter never went away: the same song, the same part.
     expect(screen.getByRole("button", { name: /#3\s*Mocked Hymn 3/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "2", pressed: true })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Present here" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Go Live" })).toBeInTheDocument();
   });
 
   it("leaves when the browser leaves fullscreen by itself (Esc where it is not captured)", async () => {
@@ -1780,13 +1796,82 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     updates.set(false);
   });
 
-  it("is not offered while an Output window is live", async () => {
+  it("keeps one live button in one fixed-width box through Go Live, On Air, Held and Blanked", async () => {
     render(() => <App />);
-    await screen.findByRole("button", { name: "Present here" });
+    await screen.findByRole("button", { name: "Go Live" });
+    const controls = document.querySelector(".live-controls") as HTMLElement;
+    const box = controls.querySelector(".live-split") as HTMLElement;
+    // The header's live controls are this one box in every state (the width
+    // is the box's class, --live-split-width; the label is SwapLabel's).
+    const seen = () => {
+      expect([...controls.children].filter((el) => !el.matches(".hover-glide"))).toHaveLength(1);
+      expect(controls.querySelector(".live-split")).toBe(box);
+      expect(box).toHaveClass("live-split");
+      expect(box.querySelectorAll(".present-button")).toHaveLength(1);
+    };
+    seen();
     const output = new BroadcastChannel("hymnal-output");
     output.postMessage({ type: "hello", id: "test-output" });
     await screen.findByRole("button", { name: "On Air" });
-    expect(screen.queryByRole("button", { name: "Present here" })).not.toBeInTheDocument();
+    seen();
+    fireEvent.keyDown(window, { key: "H", shiftKey: true });
+    await screen.findByRole("button", { name: "Held" });
+    seen();
+    fireEvent.keyDown(window, { key: "b" });
+    await screen.findByRole("button", { name: "Blanked" });
+    seen();
+    // The label's room is every label's, so the word never resizes the button.
+    expect([...box.querySelectorAll(".swap-label-item")].map((item) => item.textContent)).toEqual([
+      "Go Live",
+      "On Air",
+      "Blanked",
+      "Held",
+    ]);
+    fireEvent.keyDown(window, { key: "b" });
+    output.postMessage({ type: "bye", id: "test-output" });
+    await screen.findByRole("button", { name: "Go Live" });
+    seen();
+    output.close();
+  });
+
+  it("has no split menu until live, then End Live and the other way to present, with their keys", async () => {
+    render(() => <App />);
+    await screen.findByRole("button", { name: "Go Live" });
+    expect(screen.queryByRole("button", { name: "Live options" })).not.toBeInTheDocument();
+    const output = new BroadcastChannel("hymnal-output");
+    output.postMessage({ type: "hello", id: "test-output" });
+    await screen.findByRole("button", { name: "On Air" });
+    fireEvent.click(screen.getByRole("button", { name: "Live options" }));
+    const end = await screen.findByRole("menuitem", { name: /End Live/ });
+    const here = screen.getByRole("menuitem", { name: /Present on This Screen/ });
+    expect(end).toHaveTextContent(/Shift\W*E/);
+    expect(here).toHaveTextContent(/Shift\W*P/);
+    output.close();
+  });
+
+  it("presents here from the live menu once the Output window has closed", async () => {
+    await songUp();
+    const output = new BroadcastChannel("hymnal-output");
+    output.onmessage = (event) => {
+      if ((event.data as { type?: string }).type === "close")
+        output.postMessage({ type: "bye", id: "test-output" });
+    };
+    output.postMessage({ type: "hello", id: "test-output" });
+    await screen.findByRole("button", { name: "On Air" });
+    fireEvent.click(screen.getByRole("button", { name: "Live options" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Present on This Screen/ }));
+    await screen.findByRole("region", { name: "Presenting on this screen" });
+    expect(requestFullscreen).toHaveBeenCalledTimes(1);
+    output.close();
+  });
+
+  it("is not offered while an Output window is live", async () => {
+    render(() => <App />);
+    await screen.findByRole("button", { name: "Go Live" });
+    const output = new BroadcastChannel("hymnal-output");
+    output.postMessage({ type: "hello", id: "test-output" });
+    await screen.findByRole("button", { name: "On Air" });
+    expect(screen.queryByRole("button", { name: "Go Live" })).not.toBeInTheDocument();
     fireEvent.keyDown(window, { key: "P", shiftKey: true });
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(region()).toBeNull();

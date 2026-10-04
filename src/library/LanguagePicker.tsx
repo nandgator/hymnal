@@ -142,7 +142,7 @@ export function LanguagePicker(props: LanguagePickerProps) {
               onInput={(e) => props.onPick(e.currentTarget.value.trim())}
             />
             <button type="button" class="btn-text" onClick={() => setOther(false)}>
-              Choose from the list
+              Choose from the List
             </button>
           </div>
         }

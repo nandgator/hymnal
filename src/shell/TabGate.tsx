@@ -9,7 +9,7 @@ export interface Shared {
   appUpdates: AppUpdates;
 }
 
-// With "Use here" still offered after each: another try is always allowed.
+// With "Use Here" still offered after each: another try is always allowed.
 const MESSAGES: Partial<Record<TabState, string>> = {
   other: "Only one tab can hold your books at a time. Use it here, and the other tab will let go.",
   presenting: "The other tab is presenting. Close its Output window first, then use Hymnal here.",
@@ -26,7 +26,7 @@ const defaultLock = (isLive: () => boolean) =>
 
 /**
  * The Operator's gate (SDD-0001 §10.4): only the tab that owns the content
- * store shows the app; another says so, with "Use here". Presence and the
+ * store shows the app; another says so, with "Use Here". Presence and the
  * update takeover live here, not in the app, so a tab showing the note still
  * reloads onto a new version. Where the browser has no Web Locks, the app
  * shows as it always did.
@@ -75,7 +75,7 @@ export function TabGate(props: {
                 disabled={state() === "asking"}
                 onClick={() => lock.useHere()}
               >
-                Use here
+                Use Here
               </button>
             </div>
           </main>

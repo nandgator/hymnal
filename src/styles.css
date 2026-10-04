@@ -317,6 +317,14 @@ button:disabled {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-362q-8 0-15-2.5t-13-8.5L268-557q-11-11-11-28t11-28q11-11 28-11t28 11l156 156 156-156q11-11 28-11t28 11q11 11 11 28t-11 28L508-373q-6 6-13 8.5t-15 2.5Z'/%3E%3C/svg%3E");
 }
 
+.icon-undo {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M280-200v-80h284q63 0 109.5-40T720-420q0-60-46.5-100T564-560H312l104 104-56 56-200-200 200-200 56 56-104 104h252q97 0 166.5 63T800-420q0 94-69.5 157T564-200H280Z'/%3E%3C/svg%3E");
+}
+
+.icon-restart {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-80q-75 0-140.5-28.5t-114-77q-48.5-48.5-77-114T120-440q0-75 28.5-140.5t77-114q48.5-48.5 114-77T480-800h6l-62-62 56-58 160 160-160 160-56-58 62-62h-6q-117 0-198.5 81.5T200-440q0 117 81.5 198.5T480-160q117 0 198.5-81.5T760-440h80q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-80Z'/%3E%3C/svg%3E");
+}
+
 .icon-repeat {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='m274-200 34 34q12 12 11.5 28T308-110q-12 12-28.5 12.5T251-109L148-212q-6-6-8.5-13t-2.5-15q0-8 2.5-15t8.5-13l103-103q12-12 28.5-11.5T308-370q11 12 11.5 28T308-314l-34 34h406v-120q0-17 11.5-28.5T720-440q17 0 28.5 11.5T760-400v120q0 33-23.5 56.5T680-200H274Zm412-480H280v120q0 17-11.5 28.5T240-520q-17 0-28.5-11.5T200-560v-120q0-33 23.5-56.5T280-760h406l-34-34q-12-12-11.5-28t11.5-28q12-12 28.5-12.5T709-851l103 103q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L709-589q-12 12-28.5 11.5T652-590q-11-12-11.5-28t11.5-28l34-34Z'/%3E%3C/svg%3E");
 }
@@ -1595,6 +1603,7 @@ input[type="checkbox"].switch:disabled {
 
 .live-strip-row {
   display: flex;
+  align-items: center;
   gap: var(--space-xs);
 }
 
@@ -1674,17 +1683,6 @@ input[type="checkbox"].switch:disabled {
   cursor: pointer;
 }
 
-/* End Live: a quiet text button beside the status, never mistaken for it. */
-.end-live-button {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: var(--space-xs);
-  min-height: 2.5rem;
-  padding: 0 var(--space-md) 0 var(--space-sm);
-  font-size: 0.875rem;
-}
-
 .present-button.presenting {
   background-color: var(--hymnal-live-container);
   color: var(--hymnal-on-live-container);
@@ -1693,6 +1691,7 @@ input[type="checkbox"].switch:disabled {
 /* The find box and Go Live take the same state layer as every button
    (hover 8%, focus and press 10%), easing in and out. */
 .switcher-find,
+.live-chevron,
 .present-button {
   --state-a: 0;
   --state: color-mix(in srgb, currentColor calc(var(--state-a) * 100%), transparent);
@@ -1700,11 +1699,13 @@ input[type="checkbox"].switch:disabled {
 }
 
 .switcher-find:hover,
+.live-chevron:hover,
 .present-button:hover:not(:disabled) {
   --state-a: 0.08;
 }
 
 .switcher-find:is(:focus-visible, :active),
+.live-chevron:is(:focus-visible, :active),
 .present-button:is(:focus-visible, :active):not(:disabled) {
   --state-a: 0.1;
 }
@@ -1752,31 +1753,8 @@ input[type="checkbox"].switch:disabled {
   .present-button {
     justify-content: center;
     gap: 0;
-    width: 3rem;
     padding: 0;
     font-size: 0;
-  }
-
-  .end-live-button {
-    justify-content: center;
-    gap: 0;
-    width: 2.5rem;
-    padding: 0;
-  }
-
-  .present-here-button {
-    width: 2.5rem;
-    padding: 0;
-    gap: 0;
-  }
-
-  .end-live-label,
-  .present-here-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
   }
 
   .present-button .swap-label {
@@ -1807,12 +1785,12 @@ input[type="checkbox"].switch:disabled {
   container-type: inline-size;
 }
 
-/* Narrow (a small phone, or large text): Repeat keeps its icon, as the
-   dock's buttons do, so the row still fits on one line (it needs about
-   17rem with the label, 13.6rem without). Narrower still, at large text
-   sizes, it wraps, onto a second line reserved up front so the chips
-   below never move when the count, Undo and Reset appear. */
-@container (width < 17.25rem) {
+/* Narrow (a small phone, or large text): the group's buttons keep their
+   icons together, as the dock's do, so the row still fits on one line (it
+   needs about 19.5rem with the labels, 10rem without). Narrower still, at
+   large text sizes, it wraps, onto a second line reserved up front so the
+   chips below never move when the count, Undo and Reset appear. */
+@container (width < 19.5rem) {
   .repeat-label {
     position: absolute;
     width: 1px;
@@ -1823,13 +1801,13 @@ input[type="checkbox"].switch:disabled {
   }
 
   /* Icon-only: a square of the button's own shape, the icon centred. */
-  .repeat-row .repeat-button {
+  .repeat-row .btn-text {
     width: 2.5rem;
     padding: 0;
   }
 }
 
-@container (width < 13.75rem) {
+@container (width < 10.5rem) {
   .repeat-row {
     min-height: calc(2 * 2.5rem + var(--space-xs));
     align-content: flex-start;
@@ -2508,6 +2486,20 @@ input[type="checkbox"].switch:disabled {
   height: 1rem;
 }
 
+/* Live's heading and strip: Blank, Hold and End Live are one toolbar at the
+   end, every member the same height with the same gap, centred on the
+   heading's line, so the label and the buttons share a baseline. */
+.live-toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-xxs);
+}
+
+.live-strip-row .live-toolbar {
+  gap: var(--space-xs);
+}
+
 /* Beside the strip, Blank/Restore is its icon alone, a square as tall as
    the strip; its name stays for screen readers and the tooltip. */
 .live-strip-row .live-control {
@@ -2522,7 +2514,8 @@ input[type="checkbox"].switch:disabled {
 
 /* Out of the layout, not just shrunk (as Go Live's on a phone): its
    reserved width pushed the icon off centre. */
-.live-strip-row .live-control .swap-label {
+.live-strip-row .live-control .swap-label,
+.live-strip-row .live-control .live-control-label {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -5504,37 +5497,6 @@ fieldset.book-main {
   cursor: default;
 }
 
-/* Go Live beside Present here on one screen: the popup is the second choice. */
-.present-button.present-secondary {
-  justify-content: center;
-  gap: 0;
-  width: 2.5rem;
-  padding: 0;
-  background-color: transparent;
-  color: var(--md-sys-color-primary);
-  font-size: 0;
-}
-
-.present-button.present-secondary .swap-label,
-.present-here-button .present-here-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-}
-
-.present-here-button {
-  justify-content: center;
-  gap: 0;
-  width: 2.5rem;
-  padding: 0;
-}
-
-.present-here-first {
-  order: -1;
-}
-
 /* No card: the search field itself sits at the bottom centre, over a soft
    blur that rises a little (1.5rem) above the top of the results, so the list
    lies inside it, not on its edge. The band is the strip's own ::before, full
@@ -5622,4 +5584,82 @@ fieldset.book-main {
 
 .present-switcher .finder-scope {
   display: none;
+}
+
+/* The one live button (DESIGN.md § Go Live): a fixed width, so the search
+   beside it never moves — the longest label's room (Blanked) plus the
+   chevron's, kept in every state. Not live, the button takes it all; live,
+   the chevron is attached to its end, a 2px seam between the two. */
+.live-split {
+  --live-split-width: 9.75rem;
+  --live-chevron-width: 2.25rem;
+  display: flex;
+  flex: none;
+  gap: 2px;
+  width: var(--live-split-width);
+}
+
+.live-split .present-button {
+  flex: 1 1 auto;
+  justify-content: center;
+  min-width: 0;
+  padding-inline: var(--space-sm);
+}
+
+.live-split-open .present-button {
+  border-start-end-radius: var(--shape-xs);
+  border-end-end-radius: var(--shape-xs);
+}
+
+.live-split .menu-anchor {
+  flex: none;
+}
+
+.live-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--live-chevron-width);
+  height: 100%;
+  min-height: 2.5rem;
+  padding: 0;
+  border: none;
+  border-start-start-radius: var(--shape-xs);
+  border-end-start-radius: var(--shape-xs);
+  border-start-end-radius: var(--button-shape);
+  border-end-end-radius: var(--button-shape);
+  background-color: var(--hymnal-live-container);
+  color: var(--hymnal-on-live-container);
+  cursor: pointer;
+}
+
+.live-chevron-icon {
+  transition: rotate var(--motion-short) var(--motion-emphasized);
+}
+
+.live-chevron[aria-expanded="true"] .live-chevron-icon {
+  rotate: 180deg;
+}
+
+/* The menu's rows: icon, name, then the key at the end. */
+.menu-popover-icon {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-inline-end: calc(-1 * var(--space-xs));
+}
+
+.menu-popover-label {
+  flex: 1;
+}
+
+.menu-popover-key {
+  flex: none;
+}
+
+@media (max-width: 599px) {
+  .live-split {
+    --live-split-width: 5rem;
+    --live-chevron-width: 2rem;
+  }
 }

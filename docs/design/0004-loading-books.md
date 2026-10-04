@@ -544,7 +544,7 @@ returns to the sheet with everything typed kept; a successful load clears it.
    fixed row and only the content scrolls; the card ends after the last control.
 4. **Choosing a book goes to Present.** A tap on a row makes the book current
    and shows the Operator; ⋯ stays.
-5. **Several at once.** Load Books takes several files; **Open .txt files**
+5. **Several at once.** Load Books takes several files; **Open .txt Files**
    joins several text files into one song text with `---` between (the format
    allows it). The review of several is a queue (below). Load Again takes one
    file.

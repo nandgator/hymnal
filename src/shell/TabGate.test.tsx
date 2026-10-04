@@ -56,7 +56,7 @@ describe("TabGate", () => {
     expect(screen.getByText("the app")).toBeInTheDocument();
   });
 
-  it("shows the note and Use here to a tab that is not the owner", () => {
+  it("shows the note and Use Here to a tab that is not the owner", () => {
     const lock = fakeLock();
     mount(lock);
     lock.go("other");
@@ -64,14 +64,14 @@ describe("TabGate", () => {
       screen.getByRole("heading", { name: "Hymnal is open in another tab" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("the app")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Use here" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use Here" }));
     expect(lock.used).toBe(1);
   });
 
-  it("says why, and keeps Use here enabled, after a refusal or silence", () => {
+  it("says why, and keeps Use Here enabled, after a refusal or silence", () => {
     const lock = fakeLock("other");
     mount(lock);
-    const button = () => screen.getByRole("button", { name: "Use here" });
+    const button = () => screen.getByRole("button", { name: "Use Here" });
     lock.go("asking");
     expect(button()).toBeDisabled();
     lock.go("presenting");
@@ -92,6 +92,6 @@ describe("TabGate", () => {
     mount(lock);
     lock.go("other");
     expect(screen.queryByText("the app")).toBeNull();
-    expect(screen.getByRole("button", { name: "Use here" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Use Here" })).toBeInTheDocument();
   });
 });

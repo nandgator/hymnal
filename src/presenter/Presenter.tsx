@@ -128,6 +128,9 @@ export interface PresenterProps {
   /** Holds the Output on what it shows, or releases it: the button beside
    * Blank. */
   onToggleHold?: () => void;
+  /** Ends Live: closes the Output window, the third button of Live's
+   * toolbar (SDD-0001 §16.4). */
+  onEndLive?: () => void;
   /** An Output window is open: Live's dot is the on-air light. */
   presenting?: boolean;
   /** Which supporting panes show, by id; absent means shown (SDD-0001
@@ -612,7 +615,7 @@ export function Presenter(props: PresenterProps) {
         onClick={() => props.onBack?.()}
       >
         <span class="icon icon-arrow-back" aria-hidden="true" />
-        Back to search
+        Back to Search
       </button>
     </Show>
   );
@@ -782,6 +785,38 @@ export function Presenter(props: PresenterProps) {
     </button>
   );
 
+  // End Live (SDD-0001 §16.4), the toolbar's third member: it closes the
+  // Output window, so like Hold it waits for one.
+  const endLiveControl = () => (
+    <button
+      type="button"
+      class="live-control"
+      ref={(el) => onCleanup(hoverButton(el))}
+      aria-keyshortcuts={ariaKeys("end-live")}
+      disabled={!props.presenting}
+      title={
+        !props.presenting
+          ? "Open the Output first"
+          : withKey("End Live: close the Output window", "end-live", expanded())
+      }
+      onClick={() => props.onEndLive?.()}
+    >
+      <span class="icon icon-stop" aria-hidden="true" />
+      <span class="live-control-label">End Live</span>
+    </button>
+  );
+
+  // What changes the audience screen, as one toolbar at the heading's (or
+  // the strip's) end: the same size and gap for every member, on the label's
+  // baseline (DESIGN.md § Buttons).
+  const liveToolbar = () => (
+    <div class="live-toolbar" role="toolbar" aria-label="Output controls">
+      {blankControl()}
+      {holdControl()}
+      {endLiveControl()}
+    </div>
+  );
+
   // Phone: Live collapses to a strip showing the current line; a tap
   // expands it (DESIGN.md § Structure).
   const liveStrip = () => (
@@ -800,8 +835,7 @@ export function Presenter(props: PresenterProps) {
           </span>
           <span class="icon icon-expand" aria-hidden="true" />
         </button>
-        {blankControl()}
-        {holdControl()}
+        {liveToolbar()}
       </div>
       <Show when={liveExpanded()}>{livePreview()}</Show>
     </div>
@@ -875,16 +909,19 @@ export function Presenter(props: PresenterProps) {
               disabled={!canUndoRepeat()}
               onClick={undoRepeat}
             >
-              Undo
+              <span class="icon icon-undo" aria-hidden="true" />
+              <span class="repeat-label">Undo</span>
             </button>
             <button
               type="button"
               class="btn-text"
               aria-label="Reset repeat"
+              title="Reset repeat"
               disabled={!canResetRepeats()}
               onClick={resetRepeats}
             >
-              Reset
+              <span class="icon icon-restart" aria-hidden="true" />
+              <span class="repeat-label">Reset</span>
             </button>
           </span>
         </div>
@@ -1296,10 +1333,9 @@ export function Presenter(props: PresenterProps) {
                           Live
                         </h3>
                         {/* What changes the audience screen sits in Live's
-                            own heading; the follow status joins it
-                            later. */}
-                        {blankControl()}
-                        {holdControl()}
+                            own heading, one toolbar; the follow status
+                            joins it later. */}
+                        {liveToolbar()}
                       </div>
                     </Show>
                     <Show when={roomy()} fallback={<div class="stage-strip">{liveStrip()}</div>}>
