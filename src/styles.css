@@ -3803,7 +3803,7 @@ html[data-scrolling],
 .output-list {
   margin: 0;
   padding: 0 5cqw;
-  font-size: calc(7.5cqmin * var(--fit, 1));
+  font-size: calc(7.5cqmin * 0.85 * var(--fit, 1));
   font-weight: 500;
   line-height: 1.35;
   list-style: none;
@@ -3940,7 +3940,7 @@ html[data-scrolling],
 .full-sheet {
   position: absolute;
   inset: var(--safe-top) 5cqw var(--safe-bottom);
-  font-size: calc(7.5cqmin * var(--fit, 1));
+  font-size: calc(9cqmin * var(--fit, 1));
   font-weight: 500;
   line-height: 1.35;
 }
@@ -4181,7 +4181,7 @@ html[data-scrolling],
 .output-pin-band::before {
   bottom: 100%;
   height: 1lh;
-  font-size: calc(7.5cqmin * var(--fit, 1));
+  font-size: calc(7.5cqmin * 0.85 * var(--fit, 1));
   line-height: 1.35;
   background: linear-gradient(transparent, var(--output-ground) 70%);
 }
@@ -4291,35 +4291,40 @@ html[data-scrolling],
   transition: opacity 300ms ease;
 }
 
-/* The part, over the song (SDD-0005 § 1): the lit part's name, centred in the
-   top band beside the number, in the whole song's marker type: 0.55 of the
-   lyrics' size, light, muted a step under the lit ink. Sticky at zero height
-   like the badge, on its own line with it (the tile's middle), and clear of
-   it: the sides leave room for the widest number. */
-.output-marker {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  height: 0;
-  pointer-events: none;
+/* A part's marker in the scroll (SDD-0005 § 1): the same as Full Song's, above
+   the part's first line and inside its box, so it scrolls with the part and
+   the height arithmetic counts it. Start-aligned: --marker-x (OutputView) is
+   the left edge of the part's widest line, the lines being centred. Its row is
+   a fixed 0.825em, the text centred in it, so a script's tall glyphs never
+   move a line. It recedes like its lines, and lights with them, a step under
+   the lit ink. */
+.output-part-marker {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 0.825em;
+  padding-inline-start: var(--marker-x, 0);
+  text-align: start;
 }
 
-.output-marker-text {
-  position: absolute;
-  top: 8cqmin;
-  inset-inline: 26cqmin;
-  margin: 0;
-  overflow: hidden;
-  color: color-mix(in srgb, var(--output-ink) 70%, var(--output-ground));
-  font-size: calc(7.5cqmin * var(--fit, 1) * 0.55);
+.output-part-marker-text {
+  color: var(--output-ink-dimmed);
+  font-size: 0.55em;
   font-weight: 400;
   letter-spacing: 0.06em;
-  line-height: 2;
-  text-align: center;
-  text-overflow: ellipsis;
+  line-height: 1;
   white-space: nowrap;
-  transform: translateY(-50%);
-  transition: opacity 300ms ease;
+  transition: color var(--motion-medium) var(--motion-emphasized);
+}
+
+.output-part-marker-lit {
+  color: color-mix(in srgb, var(--output-ink) 70%, var(--output-ground));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .output-part-marker-text {
+    transition: none;
+  }
 }
 
 /* Full Song has nothing to scroll past: its cues take the view's own edges. */
@@ -4336,14 +4341,14 @@ html[data-scrolling],
   bottom: 0;
 }
 
-.output-blanked :is(.output-caption-text, .output-badge-text, .output-marker-text),
-.output-cue-faded :is(.output-caption-text, .output-badge-text, .output-marker-text),
+.output-blanked :is(.output-caption-text, .output-badge-text),
+.output-cue-faded :is(.output-caption-text, .output-badge-text),
 .output-cue-off {
   opacity: 0;
 }
 
 /* Fading out, slower than blank: a cue receding, not a cut. */
-.output-cue-faded :is(.output-caption-text, .output-badge-text, .output-marker-text) {
+.output-cue-faded :is(.output-caption-text, .output-badge-text) {
   transition-duration: 1200ms;
 }
 

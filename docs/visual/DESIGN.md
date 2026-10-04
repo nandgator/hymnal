@@ -119,12 +119,12 @@ typography:
     note: content, so it scales with the screen; its rem bounds follow --font-scale (ADR-0017)
   output-line:
     fontFamily: "Hymnal Sans, Noto Sans Malayalam, system-ui, sans-serif"
-    fontSize: "calc(7.5cqmin * var(--fit))"
+    fontSize: "calc(7.5cqmin * 0.85 * var(--fit))"
     fontWeight: 500
     lineHeight: 1.35
     color: "{colors.output-ink}"
     colorDimmed: "{colors.output-ink-dimmed}"
-    note: one style for every line, lit or dimmed — focus changes color only, never size or weight, which would reflow the column mid-scroll. Sized by the screen itself (cqmin — vmin on the full Output, a true scale model in the Live pane), shrunk per hymn by --fit (§ Structure), with no rem cap — the Output is the screen that lands on a 4K/8K TV at 100% scaling, where a rem cap would stop the lyrics growing at a fraction of the size they should be. The Operator keeps rem plus the user's text scale: CSS px already map through the device pixel ratio, so OS scaling handles pixel density.
+    note: one style for every line, lit or dimmed — focus changes color only, never size or weight, which would reflow the column mid-scroll. Its base is 6.4cqmin (0.85 of 7.5: the fixed 16% bands leave 68% of the height, not 80%, so the same lines show); Full Song's is 9cqmin. Sized by the screen itself (cqmin — vmin on the full Output, a true scale model in the Live pane), shrunk per hymn by --fit (§ Structure), with no rem cap — the Output is the screen that lands on a 4K/8K TV at 100% scaling, where a rem cap would stop the lyrics growing at a fraction of the size they should be. The Operator keeps rem plus the user's text scale: CSS px already map through the device pixel ratio, so OS scaling handles pixel density.
 
 rounded:
   none: 0px
@@ -399,11 +399,15 @@ problem than a warm, devotional, legible-at-distance tool.
   - **The caption, a lower third**: hymnbook · title · ×N (e.g.
     `Hymnbook · Amazing Grace · ×2`) as plain `output-ink-dimmed` text centred
     in the bottom margin, no container. ×N shows only on a repeat.
-  - **The part marker, over the song**: the part's name, centred in the top
-    margin beside the number, in the whole-song markers' type (0.55 of the
-    lyrics' size, weight 400, a step under the lit ink). A stanza reads **Verse
-    n**, other parts by kind (Chorus, Bridge, Tag). It names the part the focus
-    is in, or, while scrolling by hand, the one at the reading band's centre.
+  - **The part marker, on its part**: as in the whole-song layout, a small
+    marker above the part's first line, inside its box so it scrolls with it,
+    start-aligned with the part's text (the left edge of its widest line), in
+    the whole-song markers' type (0.55 of the lyrics' size, weight 400, spaced,
+    a fixed 0.825em row so Malayalam glyphs never collide). A stanza reads its
+    number, other parts by kind (Chorus, Bridge, Tag). It is lit a step under
+    the lit ink with its part and recedes with the lines around it. It is not a
+    detail of the bands: the text, not the marker, centres, and "Show parts" off
+    lays the scroll out again without it.
   - **The number badge**, for those following in a printed songbook: the hymn's
     number in a FAB-like tonal tile (9% ink over the ground,
     `output-ink-muted`), top left, larger than the caption so it reads from the
@@ -415,8 +419,7 @@ problem than a warm, devotional, legible-at-distance tool.
     them: toggling a cue only fades its text in or out, and no lyric moves. The
     fit and the eyeline respect them, so lit lines never enter them, and the
     lyrics fade out inside them: only lines not being sung are ever dimmed by
-    them. (The whole-song layout keeps its own margins: 10%, 16% where a cue
-    shows.)
+    them. The whole-song layout reserves the same bands.
   - **Fade, one switch for all** ("Fade the details", on by default): the cues
     show together, at a new hymn, on the Output coming back from blank, or on
     Show the details now, and fade together 8s later. Part steps (keys, a hand
@@ -910,10 +913,10 @@ view is close enough to the frame to need a smaller unit.
   case, which keeps which words are names, and a script without case is left as
   it is.
 - **Output: nothing ever bleeds off the screen.** The type is sized **per hymn**
-  so its longest part fits inside a 10% safe margin, then held for the whole
-  hymn, so the text never changes size between parts. It's re-fitted on resize
-  and font load, down to a floor; only a pathological part (20+ lines) goes past
-  the floor, and then whole-part focus starts at the top margin, and line steps
+  so its longest part fits between the 16% bands, then held for the whole hymn,
+  so the text never changes size between parts. It's re-fitted on resize and
+  font load, down to a floor; only a pathological part (20+ lines) goes past the
+  floor, and then whole-part focus starts at the top margin, and line steps
   still work. The focus sits a little above centre (about 42% down, a
   teleprompter's eyeline), clamped inside the margin. Sizes are container units
   (`cqmin`), so the Operator's **Live pane is the same component scaled to its
@@ -940,14 +943,14 @@ view is close enough to the frame to need a smaller unit.
   at once in its printed form, in columns, left-aligned (one column: centred).
   Nothing scrolls. Parts are whole, in printed order, balanced across as few
   columns as buy type size; the type, one size for the song, shrinks to fit,
-  down to a fit of 0.30 (24px on a 1080p screen). A song that would need less is
-  split into pages of whole parts and the page turns with the tint; no page says
-  so. A chorus the song sings after its verses is printed again on each page
-  that sings it, after the verse it follows, so the tint moves from a verse to
-  its chorus to the next verse of the page without a page turning; only a step
-  to a verse on another page turns it. **The tint is a mark here**, the one
-  exception to the rule above: with no eyeline to say where the song is, a box
-  behind the current part (9% ink over the ground, the badge's tone, corners
+  down to a fit of 0.2875 of 9cqmin (28px on a 1080p screen). A song that would
+  need less is split into pages of whole parts and the page turns with the tint;
+  no page says so. A chorus the song sings after its verses is printed again on
+  each page that sings it, after the verse it follows, so the tint moves from a
+  verse to its chorus to the next verse of the page without a page turning; only
+  a step to a verse on another page turns it. **The tint is a mark here**, the
+  one exception to the rule above: with no eyeline to say where the song is, a
+  box behind the current part (9% ink over the ground, the badge's tone, corners
   0.4em) does, and the lit part's text is lit, the rest dimmed, by colour alone.
   Margins, cues and the ground are the scroll's. **Highlight on the Output**
   (Presentation, and the H key) can be _Whole song_ in this layout and the

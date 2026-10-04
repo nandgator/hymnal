@@ -24,28 +24,32 @@ type Layout = "flow" | "band" | "side";
  * Live, channel.ts); an unlaid-out view is neither. */
 const isLandscape = (el: HTMLElement) => el.clientWidth > 0 && el.clientWidth >= el.clientHeight;
 
-/** Share of the height kept clear at top and bottom — the safe margin. */
-const SAFE = 0.1;
-/** A margin while cues show there (the caption at the bottom, the number
- * badge at the top): room for their still band, which lit lines never
- * enter, so the band's fade only dims lines not being sung (DESIGN.md §
- * Typography). */
-const CUE_SAFE = 0.16;
+/** The band kept clear at top and bottom, as a share of the height: room for
+ * the details (the caption at the bottom, the number badge at the top), a
+ * still band which lit lines never enter, so its fade only dims lines not
+ * being sung. Always reserved, whatever shows in it, in both layouts: a
+ * detail turning on or off moves no lyric (DESIGN.md § Typography). */
+const BAND = 0.16;
 /** With cues set to fade: how long each shows after it last changed. */
 const CUE_FADE_MS = 8000;
 /** Where the focus centres, from the top: a little above middle, a
  * teleprompter's eyeline (DESIGN.md § Structure). */
 const EYELINE = 0.42;
+/** The scroll's type is this share of 7.5cqmin (styles.css, `--scroll-type`):
+ * its fixed bands take 32% of the height, where they took 20%, so the type
+ * is 0.85 of what it was and the same lines fit. The two constants below keep
+ * their size on screen (0.45 and 0.7 of the old full size) in this scale. */
+const SCROLL_TYPE = 0.85;
 /** The smallest the type may shrink to make a hymn's longest part fit. */
-const FIT_FLOOR = 0.45;
+const FIT_FLOOR = 0.45 / SCROLL_TYPE;
 /** The chorus pins only if the type stays at least this fit — 70% of the
  * full size, 5.25% of the screen's shorter side — the same for every hymn
  * and resolution: what the back row needs is the type's share of the
  * screen, not its share of a hymn's own flowing size (SDD-0001 §16.1). */
-const PIN_MIN_FIT = 0.7;
+const PIN_MIN_FIT = 0.7 / SCROLL_TYPE;
 /** Where the focus centres within the verse column above a pinned chorus,
  * as a share of the column: the flowing eyeline's place within its margins. */
-const PINNED_EYELINE = (EYELINE - SAFE) / (1 - 2 * SAFE);
+const PINNED_EYELINE = (EYELINE - BAND) / (1 - 2 * BAND);
 /** The space between the verse column and a pinned chorus, in lines: a
  * fade to still ground that lit lines never enter. */
 const PIN_GAP_LINES = 1;
@@ -211,7 +215,7 @@ export function OutputView(props: OutputViewProps) {
       const parts = songParts();
       if (!parts?.length || !view) return;
       const measure = () => {
-        if (view) prepareFullSong(view, parts, safeTop(), safeBottom(), sungParts());
+        if (view) prepareFullSong(view, parts, BAND, BAND, sungParts());
       };
       if (typeof requestIdleCallback === "function") {
         const id = requestIdleCallback(measure, { timeout: 1000 });
@@ -297,21 +301,36 @@ export function OutputView(props: OutputViewProps) {
     const whole = focus.start === start && focus.end >= end;
     return whole ? null : { start: focus.start - start, end: focus.end - start };
   };
-  // The caption names no part: the whole song marks its parts itself, and the
-  // scroll has its marker over the song.
+  // The caption names no part: each part carries its own marker, in both
+  // layouts.
   const caption = () => cueCaption(props.message, props.cues);
-  // Memos, so they change only when a cue turns on or off, or the layout
-  // changes: the bands that follow are numbers, so a cue turning on or off
-  // does not refit (and snap) the view.
+  // Memos, so they change only when a cue turns on or off. The bands are
+  // reserved (BAND), whether or not a detail shows in them: switching one on
+  // or off moves no lyric, and the soft edges stay.
   const hasCaption = createMemo(() => !!caption());
   const badge = createMemo(() => !!props.cues?.number);
   const marked = createMemo(() => !!props.cues?.part);
-  // The scroll reserves the top and bottom bands whether or not a detail shows
-  // in them: switching one on or off moves no lyric, and the soft edges stay.
-  // Full Song keeps its own margins, taken only for a cue that shows.
-  const reserved = createMemo(() => !fullSong());
-  const safeBottom = createMemo(() => (reserved() || hasCaption() ? CUE_SAFE : SAFE));
-  const safeTop = createMemo(() => (reserved() || badge() ? CUE_SAFE : SAFE));
+  // The marker over a part's first line (SDD-0005 § 1): what Full Song prints
+  // there, shown or hidden by "Show parts".
+  const markerAt = (i: number) => {
+    const line = props.message.lines[i];
+    if (!marked() || !line?.isPartStart) return undefined;
+    return props.message.parts?.find((part) => part.id === line.partId)?.marker || undefined;
+  };
+  // Lit with its part: any of the part's lines lit.
+  const markerLit = (i: number) => {
+    if (lightAll()) return true;
+    const block = blocks().find((b) => b.start === i);
+    return !!block && lit().start < block.end && lit().end > block.start;
+  };
+  // The room a line's marker takes above its text, px: in the line's own box,
+  // so a block's height has it, and what centres or clamps is the text below.
+  const leadOf = (line: HTMLElement | undefined) => {
+    const first = line?.firstElementChild;
+    return first instanceof HTMLElement && first.classList.contains("output-part-marker")
+      ? first.offsetHeight
+      : 0;
+  };
   // A detail switched off fades away where it was: its last words are kept
   // while it does.
   const [heldCaption, setHeldCaption] = createSignal("");
@@ -319,23 +338,6 @@ export function OutputView(props: OutputViewProps) {
     const now = caption();
     if (now) setHeldCaption(now);
   });
-  // The part over the song: the one the focus is in, or, while scrolling by
-  // hand, the one at the reading band's centre.
-  const partName = () => {
-    const band = bandLit();
-    if (band) {
-      const id = props.message.lines[Math.floor((band.start + band.end - 1) / 2)]?.partId;
-      const name = props.message.parts?.find((part) => part.id === id)?.name;
-      if (name) return name;
-    }
-    return props.message.part ?? "";
-  };
-  const [heldPart, setHeldPart] = createSignal("");
-  createComputed(() => {
-    const now = partName();
-    if (now) setHeldPart(now);
-  });
-
   // Cues set to fade (DESIGN.md § Typography): all show together at a new
   // hymn, on coming back from blank, or when the operator asks, then fade
   // together. Part steps (arrows, a hand scroll) don't bring them back: the
@@ -376,13 +378,16 @@ export function OutputView(props: OutputViewProps) {
     const first = lineRefs[start];
     if (!first) return;
     const height = view.clientHeight;
-    const top = Math.max(height * safeTop(), first.offsetTop - view.scrollTop);
+    const top = Math.max(height * BAND, first.offsetTop - view.scrollTop);
     const bottom = Math.min(columnBottom(), top + heightOf(start, end));
     band = { top, bottom, whole };
   };
 
-  const centreOf = (line: HTMLLIElement) =>
-    line.offsetTop + line.offsetHeight / 2 - (view?.scrollTop ?? 0);
+  // A line's centre, its marker (if it opens a part) not counted.
+  const centreOf = (line: HTMLLIElement) => {
+    const lead = leadOf(line);
+    return line.offsetTop + lead + (line.offsetHeight - lead) / 2 - (view?.scrollTop ?? 0);
+  };
 
   // The lines whose centres sit inside the band — or, if it's thinner than
   // a line, the one nearest its centre.
@@ -419,7 +424,7 @@ export function OutputView(props: OutputViewProps) {
   /** Where the scrolling lyrics end, in px from the top of the view: above
    * a chorus pinned in the band, else the bottom safe margin. */
   const columnBottom = () => {
-    const bottom = (view?.clientHeight ?? 0) * (1 - safeBottom());
+    const bottom = (view?.clientHeight ?? 0) * (1 - BAND);
     return layoutNow === "band" ? bottom - chorusPx - gapPx() : bottom;
   };
   const gapPx = () => (lineRefs.find(Boolean)?.offsetHeight ?? 0) * PIN_GAP_LINES;
@@ -438,17 +443,19 @@ export function OutputView(props: OutputViewProps) {
     const first = lineRefs[start];
     if (!view || !first) return;
     const height = view.clientHeight;
-    const block = heightOf(start, end);
-    const room = height * (1 - safeTop() - safeBottom());
-    // Where the block's top should sit within the screen.
+    // The text centres; its marker hangs above it, and must stay in the room.
+    const lead = leadOf(first);
+    const block = heightOf(start, end) - lead;
+    const room = height * (1 - BAND - BAND);
+    // Where the text's top should sit within the screen.
     const top =
-      block > room
-        ? height * safeTop()
+      block + lead > room
+        ? height * BAND + lead
         : Math.max(
-            height * safeTop(),
-            Math.min(height * EYELINE - block / 2, height * (1 - safeBottom()) - block),
+            height * BAND + lead,
+            Math.min(height * EYELINE - block / 2, height * (1 - BAND) - block),
           );
-    view.scrollTo?.({ top: first.offsetTop - top, behavior });
+    view.scrollTo?.({ top: first.offsetTop + lead - top, behavior });
   };
 
   // Pinned: the verse column is the space above the band, or the left half
@@ -460,7 +467,7 @@ export function OutputView(props: OutputViewProps) {
     const first = lineRefs[start];
     if (!view || !first) return;
     const height = view.clientHeight;
-    const areaTop = height * safeTop();
+    const areaTop = height * BAND;
     const areaBottom = columnBottom();
     if (layoutNow === "side") {
       const top = Math.max(
@@ -469,14 +476,15 @@ export function OutputView(props: OutputViewProps) {
       );
       view.style.setProperty("--pin-top", `${top}px`);
     }
-    const block = heightOf(start, end);
+    const lead = leadOf(first);
+    const block = heightOf(start, end) - lead;
     const eyeline =
       layoutNow === "side" ? height * EYELINE : areaTop + (areaBottom - areaTop) * PINNED_EYELINE;
     const top =
-      block > areaBottom - areaTop
-        ? areaTop
-        : Math.max(areaTop, Math.min(eyeline - block / 2, areaBottom - block));
-    view.scrollTo?.({ top: first.offsetTop - top, behavior });
+      block + lead > areaBottom - areaTop
+        ? areaTop + lead
+        : Math.max(areaTop + lead, Math.min(eyeline - block / 2, areaBottom - block));
+    view.scrollTo?.({ top: first.offsetTop + lead - top, behavior });
   };
 
   // Shrinks the type until `need()` (px, at the current type) fits the
@@ -517,10 +525,10 @@ export function OutputView(props: OutputViewProps) {
   // qualifies, keeping the chorus at eye height where the band sits low,
   // behind the heads in front for the back rows; a portrait one the band.
   // Else the hymn flows exactly as it would with pinning off.
-  const refit = () => {
+  const layOut = () => {
     if (!view || fullSong()) return;
     setLayoutNow("flow");
-    const room = view.clientHeight * (1 - safeTop() - safeBottom());
+    const room = view.clientHeight * (1 - BAND - BAND);
     const flowing = fitTo(room, () => tallestOf(blocks()), true);
     const chorus = chorusBlock();
     if (!(props.pinChorus && chorus && verseBlocks().length > 0)) {
@@ -556,9 +564,45 @@ export function OutputView(props: OutputViewProps) {
     position("instant");
   };
 
-  // A change of the bands (Full Song's cues) changes the room, and pinning
-  // the layout: fit again.
-  createEffect(on([safeTop, safeBottom, () => !!props.pinChorus], refit, { defer: true }));
+  // A marker sits at the start of its part's text: the left edge of its
+  // widest line, the lines being centred. Measured once laid out.
+  const alignMarkers = () => {
+    if (!view) return;
+    const lefts = (lines: HTMLElement[]) => {
+      const left = lines[0]?.getBoundingClientRect().left ?? 0;
+      let min = Number.POSITIVE_INFINITY;
+      for (const line of lines) {
+        const text = [...line.childNodes].find(
+          (n) => n.nodeType === Node.TEXT_NODE && n.textContent,
+        );
+        if (!text || typeof document.createRange !== "function") continue;
+        const range = document.createRange();
+        range.selectNodeContents(text);
+        if (typeof range.getClientRects !== "function") continue;
+        for (const rect of range.getClientRects()) min = Math.min(min, rect.left);
+      }
+      return Number.isFinite(min) ? Math.max(0, min - left) : 0;
+    };
+    const set = (lines: (HTMLElement | undefined)[]) => {
+      const first = lines[0]?.firstElementChild;
+      if (!(first instanceof HTMLElement) || !first.classList.contains("output-part-marker"))
+        return;
+      first.style.setProperty(
+        "--marker-x",
+        `${lefts(lines.filter((l): l is HTMLElement => !!l))}px`,
+      );
+    };
+    for (const { start, end } of blocks()) set(lineRefs.slice(start, end));
+    set([...view.querySelectorAll<HTMLElement>(".output-pinned > .output-line")]);
+  };
+  const refit = () => {
+    layOut();
+    alignMarkers();
+  };
+
+  // The part markers take room in the column, and pinning changes the layout:
+  // fit again.
+  createEffect(on([marked, () => !!props.pinChorus], refit, { defer: true }));
 
   createEffect(() => {
     const { hymnbookId, number } = props.message;
@@ -636,6 +680,22 @@ export function OutputView(props: OutputViewProps) {
                 class="output-line output-chorus"
                 classList={{ "output-line-current": bandLineLit(k) }}
               >
+                <Show when={k === 0 && markerAt(chorus().start)}>
+                  {(marker) => (
+                    <div class="output-part-marker" aria-hidden="true">
+                      <span
+                        class="output-part-marker-text"
+                        classList={{
+                          "output-part-marker-lit": props.message.lines
+                            .slice(chorus().start, chorus().end)
+                            .some((_, j) => bandLineLit(j)),
+                        }}
+                      >
+                        {marker()}
+                      </span>
+                    </div>
+                  )}
+                </Show>
                 {line().text}
               </li>
             )}
@@ -649,7 +709,7 @@ export function OutputView(props: OutputViewProps) {
     <div
       ref={view}
       class={`output-view output-view-${props.variant}`}
-      style={{ "--safe-bottom": `${safeBottom() * 100}cqh` }}
+      style={{ "--safe-bottom": `${BAND * 100}cqh` }}
       classList={{
         ...props.classList,
         "output-blanked": !!props.blanked,
@@ -659,27 +719,13 @@ export function OutputView(props: OutputViewProps) {
       {...(props.variant === "mini" ? { role: "img", "aria-label": "Live output preview" } : {})}
     >
       {/* The songbook number: top left, sticky and zero-height like the
-          caption, and still — it changes only with the hymn. Always there in
-          the scroll, its soft edge too; the number fades in and out. */}
-      <Show when={reserved() || badge()}>
-        <div class="output-badge" classList={{ "output-cue-faded": !cuesShown() }}>
-          <p class="output-badge-text" classList={{ "output-cue-off": !badge() }}>
-            {props.message.number}
-          </p>
-        </div>
-      </Show>
-      {/* The part, over the song: centred in the top band beside the number. */}
-      <Show when={reserved()}>
-        <div
-          class="output-marker"
-          aria-hidden="true"
-          classList={{ "output-cue-faded": !cuesShown() }}
-        >
-          <p class="output-marker-text" classList={{ "output-cue-off": !marked() }}>
-            {heldPart()}
-          </p>
-        </div>
-      </Show>
+          caption, and still — it changes only with the hymn. Always there, in
+          both layouts, its soft edge too; the number fades in and out. */}
+      <div class="output-badge" classList={{ "output-cue-faded": !cuesShown() }}>
+        <p class="output-badge-text" classList={{ "output-cue-off": !badge() }}>
+          {props.message.number}
+        </p>
+      </div>
       {/* Side by side (SDD-0001 §16.1): first, sticky to the top and
           zero-height like the badge, its pane placed beside the verses at
           --pin-top. */}
@@ -695,8 +741,8 @@ export function OutputView(props: OutputViewProps) {
           at={sequenceAt()}
           lit={litWithinPart()}
           all={lightAll()}
-          safeTop={safeTop()}
-          safeBottom={safeBottom()}
+          safeTop={BAND}
+          safeBottom={BAND}
           songKey={`${props.message.hymnbookId}:${props.message.number}`}
         />
       </Show>
@@ -717,6 +763,18 @@ export function OutputView(props: OutputViewProps) {
                 "output-chorus": isChorus(i),
               }}
             >
+              <Show when={markerAt(i)}>
+                {(marker) => (
+                  <div class="output-part-marker" aria-hidden="true">
+                    <span
+                      class="output-part-marker-text"
+                      classList={{ "output-part-marker-lit": markerLit(i) }}
+                    >
+                      {marker()}
+                    </span>
+                  </div>
+                )}
+              </Show>
               {line().text}
             </li>
           )}
@@ -732,13 +790,11 @@ export function OutputView(props: OutputViewProps) {
       {/* Last, sticky to the bottom and zero-height: it rides the bottom
           safe margin, taking no room from the lyrics (DESIGN.md §
           Typography). */}
-      <Show when={reserved() || hasCaption()}>
-        <div class="output-caption" classList={{ "output-cue-faded": !cuesShown() }}>
-          <p class="output-caption-text" classList={{ "output-cue-off": !hasCaption() }}>
-            {heldCaption()}
-          </p>
-        </div>
-      </Show>
+      <div class="output-caption" classList={{ "output-cue-faded": !cuesShown() }}>
+        <p class="output-caption-text" classList={{ "output-cue-off": !hasCaption() }}>
+          {heldCaption()}
+        </p>
+      </div>
     </div>
   );
 }

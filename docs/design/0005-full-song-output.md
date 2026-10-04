@@ -45,26 +45,32 @@ is what portrait screens show.
   which knows the part's kind and label), and shown or hidden by the one
   setting, **Show parts**, on by default, which is the part cue (`cues.part`) of
   the part-by-part layout too: one idea, where you are in the song, drawn per
-  layout. Part by part it is one small marker over the song ("Verse 2",
-  "Chorus"), centred in the top band beside the number, in these markers' type
-  (0.55 of the lyrics' size, light, muted); here it is these markers. The
-  caption leaves the part out in both: the marker already says it. The
-  part-by-part marker names the part the focus is in, or, while scrolling by
-  hand, the one at the reading band's centre (`parts[].name`, the cue's own
-  label, sent beside `marker`). It reaches the Output in the presentation
-  message's `cues`. Turning it off lays the song out again without the rows. (It
+  layout. Part by part it is the same marker, one above the first line of each
+  part in the scroll, start-aligned with the part's text (the left edge of its
+  widest line, the lines being centred), in the same type (0.55 of the lyrics'
+  size, 400, spaced, muted) and in a fixed 0.825em row, so a script's tall
+  glyphs never collide with the line above or below. It is inside the part's
+  first line, so it scrolls with the part, the fit, the eyeline and the reading
+  band count its height, and the text (not the marker) is what centres; it is
+  lit with its part (a step under the lit ink) and recedes with the lines around
+  it. The chorus's pinned pane carries it too. The caption leaves the part out
+  in both: the marker already says it. It reaches the Output in the presentation
+  message's `cues`; part by part, turning it off lays the scroll out again
+  without the rows. Turning it off lays the song out again without the rows. (It
   replaces a separate "Part labels" switch; a stored `partLabels` is read once,
   the two merged: on if either was on.)
-- **Cues** (number badge, caption) are as in the scroll layout, except the
-  margins: here they grow to 16% only where a cue shows, and the fit respects
-  them. The scroll reserves both bands always (SDD-0001 § 16.1); this layout
-  keeps its own, since its columns use the whole height.
+- **Cues** (number badge, caption) are as in the scroll layout: the top and
+  bottom bands are **reserved**, 16% each, whether or not a cue shows in them
+  (SDD-0001 § 16.1). Toggling a cue fades its words and moves no lyric pixel
+  (verified frame by frame, 1280x720 and 1920x1080: 0px over every line, on a
+  Malayalam song of three pages and an English one); the bands' soft edges stay.
+  The fit respects them.
 - **Alignment**: one column, each part centred as the scroll shows it, its tint
   hugging its lines; two or more, lines left-aligned as printed.
 - **Parts** are boxes with padding 0.3em by 0.6em, nothing between them, so the
   text of two parts is 0.6em apart: about the half-line gap of the scroll. Whole
   parts are never split across columns.
-- **Margins**: 10% top and bottom, 5% left and right (the scroll's). Columns are
+- **Margins**: the bands, 16% top and bottom, 5% left and right. Columns are
   top-aligned, the block centred in what is left, both ways, with a gap of 3% of
   the width between columns.
 - **Landscape only**: a view wider than tall. A portrait Output keeps the scroll
@@ -83,8 +89,9 @@ DOM; it is given a way to measure.
 
 **Input**: the number of parts; `measure(columns, fit)`, giving each part's
 height in px at that column count and type scale (`fit`, the multiplier of
-`7.5cqmin`) and whether its longest word fits the column's width (Malayalam
-words do not break); the room, the safe height in px.
+`9cqmin`, `FULL_TYPE`: 1.2 times the 7.5cqmin it was) and whether its longest
+word fits the column's width (Malayalam words do not break); the room, the safe
+height in px.
 
 **Output**: the type scale `fit`, and the pages, each a list of columns, each a
 list of part indices; also whether it is below the floor.
@@ -94,23 +101,30 @@ list of part indices; also whether it is below the floor.
    squared column heights (the most even).
 2. **Feasible**: the tallest column fits the room and every word fits.
 3. **Fit per k**: the largest feasible scale, at most 1 (the scale model's full
-   size), by bisection (14 steps) down to 0.15. Heights are not exactly
-   monotonic in the scale, since wrapping changes; the bisection assumes they
-   are, and the final layout is checked (§ 3).
+   size), by bisection (14 steps) down to 0.125 (the same size as the 0.15 of
+   7.5cqmin). Heights are not exactly monotonic in the scale, since wrapping
+   changes; the bisection assumes they are, and the final layout is checked (§
+   3).
 4. **Columns**: k from 1 to 4, and the smallest k whose fit is within 10% of the
    best. A column is added only if it buys more than about 11% in type, so a
    short song stays one centred column.
 5. **Floor and pages** (§ 3).
 
-On the 1,907 songs of the two bundled books, at 1920x1080, with the floor at
-0.30: the median fit is 0.55 (45px); 1,233 songs take two columns, 245 three, 17
-four, 412 one. 7 songs fall below 0.30, the lowest 0.27. They are paged.
+On the 1,907 songs of the two bundled books, at 1920x1080 with the 16% bands:
+before the larger type (9cqmin was 7.5, the floor 0.30 of it, 24px) 1,884 songs
+were one page and 23 paged, the median type 36px (Malayalam) and 42px (English);
+now (the floor 0.2875 of 9cqmin, 28px) 1,805 are one page and 102 paged, the
+median 36px and 42px. The type a song gets is what fits, so a typical song is
+unchanged: the step is in the cap (a short song is set 20% larger) and the floor
+(a long one pages rather than going below 28px). A floor at the full 20% (29px)
+would page 135. 6 Malayalam songs still fall below the floor: a part taller than
+a column.
 
 ## 3. The floor, and pages
 
-The floor is a **fit of 0.30**: 24px at 1080p, 2.2% of the screen's height. A
-song whose best single-page fit is above it is one page. Below it the song is
-split, never scrolled:
+The floor is a **fit of 0.2875**: 28px at 1080p, 2.6% of the screen's height (it
+was 24px). A song whose best single-page fit is above it is one page. Below it
+the song is split, never scrolled:
 
 1. For 2 pages, 3, and so on up to one page per part, cut the printed order into
    runs of whole parts, balanced by the parts' heights at one column and the

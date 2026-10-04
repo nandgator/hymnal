@@ -2,12 +2,18 @@
 // whole, cut into balanced columns, the type as large as everything fits,
 // pages below a floor. Pure: the DOM is reached only through `measure`.
 
+/** The type at fit 1, as a share of the view's shorter side: 9cqmin, a step
+ * (1.2) above the 7.5cqmin it was, so a short song is set larger and a long
+ * one pages sooner than it shrinks (styles.css `.full-sheet`). */
+export const FULL_TYPE = 0.09;
 /** The type scale at its fullest: the scale model's own size. */
 export const FULL_FIT_MAX = 1;
-/** Below this the song splits into pages (24px on a 1080p screen). */
-export const FULL_FIT_FLOOR = 0.3;
-/** The least the type will ever go, when even pages cannot reach the floor. */
-export const FULL_FIT_MIN = 0.15;
+/** Below this the song splits into pages: 0.2875 of 9cqmin, 28px on a 1080p
+ * screen, 1.15 times the 24px it was (0.3 of 7.5cqmin). */
+export const FULL_FIT_FLOOR = 0.2875;
+/** The least the type will ever go, when even pages cannot reach the floor
+ * (the same size as before: 0.15 of the old). */
+export const FULL_FIT_MIN = 0.125;
 export const MAX_COLUMNS = 4;
 /** A column is added only if it buys more than 1/COLUMN_GAIN in type size. */
 export const COLUMN_GAIN = 0.9;

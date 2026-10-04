@@ -13,7 +13,7 @@ import {
 } from "solid-js";
 import type { PartId } from "../domain/types.ts";
 import { boxOf, glideTiming, prefersReducedMotion } from "../presenter/glideGeometry.ts";
-import { type FullLayout, layoutSong, type Sung } from "./fullSong.ts";
+import { FULL_TYPE, type FullLayout, layoutSong, type Sung } from "./fullSong.ts";
 import { newTintState, placeTint, type TintStep, TURN_RISE_PX } from "./fullSongGlide.ts";
 import {
   analyticMeasure,
@@ -120,7 +120,7 @@ export function prepareFullSong(
   const family = getComputedStyle(view).fontFamily;
   remember(
     key,
-    solveFor(parts, w, h, 0.075 * Math.min(cw, ch), { family, weight: "500" }, 0, sung),
+    solveFor(parts, w, h, FULL_TYPE * Math.min(cw, ch), { family, weight: "500" }, 0, sung),
     0,
   );
 }
@@ -211,8 +211,8 @@ export function FullSong(props: FullSongProps) {
     // The type's size at fit 1, as the page works it out.
     sheet.style.setProperty("--fit", "1");
     const style = getComputedStyle(sheet);
-    // 7.5cqmin, if the page gave no px size.
-    const emFull = Number.parseFloat(style.fontSize) || 0.075 * Math.min(w, h);
+    // FULL_TYPE of the shorter side, if the page gave no px size.
+    const emFull = Number.parseFloat(style.fontSize) || FULL_TYPE * Math.min(w, h);
     // No box to fit (nothing laid out yet): everything on one page.
     if (!(w > 0 && h > 0 && emFull > 0)) {
       const all = props.parts.map((_, i) => i);
