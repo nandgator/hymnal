@@ -992,37 +992,48 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
   const noticeText = (pattern: RegExp) =>
     screen.queryAllByText(pattern).filter((el) => !el.closest(".snackbar-leaving")).length;
 
-  it("ends Live: the window stays and goes dark, Go Live resumes it in place, no screen asked", async () => {
-    const { output, win } = await goLive();
+  /** The Output window obeying End Live: it closes, and its bye follows. */
+  const closesOnCommand = (output: BroadcastChannel, seen: unknown[]) => {
+    output.onmessage = (event) => {
+      seen.push(event.data);
+      if ((event.data as { type?: string }).type === "close")
+        output.postMessage({ type: "bye", id: "test-output" });
+    };
+  };
+
+  it("ends Live by closing the Output window; Go Live opens it again on the same screen, asking nothing", async () => {
+    const { output } = await goLive();
     const seen: unknown[] = [];
-    output.onmessage = (event) => seen.push(event.data);
+    closesOnCommand(output, seen);
     const opened = vi.mocked(window.open).mock.calls.length;
 
     fireEvent.click(screen.getByRole("button", { name: "End Live" }));
-    await waitFor(() => expect(seen).toContainEqual({ type: "ended", ended: true }));
-    // The header is Go Live again; the window was not touched.
+    await waitFor(() => expect(seen).toContainEqual({ type: "close" }));
     expect(await screen.findByRole("button", { name: "Go Live" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "On Air" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "End Live" })).not.toBeInTheDocument();
-    expect(win.moveTo).not.toHaveBeenCalled();
 
     await clickGoLive();
-    await waitFor(() => expect(seen).toContainEqual({ type: "ended", ended: false }));
+    await waitFor(() => expect(vi.mocked(window.open).mock.calls.length).toBe(opened + 1));
+    // A new window at the Output's URL, placed on the remembered screen.
+    const [url, , features] = vi.mocked(window.open).mock.calls[opened];
+    expect(String(url)).toContain("placed=1");
+    expect(String(features)).toContain(`left=${projector.left}`);
+    output.postMessage({ type: "hello", id: "test-output" });
     expect(await screen.findByRole("button", { name: "On Air" })).toBeInTheDocument();
-    // Only the named window was brought forward: nothing opened at a URL.
-    const later = vi.mocked(window.open).mock.calls.slice(opened);
-    expect(later.every(([url]) => url === "")).toBe(true);
     output.close();
   });
 
-  it("holds the update prompt while Live is ended (the window is still open), and shows it once the window closes", async () => {
+  it("holds the update prompt while live, and shows it once End Live has closed the window (#32)", async () => {
     const { output } = await goLive();
+    const seen: unknown[] = [];
+    closesOnCommand(output, seen);
     updates.set(true);
-    fireEvent.click(screen.getByRole("button", { name: "End Live" }));
-    await screen.findByRole("button", { name: "Go Live" });
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(noticeText(/Update ready/)).toBe(0);
-    output.postMessage({ type: "bye", id: "test-output" });
+    fireEvent.click(screen.getByRole("button", { name: "End Live" }));
+    await screen.findByRole("button", { name: "Go Live" });
+    await new Promise((resolve) => setTimeout(resolve, 600));
     await waitFor(() => expect(noticeText(/Update ready/)).toBeGreaterThan(0));
     output.close();
     updates.set(false);
@@ -1044,36 +1055,11 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     updates.set(false);
   });
 
-  it("an Operator reloaded while an Output is ended adopts it: Go Live, not On Air, and nothing posted over it", async () => {
-    const output = new BroadcastChannel("hymnal-output");
-    const seen: unknown[] = [];
-    output.onmessage = (event) => seen.push(event.data);
-    render(() => <App />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
-    // The Output answers the ping with what it holds.
-    output.postMessage({
-      type: "hello",
-      id: "held",
-      state: { blanked: false, ended: true },
-    });
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(screen.getByRole("button", { name: "Go Live" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "On Air" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "End Live" })).not.toBeInTheDocument();
-    expect(seen).not.toContainEqual({ type: "ended", ended: false });
-    // Go Live is the one thing that says it is lit again.
-    vi.spyOn(window, "open").mockReturnValue({ focus: vi.fn() } as unknown as Window);
-    await clickGoLive();
-    await waitFor(() => expect(seen).toContainEqual({ type: "ended", ended: false }));
-    expect(await screen.findByRole("button", { name: "On Air" })).toBeInTheDocument();
-    output.close();
-  });
-
   it("a blank the Output holds is adopted too, so Restore is offered", async () => {
     const output = new BroadcastChannel("hymnal-output");
     render(() => <App />);
     await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
-    output.postMessage({ type: "hello", id: "held", state: { blanked: true, ended: false } });
+    output.postMessage({ type: "hello", id: "held", state: { blanked: true } });
     expect(await screen.findByRole("button", { name: "Blanked" })).toBeInTheDocument();
     // Restore (B), so the held blank is not left for the next test.
     fireEvent.keyDown(window, { key: "b" });
@@ -1084,33 +1070,32 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
   it("ends Live from the keyboard (Shift+E) and from the command list, only while live", async () => {
     const { output } = await goLive();
     const seen: unknown[] = [];
-    output.onmessage = (event) => seen.push(event.data);
+    closesOnCommand(output, seen);
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const menu = await screen.findByRole("dialog", { name: "Search" });
     const option = within(menu).getByRole("option", { name: /End Live/ });
     expect(option.querySelector("kbd")?.textContent).toBe("Shift+E");
     fireEvent.mouseDown(option);
-    await waitFor(() => expect(seen).toContainEqual({ type: "ended", ended: true }));
+    await waitFor(() => expect(seen).toContainEqual({ type: "close" }));
     expect(await screen.findByRole("button", { name: "Go Live" })).toBeInTheDocument();
 
-    // Dark, there is nothing to end: neither the key nor the command.
+    // Closed, there is nothing to end: neither the key nor the command.
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const again = await screen.findByRole("dialog", { name: "Search" });
     expect(within(again).queryByRole("option", { name: /End Live/ })).not.toBeInTheDocument();
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
 
     await clickGoLive();
+    output.postMessage({ type: "hello", id: "test-output" });
     await screen.findByRole("button", { name: "On Air" });
     seen.length = 0;
     // A plain E does nothing; Shift+E ends it.
     fireEvent.keyDown(window, { key: "e" });
     fireEvent.keyDown(window, { key: "E", shiftKey: true });
-    await waitFor(() => expect(seen).toContainEqual({ type: "ended", ended: true }));
-    expect(seen.filter((m) => (m as { ended?: boolean }).ended === true)).toHaveLength(1);
-    // Lit again, so the held end is not left for the next test.
-    fireEvent.click(await screen.findByRole("button", { name: "Go Live" }));
-    await screen.findByRole("button", { name: "On Air" });
+    await waitFor(() => expect(seen).toContainEqual({ type: "close" }));
+    expect(seen.filter((m) => (m as { type?: string }).type === "close")).toHaveLength(1);
+    await screen.findByRole("button", { name: "Go Live" });
     output.close();
   });
 

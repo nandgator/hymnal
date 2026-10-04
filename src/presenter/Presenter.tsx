@@ -117,8 +117,6 @@ export interface PresenterProps {
   onToggleBlank?: () => void;
   /** An Output window is open: Live's dot is the on-air light. */
   presenting?: boolean;
-  /** Live has ended (End Live): the preview is as dark as the Output. */
-  outputEnded?: boolean;
   /** Which supporting panes show, by id; absent means shown (SDD-0001
    * §16.4). The shell keeps it in preferences. */
   panes?: Record<string, boolean>;
@@ -640,7 +638,7 @@ export function Presenter(props: PresenterProps) {
           partLabels={props.partLabels}
           landscape={props.liveLandscape}
           highlight={props.highlight}
-          classList={{ "live-blanked": !!props.blanked || !!props.outputEnded }}
+          classList={{ "live-blanked": !!props.blanked }}
         />
       )}
     </Show>
@@ -680,7 +678,7 @@ export function Presenter(props: PresenterProps) {
         <button
           type="button"
           class="live-strip-toggle"
-          classList={{ "live-blanked": !!props.blanked || !!props.outputEnded }}
+          classList={{ "live-blanked": !!props.blanked }}
           aria-expanded={liveExpanded()}
           onClick={() => setLiveExpanded((open) => !open)}
         >

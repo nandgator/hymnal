@@ -12,7 +12,7 @@ import {
 import type { LineRange } from "../domain/sequence-engine.ts";
 import type { BandSize, Highlight, OutputCues } from "../persistence/user-state.ts";
 import type { OutputMessage } from "./channel.ts";
-import { FullSong, prepareFullSong } from "./FullSong.tsx";
+import { FullSong, prepareFullSong, sungOf } from "./FullSong.tsx";
 import { signature } from "./fullSongText.ts";
 import { cancelSwap, swapLayouts } from "./layoutSwap.ts";
 
@@ -186,6 +186,19 @@ export function OutputView(props: OutputViewProps) {
     return props.partLabels === false ? parts.map(({ marker: _, ...part }) => part) : parts;
   });
 
+  // The parts in the order they are sung (one per occurrence), and where the
+  // focus is in it: a chorus sung on several pages is shown on each.
+  const sequence = createMemo(() =>
+    props.message.lines.flatMap((line) => (line.isPartStart ? [line.partId] : [])),
+  );
+  const sequenceAt = () => {
+    let at = -1;
+    for (let i = 0; i <= props.message.focus.start; i++)
+      if (props.message.lines[i]?.isPartStart) at++;
+    return Math.max(at, 0);
+  };
+  const sungParts = createMemo(() => sungOf(songParts(), props.message.chorus, sequence()));
+
   // Measure and lay the song out as it arrives, when the browser is idle, so
   // turning the layout on later has nothing left to do (SDD-0005 § 4).
   const partsSignature = createMemo(() => signature(songParts()));
@@ -194,7 +207,7 @@ export function OutputView(props: OutputViewProps) {
       const parts = songParts();
       if (!parts?.length || !view) return;
       const measure = () => {
-        if (view) prepareFullSong(view, parts, safeTop(), safeBottom());
+        if (view) prepareFullSong(view, parts, safeTop(), safeBottom(), sungParts());
       };
       if (typeof requestIdleCallback === "function") {
         const id = requestIdleCallback(measure, { timeout: 1000 });
@@ -627,6 +640,9 @@ export function OutputView(props: OutputViewProps) {
         <FullSong
           parts={songParts()}
           current={props.message.lines[props.message.focus.start]?.partId}
+          chorus={props.message.chorus}
+          sequence={sequence()}
+          at={sequenceAt()}
           lit={litWithinPart()}
           all={lightAll()}
           safeTop={safeTop()}

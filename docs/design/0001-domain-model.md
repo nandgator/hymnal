@@ -1482,27 +1482,29 @@ workspace, the dock.
   it's non-empty, Go live reads On air and brings the window forward
   (`window.open("", name)`, which never reloads it), and Live's dot is the
   on-air light.
-- **End Live.** Closing the Output window was the only way to stop presenting,
-  and the Live pane's own control only hides its preview. **End Live** ends the
-  presenting and leaves the window: the Output goes dark (the black screen of
-  Blank, faded the same way), and the header's button reads Go Live again; Go
-  Live then resumes on the same window, in place, without asking for a screen or
-  opening anything. It is one channel message, `{ type: "ended", ended }`, held
-  and replayed to a late Output like `blank` and kept apart from it: a blank
-  held before the end is still held after it, and Live's preview dims as for
-  Blank. It is reached from a button beside On Air in the switcher row (an icon
-  alone on a phone), the command menu ("End Live", while live) and **Shift+E**
-  (§16.5). The Output window is the source of truth: once told anything, it
-  reports its blank and ended state in its `hello` and `shape`, and a reloaded
-  Operator adopts it (the header reads Go Live) and never posts "not ended"
-  except on Go Live. A late join replays the settings and the dark states before
-  the content, and a window not yet told anything stays dark, so a dark Output
-  never paints the song and fades it. Closing the window clears it. While ended,
-  the Output is not on the screen as far as the Library is concerned (a book it
-  showed may be removed), though the update gate still treats an open window as
-  live. With several outputs one day (ADR-0028), End Live ends them all; ending
-  one would be an item in that output's own menu. Not built: there is one
-  Output.
+- **End Live.** Stopping the presenting meant reaching for the Output window
+  itself, which is on another screen, and the Live pane's own control only hides
+  its preview. **End Live** closes the Output window: the header's button reads
+  Go Live again, and Go Live then opens the window afresh, on the chosen screen
+  from the remembered screen and permission (ADR-0028), asking nothing again
+  where the browser allows. It is one channel command, `{ type: "close" }`,
+  never held and never replayed, so a window opened later is not closed by it;
+  the Output answers it with `window.close()`, and its own `bye` is what turns
+  the header to Go Live (the one way presence is known). It is reached from a
+  button beside On Air in the switcher row (an icon alone on a phone), the
+  command menu ("End Live", while an Output is open) and **Shift+E** (§16.5).
+  **Blank** is how to go dark and keep the window. A blank held when Live ends
+  is still held when it opens again, as it is held across anything. The Output
+  window is the source of truth for its blank: once told anything it reports it
+  in its `hello` and `shape`, and a reloaded Operator adopts it. A late join
+  replays the settings and the blank before the content, and a window not yet
+  told anything stays dark, so a blanked Output never paints the song and fades
+  it. Closing the window ends the presence, and the update gate (Board #32: no
+  update prompt while live) opens with it, though not before. A book it showed
+  may be removed once the window is gone (the Library's Remove Book sheet offers
+  End Live, which now closes the window). With several outputs one day
+  (ADR-0028), End Live closes them all; closing one would be an item in that
+  output's own menu. Not built: there is one Output.
 - **The Live pane's control is "Hide Live Preview"**, not "Hide Live", so it is
   never confused with ending Live: it hides the preview (the pane toggle, **L**,
   Settings' "Show Live Preview") and does nothing to the Output.
@@ -1548,7 +1550,7 @@ work too.
 | U                       | Undo the last repeat            |
 | B or .                  | Blank the Output / restore      |
 | O                       | Open or focus the Output window |
-| Shift+E                 | End Live: the Output goes dark  |
+| Shift+E                 | End Live: close the Output      |
 | N                       | Next tab (see below)            |
 | L                       | Show or hide Live Preview       |
 | / or Ctrl/⌘+K           | Command menu: hymns and actions |
@@ -1614,12 +1616,12 @@ Finder (§13) with actions listed ahead of the hymn results: an action shows whe
 every word typed starts a word of its name, so "bl" finds "Blank the Output". A
 number matches no action, so the Finder's fast path holds: `/`, a number, Enter.
 With the box empty, the actions show, each with its key. Actions: Blank or
-Restore the Output, Go live (Bring the Output forward, or resume it, while one
-is open), End Live (while live), Next tab, Split or merge the tabs and Make the
-other tab group main (only where two groups fit, from 1400px; they glide as the
-pane toolbar's do), Show or hide each pane, Switch hymnbook, Library, Settings,
-Text size up and down, Keyboard shortcuts, and the Output's band size. Repeat
-and Undo repeat show R and U; Show cues now has no key.
+Restore the Output, Go live (Bring the Output forward, while one is open), End
+Live (while one is open), Next tab, Split or merge the tabs and Make the other
+tab group main (only where two groups fit, from 1400px; they glide as the pane
+toolbar's do), Show or hide each pane, Switch hymnbook, Library, Settings, Text
+size up and down, Keyboard shortcuts, and the Output's band size. Repeat and
+Undo repeat show R and U; Show cues now has no key.
 
 ### 16.6 Testing
 

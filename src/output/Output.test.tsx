@@ -8,7 +8,7 @@ import { OutputView, type OutputViewProps } from "./OutputView.tsx";
 
 const channel = vi.hoisted(() => ({
   handler: undefined as ((message: OutputMessage) => void) | undefined,
-  stateOf: undefined as (() => { blanked: boolean; ended: boolean } | undefined) | undefined,
+  stateOf: undefined as (() => { blanked: boolean } | undefined) | undefined,
   unsubscribe: vi.fn(),
   requestSeek: vi.fn(),
   forwardKey: vi.fn(),
@@ -16,7 +16,7 @@ const channel = vi.hoisted(() => ({
 vi.mock("./channel.ts", () => ({
   subscribeOutput: (
     handler: (message: OutputMessage) => void,
-    stateOf?: () => { blanked: boolean; ended: boolean } | undefined,
+    stateOf?: () => { blanked: boolean } | undefined,
   ) => {
     channel.handler = handler;
     channel.stateOf = stateOf;
@@ -175,10 +175,10 @@ describe("Output", () => {
       bandSize: "part",
     });
     expect(view).not.toHaveClass("output-blanked");
-    expect(channel.stateOf?.()).toEqual({ blanked: false, ended: false });
+    expect(channel.stateOf?.()).toEqual({ blanked: false });
   });
 
-  it("a window opened while Live is ended never has the song lit: the replay's order, then its first paint", () => {
+  it("a window opened while blanked never has the song lit: the replay's order, then its first paint", () => {
     render(() => <Output />);
     channel.handler?.({
       type: "presentation",
@@ -187,7 +187,7 @@ describe("Output", () => {
       pinChorus: false,
       bandSize: "part",
     });
-    channel.handler?.({ type: "ended", ended: true });
+    channel.handler?.({ type: "blank", blanked: true });
     // The very first element made is already dark: nothing fades.
     const classes: string[] = [];
     const observer = new MutationObserver(() => {
@@ -199,25 +199,19 @@ describe("Output", () => {
     expect(view).toHaveClass("output-blanked");
     expect(classes.every((c) => c.includes("output-blanked"))).toBe(true);
     observer.disconnect();
-    expect(channel.stateOf?.()).toEqual({ blanked: false, ended: true });
+    expect(channel.stateOf?.()).toEqual({ blanked: true });
   });
 
-  it("goes dark when Live ends and comes back when it resumes, the window staying (End Live)", () => {
+  it("closes its own window when Live ends (End Live), and only then", () => {
+    const close = vi.spyOn(window, "close").mockImplementation(() => {});
     render(() => <Output />);
     show(0);
-    const view = screen.getByText("Line 1a").closest(".output-view");
-    channel.handler?.({ type: "ended", ended: true });
-    expect(view).toHaveClass("output-blanked");
-    // Content keeps arriving underneath.
-    show(2);
-    expect(screen.getByText("Chorus line")).toHaveClass("output-line-current");
-    channel.handler?.({ type: "ended", ended: false });
-    expect(view).not.toHaveClass("output-blanked");
-    // A blank held through the end is still held after it.
     channel.handler?.({ type: "blank", blanked: true });
-    channel.handler?.({ type: "ended", ended: true });
-    channel.handler?.({ type: "ended", ended: false });
-    expect(view).toHaveClass("output-blanked");
+    channel.handler?.({ type: "reveal" });
+    expect(close).not.toHaveBeenCalled();
+    channel.handler?.({ type: "close" });
+    expect(close).toHaveBeenCalledTimes(1);
+    close.mockRestore();
   });
 
   it("takes the Operator's Output theme, live (SDD-0001 §16.1)", () => {
@@ -415,13 +409,13 @@ describe("Output", () => {
       expect(calls.some(([k]) => k[0].opacity === 1)).toBe(true);
     });
 
-    it("leaves no lyric behind when the Output goes dark mid-swap, blanked or ended", async () => {
+    it("leaves no lyric behind when the Output goes dark mid-swap, blanked", async () => {
       await setUp(false);
       present(false);
       expect(document.querySelector(".output-swap")).toBeInTheDocument();
-      channel.handler?.({ type: "ended", ended: true });
+      channel.handler?.({ type: "blank", blanked: true });
       expect(document.querySelector(".output-swap")).not.toBeInTheDocument();
-      channel.handler?.({ type: "ended", ended: false });
+      channel.handler?.({ type: "blank", blanked: false });
       present(true);
       expect(document.querySelector(".output-swap")).toBeInTheDocument();
       channel.handler?.({ type: "blank", blanked: true });

@@ -594,7 +594,9 @@ view is close enough to the frame to need a smaller unit.
   window forward. Live's dot is the same on-air light: grey until then. On air
   is a custom colour, red harmonised to the amber seed (Material's method), with
   its own roles in both themes. Blanked is On Air's other state: **Blanked**,
-  the dot a ring.
+  the dot a ring. Beside it a quiet text button, **End Live** (an icon alone on
+  a phone), closes the Output window; the status then reads Go Live again. To go
+  dark and keep the window, Blank.
 - **Another tab** (Board #36; SDD-0001 §10.4). A tab that cannot hold the books
   (another tab has them) is a full page: the empty card's own shape centred on
   the page background, display-small **Hymnal is open in another tab**, one body
@@ -915,14 +917,18 @@ view is close enough to the frame to need a smaller unit.
   as few columns as buy type size; the type, one size for the song, shrinks to
   fit, down to a fit of 0.30 (24px on a 1080p screen). A song that would need
   less is split into pages of whole parts and the page turns with the tint; no
-  page says so. **The tint is a mark here**, the one exception to the rule
-  above: with no eyeline to say where the song is, a box behind the current part
-  (9% ink over the ground, the badge's tone, corners 0.4em) does, and the lit
-  part's text is lit, the rest dimmed, by colour alone. Margins, cues and the
-  ground are the scroll's. **Highlight on the Output** (Presentation, and the H
-  key) can be _Whole song_ in this layout and the scroll alike: every part at
-  full brightness, no tint, no dimming, for singing straight through; the switch
-  animates the colour and the tint in 250ms, at once under reduced motion.
+  page says so. A chorus the song sings after its verses is printed again on
+  each page that sings it, after the verse it follows, so the tint moves from a
+  verse to its chorus to the next verse of the page without a page turning; only
+  a step to a verse on another page turns it. **The tint is a mark here**, the
+  one exception to the rule above: with no eyeline to say where the song is, a
+  box behind the current part (9% ink over the ground, the badge's tone, corners
+  0.4em) does, and the lit part's text is lit, the rest dimmed, by colour alone.
+  Margins, cues and the ground are the scroll's. **Highlight on the Output**
+  (Presentation, and the H key) can be _Whole song_ in this layout and the
+  scroll alike: every part at full brightness, no tint, no dimming, for singing
+  straight through; the switch animates the colour and the tint in 250ms, at
+  once under reduced motion.
 - **One hard breakpoint** (`~60rem`), not to change the type scale but to cap
   reading-column width on a large display — unconstrained lines on a big screen
   are exactly as illegible as too-small text on a phone.

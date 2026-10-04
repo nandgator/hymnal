@@ -20,8 +20,9 @@ SDD-0001 §16.1's scroll stays the default and is what portrait screens show.
 - **Printed order**: the song's parts in the order the song stores them, each
   once. A chorus the sequence repeats is printed once, where the book prints it,
   and the tint returns to it each time. The sequence moves the tint, never the
-  page. A back-to-back repeat (×N) is already one run in the Output's lines, so
-  it changes nothing here.
+  page. (On a song that is split into pages, the chorus is printed once on each
+  page that sings it: § 3.) A back-to-back repeat (×N) is already one run in the
+  Output's lines, so it changes nothing here.
 - **The tint** sits behind the current part: 9% ink over the ground, the tone of
   the number badge, corners 0.4em. The lit text is `output-ink`, the rest
   `output-ink-dimmed`: colour only, never size or weight. Under line focus the
@@ -123,6 +124,23 @@ with its page (§ 4). Under reduced motion it is at once. A step that comes whil
 a turn is running lands at once, so two turns never overlap. Nothing on screen
 says there are pages.
 
+**The chorus on every page.** On a paged song that sings a chorus more than
+once, the chorus is not printed once for the Output to flip back to each time it
+is sung; each page is its verses with the chorus after each verse that the
+sequence follows with it, in sung order (before the first verse, if the song
+opens on the chorus). Moving verse, chorus, next verse on one page needs no page
+turn: only a step to a verse on another page turns it. The chorus after a page's
+last verse stays on that page. The tint lands on the chorus copy that follows
+the verse just sung. The repeated chorus is counted in the fit: the verses are
+cut into pages by their height with their chorus, and a page's items are its
+slots, so the pages still fit with part labels on or off. A page of verse and
+chorus that cannot reach the floor, where the plain split (the chorus printed
+once, the Output flipping to it) can reach it or goes less far below it, falls
+back to the plain split for that song. A song that fits one page is unchanged:
+the chorus is printed once. The layout's pages hold slots (a part's place on a
+page) and the layout says which part each slot shows; the content message
+carries the sung order (the lines it already holds) and the hymn's chorus.
+
 ## 4. The tint's motion
 
 All durations are the app's medium (250ms) at the emphasised easing, through
@@ -219,11 +237,14 @@ the part of the focused line. A message without `parts` shows the scroll.
 
 `fullSong.test.ts` pins the rule with a synthetic measure: balancing, ties, the
 smaller column count, the floor and pages, one part, a part taller than a
-column. `fullSongText.test.ts` pins the arithmetic: breaking, wrapping, heights,
-and that the rule runs on it. `FullSong.test.tsx` checks the order, the tint's
-part, the lit lines, the page shown, a turn with both pages mounted and the old
-one gone at its end, the tint on the new part's box once its page is there, the
-markers, and the layout made again when the page disagrees. `Output.test.tsx`
-checks the markers' setting and the swap between layouts. The glide's geometry
-is the existing one's, tested there; its page-turn timing (the two sum to one)
-is pinned in `fullSongGlide.test.ts`.
+column, and the chorus on every page (after each verse, in sung order, an
+opening chorus, counted in the fit, the fall back, a chorus sung once).
+`fullSongText.test.ts` pins the arithmetic: breaking, wrapping, heights, and
+that the rule runs on it. `FullSong.test.tsx` checks the order, the tint's part,
+the lit lines, the page shown, a turn with both pages mounted and the old one
+gone at its end, the tint on the new part's box once its page is there, the
+markers, the layout made again when the page disagrees, and a pass over a whole
+sung order with a repeated chorus: the tint on the right copy and a page turning
+only into a verse. `Output.test.tsx` checks the markers' setting and the swap
+between layouts. The glide's geometry is the existing one's, tested there; its
+page-turn timing (the two sum to one) is pinned in `fullSongGlide.test.ts`.

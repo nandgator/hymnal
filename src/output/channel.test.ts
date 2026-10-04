@@ -1,10 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  forgetOutputEnded,
+  closeOutput,
   publishOutput,
   requestSeek,
   setOutputBlanked,
-  setOutputEnded,
   setOutputPresentation,
   subscribeOutput,
   subscribeOutputShape,
@@ -201,29 +200,24 @@ describe("output channel", () => {
     otherWindow.close();
   });
 
-  it("sends End Live and Go Live, and replays a held end to a late Output", async () => {
+  it("sends End Live as a close command, and never replays it to a late Output", async () => {
     const otherWindow = new BroadcastChannel(CHANNEL_NAME);
-    const ended = nextMessage(otherWindow);
-    setOutputEnded(true);
-    expect(await ended).toEqual({ type: "ended", ended: true });
+    const closing = nextMessage(otherWindow);
+    closeOutput();
+    expect(await closing).toEqual({ type: "close" });
 
     const seen: unknown[] = [];
     otherWindow.onmessage = record(seen);
-    otherWindow.postMessage({ type: "hello" });
+    otherWindow.postMessage({ type: "hello", id: "next" });
     await settle(otherWindow);
-    expect(seen).toContainEqual({ type: "ended", ended: true });
-
-    setOutputEnded(false);
-    await settle(otherWindow);
-    expect(seen.at(-1)).toEqual({ type: "ended", ended: false });
+    expect(seen).not.toContainEqual({ type: "close" });
     otherWindow.close();
   });
 
-  it("replays the settings and the dark states before the content, so a dark window never paints the song", async () => {
+  it("replays the settings and the blank state before the content, so a dark window never paints the song", async () => {
     const otherWindow = new BroadcastChannel(CHANNEL_NAME);
     setOutputPresentation({ theme: "warm", cues: {}, pinChorus: false, bandSize: "part" });
     setOutputBlanked(true);
-    setOutputEnded(true);
     publishOutput({ type: "idle" });
     await settle(otherWindow);
     const seen: string[] = [];
@@ -232,9 +226,8 @@ describe("output channel", () => {
     };
     otherWindow.postMessage({ type: "hello", id: "late" });
     await settle(otherWindow);
-    expect(seen).toEqual(["presentation", "blank", "ended", "idle"]);
+    expect(seen).toEqual(["presentation", "blank", "idle"]);
     setOutputBlanked(false);
-    setOutputEnded(false);
     otherWindow.close();
   });
 
@@ -244,27 +237,19 @@ describe("output channel", () => {
     const unsubscribe = subscribeOutputState((state) => states.push(state));
     const seen: unknown[] = [];
     otherWindow.onmessage = record(seen);
-    // A reloaded Operator knows nothing; the Output says it is ended.
-    otherWindow.postMessage({
-      type: "hello",
-      id: "held",
-      state: { blanked: false, ended: true },
-    });
+    // A reloaded Operator knows nothing; the Output says it is blanked.
+    otherWindow.postMessage({ type: "hello", id: "held", state: { blanked: true } });
     await settle(otherWindow);
-    expect(states).toEqual([{ blanked: false, ended: true }]);
-    expect(seen).toContainEqual({ type: "ended", ended: true });
-    expect(seen).not.toContainEqual({ type: "ended", ended: false });
+    expect(states).toEqual([{ blanked: true }]);
+    expect(seen).toContainEqual({ type: "blank", blanked: true });
+    expect(seen).not.toContainEqual({ type: "blank", blanked: false });
     // A window with no state is new: it is told, not adopted from.
     seen.length = 0;
     otherWindow.postMessage({ type: "hello", id: "new" });
     await settle(otherWindow);
     expect(states).toHaveLength(1);
-    expect(seen).toContainEqual({ type: "ended", ended: true });
-    // A closed window's end is forgotten without a word.
-    seen.length = 0;
-    forgetOutputEnded();
-    await settle(otherWindow);
-    expect(seen).toEqual([]);
+    expect(seen).toContainEqual({ type: "blank", blanked: true });
+    setOutputBlanked(false);
     unsubscribe();
     otherWindow.close();
   });
@@ -273,14 +258,14 @@ describe("output channel", () => {
     const operator = new BroadcastChannel(CHANNEL_NAME);
     const seen: { type: string; state?: unknown }[] = [];
     operator.onmessage = record(seen);
-    let state: { blanked: boolean; ended: boolean } | undefined;
+    let state: { blanked: boolean } | undefined;
     const unsubscribe = subscribeOutput(
       () => {},
       () => state,
     );
     await settle(operator);
     expect(seen.find((m) => m.type === "hello")?.state).toBeUndefined();
-    state = { blanked: true, ended: false };
+    state = { blanked: true };
     operator.postMessage({ type: "ping" });
     await settle(operator);
     expect(seen.filter((m) => m.type === "hello").at(-1)?.state).toEqual(state);
@@ -288,13 +273,13 @@ describe("output channel", () => {
     operator.close();
   });
 
-  it("delivers an end to the Output's handler", async () => {
+  it("delivers a close to the Output's handler", async () => {
     const operator = new BroadcastChannel(CHANNEL_NAME);
     const seen: unknown[] = [];
     const unsubscribe = subscribeOutput((message) => seen.push(message));
-    operator.postMessage({ type: "ended", ended: true });
+    operator.postMessage({ type: "close" });
     await settle(operator);
-    expect(seen).toContainEqual({ type: "ended", ended: true });
+    expect(seen).toContainEqual({ type: "close" });
     unsubscribe();
     operator.close();
   });

@@ -347,3 +347,92 @@ describe("signature", () => {
     ).not.toBe(a);
   });
 });
+
+// The chorus sung after every verse, in a song that pages: it is shown on each
+// page that sings it, so only a step to a verse on another page turns the page.
+describe("a chorus repeated on every page", () => {
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 30));
+  const VERSES = Array.from({ length: 12 }, (_, i) => ({
+    id: `s${i + 1}`,
+    lines: Array.from({ length: 12 }, (_, k) => `Verse ${i + 1} line ${k + 1} of the hymn`),
+  }));
+  const SONG = [
+    VERSES[0],
+    { id: "c", lines: ["Chorus a of the hymn", "Chorus b of the hymn"] },
+    ...VERSES.slice(1),
+  ];
+  const sequence = SONG.filter((p) => p.id !== "c").flatMap((p) => [p.id, "c"]);
+  const pagesIn = (container: HTMLElement) =>
+    [...container.querySelectorAll<HTMLElement>(".full-page")].map((p) => [
+      p.dataset.page,
+      p.dataset.turn,
+    ]);
+  const textsOn = (container: HTMLElement, page: string) =>
+    [...container.querySelectorAll(`.full-page[data-page="${page}"] .full-part`)].map(
+      (p) => p.querySelector(".full-line")?.textContent,
+    );
+  const renderAt = (at: () => number, height = 220) => {
+    box("clientHeight", height);
+    return render(() => (
+      <FullSong
+        {...props({
+          parts: SONG,
+          chorus: "c",
+          sequence,
+          current: sequence[at()],
+          at: at(),
+        })}
+      />
+    ));
+  };
+
+  it("lays each page's verses with the chorus after each, and turns only between verses on different pages", async () => {
+    const [at, setAt] = createSignal(0);
+    const { container } = renderAt(at);
+    await settle();
+    expect(pagesIn(container)).toHaveLength(1); // one page mounted at a time
+    const first = textsOn(container, "0");
+    // Verse, chorus, verse, chorus: more than one chorus on the page.
+    expect(first.filter((t) => t?.startsWith("Chorus")).length).toBeGreaterThan(1);
+    expect(first.filter((t) => t?.startsWith("Verse")).length).toBeGreaterThan(1);
+
+    // Step through the whole sung order: a page turns only into a verse.
+    let page = "0";
+    for (let k = 1; k < sequence.length; k++) {
+      setAt(k);
+      await Promise.resolve();
+      const turned = pagesIn(container).length > 1;
+      const isChorus = sequence[k] === "c";
+      if (isChorus) expect(turned).toBe(false);
+      // The turn ends when the new page's animation does.
+      container
+        .querySelector(".full-page[data-turn='in']")
+        ?.dispatchEvent(new Event("animationend", { bubbles: true }));
+      await settle();
+      const now = pagesIn(container);
+      expect(now).toHaveLength(1);
+      const nextPage = now[0][0] as string;
+      if (turned) expect(nextPage).not.toBe(page);
+      else expect(nextPage).toBe(page);
+      page = nextPage;
+      const label = isChorus ? "Chorus" : `Verse ${Number(sequence[k].slice(1))}`;
+      expect(container.querySelector(".full-part-current")).toHaveTextContent(label);
+    }
+    expect(page).not.toBe("0");
+  });
+
+  it("tints the chorus copy that follows the verse just sung", async () => {
+    const [at, setAt] = createSignal(1);
+    const { container } = renderAt(at);
+    await settle();
+    const copies = () =>
+      [...container.querySelectorAll(".full-page .full-part")].filter((p) =>
+        p.textContent?.startsWith("Chorus"),
+      );
+    // Sung: s1, c, s2, c ...: the first copy follows s1.
+    expect(container.querySelector(".full-part-current")).toBe(copies()[0]);
+    setAt(3); // the chorus after s2
+    await settle();
+    expect(container.querySelector(".full-part-current")).toBe(copies()[1]);
+  });
+});

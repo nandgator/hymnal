@@ -28,7 +28,11 @@ export type Measure = (columns: number, fit: number) => Measured;
 export interface FullLayout {
   /** The type scale, a multiplier of the Output's line size. */
   fit: number;
-  /** Pages, each a list of columns, each a list of printed part indices. */
+  /** What each slot shows: its printed part index. A slot is a part's place
+   * on a page. Printed once each, it is the part itself (the identity); on a
+   * paged song the chorus has a slot after each verse it follows on a page. */
+  slots: number[];
+  /** Pages, each a list of columns, each a list of slots. */
   pages: { columns: number[][] }[];
   /** No split reached the floor: a part too tall, the type below it. */
   belowFloor: boolean;
@@ -149,9 +153,11 @@ function fitPage(parts: number[], measure: Measure, room: number): PageFit {
 }
 
 /** A page's columns at the song's scale: its own count, or more if wrapping
- * made that one infeasible there. */
+ * made that one infeasible there. `parts` are what the page's items show;
+ * `slotIds` name them, in the columns returned. */
 function columnsAt(
   parts: number[],
+  slotIds: number[],
   preferred: number,
   fit: number,
   measure: Measure,
@@ -162,7 +168,7 @@ function columnsAt(
     if (c !== preferred) counts.push(c);
   for (const columns of counts) {
     const balanced = tryColumns(parts, columns, fit, measure, room);
-    if (balanced) return balanced.groups.map((g) => g.map((k) => parts[k]));
+    if (balanced) return balanced.groups.map((g) => g.map((k) => slotIds[k]));
   }
   // Nothing is feasible (a part taller than the room): the most even cut at
   // the preferred count, overflowing.
@@ -171,7 +177,15 @@ function columnsAt(
     parts.map((p) => heights[p]),
     Math.min(preferred, parts.length),
   );
-  return (fallback?.groups ?? [parts.map((_, k) => k)]).map((g) => g.map((k) => parts[k]));
+  return (fallback?.groups ?? [parts.map((_, k) => k)]).map((g) => g.map((k) => slotIds[k]));
+}
+
+/** The song as it is sung, for a chorus repeated on every page (SDD-0005 § 3):
+ * the printed index of the chorus, and the printed index of each part in
+ * sung order (a run of one part counted once). */
+export interface Sung {
+  chorus: number;
+  order: number[];
 }
 
 /**
@@ -182,14 +196,20 @@ function columnsAt(
  * floor) whose smallest page fit reaches it; if none does, the split with the
  * largest fit, flagged below the floor. The type is one size for the song:
  * the smallest page's.
+ *
+ * Given how the song is sung and a chorus sung more than once, a paged song
+ * puts the chorus on each page that sings it, after the verse it follows
+ * ({@link layoutRepeating}); where that cannot reach the floor and the plain
+ * split does better, the plain split stands.
  */
-export function layoutSong(count: number, measure: Measure, room: number): FullLayout {
-  if (count <= 0) return { fit: FULL_FIT_MAX, pages: [], belowFloor: false };
-  const all = Array.from({ length: count }, (_, i) => i);
-  const whole = fitPage(all, measure, room);
+export function layoutSong(count: number, measure: Measure, room: number, sung?: Sung): FullLayout {
+  const identity = Array.from({ length: count }, (_, i) => i);
+  if (count <= 0) return { fit: FULL_FIT_MAX, slots: [], pages: [], belowFloor: false };
+  const whole = fitPage(identity, measure, room);
   const single = (): FullLayout => ({
     fit: whole.fit,
-    pages: [{ columns: columnsAt(all, whole.columns, whole.fit, measure, room) }],
+    slots: identity,
+    pages: [{ columns: columnsAt(identity, identity, whole.columns, whole.fit, measure, room) }],
     belowFloor: whole.fit < FULL_FIT_FLOOR,
   });
   if (whole.fit >= FULL_FIT_FLOOR || count === 1) return single();
@@ -209,9 +229,80 @@ export function layoutSong(count: number, measure: Measure, room: number): FullL
   }
   if (!chosen || chosen.fit <= whole.fit) return single();
   const { pages, fits, fit } = chosen;
+  const plain: FullLayout = {
+    fit,
+    slots: identity,
+    pages: pages.map((g, i) => ({
+      columns: columnsAt(g, g, fits[i].columns, fit, measure, room),
+    })),
+    belowFloor: fit < FULL_FIT_FLOOR,
+  };
+  const repeating = sung ? layoutRepeating(count, measure, room, sung, weights) : null;
+  if (!repeating) return plain;
+  // The chorus on every page is not worth type below the floor that the
+  // plain split does not need.
+  if (repeating.belowFloor && repeating.fit < plain.fit) return plain;
+  return repeating;
+}
+
+/**
+ * The paged layout with the chorus repeated: the verses (every part but the
+ * chorus) are cut into pages, each page showing its verses in printed order
+ * with the chorus after each one it follows in the sung order (before the
+ * first, if the song opens on it), so a step from a verse to its chorus and
+ * on to the next verse of the page turns nothing. Null when the song sings
+ * its chorus once or never, or has fewer than two other parts.
+ */
+function layoutRepeating(
+  count: number,
+  measure: Measure,
+  room: number,
+  { chorus, order }: Sung,
+  weights: number[],
+): FullLayout | null {
+  if (order.filter((p) => p === chorus).length < 2) return null;
+  const verses = Array.from({ length: count }, (_, i) => i).filter((i) => i !== chorus);
+  if (verses.length < 2) return null;
+  const follows = new Set<number>();
+  for (const [i, part] of order.entries())
+    if (part === chorus && i > 0 && order[i - 1] !== chorus) follows.add(order[i - 1]);
+  const opening = order[0] === chorus ? order.find((p) => p !== chorus) : undefined;
+  const itemsOf = (run: number[]) =>
+    run.flatMap((p) => [
+      ...(p === opening ? [chorus] : []),
+      p,
+      ...(follows.has(p) ? [chorus] : []),
+    ]);
+  const cutWeights = verses.map(
+    (p) =>
+      weights[p] + (follows.has(p) ? weights[chorus] : 0) + (p === opening ? weights[chorus] : 0),
+  );
+
+  let chosen: { pages: number[][]; fits: PageFit[]; fit: number } | null = null;
+  for (let pages = 2; pages <= verses.length; pages++) {
+    const cut = balance(cutWeights, pages);
+    if (!cut) break;
+    const items = cut.groups.map((g) => itemsOf(g.map((k) => verses[k])));
+    const fits = items.map((it) => fitPage(it, measure, room));
+    const fit = Math.min(...fits.map((f) => f.fit));
+    if (!chosen || fit > chosen.fit) chosen = { pages: items, fits, fit };
+    if (fit >= FULL_FIT_FLOOR) {
+      chosen = { pages: items, fits, fit };
+      break;
+    }
+  }
+  if (!chosen) return null;
+  const { pages, fits, fit } = chosen;
+  const slots = pages.flat();
+  let base = 0;
   return {
     fit,
-    pages: pages.map((g, i) => ({ columns: columnsAt(g, fits[i].columns, fit, measure, room) })),
+    slots,
+    pages: pages.map((items, i) => {
+      const slotIds = items.map((_, k) => base + k);
+      base += items.length;
+      return { columns: columnsAt(items, slotIds, fits[i].columns, fit, measure, room) };
+    }),
     belowFloor: fit < FULL_FIT_FLOOR,
   };
 }

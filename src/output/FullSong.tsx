@@ -13,7 +13,7 @@ import {
 } from "solid-js";
 import type { PartId } from "../domain/types.ts";
 import { boxOf, glideTiming, prefersReducedMotion } from "../presenter/glideGeometry.ts";
-import { type FullLayout, layoutSong } from "./fullSong.ts";
+import { type FullLayout, layoutSong, type Sung } from "./fullSong.ts";
 import { newTintState, placeTint, type TintStep, TURN_RISE_PX } from "./fullSongGlide.ts";
 import {
   analyticMeasure,
@@ -55,8 +55,24 @@ const kept = new Map<string, Kept>();
 
 type SongPart = { id: string; lines: string[]; marker?: string };
 
-const layoutKey = (parts: SongPart[], w: number, h: number) =>
-  `${signature(parts)}|${w}x${h}|${fontsEpoch()}`;
+/** The chorus and the order the song is sung in, as printed indices, for a
+ * chorus repeated on every page; none for a song that sings it once. */
+export function sungOf(
+  parts: SongPart[],
+  chorus: PartId | undefined,
+  sequence: PartId[] | undefined,
+): Sung | undefined {
+  if (chorus === undefined || !sequence) return undefined;
+  const at = parts.findIndex((p) => p.id === chorus);
+  if (at < 0) return undefined;
+  const order = sequence
+    .map((id) => parts.findIndex((p) => p.id === id))
+    .filter((i, k, all) => i >= 0 && i !== all[k - 1]);
+  return order.filter((i) => i === at).length > 1 ? { chorus: at, order } : undefined;
+}
+
+const layoutKey = (parts: SongPart[], w: number, h: number, sung?: Sung) =>
+  `${signature(parts)}|${w}x${h}|${fontsEpoch()}|${sung ? `${sung.chorus}:${sung.order.join(",")}` : ""}`;
 
 function remember(key: string, layout: FullLayout, nudge: number) {
   kept.set(key, { layout, nudge });
@@ -72,10 +88,11 @@ function solveFor(
   emFull: number,
   font: { family: string; weight: string },
   nudge: number,
+  sung?: Sung,
 ): FullLayout {
   const metrics = metricsFor(parts, font.family, font.weight);
   const measure = analyticMeasure(metrics, emFull, w, w * COLUMN_GAP);
-  return layoutSong(parts.length, measure, h * NUDGE ** nudge);
+  return layoutSong(parts.length, measure, h * NUDGE ** nudge, sung);
 }
 
 /** Forget the layouts kept (for tests). */
@@ -92,15 +109,20 @@ export function prepareFullSong(
   parts: SongPart[],
   safeTop: number,
   safeBottom: number,
+  sung?: Sung,
 ) {
   const { clientWidth: cw, clientHeight: ch } = view;
   if (!(cw > 0 && ch > 0) || parts.length === 0) return;
   const w = Math.round(cw * 0.9);
   const h = Math.round(ch * (1 - safeTop - safeBottom));
-  const key = layoutKey(parts, w, h);
+  const key = layoutKey(parts, w, h, sung);
   if (kept.has(key)) return;
   const family = getComputedStyle(view).fontFamily;
-  remember(key, solveFor(parts, w, h, 0.075 * Math.min(cw, ch), { family, weight: "500" }, 0), 0);
+  remember(
+    key,
+    solveFor(parts, w, h, 0.075 * Math.min(cw, ch), { family, weight: "500" }, 0, sung),
+    0,
+  );
 }
 
 export interface FullSongProps {
@@ -109,6 +131,12 @@ export interface FullSongProps {
   parts: { id: PartId; lines: string[]; marker?: string }[];
   /** The part being sung. */
   current: PartId | undefined;
+  /** The hymn's chorus, and the parts in the order they are sung (a repeat
+   * counted once), with where in it the current one is: a chorus sung
+   * several times is repeated on each page that sings it (SDD-0005 § 3). */
+  chorus?: PartId;
+  sequence?: PartId[];
+  at?: number;
   /** The lines lit within it, when the focus is one line; else the part. */
   lit: { start: number; end: number } | null;
   /** The safe margins, as shares of the height: more where a cue shows. */
@@ -156,12 +184,17 @@ export function FullSong(props: FullSongProps) {
   let layoutId = 0;
 
   const currentIndex = createMemo(() => props.parts.findIndex((p) => p.id === props.current));
+  const sung = createMemo(() => sungOf(props.parts, props.chorus, props.sequence));
+  const sungKey = createMemo(() => {
+    const s = sung();
+    return s ? `${s.chorus}:${s.order.join(",")}` : "";
+  });
 
   // What a layout depends on, so it is made again only when one changes: the
   // song's identity and its parts' text (an edit changes it; the sequence
   // moving does not), the box, the margins, and the fonts.
   const songKey = createMemo(() => props.songKey);
-  const partsKey = createMemo(() => `${songKey()}#${signature(props.parts)}`);
+  const partsKey = createMemo(() => `${songKey()}#${signature(props.parts)}#${sungKey()}`);
   const safeTop = createMemo(() => props.safeTop);
   const safeBottom = createMemo(() => props.safeBottom);
   let lastKey = "";
@@ -170,7 +203,7 @@ export function FullSong(props: FullSongProps) {
    * smaller than the first when the page has disagreed. */
   const build = (nudge: number): Computed => {
     const { clientWidth: w, clientHeight: h } = sheet;
-    const key = layoutKey(props.parts, w, h);
+    const key = layoutKey(props.parts, w, h, untrack(sung));
     layoutId += 1;
     const made = { sheetWidth: w, id: layoutId, key, room: h, nudge };
     const have = nudge === 0 ? kept.get(key) : undefined;
@@ -183,7 +216,7 @@ export function FullSong(props: FullSongProps) {
     // No box to fit (nothing laid out yet): everything on one page.
     if (!(w > 0 && h > 0 && emFull > 0)) {
       const all = props.parts.map((_, i) => i);
-      return { ...made, fit: 1, pages: [{ columns: [all] }], belowFloor: false };
+      return { ...made, fit: 1, slots: all, pages: [{ columns: [all] }], belowFloor: false };
     }
     const layout = solveFor(
       props.parts,
@@ -192,6 +225,7 @@ export function FullSong(props: FullSongProps) {
       emFull,
       { family: style.fontFamily, weight: style.fontWeight },
       nudge,
+      untrack(sung),
     );
     remember(key, layout, nudge);
     return { ...made, ...layout };
@@ -234,6 +268,24 @@ export function FullSong(props: FullSongProps) {
     onCleanup(() => observer.disconnect());
   });
 
+  /** The slot the current part is shown in. A part on one page is in one
+   * slot; a chorus repeated on pages has one after each verse it follows, and
+   * the current one is the copy after the part sung before it. */
+  const currentSlot = createMemo(() => {
+    const l = layout();
+    const part = currentIndex();
+    if (!l || part < 0 || l.slots.length === props.parts.length) return part;
+    const copies = l.slots.flatMap((p, s) => (p === part ? [s] : []));
+    if (copies.length < 2) return copies[0] ?? part;
+    // The part sung just before this one; none at the start, where the copy
+    // is the one before the song's first verse.
+    const sequence = props.sequence ?? [];
+    let k = (props.at ?? 0) - 1;
+    while (k >= 0 && sequence[k] === props.current) k--;
+    const before = k >= 0 ? props.parts.findIndex((p) => p.id === sequence[k]) : -1;
+    return copies.find((s) => l.slots[s - 1] === before) ?? copies[0];
+  });
+
   const locate = (l: Computed, index: number) => {
     for (const [page, { columns }] of l.pages.entries()) {
       const column = columns.findIndex((c) => c.includes(index));
@@ -247,7 +299,7 @@ export function FullSong(props: FullSongProps) {
   let was: { part: number; layout: Computed | null } | null = null;
   const step = createMemo((): TintStep => {
     const l = layout();
-    const part = currentIndex();
+    const part = currentSlot();
     props.all; // a toggle is a colour change: timed, not snapped
     const before = was;
     was = { part, layout: l };
@@ -262,7 +314,7 @@ export function FullSong(props: FullSongProps) {
 
   const targetPage = createMemo(() => {
     const l = layout();
-    return (l && locate(l, currentIndex())?.page) || 0;
+    return (l && locate(l, currentSlot())?.page) || 0;
   });
 
   // A new layout shows its current page at once.
@@ -411,7 +463,7 @@ export function FullSong(props: FullSongProps) {
     search();
     const l = layout();
     shown();
-    const index = currentIndex();
+    const index = currentSlot();
     const how = step();
     if (!l) return;
     const el = findPart(index);
@@ -495,37 +547,40 @@ export function FullSong(props: FullSongProps) {
                       {(column) => (
                         <div class="full-col" classList={{ "full-col-single": single() }}>
                           <For each={column}>
-                            {(index) => (
-                              <div
-                                class="full-part"
-                                classList={{ "full-part-current": index === currentIndex() }}
-                                data-part-index={index}
-                              >
-                                <Show when={props.parts[index]?.marker}>
-                                  {(marker) => (
-                                    <div class="full-marker" aria-hidden="true">
-                                      <span class="full-marker-text">{marker()}</span>
-                                    </div>
-                                  )}
-                                </Show>
-                                <Index each={props.parts[index]?.lines ?? []}>
-                                  {(text, k) => (
-                                    <div
-                                      class="full-line"
-                                      classList={{
-                                        "full-line-lit":
-                                          !!props.all ||
-                                          (index === currentIndex() &&
-                                            (!props.lit ||
-                                              (k >= props.lit.start && k < props.lit.end))),
-                                      }}
-                                    >
-                                      {text()}
-                                    </div>
-                                  )}
-                                </Index>
-                              </div>
-                            )}
+                            {(slot) => {
+                              const index = () => layout()?.slots[slot] ?? slot;
+                              return (
+                                <div
+                                  class="full-part"
+                                  classList={{ "full-part-current": slot === currentSlot() }}
+                                  data-part-index={slot}
+                                >
+                                  <Show when={props.parts[index()]?.marker}>
+                                    {(marker) => (
+                                      <div class="full-marker" aria-hidden="true">
+                                        <span class="full-marker-text">{marker()}</span>
+                                      </div>
+                                    )}
+                                  </Show>
+                                  <Index each={props.parts[index()]?.lines ?? []}>
+                                    {(text, k) => (
+                                      <div
+                                        class="full-line"
+                                        classList={{
+                                          "full-line-lit":
+                                            !!props.all ||
+                                            (slot === currentSlot() &&
+                                              (!props.lit ||
+                                                (k >= props.lit.start && k < props.lit.end))),
+                                        }}
+                                      >
+                                        {text()}
+                                      </div>
+                                    )}
+                                  </Index>
+                                </div>
+                              );
+                            }}
                           </For>
                         </div>
                       )}

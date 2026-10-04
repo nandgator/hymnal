@@ -33,10 +33,9 @@ export type OutputMessage =
   /** Hides what's presented, or shows it again — distinct from `idle`,
    * which means nothing is presented (SDD-0001 §16.5). */
   | { type: "blank"; blanked: boolean }
-  /** End Live, or Go Live again: the window stays open and goes dark, held
-   * apart from blank (which it leaves as it was), so it resumes in place
-   * without the window being opened again (SDD-0001 §16.4). */
-  | { type: "ended"; ended: boolean }
+  /** End Live: the Output window closes itself (SDD-0001 §16.4). A command,
+   * never held or replayed, so a window opened later is not closed by it. */
+  | { type: "close" }
   /** The Operator's Presentation settings, followed live (SDD-0001 §16.1). */
   | PresentationMessage
   /** Show faded cues again for a while — a moment, never replayed. */
@@ -57,9 +56,9 @@ export type PresentationMessage = {
   bandSize: BandSize;
 };
 
-/** What the Output window itself is showing of the dark states: it is the
- * source of truth, and tells a reloaded Operator (SDD-0001 §16.4). */
-export type OutputState = { blanked: boolean; ended: boolean };
+/** Whether the Output window itself is blanked: it is the source of truth,
+ * and tells a reloaded Operator (SDD-0001 §16.4). */
+export type OutputState = { blanked: boolean };
 
 /** Output → Operator: "I'm open — send me what's showing." Sent on
  * opening and in answer to a ping; each Output window has its own id. */
@@ -68,7 +67,7 @@ type HelloMessage = {
   id: string;
   /** The window is wider than tall, so Live can match it (SDD-0005 § 1). */
   landscape?: boolean;
-  /** Its dark states, once an Operator has told it any; a window that has
+  /** Its blank state, once an Operator has told it any; a window that has
    * not been told is new, and is told. */
   state?: OutputState;
 };
@@ -123,7 +122,6 @@ let reported: OutputState | undefined;
 let channel: BroadcastChannel | undefined;
 let lastPublished: OutputMessage | undefined;
 let blanked = false;
-let ended = false;
 let presentation: PresentationMessage | undefined;
 
 function getChannel(): BroadcastChannel {
@@ -131,23 +129,21 @@ function getChannel(): BroadcastChannel {
     channel = new BroadcastChannel(CHANNEL_NAME);
     // Late join (SDD-0001 §16.1): an Output window opened mid-hymn replays
     // whatever this window last published, instead of sitting blank until
-    // the next keypress. The settings and the dark states go first, then the
-    // content, so a window that is blanked or ended never paints the song
-    // and then fades it.
+    // the next keypress. The settings and the blank state go first, then the
+    // content, so a window that is blanked never paints the song and then
+    // fades it.
     channel.addEventListener("message", (event: MessageEvent<ChannelMessage>) => {
       const { data } = event;
       // An Output that already holds a state is the truth (this Operator was
       // reloaded): adopt it, and do not post over it.
       if ((data.type === "hello" || data.type === "shape") && data.state) {
         blanked = data.state.blanked;
-        ended = data.state.ended;
         reported = data.state;
         for (const listener of [...stateListeners]) listener(data.state);
       }
       if (data.type !== "hello") return;
       if (presentation) channel?.postMessage(presentation);
       if (blanked) channel?.postMessage({ type: "blank", blanked } satisfies OutputMessage);
-      if (ended) channel?.postMessage({ type: "ended", ended } satisfies OutputMessage);
       if (lastPublished) channel?.postMessage(lastPublished);
     });
   }
@@ -171,29 +167,21 @@ export function setOutputBlanked(next: boolean): void {
   getChannel().postMessage({ type: "blank", blanked } satisfies OutputMessage);
 }
 
-/** Ends Live (the Output goes dark, its window stays) or resumes it; held and
- * replayed to a late Output like blank. */
-export function setOutputEnded(next: boolean): void {
-  ended = next;
-  getChannel().postMessage({ type: "ended", ended } satisfies OutputMessage);
-}
-
-/** The window it was held for closed: the next one opens lit. Nothing is
- * posted. */
-export function forgetOutputEnded(): void {
-  ended = false;
-  reported = undefined;
+/** Ends Live: every Output window closes itself. Not held: the next window
+ * opens lit (Go Live), or blank if blank is still held. */
+export function closeOutput(): void {
+  getChannel().postMessage({ type: "close" } satisfies OutputMessage);
 }
 
 /**
- * Operator: the Output's own dark states, as an Output that holds them
- * reports them (a reloaded Operator adopts them). Returns an unsubscribe
+ * Operator: the Output's own blank state, as an Output that holds it
+ * reports it (a reloaded Operator adopts them). Returns an unsubscribe
  * function.
  */
 export function subscribeOutputState(handler: (state: OutputState) => void): () => void {
   getChannel();
   stateListeners.add(handler);
-  if (reported) handler({ blanked, ended });
+  if (reported) handler({ blanked });
   return () => stateListeners.delete(handler);
 }
 
@@ -211,7 +199,7 @@ export function setOutputPresentation(settings: Omit<PresentationMessage, "type"
  */
 export function subscribeOutput(
   handler: (message: OutputMessage) => void,
-  /** The window's dark states, once it has been told any. */
+  /** The window's blank state, once it has been told any. */
   stateOf?: () => OutputState | undefined,
 ): () => void {
   const target = getChannel();
@@ -247,7 +235,7 @@ export function subscribeOutput(
       data.type === "content" ||
       data.type === "idle" ||
       data.type === "blank" ||
-      data.type === "ended" ||
+      data.type === "close" ||
       data.type === "presentation" ||
       data.type === "reveal"
     )

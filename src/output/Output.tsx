@@ -35,12 +35,9 @@ export function Output() {
   // Blank holds apart from the content, which keeps arriving underneath, so
   // restoring shows wherever the operator has got to (SDD-0001 §16.5).
   const [blanked, setBlanked] = createSignal(false);
-  // Live ended (End Live): dark like a blank, but a state of its own, so a
-  // blank held before it is still held after it.
-  const [ended, setEnded] = createSignal(false);
-  // Dark until an Operator has said anything about the settings or the dark
-  // states: a window opened (or reloaded) while Live is ended or blanked must
-  // never paint the song first and fade it. Content that arrives first waits
+  // Dark until an Operator has said anything about the settings or the blank
+  // state: a window opened (or reloaded) while blanked must never paint the
+  // song first and fade it. Content that arrives first waits
   // dark; the replay (channel.ts) sends the states before it.
   const [stated, setStated] = createSignal(false);
   const [cues, setCues] = createSignal<OutputCues>({});
@@ -52,10 +49,13 @@ export function Output() {
   const [bandSize, setBandSize] = createSignal<BandSize>("part");
   // Theme and cues follow the Operator's Settings live (SDD-0001 §16.1).
   const receive = (next: OutputMessage) => {
-    if (next.type === "blank" || next.type === "ended" || next.type === "presentation")
-      setStated(true);
+    if (next.type === "close") {
+      // End Live: the Operator asks the window to go (SDD-0001 §16.4).
+      window.close();
+      return;
+    }
+    if (next.type === "blank" || next.type === "presentation") setStated(true);
     if (next.type === "blank") setBlanked(next.blanked);
-    else if (next.type === "ended") setEnded(next.ended);
     else if (next.type === "reveal") setReveal((n) => n + 1);
     else if (next.type === "presentation") {
       const root = document.documentElement;
@@ -144,7 +144,7 @@ export function Output() {
 
   onMount(() => {
     const unsubscribe = subscribeOutput(receive, () =>
-      stated() ? { blanked: blanked(), ended: ended() } : undefined,
+      stated() ? { blanked: blanked() } : undefined,
     );
     onCleanup(unsubscribe);
   });
@@ -158,7 +158,7 @@ export function Output() {
         <OutputView
           message={current()}
           variant="full"
-          blanked={blanked() || ended() || !stated()}
+          blanked={blanked() || !stated()}
           cues={cues()}
           reveal={reveal()}
           pinChorus={pinChorus()}

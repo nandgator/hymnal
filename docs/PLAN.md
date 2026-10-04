@@ -139,6 +139,9 @@ only, here:
 - 2026-10-04 — Feedback: the Finder's first songs follow the scope; From Text
   suggests a language from the script; Go Live waits for a book; "Bring a
   songbook"
+- 2026-10-04 — Feedback: Full Song prints the chorus on every page that sings it
+  (SDD-0005 § 3); End Live closes the Output window (the "ended" state is gone;
+  Blank keeps the window), SDD-0001 §16.4
 - 2026-10-03 — Library feedback: a chosen book aims the Finder (the crumb keeps
   the song's book); Load Books queue with Back/Next; the Finder lists a book's
   first songs; plainer empty state and source field; Manage Books gone
