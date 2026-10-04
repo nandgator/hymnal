@@ -1709,6 +1709,11 @@ Presentation settings alike. Everything visual is held; only Blank still works
 (on top of Hold, §16.5). Cues revealed by hand (`reveal`) and keys forwarded
 from the Output are not content and still pass.
 
+Operators who know a projector's remote already know the pair: Blank is its A/V
+Mute, Hold its Freeze. Mute over a frozen picture is black; unmuting brings back
+the frozen picture, not what the laptop moved on to; only Release (a second
+press of Freeze) moves on.
+
 - **Held at the channel, enforced at the Output.** `setOutputHeld(true)` posts
   `{ type: "hold", held: true }`. From then on `publishOutput` and
   `setOutputPresentation` only record what the Operator wants (`wanted`) and
