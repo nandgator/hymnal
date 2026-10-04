@@ -631,7 +631,7 @@ describe("App", () => {
     await screen.findByRole("img", { name: "Live output preview" });
   }
 
-  it("shows each action's key in the command menu, from the keymap; Show cues now has none", async () => {
+  it("shows each action's key in the command menu, from the keymap; Show the details now has none", async () => {
     render(() => <App />);
     await openHymn();
     fireEvent.keyDown(window, { key: "r" });
@@ -647,7 +647,7 @@ describe("App", () => {
     expect(hintOf(/Text Size Down/)).toBe("−");
     expect(hintOf(/Hide Live/)).toBe("L");
     // Occasional actions have no key (SDD-0001 §16.5).
-    expect(hintOf(/Show Cues Now/)).toBeUndefined();
+    expect(hintOf(/Show the Details Now/)).toBeUndefined();
     expect(hintOf(/Reading Band/)).toBeUndefined();
     expect(within(menu).queryByRole("option", { name: /Reset Repeat/ })).not.toBeInTheDocument();
   });

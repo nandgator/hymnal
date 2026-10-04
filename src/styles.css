@@ -744,6 +744,49 @@ button:disabled {
   }
 }
 
+/* A setting that applies only under another: nested beneath it, opening and
+   closing smoothly. Closed it is out of reach and out of sight, its value
+   kept. */
+.settings-disclosure {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--motion-medium) var(--motion-emphasized),
+    opacity var(--motion-medium) var(--motion-standard),
+    visibility 0s linear var(--motion-medium);
+}
+
+.settings-disclosure[data-open="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.settings-disclosure-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.settings-disclosure-inner > .settings-row {
+  padding-inline-start: calc(var(--space-md) + var(--space-lg));
+}
+
+/* Reduced motion: it fades, and the room opens at once. */
+@media (prefers-reduced-motion: reduce) {
+  .settings-disclosure {
+    transition:
+      opacity var(--motion-medium) var(--motion-standard),
+      visibility 0s linear var(--motion-medium);
+  }
+
+  .settings-disclosure[data-open="true"] {
+    transition-delay: 0s;
+  }
+}
+
 .settings-supporting {
   color: var(--md-sys-color-on-surface-variant);
   font-size: 0.875rem;

@@ -143,8 +143,6 @@ export interface PresenterProps {
   pinChorus?: boolean;
   /** Live shows the whole song as the Output does (SDD-0005). */
   wholeSong?: boolean;
-  /** Live marks each part in it as the Output does (SDD-0005 § 1). */
-  partLabels?: boolean;
   /** The Output window's shape, if it has said: Live is 16:9 whatever it is,
    * so it takes this for the layout (SDD-0005 § 1). */
   liveLandscape?: boolean;
@@ -641,7 +639,6 @@ export function Presenter(props: PresenterProps) {
           reveal={props.revealCues}
           pinChorus={props.pinChorus}
           wholeSong={props.wholeSong}
-          partLabels={props.partLabels}
           landscape={props.liveLandscape}
           highlight={props.highlight}
           classList={{ "live-blanked": !!props.blanked }}

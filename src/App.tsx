@@ -41,7 +41,6 @@ import {
   DEFAULT_OUTPUT_THEME,
   highlightOf,
   outputCuesOf,
-  partLabelsOf,
   pinChorusOf,
   userState,
   wholeSongOf,
@@ -212,7 +211,6 @@ function Operator(props: Shared) {
       cues: outputCuesOf(preferences.preferences()),
       pinChorus: pinChorusOf(preferences.preferences()),
       wholeSong: wholeSongOf(preferences.preferences()),
-      partLabels: partLabelsOf(preferences.preferences()),
       highlight: highlightOf(preferences.preferences()),
       bandSize: bandSizeOf(preferences.preferences()),
     }),
@@ -690,7 +688,7 @@ function Operator(props: Shared) {
         };
       }),
       ...(cues.fade && OUTPUT_CUES.some((cue) => cues[cue.id])
-        ? [{ label: "Show cues now", run: run(showCues) }]
+        ? [{ label: "Show the details now", run: run(showCues) }]
         : []),
       {
         label:
@@ -719,7 +717,7 @@ function Operator(props: Shared) {
         run: run(() => preferences.update({ ...prefs, wholeSong: !wholeSongOf(prefs) })),
       },
       {
-        label: cues.fade ? "Keep cues on the Output" : "Fade cues on the Output",
+        label: cues.fade ? "Keep the details on the Output" : "Fade the details on the Output",
         run: run(() => preferences.setCue("fade", !cues.fade)),
       },
       { label: "Switch hymnbook", run: run(() => openSheet(setBookPickerOpen)) },
@@ -1054,7 +1052,6 @@ function Operator(props: Shared) {
                 revealCues={cuesRevealed()}
                 pinChorus={pinChorusOf(preferences.preferences())}
                 wholeSong={wholeSongOf(preferences.preferences())}
-                partLabels={partLabelsOf(preferences.preferences())}
                 liveLandscape={outputLandscape()}
                 highlight={highlightOf(preferences.preferences())}
               />

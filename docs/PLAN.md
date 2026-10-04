@@ -136,6 +136,9 @@ only, here:
 
 ## Log
 
+- 2026-10-04 — Presentation: Full Song never draws a pinned chorus over its
+  columns; dependent settings nested (Pin the chorus, Fade); Part labels and the
+  part cue merged into Show parts; plain-language copy for every setting
 - 2026-10-04 — Feedback: the Finder's first songs follow the scope; From Text
   suggests a language from the script; Go Live waits for a book; "Bring a
   songbook"

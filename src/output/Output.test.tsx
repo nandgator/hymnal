@@ -295,23 +295,22 @@ describe("Output", () => {
     heights.mockRestore();
   });
 
-  it("marks the parts in the whole song, unless Part labels is off", () => {
+  it("marks the parts in the whole song, unless Show parts is off, and leaves the part out of the caption", () => {
     const sizes = vi.spyOn(HTMLElement.prototype, "clientWidth", "get");
     const heights = vi.spyOn(HTMLElement.prototype, "clientHeight", "get");
     sizes.mockReturnValue(1000);
     heights.mockReturnValue(1000);
     render(() => <Output />);
-    const presentation = (partLabels?: boolean) =>
+    const presentation = (part: boolean) =>
       channel.handler?.({
         type: "presentation",
         theme: "warm",
-        cues: {},
+        cues: { part },
         pinChorus: false,
         wholeSong: true,
         bandSize: "part",
-        ...(partLabels === undefined ? {} : { partLabels }),
       });
-    presentation();
+    presentation(true);
     channel.handler?.({
       type: "content",
       hymnbookId: "book",
@@ -323,9 +322,12 @@ describe("Output", () => {
         { id: "s1", lines: ["Line 1a", "Line 1b"], marker: "1" },
         { id: "c", lines: ["Chorus line"], marker: "Chorus" },
       ],
+      part: "Chorus",
     });
     const marks = () => [...document.querySelectorAll(".full-marker")].map((m) => m.textContent);
-    expect(marks()).toEqual(["1", "Chorus"]); // on by default
+    expect(marks()).toEqual(["1", "Chorus"]);
+    // The markers say it: no part in the caption.
+    expect(document.querySelector(".output-caption")).not.toBeInTheDocument();
     presentation(false);
     expect(marks()).toEqual([]);
     presentation(true);
@@ -525,6 +527,82 @@ describe("Output", () => {
     });
   });
 
+  describe("never two layouts at once", () => {
+    const PINNABLE = [
+      ...LINES,
+      { text: "Line 2a", partId: "s2", isPartStart: true },
+      ...LINES.slice(2),
+    ];
+    const message = {
+      type: "content" as const,
+      hymnbookId: "book",
+      number: 7,
+      title: "Test Hymn",
+      lines: PINNABLE,
+      focus: { start: 2, end: 3 },
+      chorus: "c",
+      parts: [
+        { id: "s1", lines: ["Line 1a", "Line 1b"] },
+        { id: "c", lines: ["Chorus line"] },
+        { id: "s2", lines: ["Line 2a"] },
+      ],
+    };
+    afterEach(() => vi.restoreAllMocks());
+    const mount = async (over: Partial<OutputViewProps>) => {
+      vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(1000);
+      vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(500);
+      const [props, setProps] = createSignal<OutputViewProps>({
+        message,
+        variant: "mini",
+        pinChorus: true,
+        ...over,
+      });
+      render(() => <OutputView {...props()} />);
+      await Promise.resolve();
+      return setProps;
+    };
+    const oneLayout = () => {
+      const whole = document.querySelector(".full-song");
+      const pinned = document.querySelector(".output-pinned");
+      const view = document.querySelector(".output-view");
+      // The whole song and a pinned chorus are never drawn together.
+      expect(Boolean(whole) && Boolean(pinned)).toBe(false);
+      if (whole) expect(view).not.toHaveClass("output-pinned-mode");
+    };
+
+    it("draws no pinned chorus over the columns when Whole song is turned on with the chorus pinned", async () => {
+      const setProps = await mount({ wholeSong: false });
+      expect(document.querySelector(".output-pinned")).toBeInTheDocument();
+      setProps((p) => ({ ...p, wholeSong: true }));
+      expect(document.querySelector(".full-song")).toBeInTheDocument();
+      oneLayout();
+      expect(document.querySelector(".output-pinned")).not.toBeInTheDocument();
+    });
+
+    it("holds through any order of toggles, steps and a view turning", async () => {
+      const setProps = await mount({ wholeSong: false });
+      const moves: ((p: OutputViewProps) => OutputViewProps)[] = [
+        (p) => ({ ...p, wholeSong: true }),
+        (p) => ({ ...p, pinChorus: false }),
+        (p) => ({ ...p, pinChorus: true }),
+        (p) => ({ ...p, message: { ...p.message, focus: { start: 4, end: 5 } } }),
+        (p) => ({ ...p, landscape: false }),
+        (p) => ({ ...p, landscape: true }),
+        (p) => ({ ...p, wholeSong: false }),
+        (p) => ({ ...p, cues: { part: false } }),
+        (p) => ({ ...p, wholeSong: true }),
+      ];
+      for (const move of moves) {
+        setProps(move);
+        oneLayout();
+      }
+      // Back to the scroll: the chorus pins again.
+      setProps((p) => ({ ...p, wholeSong: false, landscape: true }));
+      oneLayout();
+      expect(document.querySelector(".output-pinned")).toBeInTheDocument();
+    });
+  });
+
   it("keeps scrolling while the whole song is on a view that is not landscape", () => {
     render(() => <Output />);
     channel.handler?.({
@@ -714,7 +792,7 @@ describe("Output", () => {
     expect(caption()).toHaveClass("output-cue-faded");
     expect(badge()).toHaveClass("output-cue-faded");
 
-    // The operator's "Show cues now" brings them all back for a while.
+    // The operator's "Show the details now" brings them all back for a while.
     channel.handler?.({ type: "reveal" });
     expect(badge()).not.toHaveClass("output-cue-faded");
     vi.advanceTimersByTime(8000);

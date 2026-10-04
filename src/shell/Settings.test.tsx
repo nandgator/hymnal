@@ -170,7 +170,7 @@ describe("Settings", () => {
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);
     await screen.findByText("100%");
 
-    const sync = screen.getByRole("switch", { name: /Scrolling the Output moves the Operator/ });
+    const sync = screen.getByRole("switch", { name: /Scrolling the Output moves this screen/ });
     expect(sync).toBeChecked();
     fireEvent.click(sync);
     expect(setPreferences).toHaveBeenLastCalledWith(expect.objectContaining({ scrollSync: false }));
@@ -200,30 +200,85 @@ describe("Settings", () => {
     await screen.findByText("100%");
 
     const presentation = within(screen.getByRole("region", { name: "Presentation" }));
-    for (const name of [/song number/, /hymnbook/, /Fade cues/]) {
+    for (const name of [/song number/, /hymnbook/, /Show parts/, /Fade the details/]) {
       expect(presentation.getByRole("switch", { name })).toBeChecked();
     }
-    for (const name of [/song title/, /part/, /repeat count/, /Pin the chorus/]) {
+    for (const name of [/song title/, /repeat count/, /Pin the chorus/]) {
       expect(presentation.getByRole("switch", { name })).not.toBeChecked();
     }
     // Turning one on keeps the defaults it started from.
-    fireEvent.click(presentation.getByRole("switch", { name: /part/ }));
+    fireEvent.click(presentation.getByRole("switch", { name: /song title/ }));
     expect(setPreferences).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        outputCues: { number: true, hymnbook: true, fade: true, part: true },
+        outputCues: { number: true, hymnbook: true, fade: true, part: true, title: true },
       }),
     );
   });
 
-  it("sets Part labels, on unless chosen otherwise", async () => {
+  it("has one Show parts, on unless chosen otherwise, and no Part labels", async () => {
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);
     await screen.findByText("100%");
     const presentation = within(screen.getByRole("region", { name: "Presentation" }));
-    const toggle = presentation.getByRole("switch", { name: /Part labels/ });
+    expect(presentation.queryByRole("switch", { name: /Part labels|Show part\b/ })).toBeNull();
+    const toggle = presentation.getByRole("switch", { name: /Show parts/ });
     expect(toggle).toBeChecked();
     fireEvent.click(toggle);
-    expect(setPreferences).toHaveBeenLastCalledWith(expect.objectContaining({ partLabels: false }));
+    expect(setPreferences).toHaveBeenLastCalledWith(
+      expect.objectContaining({ outputCues: expect.objectContaining({ part: false }) }),
+    );
+  });
+
+  describe("a setting that applies only under another says so by structure", () => {
+    const open = (el: HTMLElement) => el.closest(".settings-disclosure")?.getAttribute("data-open");
+
+    it("shows Pin the chorus only while Whole song is off, keeping its value", async () => {
+      const setPreferences = vi.fn(async () => {});
+      render(() => (
+        <Settings
+          userState={fakeUserState({
+            setPreferences,
+            getPreferences: async () => ({ ...DEFAULT_PREFERENCES, pinChorus: true }),
+          })}
+        />
+      ));
+      await screen.findByText("100%");
+      const presentation = within(screen.getByRole("region", { name: "Presentation" }));
+      const pin = presentation.getByRole("switch", { name: /Pin the chorus/ });
+      expect(open(pin)).toBe("true");
+      fireEvent.click(presentation.getByRole("switch", { name: /Whole song on screen/ }));
+      expect(open(pin)).toBe("false");
+      expect(pin.closest(".settings-disclosure")).toHaveAttribute("inert");
+      // Hidden, not reset.
+      expect(setPreferences).toHaveBeenLastCalledWith(
+        expect.objectContaining({ wholeSong: true, pinChorus: true }),
+      );
+      fireEvent.click(presentation.getByRole("switch", { name: /Whole song on screen/ }));
+      expect(open(pin)).toBe("true");
+      expect(pin).toBeChecked();
+    });
+
+    it("shows the fade switch only while some cue is on, keeping its value", async () => {
+      render(() => (
+        <Settings
+          userState={fakeUserState({
+            getPreferences: async () => ({
+              ...DEFAULT_PREFERENCES,
+              outputCues: { number: true, fade: true },
+            }),
+          })}
+        />
+      ));
+      await screen.findByText("100%");
+      const presentation = within(screen.getByRole("region", { name: "Presentation" }));
+      const fade = presentation.getByRole("switch", { name: /Fade the details/ });
+      expect(open(fade)).toBe("true");
+      fireEvent.click(presentation.getByRole("switch", { name: /song number/ }));
+      expect(open(fade)).toBe("false");
+      expect(fade).toBeChecked();
+      fireEvent.click(presentation.getByRole("switch", { name: /song title/ }));
+      expect(open(fade)).toBe("true");
+    });
   });
 
   it("sets the Output's reading band, a part unless chosen otherwise", async () => {
@@ -232,7 +287,7 @@ describe("Settings", () => {
     await screen.findByText("100%");
 
     const workspace = within(screen.getByRole("region", { name: "Workspace" }));
-    const band = within(workspace.getByRole("group", { name: "Reading band on the Output" }));
+    const band = within(workspace.getByRole("group", { name: "Highlight while scrolling" }));
     expect(band.getByRole("radio", { name: "Part" })).toBeChecked();
     fireEvent.click(band.getByRole("radio", { name: "Line" }));
     expect(setPreferences).toHaveBeenLastCalledWith(expect.objectContaining({ bandSize: "line" }));

@@ -59,7 +59,6 @@ export function Output() {
   const [reveal, setReveal] = createSignal(0);
   const [pinChorus, setPinChorus] = createSignal(false);
   const [wholeSong, setWholeSong] = createSignal(false);
-  const [partLabels, setPartLabels] = createSignal(true);
   const [highlight, setHighlight] = createSignal<Highlight>("part");
   const [bandSize, setBandSize] = createSignal<BandSize>("part");
   // Theme and cues follow the Operator's Settings live (SDD-0001 §16.1).
@@ -82,7 +81,6 @@ export function Output() {
       setCues(next.cues);
       setPinChorus(next.pinChorus);
       setWholeSong(!!next.wholeSong);
-      setPartLabels(next.partLabels ?? true);
       setHighlight(next.highlight ?? "part");
       setBandSize(next.bandSize);
     } else setMessage(next);
@@ -250,7 +248,6 @@ export function Output() {
             reveal={reveal()}
             pinChorus={pinChorus()}
             wholeSong={wholeSong()}
-            partLabels={partLabels()}
             highlight={highlight()}
             bandSize={bandSize()}
             onSeek={(line, whole) =>

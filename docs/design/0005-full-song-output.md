@@ -27,7 +27,7 @@ SDD-0001 §16.1's scroll stays the default and is what portrait screens show.
   the number badge, corners 0.4em. The lit text is `output-ink`, the rest
   `output-ink-dimmed`: colour only, never size or weight. Under line focus the
   part is tinted and only the focused line is lit.
-- **Part labels**: each part carries a small marker above its first line: a
+- **Part markers**: each part carries a small marker above its first line: a
   stanza's number ("2"), or its kind for the others ("Chorus", "Bridge"); a
   stanza with no number has none. A chorus the sequence repeats is printed once,
   so it has one marker, the same each time the tint returns to it. The marker is
@@ -41,10 +41,15 @@ SDD-0001 §16.1's scroll stays the default and is what portrait screens show.
   column, at the start in more). The row is part of the part, so the tint hugs
   it and the layout counts it (§ 4, How it is measured). The marker is the
   part's own, sent in the content message (`parts[].marker`, from the Presenter,
-  which knows the part's kind and label), and shown or hidden by a Presentation
-  setting, **Part labels**, on by default, next to Whole song on screen; it is
-  on the Output through the presentation message (`partLabels`, absent meaning
-  on). Turning it off lays the song out again without the rows.
+  which knows the part's kind and label), and shown or hidden by the one
+  setting, **Show parts**, on by default, which is the part cue (`cues.part`) of
+  the part-by-part layout too: one idea, where you are in the song, drawn per
+  layout. Part by part it is the cue beside the number and title ("Verse 2",
+  "Chorus"); here it is these markers, and the caption leaves the part out,
+  since the markers already say it. It reaches the Output in the presentation
+  message's `cues`. Turning it off lays the song out again without the rows. (It
+  replaces a separate "Part labels" switch; a stored `partLabels` is read once,
+  the two merged: on if either was on.)
 - **Cues** (number badge, caption) are as in the scroll layout. The safe margins
   grow to 16% where a cue shows, as there, and the fit respects them.
 - **Alignment**: one column, each part centred as the scroll shows it, its tint
@@ -59,7 +64,11 @@ SDD-0001 §16.1's scroll stays the default and is what portrait screens show.
   (and "Pin the chorus"); Live's box is always 16:9, so it takes its shape from
   the Output window, which reports it to the Operator on opening and when it
   turns; with no window open, or none that has said, Live is landscape. While
-  the layout is on, "Pin the chorus" does nothing.
+  the layout is on, "Pin the chorus" does nothing, and Settings does not show it
+  (a setting that applies only under another is nested under it, or hidden, its
+  value kept: SDD-0001 §16.1). No layout is ever drawn with another: a chorus
+  pinned before the layout came on is dropped as it does, and the pinned panes
+  render only in the scroll.
 
 ## 2. The layout rule
 
@@ -245,6 +254,8 @@ the lit lines, the page shown, a turn with both pages mounted and the old one
 gone at its end, the tint on the new part's box once its page is there, the
 markers, the layout made again when the page disagrees, and a pass over a whole
 sung order with a repeated chorus: the tint on the right copy and a page turning
-only into a verse. `Output.test.tsx` checks the markers' setting and the swap
-between layouts. The glide's geometry is the existing one's, tested there; its
-page-turn timing (the two sum to one) is pinned in `fullSongGlide.test.ts`.
+only into a verse. `Output.test.tsx` checks the markers' setting (Show parts),
+that no combination of settings, steps and turns draws a pinned chorus with the
+columns, and the swap between layouts. The glide's geometry is the existing
+one's, tested there; its page-turn timing (the two sum to one) is pinned in
+`fullSongGlide.test.ts`.

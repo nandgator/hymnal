@@ -1318,11 +1318,21 @@ decides.
   input, so a stray swipe over the Operator can't move the audience screen;
   Lyrics is the Operator's own way to go to a line.
 
+**Settings that apply only under another are shown under it.** Presentation says
+so by structure, never by prose: a dependent setting is nested beneath its
+parent and shown only while it applies, opening and closing smoothly (reduced
+motion: a fade only), out of reach while closed, its stored value kept. "Pin the
+chorus" applies only with Whole song on screen off; "Fade the details" only
+while some cue is shown. "Show parts" (the part cue) applies in both layouts,
+drawn per layout (SDD-0005 § 1), and so is not nested. Every setting's words are
+one short plain sentence saying what you will see (`SETTING_COPY` and
+`OUTPUT_CUES` in `Settings.tsx`).
+
 **Presentation settings travel with the content.** The Output theme (Dark,
 Light, Contrast, Warm) and the cue switches are Operator preferences, sent as
-`{ type: "presentation", theme, cues, pinChorus, bandSize }` whenever they
-change and held and replayed on late join like `blank`, so an Output window
-follows Settings live without reading storage itself.
+`{ type: "presentation", theme, cues, pinChorus, wholeSong, highlight, bandSize }`
+whenever they change and held and replayed on late join like `blank`, so an
+Output window follows Settings live without reading storage itself.
 
 Cursor: shown while the mouse moves, hidden after 2s idle.
 
@@ -1582,8 +1592,8 @@ work too.
   was the natural one, and is the browser's task manager in Chrome. It does
   nothing while Live is not on, and works from the Output window, which forwards
   every plain key.
-- **No key, by choice**: Show cues now and the Output's band size (§16.1) are
-  command-menu items only, occasional enough that a letter would be wasted.
+- **No key, by choice**: Show the details now and the Output's band size (§16.1)
+  are command-menu items only, occasional enough that a letter would be wasted.
 - **Space is Next part**, even on a focused button: a clicker or a thumb on the
   space bar must never re-press whatever chip was last tapped (which would
   restart that part). Enter still activates a focused button. Radios and
@@ -1621,7 +1631,7 @@ Live (while one is open), Next tab, Split or merge the tabs and Make the other
 tab group main (only where two groups fit, from 1400px; they glide as the pane
 toolbar's do), Show or hide each pane, Switch hymnbook, Library, Settings, Text
 size up and down, Keyboard shortcuts, and the Output's band size. Repeat and
-Undo repeat show R and U; Show cues now has no key.
+Undo repeat show R and U; Show the details now has no key.
 
 ### 16.6 Testing
 

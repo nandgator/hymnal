@@ -84,9 +84,6 @@ export interface OutputViewProps {
    * nothing scrolls, and the chorus does not pin. A portrait view, or a
    * message without the song's parts, scrolls as ever. */
   wholeSong?: boolean;
-  /** Each part marked with its verse number or kind in that layout; on unless
-   * false (SDD-0005 § 1). */
-  partLabels?: boolean;
   /** The view's shape where its own box does not say it (Live is always
    * 16:9): the Output window's. Unset, the view's own. */
   landscape?: boolean;
@@ -174,6 +171,13 @@ export function OutputView(props: OutputViewProps) {
     wasFull = full;
     if (flipped && changed && shapeKnown && view && !props.blanked) swapLayouts(view);
   });
+  // The whole song and a pinned chorus are never drawn together: the fit that
+  // pins is skipped while Full Song shows, so a layout pinned before it came
+  // on is dropped here, before the DOM changes (the refit on leaving makes it
+  // again).
+  createComputed(() => {
+    if (fullSong() && layoutNow !== "flow") setLayoutNow("flow");
+  });
   // A dark Output shows no lyric, so no copy of one lingers; nor after it goes.
   createEffect(() => {
     if (props.blanked && view) cancelSwap(view);
@@ -183,7 +187,8 @@ export function OutputView(props: OutputViewProps) {
   // The parts as the layout is given them: each with its marker, or none.
   const songParts = createMemo(() => {
     const parts = props.message.parts ?? [];
-    return props.partLabels === false ? parts.map(({ marker: _, ...part }) => part) : parts;
+    // The part cue, "Show parts", marks them here (SDD-0005 § 1).
+    return props.cues?.part ? parts : parts.map(({ marker: _, ...part }) => part);
   });
 
   // The parts in the order they are sung (one per occurrence), and where the
@@ -293,7 +298,9 @@ export function OutputView(props: OutputViewProps) {
     const whole = focus.start === start && focus.end >= end;
     return whole ? null : { start: focus.start - start, end: focus.end - start };
   };
-  const caption = () => cueCaption(props.message, props.cues);
+  // The whole song marks its parts itself, so the caption leaves the part out.
+  const caption = () =>
+    cueCaption(props.message, fullSong() ? { ...props.cues, part: false } : props.cues);
   // Memos, so they change only when a cue turns on or off — not on every
   // step, which would refit (and snap) instead of scrolling smoothly.
   const hasCaption = createMemo(() => !!caption());

@@ -111,6 +111,52 @@ describe("preferences", () => {
     expect(await state.getPreferences()).toEqual({ theme: "dark", fontScale: 1, pinChorus: true });
   });
 
+  describe("Part labels and the part cue became one, Show parts (SDD-0005 § 1)", () => {
+    const read = async (stored: object) => {
+      await state.setPreferences({ theme: "dark", fontScale: 1, ...stored } as never);
+      return (await state.getPreferences()).outputCues;
+    };
+
+    it("is on if either was on", async () => {
+      expect(await read({ outputCues: { part: true }, partLabels: false })).toMatchObject({
+        part: true,
+      });
+      expect(await read({ outputCues: { number: true }, partLabels: true })).toMatchObject({
+        part: true,
+        number: true,
+      });
+    });
+
+    it("is off only if both were off", async () => {
+      expect(await read({ outputCues: { number: true }, partLabels: false })).toMatchObject({
+        part: false,
+      });
+    });
+
+    it("keeps the labels on for cues that never named the part, the labels' default", async () => {
+      expect(await read({ outputCues: { number: true } })).toMatchObject({ part: true });
+    });
+
+    it("carries a labels-off choice into the default cues", async () => {
+      expect(await read({ partLabels: false })).toMatchObject({
+        number: true,
+        hymnbook: true,
+        part: false,
+      });
+    });
+
+    it("leaves the one setting alone once saved: off stays off", async () => {
+      const first = await state.getPreferences();
+      await state.setPreferences({ ...first, outputCues: { number: true, part: false } });
+      expect((await state.getPreferences()).outputCues).toEqual({ number: true, part: false });
+    });
+
+    it("drops the retired key", async () => {
+      await state.setPreferences({ theme: "dark", fontScale: 1, partLabels: true } as never);
+      expect(await state.getPreferences()).not.toHaveProperty("partLabels");
+    });
+  });
+
   it("drops a retired preference", async () => {
     await state.setPreferences({ theme: "dark", fontScale: 1, navigator: "lyrics" } as never);
     expect(await state.getPreferences()).toEqual({ theme: "dark", fontScale: 1 });

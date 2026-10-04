@@ -4,6 +4,7 @@ import {
   createResource,
   createSignal,
   For,
+  type JSX,
   onCleanup,
   Show,
 } from "solid-js";
@@ -26,7 +27,6 @@ import {
   type OutputTheme,
   outputCuesOf,
   type Preferences,
-  partLabelsOf,
   pinChorusOf,
   type UserState,
   wholeSongOf,
@@ -58,18 +58,63 @@ const OUTPUT_THEMES: { value: OutputTheme; label: string }[] = [
 ];
 /** The Output's cues, each its own switch, defaulting to
  * DEFAULT_OUTPUT_CUES (DESIGN.md § Typography); the command menu reads the
- * same list. */
+ * same list. `hint` is the row's one short line: what you will see. */
 export const OUTPUT_CUES: {
   id: Exclude<keyof OutputCues, "fade">;
   name: string;
-  example: string;
+  hint: string;
 }[] = [
-  { id: "number", name: "Song number", example: "312, top left, for songbooks" },
-  { id: "title", name: "Song title", example: "Amazing Grace" },
-  { id: "hymnbook", name: "Hymnbook", example: "the book's title" },
-  { id: "part", name: "Part", example: "Verse 2, Chorus" },
-  { id: "repeat", name: "Repeat count", example: "×2, on a repeat" },
+  { id: "number", name: "Song number", hint: "The number in the top corner, e.g. 312." },
+  { id: "title", name: "Song title", hint: "The title at the bottom, e.g. Amazing Grace." },
+  { id: "hymnbook", name: "Hymnbook", hint: "The book's name at the bottom." },
+  {
+    id: "part",
+    name: "Parts",
+    hint: "Which part is sung, e.g. Verse 2 or Chorus.",
+  },
+  { id: "repeat", name: "Repeat count", hint: "×2 at the bottom when a part is sung again." },
 ];
+
+/** Every other Presentation and Output setting's words, in one place: a short
+ * sentence a volunteer at the projector understands at a glance. */
+export const SETTING_COPY = {
+  outputTheme: {
+    title: "Output theme",
+    hint: "The colours on the projector screen. This screen keeps its own.",
+  },
+  highlight: {
+    title: "Highlight on the Output",
+    hint: "Light only the part being sung, or the whole song at once.",
+  },
+  wholeSong: {
+    title: "Whole song on screen",
+    hint: "Show every verse at once instead of one part at a time.",
+  },
+  pinChorus: {
+    title: "Pin the chorus",
+    hint: "Keep the chorus in view beside or below the verses.",
+  },
+  fade: {
+    title: "Fade the details",
+    hint: "The number, title and the rest fade after a few seconds and return when the song changes.",
+  },
+  scrollSync: {
+    title: "Scrolling the Output moves this screen",
+    hint: "Off: after someone scrolls the Output, it slides back to what is live.",
+  },
+  bandSize: {
+    title: "Highlight while scrolling",
+    hint: "When someone scrolls the Output by hand, light a whole part or one line.",
+  },
+  screen: {
+    denied:
+      "The browser blocked screen access. Allow it in this site's settings, then detect again.",
+    error: "Could not list the screens. Press Detect screens to try again.",
+    none: "Press Detect screens so Automatic can find the projector.",
+    one: "Plug in a projector or second screen, then press Detect screens.",
+    several: "Automatic picks an external screen, not your own.",
+  },
+} as const;
 
 const HIGHLIGHTS: { value: Highlight; label: string }[] = [
   { value: "part", label: "Current part" },
@@ -82,6 +127,26 @@ const BAND_SIZES: { value: BandSize; label: string }[] = [
 ];
 
 let nextId = 0;
+
+/** Whether any of the Output's cues is on: what a setting that only applies
+ * while one shows (fading) waits for. */
+export const anyCueOn = (cues: OutputCues) => OUTPUT_CUES.some((cue) => cues[cue.id]);
+
+/** A setting that applies only under another, nested beneath it and shown only
+ * then: it opens and closes smoothly (reduced motion fades only), and while
+ * closed is out of reach (`inert`) yet keeps its stored value. */
+function Disclosure(props: { open: boolean; children: JSX.Element }) {
+  return (
+    <div
+      class="settings-disclosure"
+      data-open={props.open ? "true" : "false"}
+      aria-hidden={props.open ? undefined : "true"}
+      ref={(el) => createEffect(() => el.toggleAttribute("inert", !props.open))}
+    >
+      <div class="settings-disclosure-inner">{props.children}</div>
+    </div>
+  );
+}
 
 export interface PreferencesController {
   preferences: () => Preferences;
@@ -191,6 +256,7 @@ export function Settings(props: SettingsProps) {
   const { preferences, update, adjustScale, setPane, setCue } =
     props.controller ?? createPreferences(props.userState ?? defaultUserState);
   const id = `settings-${++nextId}`;
+  const anyCue = () => anyCueOn(outputCuesOf(preferences()));
   // Tooltips carry key hints only where there's a keyboard (SDD-0001 §16.5).
   const keyboard = createMediaQuery(EXPANDED_QUERY);
 
@@ -271,14 +337,11 @@ export function Settings(props: SettingsProps) {
     update(entry ? { ...rest, outputScreen: entry.key } : rest);
   };
   const screenNote = () => {
-    if (screens.status() === "denied")
-      return "The browser blocked screen access. Allow window management for this site in its settings, then detect again";
-    if (screens.status() === "error") return "Could not list the screens. Detect to try again";
-    if (screens.screens().length === 0)
-      return "Automatic picks the projector once the screens are known; Detect screens asks the browser";
-    if (screens.screens().length === 1)
-      return "Connect a projector or second screen, then detect again";
-    return "Automatic picks an external screen that is not your main one";
+    if (screens.status() === "denied") return SETTING_COPY.screen.denied;
+    if (screens.status() === "error") return SETTING_COPY.screen.error;
+    if (screens.screens().length === 0) return SETTING_COPY.screen.none;
+    if (screens.screens().length === 1) return SETTING_COPY.screen.one;
+    return SETTING_COPY.screen.several;
   };
 
   // Search (a Settings sheet grows): rows whose text holds every word typed
@@ -418,10 +481,8 @@ export function Settings(props: SettingsProps) {
         </label>
         <label class="settings-row">
           <span class="settings-label">
-            Scrolling the Output moves the Operator
-            <span class="settings-supporting">
-              Off, the Output drifts back to what's live after a hand scroll
-            </span>
+            {SETTING_COPY.scrollSync.title}
+            <span class="settings-supporting">{SETTING_COPY.scrollSync.hint}</span>
           </span>
           <input
             type="checkbox"
@@ -436,13 +497,11 @@ export function Settings(props: SettingsProps) {
         </label>
         <div class="settings-row">
           <span class="settings-label">
-            Reading band on the Output
-            <span class="settings-supporting">
-              While someone scrolls it by hand, what stays lit: a part, or one line
-            </span>
+            {SETTING_COPY.bandSize.title}
+            <span class="settings-supporting">{SETTING_COPY.bandSize.hint}</span>
           </span>
           {segmented(
-            "Reading band on the Output",
+            SETTING_COPY.bandSize.title,
             "band-size",
             BAND_SIZES,
             () => bandSizeOf(preferences()),
@@ -492,8 +551,8 @@ export function Settings(props: SettingsProps) {
         </Show>
         <div class="settings-row">
           <span class="settings-label">
-            Output theme
-            <span class="settings-supporting">The audience screen, apart from this one</span>
+            {SETTING_COPY.outputTheme.title}
+            <span class="settings-supporting">{SETTING_COPY.outputTheme.hint}</span>
           </span>
           {/* Swatches, not a segmented button: a theme is chosen by sight,
               and four fit a phone only as tiles that wrap. */}
@@ -542,14 +601,13 @@ export function Settings(props: SettingsProps) {
         </div>
         <div class="settings-row">
           <span class="settings-label">
-            Highlight on the Output
+            {SETTING_COPY.highlight.title}
             <span class="settings-supporting">
-              What is lit: the part being sung, or the whole song with nothing dimmed, for singing
-              straight through ({keyHint("highlight")} switches)
+              {SETTING_COPY.highlight.hint} ({keyHint("highlight")} switches)
             </span>
           </span>
           {segmented(
-            "Highlight on the Output",
+            SETTING_COPY.highlight.title,
             "highlight",
             HIGHLIGHTS,
             () => highlightOf(preferences()),
@@ -558,11 +616,8 @@ export function Settings(props: SettingsProps) {
         </div>
         <label class="settings-row">
           <span class="settings-label">
-            Whole song on screen
-            <span class="settings-supporting">
-              On a wide screen the whole song at once in columns, nothing scrolling; a long song
-              takes pages. A tall screen scrolls as ever
-            </span>
+            {SETTING_COPY.wholeSong.title}
+            <span class="settings-supporting">{SETTING_COPY.wholeSong.hint}</span>
           </span>
           <input
             type="checkbox"
@@ -575,50 +630,31 @@ export function Settings(props: SettingsProps) {
             }
           />
         </label>
-        <label class="settings-row">
-          <span class="settings-label">
-            Part labels
-            <span class="settings-supporting">
-              With the whole song on screen, a small marker above each verse (its number) and above
-              a Chorus, Bridge and the like
+        {/* Pinning is the part-by-part layout's: shown only there. */}
+        <Disclosure open={!wholeSongOf(preferences())}>
+          <label class="settings-row">
+            <span class="settings-label">
+              {SETTING_COPY.pinChorus.title}
+              <span class="settings-supporting">{SETTING_COPY.pinChorus.hint}</span>
             </span>
-          </span>
-          <input
-            type="checkbox"
-            role="switch"
-            class="switch"
-            checked={partLabelsOf(preferences())}
-            aria-checked={partLabelsOf(preferences())}
-            onChange={(event) =>
-              update({ ...preferences(), partLabels: event.currentTarget.checked })
-            }
-          />
-        </label>
-        <label class="settings-row">
-          <span class="settings-label">
-            Pin the chorus
-            <span class="settings-supporting">
-              Beside the verses on a wide screen, below on a tall one; a hymn flows if its type
-              would get too small. Not used while the whole song is on screen
-            </span>
-          </span>
-          <input
-            type="checkbox"
-            role="switch"
-            class="switch"
-            checked={pinChorusOf(preferences())}
-            aria-checked={pinChorusOf(preferences())}
-            onChange={(event) =>
-              update({ ...preferences(), pinChorus: event.currentTarget.checked })
-            }
-          />
-        </label>
+            <input
+              type="checkbox"
+              role="switch"
+              class="switch"
+              checked={pinChorusOf(preferences())}
+              aria-checked={pinChorusOf(preferences())}
+              onChange={(event) =>
+                update({ ...preferences(), pinChorus: event.currentTarget.checked })
+              }
+            />
+          </label>
+        </Disclosure>
         <For each={OUTPUT_CUES}>
           {(cue) => (
             <label class="settings-row">
               <span class="settings-label">
                 Show {cue.name.toLowerCase()}
-                <span class="settings-supporting">On the Output, e.g. {cue.example}</span>
+                <span class="settings-supporting">{cue.hint}</span>
               </span>
               <input
                 type="checkbox"
@@ -631,20 +667,23 @@ export function Settings(props: SettingsProps) {
             </label>
           )}
         </For>
-        <label class="settings-row">
-          <span class="settings-label">
-            Fade cues after a few seconds
-            <span class="settings-supporting">Each shows when it changes, then fades</span>
-          </span>
-          <input
-            type="checkbox"
-            role="switch"
-            class="switch"
-            checked={!!outputCuesOf(preferences()).fade}
-            aria-checked={!!outputCuesOf(preferences()).fade}
-            onChange={(event) => setCue("fade", event.currentTarget.checked)}
-          />
-        </label>
+        {/* Fading is about the cues: shown only while one is on. */}
+        <Disclosure open={anyCue()}>
+          <label class="settings-row">
+            <span class="settings-label">
+              {SETTING_COPY.fade.title}
+              <span class="settings-supporting">{SETTING_COPY.fade.hint}</span>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              class="switch"
+              checked={!!outputCuesOf(preferences()).fade}
+              aria-checked={!!outputCuesOf(preferences()).fade}
+              onChange={(event) => setCue("fade", event.currentTarget.checked)}
+            />
+          </label>
+        </Disclosure>
       </section>
 
       <Show when={props.onShowShortcuts}>

@@ -410,18 +410,18 @@ problem than a warm, devotional, legible-at-distance tool.
     from 10% to 16%. The fit and the eyeline respect it, so lit lines never
     enter it, and the lyrics fade out inside it: only lines not being sung are
     ever dimmed by it. Toggling a cue refits the hymn.
-  - **Fade, one switch for all** ("Fade cues after a few seconds", off by
-    default): the cues show together, at a new hymn, on the Output coming back
-    from blank, or on Show cues now, and fade together 8s later. Part steps
-    (keys, a hand scroll) don't bring them back: the caption's part changed
-    every verse, so it kept returning alone. Fading as a broadcast lower third
-    does, only opacity changes; margins stay reserved, so the lyrics never
-    resize or move. Off, cues stay: someone arriving mid-hymn with a songbook
-    still finds the number. **Show cues now** (command menu only, no key) brings
-    them back for another 8s, from the Operator, since the operator is the one
-    who knows they're wanted. Not hover or touch on the Output: a mouse there
-    shows the cursor to the room, and projected screens rarely take touch.
-    Per-cue delays were left out as complexity few would use.
+  - **Fade, one switch for all** ("Fade the details", on by default): the cues
+    show together, at a new hymn, on the Output coming back from blank, or on
+    Show the details now, and fade together 8s later. Part steps (keys, a hand
+    scroll) don't bring them back: the caption's part changed every verse, so it
+    kept returning alone. Fading as a broadcast lower third does, only opacity
+    changes; margins stay reserved, so the lyrics never resize or move. Off,
+    cues stay: someone arriving mid-hymn with a songbook still finds the number.
+    **Show the details now** (command menu only, no key) brings them back for
+    another 8s, from the Operator, since the operator is the one who knows
+    they're wanted. Not hover or touch on the Output: a mouse there shows the
+    cursor to the room, and projected screens rarely take touch. Per-cue delays
+    were left out as complexity few would use.
   - Sized to the screen (`cqmin`), not the fit; they fade with the lyrics when
     blanked and show in Live like everything else. All inside the safe margin,
     never on the edge, which a TV's overscan crops.
@@ -562,7 +562,7 @@ view is close enough to the frame to need a smaller unit.
     user move a control between screen and Settings is deferred, not dropped.
   - **Settings, grouped**: one sheet, MD3 list sections. **Display**: theme
     (System | Light | Dark) and text size (A− 100% A+). **Workspace**: Show
-    Live, Split the tab groups, and Scrolling the Output moves the Operator
+    Live, Split the tab groups, and Scrolling the Output moves this screen
     (switches). **Keyboard**: opens the shortcut sheet, whose Close then reads
     Back and returns to Settings. **Presentation** (part 4): the Output theme
     (Dark | Light | Contrast | Warm) and one switch per cue; and, in Chrome and

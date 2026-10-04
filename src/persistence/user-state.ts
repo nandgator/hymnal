@@ -20,6 +20,9 @@ export interface OutputCues {
   number?: boolean;
   title?: boolean;
   hymnbook?: boolean;
+  /** Where you are in the song: "Verse 2" beside the number and title, or,
+   * with the whole song on screen, the marker above each part (SDD-0005 § 1).
+   * Replaces the retired `partLabels`. */
   part?: boolean;
   repeat?: boolean;
   /** Not a cue but how they all behave: each shows when it changes, then
@@ -60,9 +63,6 @@ export interface Preferences {
   /** Show the whole song at once on a landscape Output (SDD-0005); absent
    * means off. */
   wholeSong?: boolean;
-  /** Mark each part in the whole-song layout with its verse number or kind
-   * (SDD-0005 § 1); absent means on. */
-  partLabels?: boolean;
   /** What the Output lights; absent means the current part. */
   highlight?: Highlight;
   /** The Operator's tab groups, as stored; read through `workspaceOf`, which
@@ -81,7 +81,12 @@ export interface Preferences {
 
 /** The cues when none are chosen: what a songbook congregation needs, the
  * number and the book, fading after a few seconds (DESIGN.md § Typography). */
-export const DEFAULT_OUTPUT_CUES: OutputCues = { number: true, hymnbook: true, fade: true };
+export const DEFAULT_OUTPUT_CUES: OutputCues = {
+  number: true,
+  hymnbook: true,
+  part: true,
+  fade: true,
+};
 
 export const outputCuesOf = (preferences: Preferences): OutputCues =>
   preferences.outputCues ?? DEFAULT_OUTPUT_CUES;
@@ -97,8 +102,6 @@ export const highlightOf = (preferences: Preferences): Highlight =>
   preferences.highlight === "song" ? "song" : "part";
 
 export const wholeSongOf = (preferences: Preferences) => preferences.wholeSong ?? false;
-
-export const partLabelsOf = (preferences: Preferences) => preferences.partLabels ?? true;
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",
@@ -193,21 +196,38 @@ export function openUserState(dbName: string): UserState {
       // existed still loads complete — no migration needed. A retired one
       // is dropped: `navigator`, gone with the Parts | Lyrics switch
       // (SDD-0001 §16.4). A renamed one is read under its old name:
-      // `pinRefrain`, now `pinChorus` (ADR-0025).
+      // `pinRefrain`, now `pinChorus` (ADR-0025). `partLabels` merged into the
+      // part cue: on if either was on (SDD-0005 § 1).
       const {
         navigator: _retired,
         pinRefrain,
+        partLabels,
         bandSize,
         ...stored
       } = ((await readDoc()).preferences ?? {}) as Partial<Preferences> & {
         navigator?: unknown;
         pinRefrain?: boolean;
+        partLabels?: boolean;
       };
+      // The cues once set list only what is on; the labels were on unless
+      // turned off. A document that still holds `partLabels` merges the two; one
+      // with cues that never named the part keeps it on; once the part cue is
+      // named (written by a save) it is that cue's alone.
+      const cues =
+        stored.outputCues ??
+        (partLabels === false ? { ...DEFAULT_OUTPUT_CUES, part: false } : undefined);
+      const outputCues = cues
+        ? {
+            ...cues,
+            part: partLabels === undefined ? (cues.part ?? true) : !!cues.part || partLabels,
+          }
+        : undefined;
       // A stored value that is neither is dropped: a part.
       return {
         ...DEFAULT_PREFERENCES,
         ...(pinRefrain === undefined ? {} : { pinChorus: pinRefrain }),
         ...stored,
+        ...(outputCues ? { outputCues } : {}),
         ...(bandSize === "part" || bandSize === "line" ? { bandSize } : {}),
       };
     },

@@ -49,9 +49,6 @@ export type PresentationMessage = {
   pinChorus: boolean;
   /** The whole song at once on a landscape screen (SDD-0005). */
   wholeSong?: boolean;
-  /** Mark each part in that layout with its verse number or kind; absent
-   * means on (SDD-0005 § 1). */
-  partLabels?: boolean;
   /** What is lit: the current part, or the whole song (SDD-0005 § 5). */
   highlight?: Highlight;
   bandSize: BandSize;
