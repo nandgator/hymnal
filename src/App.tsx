@@ -238,7 +238,7 @@ function Operator(props: Shared) {
     // The window closes itself on the word; the opener's own handle closes it
     // too, where a browser would refuse the window closing itself.
     closeOutput();
-    if (outputWin && !outputWin.closed) outputWin.close();
+    if (outputWin && !outputWin.closed) outputWin.close?.();
   };
   // A reloaded Operator adopts the blank the Output window holds.
   onMount(() => onCleanup(subscribeOutputState((state) => setBlanked(state.blanked))));
