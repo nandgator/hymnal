@@ -3183,6 +3183,7 @@ html[data-scrolling],
   /* Lit like a list row: its corners and an inset beside the text. The
      negative margins keep the text and the line spacing where they were. */
   padding: 0.25rem var(--space-sm);
+  /* The extra padding taken back, so the text keeps its spacing. */
   margin-block: -0.125rem;
   margin-inline-start: calc(-1 * var(--space-sm));
   border: none;
@@ -3262,6 +3263,7 @@ html[data-scrolling],
   --glide-row-radius: var(--button-shape);
 }
 
+
 [data-hover-glide] .seq-block:not([aria-current="step"]):hover,
 [data-hover-glide] .seq-line:hover {
   background-color: transparent;
@@ -3273,6 +3275,9 @@ html[data-scrolling],
 }
 
 .seq-lines {
+  /* A column, so the lines' negative margins add up rather than collapse. */
+  display: flex;
+  flex-direction: column;
   padding: 0;
   list-style: none;
 }
