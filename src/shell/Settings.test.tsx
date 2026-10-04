@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_PREFERENCES, type UserState } from "../persistence/user-state.ts";
-import { Settings } from "./Settings.tsx";
+import { createPreferences, Settings } from "./Settings.tsx";
 
 function fakeUserState(overrides: Partial<UserState> = {}): UserState {
   return {
@@ -232,7 +232,10 @@ describe("Settings", () => {
   describe("a setting that applies only under another says so by structure", () => {
     const open = (el: HTMLElement) => el.closest(".settings-disclosure")?.getAttribute("data-open");
 
-    it("shows Pin the chorus only while Whole song is off, keeping its value", async () => {
+    const layout = (presentation: ReturnType<typeof within>) =>
+      within(presentation.getByRole("group", { name: "Layout" }));
+
+    it("chooses the layout, and only Part by part shows Pin the chorus, keeping its value", async () => {
       const setPreferences = vi.fn(async () => {});
       render(() => (
         <Settings
@@ -244,18 +247,55 @@ describe("Settings", () => {
       ));
       await screen.findByText("100%");
       const presentation = within(screen.getByRole("region", { name: "Presentation" }));
+      expect(layout(presentation).getByRole("radio", { name: "Part by part" })).toBeChecked();
       const pin = presentation.getByRole("switch", { name: /Pin the chorus/ });
-      expect(open(pin)).toBe("true");
-      fireEvent.click(presentation.getByRole("switch", { name: /Whole song on screen/ }));
-      expect(open(pin)).toBe("false");
-      expect(pin.closest(".settings-disclosure")).toHaveAttribute("inert");
-      // Hidden, not reset.
+      const sync = presentation.getByRole("switch", { name: /Scrolling the Output moves/ });
+      const band = presentation.getByRole("group", { name: "Highlight while scrolling" });
+      for (const el of [pin, sync, band]) expect(open(el)).toBe("true");
+      fireEvent.click(layout(presentation).getByRole("radio", { name: "Whole song" }));
+      for (const el of [pin, sync, band]) {
+        expect(open(el)).toBe("false");
+        expect(el.closest(".settings-disclosure")).toHaveAttribute("inert");
+      }
+      // Hidden, not reset; and Whole song shows nothing of its own.
       expect(setPreferences).toHaveBeenLastCalledWith(
         expect.objectContaining({ wholeSong: true, pinChorus: true }),
       );
-      fireEvent.click(presentation.getByRole("switch", { name: /Whole song on screen/ }));
+      expect(presentation.getByRole("switch", { name: /Show song number/ })).toBeVisible();
+      fireEvent.click(layout(presentation).getByRole("radio", { name: "Part by part" }));
+      expect(setPreferences).toHaveBeenLastCalledWith(
+        expect.objectContaining({ wholeSong: false, pinChorus: true }),
+      );
       expect(open(pin)).toBe("true");
       expect(pin).toBeChecked();
+    });
+
+    it("reflects a layout changed elsewhere (the command menu, a key)", async () => {
+      const controller = createPreferences(fakeUserState());
+      render(() => <Settings controller={controller} />);
+      await screen.findByText("100%");
+      const presentation = within(screen.getByRole("region", { name: "Presentation" }));
+      controller.update({ ...controller.preferences(), wholeSong: true });
+      expect(layout(presentation).getByRole("radio", { name: "Whole song" })).toBeChecked();
+      expect(open(presentation.getByRole("switch", { name: /Pin the chorus/, hidden: true }))).toBe(
+        "false",
+      );
+    });
+
+    it("is a native radio group, so the arrow keys move it (checked in Chromium)", async () => {
+      render(() => <Settings userState={fakeUserState()} />);
+      await screen.findByText("100%");
+      const presentation = within(screen.getByRole("region", { name: "Presentation" }));
+      // jsdom has no arrow-key navigation: what the browser needs is one
+      // name across both radios in a labelled group, one of them checked.
+      const radios = layout(presentation).getAllByRole("radio") as HTMLInputElement[];
+      expect(radios.map((radio) => radio.labels?.[0]?.textContent?.trim())).toEqual([
+        "Part by part",
+        "Whole song",
+      ]);
+      expect(new Set(radios.map((radio) => radio.name)).size).toBe(1);
+      expect(radios.filter((radio) => radio.checked)).toHaveLength(1);
+      expect(radios.every((radio) => radio.tabIndex !== -1)).toBe(true);
     });
 
     it("shows the fade switch only while some cue is on, keeping its value", async () => {
@@ -286,8 +326,8 @@ describe("Settings", () => {
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);
     await screen.findByText("100%");
 
-    const workspace = within(screen.getByRole("region", { name: "Workspace" }));
-    const band = within(workspace.getByRole("group", { name: "Highlight while scrolling" }));
+    const presentation = within(screen.getByRole("region", { name: "Presentation" }));
+    const band = within(presentation.getByRole("group", { name: "Highlight while scrolling" }));
     expect(band.getByRole("radio", { name: "Part" })).toBeChecked();
     fireEvent.click(band.getByRole("radio", { name: "Line" }));
     expect(setPreferences).toHaveBeenLastCalledWith(expect.objectContaining({ bandSize: "line" }));

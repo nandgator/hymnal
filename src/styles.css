@@ -690,6 +690,14 @@ button:disabled {
   container-type: inline-size;
 }
 
+.settings-subheading {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md) var(--space-xxs);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 .settings-heading {
   margin: 0;
   padding: var(--space-xs) var(--space-md);

@@ -86,10 +86,11 @@ export const SETTING_COPY = {
     title: "Highlight on the Output",
     hint: "Light only the part being sung, or the whole song at once.",
   },
-  wholeSong: {
-    title: "Whole song on screen",
-    hint: "Show every verse at once instead of one part at a time.",
+  layout: {
+    title: "Layout",
+    hint: "One part at a time, or every verse at once in columns.",
   },
+  onOutput: "On the Output",
   pinChorus: {
     title: "Pin the chorus",
     hint: "Keep the chorus in view beside or below the verses.",
@@ -119,6 +120,11 @@ export const SETTING_COPY = {
 const HIGHLIGHTS: { value: Highlight; label: string }[] = [
   { value: "part", label: "Current part" },
   { value: "song", label: "Whole song" },
+];
+
+const LAYOUTS: { value: "part" | "whole"; label: string }[] = [
+  { value: "part", label: "Part by part" },
+  { value: "whole", label: "Whole song" },
 ];
 
 const BAND_SIZES: { value: BandSize; label: string }[] = [
@@ -364,6 +370,8 @@ export function Settings(props: SettingsProps) {
         row.hidden = !match;
         shown ||= match;
       }
+      for (const group of section.querySelectorAll<HTMLElement>(".settings-group"))
+        group.hidden = !group.querySelector(".settings-row:not([hidden])");
       section.hidden = !shown;
       any ||= shown;
     }
@@ -479,35 +487,6 @@ export function Settings(props: SettingsProps) {
             }
           />
         </label>
-        <label class="settings-row">
-          <span class="settings-label">
-            {SETTING_COPY.scrollSync.title}
-            <span class="settings-supporting">{SETTING_COPY.scrollSync.hint}</span>
-          </span>
-          <input
-            type="checkbox"
-            role="switch"
-            class="switch"
-            checked={preferences().scrollSync ?? true}
-            aria-checked={preferences().scrollSync ?? true}
-            onChange={(event) =>
-              update({ ...preferences(), scrollSync: event.currentTarget.checked })
-            }
-          />
-        </label>
-        <div class="settings-row">
-          <span class="settings-label">
-            {SETTING_COPY.bandSize.title}
-            <span class="settings-supporting">{SETTING_COPY.bandSize.hint}</span>
-          </span>
-          {segmented(
-            SETTING_COPY.bandSize.title,
-            "band-size",
-            BAND_SIZES,
-            () => bandSizeOf(preferences()),
-            (bandSize) => update({ ...preferences(), bandSize }),
-          )}
-        </div>
       </section>
 
       <section class="settings-section" ref={glideSection} aria-labelledby={`${id}-presentation`}>
@@ -614,23 +593,23 @@ export function Settings(props: SettingsProps) {
             (highlight) => update({ ...preferences(), highlight }),
           )}
         </div>
-        <label class="settings-row">
+        {/* The layout is a choice, so each layout's own settings sit under
+            it: only the chosen one's shows, and one with none shows nothing.
+            Whole song draws everything at once and does not scroll by hand,
+            so it has none; Part by part pins and scrolls. */}
+        <div class="settings-row">
           <span class="settings-label">
-            {SETTING_COPY.wholeSong.title}
-            <span class="settings-supporting">{SETTING_COPY.wholeSong.hint}</span>
+            {SETTING_COPY.layout.title}
+            <span class="settings-supporting">{SETTING_COPY.layout.hint}</span>
           </span>
-          <input
-            type="checkbox"
-            role="switch"
-            class="switch"
-            checked={wholeSongOf(preferences())}
-            aria-checked={wholeSongOf(preferences())}
-            onChange={(event) =>
-              update({ ...preferences(), wholeSong: event.currentTarget.checked })
-            }
-          />
-        </label>
-        {/* Pinning is the part-by-part layout's: shown only there. */}
+          {segmented(
+            SETTING_COPY.layout.title,
+            "layout",
+            LAYOUTS,
+            () => (wholeSongOf(preferences()) ? "whole" : "part"),
+            (layout) => update({ ...preferences(), wholeSong: layout === "whole" }),
+          )}
+        </div>
         <Disclosure open={!wholeSongOf(preferences())}>
           <label class="settings-row">
             <span class="settings-label">
@@ -648,42 +627,74 @@ export function Settings(props: SettingsProps) {
               }
             />
           </label>
-        </Disclosure>
-        <For each={OUTPUT_CUES}>
-          {(cue) => (
-            <label class="settings-row">
-              <span class="settings-label">
-                Show {cue.name.toLowerCase()}
-                <span class="settings-supporting">{cue.hint}</span>
-              </span>
-              <input
-                type="checkbox"
-                role="switch"
-                class="switch"
-                checked={!!outputCuesOf(preferences())[cue.id]}
-                aria-checked={!!outputCuesOf(preferences())[cue.id]}
-                onChange={(event) => setCue(cue.id, event.currentTarget.checked)}
-              />
-            </label>
-          )}
-        </For>
-        {/* Fading is about the cues: shown only while one is on. */}
-        <Disclosure open={anyCue()}>
           <label class="settings-row">
             <span class="settings-label">
-              {SETTING_COPY.fade.title}
-              <span class="settings-supporting">{SETTING_COPY.fade.hint}</span>
+              {SETTING_COPY.scrollSync.title}
+              <span class="settings-supporting">{SETTING_COPY.scrollSync.hint}</span>
             </span>
             <input
               type="checkbox"
               role="switch"
               class="switch"
-              checked={!!outputCuesOf(preferences()).fade}
-              aria-checked={!!outputCuesOf(preferences()).fade}
-              onChange={(event) => setCue("fade", event.currentTarget.checked)}
+              checked={preferences().scrollSync ?? true}
+              aria-checked={preferences().scrollSync ?? true}
+              onChange={(event) =>
+                update({ ...preferences(), scrollSync: event.currentTarget.checked })
+              }
             />
           </label>
+          <div class="settings-row">
+            <span class="settings-label">
+              {SETTING_COPY.bandSize.title}
+              <span class="settings-supporting">{SETTING_COPY.bandSize.hint}</span>
+            </span>
+            {segmented(
+              SETTING_COPY.bandSize.title,
+              "band-size",
+              BAND_SIZES,
+              () => bandSizeOf(preferences()),
+              (bandSize) => update({ ...preferences(), bandSize }),
+            )}
+          </div>
         </Disclosure>
+        <div class="settings-group">
+          <h4 class="settings-subheading">{SETTING_COPY.onOutput}</h4>
+          <For each={OUTPUT_CUES}>
+            {(cue) => (
+              <label class="settings-row">
+                <span class="settings-label">
+                  Show {cue.name.toLowerCase()}
+                  <span class="settings-supporting">{cue.hint}</span>
+                </span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  class="switch"
+                  checked={!!outputCuesOf(preferences())[cue.id]}
+                  aria-checked={!!outputCuesOf(preferences())[cue.id]}
+                  onChange={(event) => setCue(cue.id, event.currentTarget.checked)}
+                />
+              </label>
+            )}
+          </For>
+          {/* Fading is about the cues: shown only while one is on. */}
+          <Disclosure open={anyCue()}>
+            <label class="settings-row">
+              <span class="settings-label">
+                {SETTING_COPY.fade.title}
+                <span class="settings-supporting">{SETTING_COPY.fade.hint}</span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                class="switch"
+                checked={!!outputCuesOf(preferences()).fade}
+                aria-checked={!!outputCuesOf(preferences()).fade}
+                onChange={(event) => setCue("fade", event.currentTarget.checked)}
+              />
+            </label>
+          </Disclosure>
+        </div>
       </section>
 
       <Show when={props.onShowShortcuts}>

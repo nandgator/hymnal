@@ -919,19 +919,19 @@ view is close enough to the frame to need a smaller unit.
   stays in the verse column. In these scroll layouts no part carries a mark (no
   box, glow, rule, label or italics): being sung, it's lit like any other, and
   the part gap sets it apart. The one exception is Full Song, below.
-- **Full Song** (SDD-0005, Presentation > "Whole song on screen", off by
-  default, landscape only, in place of the scroll and its pinned chorus): the
-  whole song at once in its printed form, in columns, left-aligned (one column:
-  centred). Nothing scrolls. Parts are whole, in printed order, balanced across
-  as few columns as buy type size; the type, one size for the song, shrinks to
-  fit, down to a fit of 0.30 (24px on a 1080p screen). A song that would need
-  less is split into pages of whole parts and the page turns with the tint; no
-  page says so. A chorus the song sings after its verses is printed again on
-  each page that sings it, after the verse it follows, so the tint moves from a
-  verse to its chorus to the next verse of the page without a page turning; only
-  a step to a verse on another page turns it. **The tint is a mark here**, the
-  one exception to the rule above: with no eyeline to say where the song is, a
-  box behind the current part (9% ink over the ground, the badge's tone, corners
+- **Full Song** (SDD-0005, Presentation > Layout > "Whole song", off by default,
+  landscape only, in place of the scroll and its pinned chorus): the whole song
+  at once in its printed form, in columns, left-aligned (one column: centred).
+  Nothing scrolls. Parts are whole, in printed order, balanced across as few
+  columns as buy type size; the type, one size for the song, shrinks to fit,
+  down to a fit of 0.30 (24px on a 1080p screen). A song that would need less is
+  split into pages of whole parts and the page turns with the tint; no page says
+  so. A chorus the song sings after its verses is printed again on each page
+  that sings it, after the verse it follows, so the tint moves from a verse to
+  its chorus to the next verse of the page without a page turning; only a step
+  to a verse on another page turns it. **The tint is a mark here**, the one
+  exception to the rule above: with no eyeline to say where the song is, a box
+  behind the current part (9% ink over the ground, the badge's tone, corners
   0.4em) does, and the lit part's text is lit, the rest dimmed, by colour alone.
   Margins, cues and the ground are the scroll's. **Highlight on the Output**
   (Presentation, and the H key) can be _Whole song_ in this layout and the

@@ -1318,15 +1318,21 @@ decides.
   input, so a stray swipe over the Operator can't move the audience screen;
   Lyrics is the Operator's own way to go to a line.
 
-**Settings that apply only under another are shown under it.** Presentation says
-so by structure, never by prose: a dependent setting is nested beneath its
-parent and shown only while it applies, opening and closing smoothly (reduced
-motion: a fade only), out of reach while closed, its stored value kept. "Pin the
-chorus" applies only with Whole song on screen off; "Fade the details" only
-while some cue is shown. "Show parts" (the part cue) applies in both layouts,
-drawn per layout (SDD-0005 § 1), and so is not nested. Every setting's words are
-one short plain sentence saying what you will see (`SETTING_COPY` and
-`OUTPUT_CUES` in `Settings.tsx`).
+**Settings nest at most one level, and nothing depends on an "off".** A setting
+that applies only in some state is shown under the control that sets that state,
+only while it applies: it opens and closes smoothly (reduced motion: a fade
+only), is out of reach while closed, and its stored value is kept. The parent is
+never a switch whose off state reveals a child: that reads as a child of a
+disabled parent. So the layout is a choice, **Layout: Part by part | Whole
+song** (the `wholeSong` preference), and only the chosen layout's own settings
+show under it: Part by part has "Pin the chorus", "Scrolling the Output moves
+this screen" and "Highlight while scrolling" (Whole song does not scroll by
+hand); Whole song has none, and shows nothing. Under "On the Output", which
+holds the cue switches for both layouts, "Fade the details" shows only while a
+cue is on. Those two are the only nesting. If a group ever needs more, it gets a
+drill-in page, not a deeper indent. Every setting's words are one short plain
+sentence saying what you will see (`SETTING_COPY` and `OUTPUT_CUES` in
+`Settings.tsx`).
 
 **Presentation settings travel with the content.** The Output theme (Dark,
 Light, Contrast, Warm) and the cue switches are Operator preferences, sent as

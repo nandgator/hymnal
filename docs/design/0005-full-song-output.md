@@ -12,8 +12,9 @@ Nothing scrolls: the type shrinks until everything fits, and a song that would
 need type below the floor is split into pages of whole parts. The current part
 is tinted, and the tint glides. It is for the Output, the projected screen; Live
 is the same component scaled to its box and shows the same. It is a Presentation
-setting, "Whole song on screen", off by default, and a layout of its own:
-SDD-0001 §16.1's scroll stays the default and is what portrait screens show.
+setting, the Layout choice's "Whole song" (against "Part by part"), off by
+default, and a layout of its own: SDD-0001 §16.1's scroll stays the default and
+is what portrait screens show.
 
 ## 1. What is shown
 
@@ -64,11 +65,10 @@ SDD-0001 §16.1's scroll stays the default and is what portrait screens show.
   (and "Pin the chorus"); Live's box is always 16:9, so it takes its shape from
   the Output window, which reports it to the Operator on opening and when it
   turns; with no window open, or none that has said, Live is landscape. While
-  the layout is on, "Pin the chorus" does nothing, and Settings does not show it
-  (a setting that applies only under another is nested under it, or hidden, its
-  value kept: SDD-0001 §16.1). No layout is ever drawn with another: a chorus
-  pinned before the layout came on is dropped as it does, and the pinned panes
-  render only in the scroll.
+  the layout is on, "Pin the chorus" does nothing, and Settings shows it only
+  under Part by part (SDD-0001 §16.1, its value kept). No layout is ever drawn
+  with another: a chorus pinned before the layout came on is dropped as it does,
+  and the pinned panes render only in the scroll.
 
 ## 2. The layout rule
 
@@ -200,15 +200,15 @@ All durations are the app's medium (250ms) at the emphasised easing, through
 
 ## 4a. Changing between the layouts
 
-Turning "Whole song on screen" on or off (or turning the window from portrait to
-landscape) changes the Output between this layout and the scroll. It takes the
-Operator cards' soft zoom (`tab-in`: from 98.5%, the medium time at the
-emphasised easing): the new layout is whole under a still copy of the old one
-from the first frame, settles in from 98.5% to full size, and the copy fades out
-over it in the same time. The screen is never blank, since the new layout is
-there at once, and the two are never both clear for long. Under reduced motion
-the copy fades and nothing zooms. The first layout a view settles into, when it
-learns its shape, and a step, do not do it. `layoutSwap.ts`.
+Switching the Layout between Part by part and Whole song (or turning the window
+from portrait to landscape) changes the Output between this layout and the
+scroll. It takes the Operator cards' soft zoom (`tab-in`: from 98.5%, the medium
+time at the emphasised easing): the new layout is whole under a still copy of
+the old one from the first frame, settles in from 98.5% to full size, and the
+copy fades out over it in the same time. The screen is never blank, since the
+new layout is there at once, and the two are never both clear for long. Under
+reduced motion the copy fades and nothing zooms. The first layout a view settles
+into, when it learns its shape, and a step, do not do it. `layoutSwap.ts`.
 
 ## 5. Highlight: the part or the whole song
 
@@ -220,11 +220,10 @@ and no dimming, for a congregation singing straight through.
 
 It is not a feature of this layout: it applies to the **scroll layout too**
 (every line lit; the scroll still follows the focus), so it is a general Output
-option, kept apart from "Whole song on screen" (the layout). Switching changes
-the colour of the dimmed parts and fades the tint in or out in one medium
-duration (250ms) at the emphasised easing; reduced motion changes at once. While
-the whole song is lit the tint stays out and a step moves nothing but (in the
-scroll) the position.
+option, kept apart from the Layout choice. Switching changes the colour of the
+dimmed parts and fades the tint in or out in one medium duration (250ms) at the
+emphasised easing; reduced motion changes at once. While the whole song is lit
+the tint stays out and a step moves nothing but (in the scroll) the position.
 
 ## 6. Where it lives
 

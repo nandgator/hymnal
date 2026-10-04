@@ -136,6 +136,9 @@ only, here:
 
 ## Log
 
+- 2026-10-04 — Settings: Presentation's layout is a choice (Part by part | Whole
+  song) with only the chosen layout's settings under it; nesting at most one
+  level, nothing depends on an off (SDD-0001 §16.1)
 - 2026-10-04 — Presentation: Full Song never draws a pinned chorus over its
   columns; dependent settings nested (Pin the chorus, Fade); Part labels and the
   part cue merged into Show parts; plain-language copy for every setting
