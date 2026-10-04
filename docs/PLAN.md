@@ -95,12 +95,13 @@ Ordered. Top unblocked item is next.
 | 38  | Search across books: one query over every loaded book (SDD-0001 §16)                                                      | —          |
 | 39  | Private windows: say the books go when the window closes; an in-memory store where OPFS is refused (Firefox private, Tor) | —          |
 | 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                    | —          |
+| 41  | One-screen presenting: the Output as a view in the main window, a quick song switcher over it (Ctrl+P-like)               | —          |
 
 Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. The
 songs have left the repo (#28 done): nothing is bundled, and every book comes in
 through the Library (ADR-0026). 14–15 sit past the scope guard below. 16–25 are
 notes, not scheduled: the shell reserves room for them (DESIGN.md § Structure).
-37–40 were added from the maintainer's feedback and are not yet scheduled.
+37–41 were added from the maintainer's feedback and are not yet scheduled.
 
 ## Invariants
 
