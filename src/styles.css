@@ -3180,10 +3180,13 @@ html[data-scrolling],
   display: block;
   max-width: 100%;
   overflow-wrap: anywhere;
-  padding: 0.125rem var(--space-xxs);
-  margin-inline-start: calc(-1 * var(--space-xxs));
+  /* Lit like a list row: its corners and an inset beside the text. The
+     negative margins keep the text and the line spacing where they were. */
+  padding: 0.25rem var(--space-sm);
+  margin-block: -0.125rem;
+  margin-inline-start: calc(-1 * var(--space-sm));
   border: none;
-  border-radius: var(--shape-xs);
+  border-radius: var(--button-shape);
   background: none;
   color: inherit;
   text-align: start;
@@ -3256,7 +3259,7 @@ html[data-scrolling],
 }
 
 .seq-line {
-  --glide-row-radius: 4px;
+  --glide-row-radius: var(--button-shape);
 }
 
 [data-hover-glide] .seq-block:not([aria-current="step"]):hover,
