@@ -188,6 +188,8 @@
 :root,
 [data-output-theme] {
   --output-ink-dimmed: color-mix(in srgb, var(--output-ink) 30%, var(--output-ground));
+  /* A part's marker, receding: the muted ink as far down as the lines go. */
+  --output-ink-muted-dimmed: color-mix(in srgb, var(--output-ink-muted) 55%, var(--output-ground));
 }
 
 [data-output-theme="light"] {
@@ -4079,34 +4081,34 @@ html[data-scrolling],
 }
 
 /* A part's marker (SDD-0005 § 1): the verse number or the kind, above the
-   first line, beside the lyrics' size and weight as the language picker's
-   caption is: smaller, lighter, muted. Its row is a fixed 0.825em (what the
-   layout arithmetic allows), the text centred in it, so a script's tall
-   glyphs never move anything. */
+   first line, to the lyrics as the language picker's gloss ("français
+   — French") is to its endonym: about half the size, regular weight, the
+   theme's muted ink, no tracking, never capitals. Its row is a fixed 0.825em
+   (what the layout arithmetic allows), the text centred in it, so a script's
+   tall glyphs never move anything. --ink-nudge (inkEdge.ts) is the measured
+   shift that puts the marker's ink on the lines' ink, to the pixel. */
 .full-marker {
   display: flex;
   align-items: center;
   height: 0.825em;
 }
 
-.full-col-single .full-marker {
-  justify-content: center;
-}
-
 .full-marker-text {
-  color: var(--output-ink-dimmed);
+  color: var(--output-ink-muted-dimmed);
   font-size: 0.55em;
   font-weight: 400;
-  letter-spacing: 0.06em;
+  letter-spacing: normal;
   line-height: 1;
+  margin-inline-start: var(--ink-nudge, 0px);
+  text-transform: none;
   white-space: nowrap;
   transition: color var(--motion-medium) var(--motion-emphasized);
 }
 
-/* Lit with its part: a step lighter, never the lyrics' own ink. */
+/* Lit with its part: the theme's muted ink, never the lyrics' own. */
 .full-part-current .full-marker-text,
 .full-song[data-lit="all"] .full-marker-text {
-  color: color-mix(in srgb, var(--output-ink) 70%, var(--output-ground));
+  color: var(--output-ink-muted);
 }
 
 .full-line {
@@ -4342,8 +4344,8 @@ html[data-scrolling],
    the height arithmetic counts it. Start-aligned: --marker-x (OutputView) is
    the left edge of the part's widest line, the lines being centred. Its row is
    a fixed 0.825em, the text centred in it, so a script's tall glyphs never
-   move a line. It recedes like its lines, and lights with them, a step under
-   the lit ink. */
+   move a line. It recedes like its lines, and lights with them, in the
+   theme's muted ink, never the lit ink. */
 .output-part-marker {
   display: flex;
   align-items: center;
@@ -4354,17 +4356,19 @@ html[data-scrolling],
 }
 
 .output-part-marker-text {
-  color: var(--output-ink-dimmed);
+  color: var(--output-ink-muted-dimmed);
   font-size: 0.55em;
   font-weight: 400;
-  letter-spacing: 0.06em;
+  letter-spacing: normal;
   line-height: 1;
+  margin-inline-start: var(--ink-nudge, 0px);
+  text-transform: none;
   white-space: nowrap;
   transition: color var(--motion-medium) var(--motion-emphasized);
 }
 
 .output-part-marker-lit {
-  color: color-mix(in srgb, var(--output-ink) 70%, var(--output-ground));
+  color: var(--output-ink-muted);
 }
 
 @media (prefers-reduced-motion: reduce) {

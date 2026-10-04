@@ -22,6 +22,7 @@ import {
   onFontsChange,
   signature,
 } from "./fullSongText.ts";
+import { nudgeMarker } from "./inkEdge.ts";
 
 export { signature };
 
@@ -498,6 +499,16 @@ export function FullSong(props: FullSongProps) {
       em,
     );
   });
+
+  // A marker's ink starts where its part's lines' ink does (SDD-0005 § 1):
+  // measured once the page is in the DOM, again as fonts arrive.
+  const alignMarkers = () => {
+    for (const part of root.querySelectorAll<HTMLElement>(".full-part")) {
+      const text = part.querySelector<HTMLElement>(".full-marker-text");
+      if (text) nudgeMarker(text, [...part.querySelectorAll(".full-line")]);
+    }
+  };
+  createEffect(on([layout, mounted, fontsEpoch], alignMarkers, { defer: true }));
 
   const columnWidth = (columns: number) => {
     const width = layout()?.sheetWidth ?? 0;

@@ -14,6 +14,7 @@ import type { BandSize, Highlight, OutputCues } from "../persistence/user-state.
 import type { OutputMessage } from "./channel.ts";
 import { FullSong, prepareFullSong, sungOf } from "./FullSong.tsx";
 import { signature } from "./fullSongText.ts";
+import { nudgeMarker } from "./inkEdge.ts";
 import { cancelSwap, swapLayouts } from "./layoutSwap.ts";
 
 type ContentMessage = Extract<OutputMessage, { type: "content" }>;
@@ -564,8 +565,8 @@ export function OutputView(props: OutputViewProps) {
     position("instant");
   };
 
-  // A marker sits at the start of its part's text: the left edge of its
-  // widest line, the lines being centred. Measured once laid out.
+  // A marker sits at the start of its part's text: the left edge (the ink's)
+  // of its widest line, the lines being centred. Measured once laid out.
   const alignMarkers = () => {
     if (!view) return;
     const lefts = (lines: HTMLElement[]) => {
@@ -587,10 +588,11 @@ export function OutputView(props: OutputViewProps) {
       const first = lines[0]?.firstElementChild;
       if (!(first instanceof HTMLElement) || !first.classList.contains("output-part-marker"))
         return;
-      first.style.setProperty(
-        "--marker-x",
-        `${lefts(lines.filter((l): l is HTMLElement => !!l))}px`,
-      );
+      const own = lines.filter((l): l is HTMLElement => !!l);
+      first.style.setProperty("--marker-x", `${lefts(own)}px`);
+      // Boxes are aligned; the ink is what the eye sees: a few tenths of a px.
+      const text = first.querySelector<HTMLElement>(".output-part-marker-text");
+      if (text) nudgeMarker(text, own);
     };
     for (const { start, end } of blocks()) set(lineRefs.slice(start, end));
     set([...view.querySelectorAll<HTMLElement>(".output-pinned > .output-line")]);

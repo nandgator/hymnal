@@ -32,33 +32,42 @@ is what portrait screens show.
   stanza's number ("2"), or its kind for the others ("Chorus", "Bridge"); a
   stanza with no number has none. A chorus the sequence repeats is printed once,
   so it has one marker, the same each time the tint returns to it. The marker is
-  typography beside the lyrics, never among them: 0.55 of the lyrics' size, a
-  lighter weight (400 against 500), letters spaced a little, and muted, the
-  dimmed ink on a part not sung and a step lighter (70% ink over the ground) on
-  the part that is, so it never competes with the lyrics. It is the same voice
-  as the language picker's caption beside a name. Its row is a fixed box,
-  0.825em of the lyrics' size, the text centred in it, so a script's tall glyphs
-  (Malayalam) never move a line; it is aligned as the part is (centred in one
-  column, at the start in more). The row is part of the part, so the tint hugs
-  it and the layout counts it (§ 4, How it is measured). The marker is the
-  part's own, sent in the content message (`parts[].marker`, from the Presenter,
-  which knows the part's kind and label), and shown or hidden by the one
-  setting, **Show parts**, on by default, which is the part cue (`cues.part`) of
-  the part-by-part layout too: one idea, where you are in the song, drawn per
+  typography beside the lyrics, never among them, as the gloss "— French" is to
+  the endonym in the Library's language picker ("français — French"): 0.55 of
+  the lyrics' size, regular weight (400, the lyrics being 500), no tracking,
+  never capitals, and in the theme's muted ink (`output-ink-muted`, defined in
+  every Output theme and at least 3:1 against its ground) on the part that is
+  lit, that ink faded to 55% over the ground (`output-ink-muted-dimmed`) on a
+  part not sung, so it is always under its own lines and never competes with
+  them. Its row is a fixed box, 0.825em of the lyrics' size, the text centred in
+  it, so a script's tall glyphs (Malayalam) never move a line. It sits at the
+  start of the part's text, in one column or more (a part is as wide as its
+  widest line). Aligned by ink, not by box: the marker's first glyph's ink
+  begins where the first glyph's ink of the part's leftmost line does, to under
+  a pixel, whatever the glyphs and scripts. A glyph's left side bearing is a
+  fraction of its size and differs by glyph, so no constant does it; it is
+  measured once laid out and when fonts arrive (`inkEdge.ts`: the ink of a glyph
+  read from a canvas at a large size, cached) and set as `--ink-nudge`, the
+  marker's inline-start margin. The row is part of the part, so the tint hugs it
+  and the layout counts it (§ 4, How it is measured). The marker is the part's
+  own, sent in the content message (`parts[].marker`, from the Presenter, which
+  knows the part's kind and label), and shown or hidden by the one setting,
+  **Show parts**, on by default, which is the part cue (`cues.part`) of the
+  part-by-part layout too: one idea, where you are in the song, drawn per
   layout. Part by part it is the same marker, one above the first line of each
-  part in the scroll, start-aligned with the part's text (the left edge of its
-  widest line, the lines being centred), in the same type (0.55 of the lyrics'
-  size, 400, spaced, muted) and in a fixed 0.825em row, so a script's tall
-  glyphs never collide with the line above or below. It is inside the part's
-  first line, so it scrolls with the part, the fit, the eyeline and the reading
-  band count its height, and the text (not the marker) is what centres; it is
-  lit with its part (a step under the lit ink) and recedes with the lines around
-  it. The chorus's pinned pane carries it too. The caption leaves the part out
-  in both: the marker already says it. It reaches the Output in the presentation
-  message's `cues`; part by part, turning it off lays the scroll out again
-  without the rows. Turning it off lays the song out again without the rows. (It
-  replaces a separate "Part labels" switch; a stored `partLabels` is read once,
-  the two merged: on if either was on.)
+  part in the scroll, start-aligned with the part's text (the ink's left edge of
+  its widest line, the lines being centred, by the same measure), in the same
+  type (0.55 of the lyrics' size, 400, no tracking, muted) and in a fixed
+  0.825em row, so a script's tall glyphs never collide with the line above or
+  below. It is inside the part's first line, so it scrolls with the part, the
+  fit, the eyeline and the reading band count its height, and the text (not the
+  marker) is what centres; it is lit with its part (the muted ink) and recedes
+  with the lines around it. The chorus's pinned pane carries it too. The caption
+  leaves the part out in both: the marker already says it. It reaches the Output
+  in the presentation message's `cues`; part by part, turning it off lays the
+  scroll out again without the rows. Turning it off lays the song out again
+  without the rows. (It replaces a separate "Part labels" switch; a stored
+  `partLabels` is read once, the two merged: on if either was on.)
 - **Cues** (number badge, caption) are as in the scroll layout: the top and
   bottom bands are **reserved**, 16% each, whether or not a cue shows in them
   (SDD-0001 § 16.1). Toggling a cue fades its words and moves no lyric pixel

@@ -32,6 +32,7 @@ colors:
   output-ink: "#f3dfb5"
   output-ink-muted: "#9c8661"
   output-ink-dimmed: "color-mix(in srgb, output-ink 30%, output-ground)"
+  output-ink-muted-dimmed: "color-mix(in srgb, output-ink-muted 55%, output-ground)"
 
 output-themes:
   note: presets for the Output view only (Settings > Presentation); Warm is the default and matches colors.output-*
@@ -333,7 +334,10 @@ problem than a warm, devotional, legible-at-distance tool.
 - **output-ink-dimmed**: lines outside the focus, 30% ink over the ground in
   every preset (derived, not set per preset), so the focus stands out as
   strongly as it always has. Muted stays for small labels (the Live strip's, the
-  cue caption), which must stay readable.
+  cue caption, the part markers), which must stay readable.
+- **output-ink-muted-dimmed**: a part marker on a part not sung, 55% muted over
+  the ground in every preset (derived): under its own lines' lit state, as the
+  lines are under theirs.
 
 ## Typography
 
@@ -401,13 +405,18 @@ problem than a warm, devotional, legible-at-distance tool.
     in the bottom margin, no container. ×N shows only on a repeat.
   - **The part marker, on its part**: as in the whole-song layout, a small
     marker above the part's first line, inside its box so it scrolls with it,
-    start-aligned with the part's text (the left edge of its widest line), in
-    the whole-song markers' type (0.55 of the lyrics' size, weight 400, spaced,
-    a fixed 0.825em row so Malayalam glyphs never collide). A stanza reads its
-    number, other parts by kind (Chorus, Bridge, Tag). It is lit a step under
-    the lit ink with its part and recedes with the lines around it. It is not a
-    detail of the bands: the text, not the marker, centres, and "Show parts" off
-    lays the scroll out again without it.
+    start-aligned with the part's text: the glyph's ink edge, not the box, on
+    the ink edge of its widest line (measured, under a pixel, Latin and
+    Malayalam), in the whole-song markers' type. That type is the Library
+    language picker's gloss to its endonym ("français — French"): 0.55 of the
+    lyrics' size, weight 400 (lyrics 500), no tracking, normal case, a fixed
+    0.825em row so Malayalam glyphs never collide, in `output-ink-muted` (a step
+    under the lit ink, at least 3:1 on each preset's ground: Warm 5.2, Dark 7.4,
+    Light 3.2, Contrast 6.3) when its part is lit, and `output-ink-muted-dimmed`
+    (muted at 55% over the ground, derived in every preset) when it recedes with
+    the lines around it. A stanza reads its number, other parts by kind (Chorus,
+    Bridge, Tag). It is not a detail of the bands: the text, not the marker,
+    centres, and "Show parts" off lays the scroll out again without it.
   - **The number badge**, for those following in a printed songbook: the hymn's
     number in a FAB-like tonal tile (9% ink over the ground,
     `output-ink-muted`), top left, larger than the caption so it reads from the
