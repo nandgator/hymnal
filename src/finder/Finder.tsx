@@ -18,6 +18,7 @@ import type { UserState } from "../persistence/user-state.ts";
 import { titleCase } from "../shell/case.ts";
 import { type GlideList, glideList } from "../shell/glideList.ts";
 import { hoverButton } from "../shell/hoverGlide.ts";
+import { KeyCombo } from "../shell/KeyCombo.tsx";
 import { RecentsList } from "../shell/RecentsList.tsx";
 
 /** How long typing must pause before a lyric search runs. */
@@ -332,9 +333,7 @@ export function Finder(props: FinderProps) {
               {row.kind === "command" ? (
                 <>
                   <span class="finder-title">{row.command.label}</span>
-                  <Show when={row.command.hint}>
-                    {(hint) => <kbd class="key-hint">{hint()}</kbd>}
-                  </Show>
+                  <Show when={row.command.hint}>{(hint) => <KeyCombo keys={hint()} />}</Show>
                 </>
               ) : (
                 <>

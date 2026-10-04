@@ -64,10 +64,10 @@ import { autoHover } from "./shell/autoHover.ts";
 import { titleCase } from "./shell/case.ts";
 import { glideList } from "./shell/glideList.ts";
 import { hoverButton, hoverGroup } from "./shell/hoverGlide.ts";
+import { KeyCombo } from "./shell/KeyCombo.tsx";
 import {
   ariaKeys,
   ignoresShortcuts,
-  keyCaps,
   keyHint,
   replayForwardedKey,
   SHORTCUTS,
@@ -1169,11 +1169,7 @@ function Operator(props: Shared) {
               >
                 <span class="icon icon-search" aria-hidden="true" />
                 <span class="switcher-find-text">Find a song or action</span>
-                <span class="key-combo switcher-find-key" aria-hidden="true">
-                  <For each={keyCaps(keyHint("command-menu", 1))}>
-                    {(cap) => <kbd class="key-hint">{cap}</kbd>}
-                  </For>
-                </span>
+                <KeyCombo class="switcher-find-key" keys={keyHint("command-menu", 1)} decorative />
               </button>
             </Show>
             {/* Go live (PRINCIPLES.md: emphasis follows the task): a one-off
@@ -1390,16 +1386,7 @@ function Operator(props: Shared) {
                 {(shortcut) => (
                   <tr>
                     <th scope="row" class="shortcut-keys">
-                      <For each={shortcut.keys}>
-                        {(key) => (
-                          <span class="key-combo">
-                            {/* "Ctrl+K" is two caps; a lone "+" stays one. */}
-                            <For each={keyCaps(key)}>
-                              {(cap) => <kbd class="key-hint">{cap}</kbd>}
-                            </For>
-                          </span>
-                        )}
-                      </For>
+                      <For each={shortcut.keys}>{(key) => <KeyCombo keys={key} />}</For>
                     </th>
                     <td class="body-large">{shortcut.label}</td>
                   </tr>

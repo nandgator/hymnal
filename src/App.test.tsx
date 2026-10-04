@@ -919,7 +919,7 @@ describe("App", () => {
       fireEvent.keyDown(window, { key: "k", ctrlKey: true });
       menu = await screen.findByRole("dialog", { name: "Search" });
       const option = within(menu).getByRole("option", { name: /Hold the Output/ });
-      expect(option.querySelector("kbd")?.textContent).toBe("Shift+H");
+      expect(option.querySelector(".key-combo")?.textContent).toBe("Shift+H");
       fireEvent.mouseDown(option);
       expect(await screen.findByRole("button", { name: "Held" })).toBeInTheDocument();
       fireEvent.keyDown(window, { key: "k", ctrlKey: true });
@@ -1280,7 +1280,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const menu = await screen.findByRole("dialog", { name: "Search" });
     const option = within(menu).getByRole("option", { name: /End Live/ });
-    expect(option.querySelector("kbd")?.textContent).toBe("Shift+E");
+    expect(option.querySelector(".key-combo")?.textContent).toBe("Shift+E");
     fireEvent.mouseDown(option);
     await waitFor(() => expect(seen).toContainEqual({ type: "close" }));
     expect(await screen.findByRole("button", { name: "Go Live" })).toBeInTheDocument();
@@ -1696,13 +1696,38 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     expect(screen.queryByRole("search", { name: "Switch song" })).not.toBeInTheDocument();
   });
 
-  it("says once, briefly, where the switcher is, and not the second time", async () => {
+  it("shows the cursor while the mouse moves and hides it once still, as the Output window does", async () => {
     await songUp();
     await presentHere();
-    fireEvent.keyDown(window, { key: "f" });
-    await waitFor(() => expect(region()).toBeNull());
+    vi.useFakeTimers();
+    try {
+      expect(region()).not.toHaveClass("output-cursor");
+      window.dispatchEvent(new MouseEvent("mousemove"));
+      await vi.advanceTimersByTimeAsync(1999);
+      expect(region()).toHaveClass("output-cursor");
+      await vi.advanceTimersByTimeAsync(1);
+      expect(region()).not.toHaveClass("output-cursor");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("says nothing over the audience's screen unasked: no hint where the switcher is", async () => {
+    await songUp();
     await presentHere();
-    expect(screen.queryByText("Ctrl+K to switch songs")).not.toBeInTheDocument();
+    expect(region()?.querySelector(".present-switcher-hint")).toBeNull();
+    expect(screen.queryByText(/to switch songs/)).not.toBeInTheDocument();
+  });
+
+  it("steps the caption aside while the switcher is open", async () => {
+    await songUp();
+    await presentHere();
+    expect(region()).not.toHaveClass("present-here-switching");
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    await screen.findByRole("search", { name: "Switch song" });
+    expect(region()).toHaveClass("present-here-switching");
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(region()).not.toHaveClass("present-here-switching"));
   });
 
   it("Esc closes only the switcher when it is open, and leaves when it is not", async () => {

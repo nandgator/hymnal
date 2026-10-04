@@ -34,6 +34,7 @@ import {
 } from "../persistence/user-state.ts";
 import { glideList } from "./glideList.ts";
 import { hoverGroup } from "./hoverGlide.ts";
+import { KeyCombo } from "./KeyCombo.tsx";
 import { ariaKeys, keyHint, withKey } from "./keymap.ts";
 import { Menu } from "./Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "./media.ts";
@@ -711,7 +712,7 @@ export function Settings(props: SettingsProps) {
             </h3>
             <button type="button" class="list-row settings-link" onClick={() => show()()}>
               Keyboard Shortcuts
-              <kbd class="key-hint">{keyHint("shortcuts")}</kbd>
+              <KeyCombo keys={keyHint("shortcuts")} />
             </button>
           </section>
         )}

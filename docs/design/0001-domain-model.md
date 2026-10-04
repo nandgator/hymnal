@@ -1800,19 +1800,21 @@ the app's own tab, fullscreen, with the Operator's state its only source.
   window would not: it takes, in the capture phase, the keys that would open a
   sheet over the audience (`?`, Ctrl/⌘+,), Go Live, End Live and Present here
   (O, Shift+E, Shift+P), and the switcher's keys.
-- **The quick switcher.** Ctrl/⌘+K or `/` opens a small strip at the bottom
-  centre (30rem at most, five matches at most, the box beneath the list, a
-  blurred translucent ground in the Output's own colours, so the audience sees
-  as little as possible). It is the command menu's Finder in a `compact` mode:
-  the same number and lyric search over the song's own book, without recents,
-  opening songs or actions, and a number opens only a song that exists. Enter
-  shows the top match at once and closes the strip; Esc closes it. **Digits keep
-  their Operator meaning** (a stanza jump, §16.5): an operator jumps to a verse
-  by number mid-song, so the switcher opens by Ctrl/⌘+K or `/` only. Ctrl+K is
-  the chord because Ctrl+P is the browser's print and cannot be relied on to
-  reach the page. With no song up, the strip opens at once; otherwise, the first
-  time in a session, the strip's place says "Ctrl+K to switch songs" for two
-  seconds, then fades.
+- **The quick switcher.** Ctrl/⌘+K or `/` opens the search field at the bottom
+  centre, with no card (30rem at most, five matches at most, the box beneath the
+  list), on a full-width band of the Output's ground over a blur that rises a
+  little above the list, so the audience sees as little as possible. The
+  Output's bottom caption fades out while it is open. The cursor follows the
+  Output window's rule: shown while the mouse moves, hidden after about two
+  seconds still. It is the command menu's Finder in a `compact` mode: the same
+  number and lyric search over the song's own book, without recents, opening
+  songs or actions, and a number opens only a song that exists. Enter shows the
+  top match at once and closes the strip; Esc closes it. **Digits keep their
+  Operator meaning** (a stanza jump, §16.5): an operator jumps to a verse by
+  number mid-song, so the switcher opens by Ctrl/⌘+K or `/` only. Ctrl+K is the
+  chord because Ctrl+P is the browser's print and cannot be relied on to reach
+  the page. With no song up, the strip opens at once; otherwise nothing is laid
+  over the audience's screen unasked: no hint says where the switcher is.
 - **Leaving.** F, or Esc with the switcher closed, leaves fullscreen and returns
   to the Operator at the same song and part, so does the browser's own Esc
   (`fullscreenchange`); where the Keyboard Lock API exists (Chromium) Esc is

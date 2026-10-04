@@ -4,6 +4,7 @@ import { Finder } from "../finder/Finder.tsx";
 import type { BandSize, Highlight, OutputCues, OutputTheme } from "../persistence/user-state.ts";
 import { isTyping } from "../shell/keymap.ts";
 import type { OutputMessage } from "./channel.ts";
+import { createIdleCursor } from "./idleCursor.ts";
 import { OutputView } from "./OutputView.tsx";
 
 /** What the audience screen is told, as the Operator's Presentation settings. */
@@ -35,19 +36,13 @@ export interface PresentHereProps {
  * settings; the Operator stays the one source of truth, and the keys that
  * step the song are the ones the shell and the Presenter already handle. This
  * component owns only what the Output window forwards or leaves to the
- * browser: leaving, and the quick switcher — Ctrl+K, a number, or / — a small
- * strip at the bottom so the audience sees as little of it as possible.
+ * browser: leaving, and the quick switcher (Ctrl+K or /): the search field at the
+ * bottom centre, on a soft blur, so the audience sees as little of it as
+ * possible.
  */
-/** The hint is said once per session, not every time one presents. */
-let hintSaid = false;
-
 export function PresentHere(props: PresentHereProps) {
-  const [hint, setHint] = createSignal(!hintSaid && !props.startWithSwitcher);
-  hintSaid = true;
-  onMount(() => {
-    const timer = setTimeout(() => setHint(false), 2000);
-    onCleanup(() => clearTimeout(timer));
-  });
+  // The Output window's cursor: there while the mouse moves, gone once still.
+  const cursorVisible = createIdleCursor();
   const [switcher, setSwitcher] = createSignal<{ query: string } | undefined>(
     props.startWithSwitcher ? { query: "" } : undefined,
   );
@@ -101,6 +96,7 @@ export function PresentHere(props: PresentHereProps) {
       class="present-here"
       aria-label="Presenting on this screen"
       data-output-theme={props.theme}
+      classList={{ "output-cursor": cursorVisible(), "present-here-switching": !!switcher() }}
     >
       <Show when={props.message.type === "content" && props.message}>
         {(message) => (
@@ -114,11 +110,9 @@ export function PresentHere(props: PresentHereProps) {
             wholeSong={props.wholeSong}
             highlight={props.highlight}
             bandSize={props.bandSize}
+            classList={{ "output-cursor": cursorVisible() }}
           />
         )}
-      </Show>
-      <Show when={hint() && !switcher()}>
-        <p class="present-switcher-hint">Ctrl+K to switch songs</p>
       </Show>
       <Show when={switcher()}>
         {(open) => (

@@ -9,6 +9,7 @@ import {
   requestSeek,
   subscribeOutput,
 } from "./channel.ts";
+import { createIdleCursor } from "./idleCursor.ts";
 import { OutputView } from "./OutputView.tsx";
 import {
   type DetailedScreen,
@@ -28,7 +29,6 @@ interface ScreenDetailsLike extends EventTarget {
 }
 type WindowWithScreens = Window & { getScreenDetails?: () => Promise<ScreenDetailsLike> };
 
-const CURSOR_IDLE_MS = 2000;
 /** Named keys forwarded to the Operator, besides every printable one. */
 const FORWARDED_KEYS = new Set([
   "ArrowLeft",
@@ -107,21 +107,8 @@ export function Output() {
     } else setMessage(next);
   };
 
-  // Visible while the mouse moves, so the operator can position and
-  // fullscreen the window; hidden once still, so it never sits parked
-  // over the projected lyrics.
-  const [cursorVisible, setCursorVisible] = createSignal(false);
-  let cursorTimer: ReturnType<typeof setTimeout> | undefined;
-  const onMouseMove = () => {
-    setCursorVisible(true);
-    clearTimeout(cursorTimer);
-    cursorTimer = setTimeout(() => setCursorVisible(false), CURSOR_IDLE_MS);
-  };
-  onMount(() => window.addEventListener("mousemove", onMouseMove));
-  onCleanup(() => {
-    window.removeEventListener("mousemove", onMouseMove);
-    clearTimeout(cursorTimer);
-  });
+  // Visible while the mouse moves, hidden once still (idleCursor.ts).
+  const cursorVisible = createIdleCursor();
 
   // Placed on a screen by the Operator (ADR-0028): fullscreen there. A
   // browser may refuse without a gesture in this window, so the first click

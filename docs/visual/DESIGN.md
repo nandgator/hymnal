@@ -635,11 +635,16 @@ view is close enough to the frame to need a smaller unit.
   The primary one is an icon alone on a phone. It is gone while an Output window
   is open. Presenting, the app tab is the Output's own view full-bleed on its
   ground, with nothing of the shell on it and no notice. The one thing laid over
-  it is the **quick switcher**: a strip at the bottom centre, at most 30rem and
-  five rows (small, single-line titles with an ellipsis), 12px corners, the
-  Output's ground at 72% over a blur (18px), a hairline of the ink at 14%, the
-  box under its list, in the Output's preset colours, never the Operator's
-  theme. It opens and closes with no motion beyond the list changing.
+  it is the **quick switcher**: no card, the search field itself at the bottom
+  centre, at most 30rem, its list (five rows, small, single-line titles with an
+  ellipsis) above it, in the Output's preset colours, never the Operator's
+  theme. Behind it a full-width band of the Output's ground over a blur (18px)
+  rises 1.5rem above the top of the list and fades out upward, so the list sits
+  inside the soft blur, not on its edge. While it is open the Output's bottom
+  caption (book, title, repeat count) fades out. Nothing else is ever laid over
+  the audience's screen unasked: there is no hint where the switcher is. The
+  cursor is the Output window's: shown while the mouse moves, gone after 2s
+  still. It opens and closes with no motion beyond the list changing.
 - **Another tab** (Board #36; SDD-0001 §10.4). A tab that cannot hold the books
   (another tab has them) is a full page: the empty card's own shape centred on
   the page background, display-small **Hymnal is open in another tab**, one body
@@ -804,12 +809,16 @@ view is close enough to the frame to need a smaller unit.
   fill glides from key to key, § Motion), and a short last row is centred. A
   selected control keeps its tone under hover and press: a state layer would
   grey it toward the neutral action colour and read as losing the selection.
-  **Key caps** (shortcuts, the command menu, Ctrl K) share one height and a 6px
+  **Key caps** (shortcuts, the command menu, Ctrl+K) share one height and a 6px
   corner nested in the 12px controls, a tone above what they sit on, with a
-  lower edge that keeps them reading as keys; a combination is caps side by
-  side. A control whose label changes (Blank and Restore; Hold and Release; Go
-  Live, On Air, Blanked and Held) is as wide as its longest label, so the swap
-  never resizes it. Repeat, Undo and Reset are text buttons: occasional, so
+  lower edge that keeps them reading as keys. A combination is caps joined by a
+  small, muted "+" that belongs to the key style (the `KeyCombo` component, the
+  one place a shortcut is drawn: search box, command list, Settings, the
+  shortcut sheet); a single key is one cap. A tooltip stays text and spells a
+  chord "Ctrl+K". Keys read Ctrl on every platform, as the app handles Ctrl and
+  ⌘ alike. A control whose label changes (Blank and Restore; Hold and Release;
+  Go Live, On Air, Blanked and Held) is as wide as its longest label, so the
+  swap never resizes it. Repeat, Undo and Reset are text buttons: occasional, so
   quiet.
 - **Motion** explains change, at Material's emphasised easing: areas glide to
   their places on expand, collapse, close and split (View Transitions of the

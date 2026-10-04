@@ -1312,7 +1312,7 @@ input[type="checkbox"].switch:disabled {
    the tone above whatever it sits on. Its character is the cap's lower
    edge, drawn as part of the key's form rather than as elevation, so it
    still reads as a key and not as a chip (PRINCIPLES.md). A combination
-   is caps side by side ("Shift" "Space"), as on the keyboard. */
+   is caps joined by a small "+" ("Shift" + "Space"), as KeyCombo draws it. */
 .key-hint {
   display: inline-flex;
   align-items: center;
@@ -1348,11 +1348,22 @@ input[type="checkbox"].switch:disabled {
 
 .key-combo {
   display: inline-flex;
-  gap: 2px;
+  align-items: center;
+  gap: 3px;
 }
 
-.finder-option .key-hint,
-.settings-link .key-hint {
+/* The "+" of a chord: part of the key style, a small muted glyph between
+   the caps (KeyCombo), never loose text. */
+.key-plus {
+  color: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 70%, transparent);
+  font-family: var(--font-family);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.finder-option .key-combo,
+.settings-link .key-combo {
   margin-inline-start: auto;
 }
 
@@ -5488,6 +5499,11 @@ fieldset.book-main {
   cursor: none;
 }
 
+/* The cursor is the Output window's: there while the mouse moves. */
+.present-here.output-cursor {
+  cursor: default;
+}
+
 /* Go Live beside Present here on one screen: the popup is the second choice. */
 .present-button.present-secondary {
   justify-content: center;
@@ -5515,52 +5531,23 @@ fieldset.book-main {
   padding: 0;
 }
 
-/* The first-time hint where the switcher will be: two seconds, then gone. */
-.present-switcher-hint {
-  position: absolute;
-  bottom: 3cqmin;
-  left: 50%;
-  padding: 0.5rem 1rem;
-  border-radius: var(--shape-md);
-  background-color: color-mix(in srgb, var(--output-ground) 72%, transparent);
-  color: var(--output-ink-muted);
-  font-size: 0.9375rem;
-  backdrop-filter: blur(18px);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--output-ink) 14%, transparent);
-  transform: translateX(-50%);
-  animation: present-hint 2s ease both;
-}
-
-@keyframes present-hint {
-  0%,
-  85% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
 .present-here-first {
   order: -1;
 }
 
+/* No card: the search field itself sits at the bottom centre, over a soft
+   blur that rises a little (1.5rem) above the top of the results, so the list
+   lies inside it, not on its edge. The band is the strip's own ::before, full
+   width, blurred and tinted with the Output's ground, fading out upward. */
 .present-switcher {
   position: absolute;
   z-index: 10;
-  bottom: 3cqmin;
-  left: 50%;
+  inset: auto 0 0;
   display: flex;
-  width: min(30rem, calc(100% - 2rem));
+  justify-content: center;
   max-height: 60%;
-  padding: 0.5rem;
-  border-radius: var(--shape-md);
-  background-color: color-mix(in srgb, var(--output-ground) 72%, transparent);
+  padding: 0 1rem 3cqmin;
   color: var(--output-ink);
-  backdrop-filter: blur(18px) saturate(1.2);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--output-ink) 14%, transparent);
-  transform: translateX(-50%);
-  cursor: default;
   /* The box takes this strip's ink, not the Operator's theme. */
   --md-sys-color-surface: var(--output-ground);
   --md-sys-color-on-surface: var(--output-ink);
@@ -5569,6 +5556,27 @@ fieldset.book-main {
   --md-sys-color-primary: color-mix(in srgb, var(--output-ink) 70%, transparent);
   --md-sys-color-surface-container: color-mix(in srgb, var(--output-ink) 10%, transparent);
   --md-sys-color-surface-container-high: color-mix(in srgb, var(--output-ink) 16%, transparent);
+}
+
+.present-switcher::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -1.5rem 0 0;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--output-ground) 88%, transparent) 55%,
+    color-mix(in srgb, var(--output-ground) 55%, transparent)
+  );
+  backdrop-filter: blur(18px) saturate(1.2);
+  mask-image: linear-gradient(to top, #000 calc(100% - 1.5rem), transparent);
+  pointer-events: none;
+}
+
+/* While the switcher is open the caption (book, title, repeat count) steps
+   aside: the field would sit on it. It fades, as a cue does. */
+.present-here-switching .output-caption-text {
+  opacity: 0;
 }
 
 /* Small: the audience should see as little of it as possible. */
@@ -5592,15 +5600,24 @@ fieldset.book-main {
 
 .present-switcher .finder {
   display: flex;
-  flex: 1;
   flex-direction: column-reverse;
   gap: var(--space-xs);
+  width: min(30rem, 100%);
   min-width: 0;
   overflow-y: auto;
 }
 
 .present-switcher .finder-form {
   flex: none;
+  background-color: transparent;
+}
+
+/* The hover layer drifts and blurs a pixel or two past the list's box. Left
+   to the scroller it became overflow: scrollbars flickered in and out and the
+   list jumped 15px under the pointer. Clipped, it adds no scroll area. */
+.present-switcher [role="listbox"] {
+  overflow: clip;
+  overflow-clip-margin: 0.5rem;
 }
 
 .present-switcher .finder-scope {
