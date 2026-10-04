@@ -1,0 +1,153 @@
+import { createSignal, onCleanup, onMount, Show } from "solid-js";
+import type { HymnbookId, HymnNumber } from "../domain/types.ts";
+import { Finder } from "../finder/Finder.tsx";
+import type { BandSize, Highlight, OutputCues, OutputTheme } from "../persistence/user-state.ts";
+import { isTyping } from "../shell/keymap.ts";
+import type { OutputMessage } from "./channel.ts";
+import { OutputView } from "./OutputView.tsx";
+
+/** What the audience screen is told, as the Operator's Presentation settings. */
+export interface PresentHereProps {
+  /** What the Output would show: the Presenter's own message, never a copy of its state. */
+  message: Extract<OutputMessage, { type: "content" | "idle" }>;
+  blanked: boolean;
+  theme: OutputTheme;
+  cues: OutputCues;
+  reveal: number;
+  pinChorus: boolean;
+  wholeSong: boolean;
+  highlight: Highlight;
+  bandSize: BandSize;
+  /** The book the quick switcher searches: the song's own. */
+  hymnbookId: HymnbookId;
+  /** Shows a song at once. */
+  onSelect: (number: HymnNumber) => void;
+  /** Esc (with no switcher open) or F. */
+  onLeave: () => void;
+  /** The switcher opens at once, e.g. with nothing yet to show. */
+  startWithSwitcher?: boolean;
+}
+
+/**
+ * One-screen presenting (Board #41, SDD-0001 §16.7): the Output's own view,
+ * full-bleed over the app, in the tab itself, as Slides' Slideshow does. It
+ * renders the message the Presenter publishes and the Operator's Presentation
+ * settings; the Operator stays the one source of truth, and the keys that
+ * step the song are the ones the shell and the Presenter already handle. This
+ * component owns only what the Output window forwards or leaves to the
+ * browser: leaving, and the quick switcher — Ctrl+K, a number, or / — a small
+ * strip at the bottom so the audience sees as little of it as possible.
+ */
+/** The hint is said once per session, not every time one presents. */
+let hintSaid = false;
+
+export function PresentHere(props: PresentHereProps) {
+  const [hint, setHint] = createSignal(!hintSaid && !props.startWithSwitcher);
+  hintSaid = true;
+  onMount(() => {
+    const timer = setTimeout(() => setHint(false), 2000);
+    onCleanup(() => clearTimeout(timer));
+  });
+  const [switcher, setSwitcher] = createSignal<{ query: string } | undefined>(
+    props.startWithSwitcher ? { query: "" } : undefined,
+  );
+  const openSwitcher = (query = "") => setSwitcher({ query });
+  const closeSwitcher = () => setSwitcher(undefined);
+
+  // Capture phase, ahead of the shell's and the Presenter's own keys: what is
+  // swallowed here is never theirs while presenting. The Operator's other
+  // keys (steps, B, H, R...) pass through untouched.
+  const onKeyDown = (event: KeyboardEvent) => {
+    const chord = event.ctrlKey || event.metaKey;
+    const swallow = () => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    if (chord && !event.altKey && event.key.toLowerCase() === "k") {
+      swallow();
+      if (switcher()) closeSwitcher();
+      else openSwitcher();
+      return;
+    }
+    // Sheets would open over the audience: Settings, the shortcut sheet.
+    if ((chord && event.key === ",") || (!chord && !isTyping(event) && event.key === "?")) {
+      swallow();
+      return;
+    }
+    if (event.key === "Escape") {
+      swallow();
+      if (switcher()) closeSwitcher();
+      else props.onLeave();
+      return;
+    }
+    if (chord || event.altKey || isTyping(event)) return;
+    const key = event.key.toLowerCase();
+    if (key === "f") {
+      swallow();
+      props.onLeave();
+    } else if (event.key === "/") {
+      swallow();
+      if (!switcher()) openSwitcher();
+    } else if (key === "o" || (key === "e" && event.shiftKey) || (key === "p" && event.shiftKey)) {
+      // Go Live, End Live and Present here mean nothing from here.
+      swallow();
+    }
+  };
+  onMount(() => window.addEventListener("keydown", onKeyDown, true));
+  onCleanup(() => window.removeEventListener("keydown", onKeyDown, true));
+
+  return (
+    <section
+      class="present-here"
+      aria-label="Presenting on this screen"
+      data-output-theme={props.theme}
+    >
+      <Show when={props.message.type === "content" && props.message}>
+        {(message) => (
+          <OutputView
+            message={message() as Extract<OutputMessage, { type: "content" }>}
+            variant="full"
+            blanked={props.blanked}
+            cues={props.cues}
+            reveal={props.reveal}
+            pinChorus={props.pinChorus}
+            wholeSong={props.wholeSong}
+            highlight={props.highlight}
+            bandSize={props.bandSize}
+          />
+        )}
+      </Show>
+      <Show when={hint() && !switcher()}>
+        <p class="present-switcher-hint">Ctrl+K to switch songs</p>
+      </Show>
+      <Show when={switcher()}>
+        {(open) => (
+          // biome-ignore lint/a11y/useSemanticElements: <search> is not in JSX typings or jsdom yet
+          <div
+            class="present-switcher"
+            role="search"
+            aria-label="Switch song"
+            ref={(el) =>
+              // The box is the Finder's own; it takes the keys from here on.
+              setTimeout(() => {
+                const input = el.querySelector("input");
+                input?.focus();
+                input?.setSelectionRange(input.value.length, input.value.length);
+              })
+            }
+          >
+            <Finder
+              compact
+              hymnbookId={props.hymnbookId}
+              initialQuery={open().query}
+              onSelect={(number) => {
+                closeSwitcher();
+                props.onSelect(number);
+              }}
+            />
+          </div>
+        )}
+      </Show>
+    </section>
+  );
+}

@@ -94,7 +94,7 @@ Ordered. Top unblocked item is next.
 | 38  | Search across books: one query over every loaded book (SDD-0001 §16)                                                      | —          |
 | 39  | Private windows: say the books go when the window closes; an in-memory store where OPFS is refused (Firefox private, Tor) | —          |
 | 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                    | —          |
-| 41  | One-screen presenting: the Output as a view in the main window, a quick song switcher over it (Ctrl+P-like)               | —          |
+| 41  | One-screen presenting: built (SDD-0001 §16.7); waits for the maintainer's check on GNOME Wayland and the keys' feel       | —          |
 
 Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. The
 songs have left the repo (#28 done): nothing is bundled, and every book comes in
@@ -139,6 +139,10 @@ only, here:
 - 2026-10-04 — Board #21 Hold: the Output frozen on what it shows while the
   Operator browses; Release sends the current; Shift+H, a button beside Blank, a
   command (SDD-0001 §16.6)
+- 2026-10-04 — #41 built: Present here (a button, Shift+P, the command) shows
+  the Output's view fullscreen in the app tab; a quick switcher on Ctrl+K; F or
+  Esc leaves; no notices meanwhile; not offered while an Output window is open
+  (SDD-0001 §16.7)
 - 2026-10-04 — Settings: Presentation's layout is a choice (Part by part | Whole
   song) with only the chosen layout's settings under it; nesting at most one
   level, nothing depends on an off (SDD-0001 §16.1)

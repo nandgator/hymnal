@@ -78,6 +78,20 @@ describe("createPresence", () => {
     });
   });
 
+  it("is live while this tab presents on its own screen (Board #41), and not after", () => {
+    createRoot((dispose) => {
+      const presence = createPresence(() => () => {}, 0);
+      presence.setHere(false);
+      expect(presence.here()).toBe(false);
+      presence.setHere(true);
+      expect(presence.here()).toBe(true);
+      expect(presence.live()).toBe(true);
+      presence.setHere(false);
+      expect(presence.live()).toBe(presence.open() || !presence.known());
+      dispose();
+    });
+  });
+
   it("is known at once when an Output answers, and live while it is open", () => {
     createRoot((dispose) => {
       let report: (open: boolean) => void = () => {};

@@ -7,6 +7,7 @@ import {
   setOutputHeld,
   setOutputPresentation,
   subscribeHold,
+  subscribeLocalOutput,
   subscribeOutput,
   subscribeOutputShape,
   subscribeOutputState,
@@ -334,6 +335,26 @@ describe("output channel", () => {
     stopSeeks();
     stopOutputs();
     outputWindow.close();
+  });
+
+  it("subscribeLocalOutput hands this window's own publishes to a view in it, and replays the last (Board #41)", () => {
+    const seen: unknown[] = [];
+    publishOutput({ type: "idle" });
+    const stop = subscribeLocalOutput((message) => seen.push(message));
+    expect(seen).toEqual([{ type: "idle" }]);
+    const content = {
+      type: "content" as const,
+      hymnbookId: "book",
+      number: 1,
+      title: "T",
+      lines: [],
+      focus: { start: 0, end: 0 },
+    };
+    publishOutput(content);
+    expect(seen.at(-1)).toBe(content);
+    stop();
+    publishOutput({ type: "idle" });
+    expect(seen).toHaveLength(2);
   });
 
   it("requestSeek posts a seek other windows receive", async () => {

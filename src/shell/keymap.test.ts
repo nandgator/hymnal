@@ -57,6 +57,20 @@ describe("keymap", () => {
     expect(withKey("Repeat this part", "repeat", false)).toBe("Repeat this part");
   });
 
+  it("gives one-screen presenting its keys, none of them a key another row owns (Board #41)", () => {
+    expect(keyHint("present-here")).toBe("Shift+P");
+    expect(ariaKeys("present-here")).toBe("Shift+P");
+    expect(keyHint("leave-present")).toBe("F");
+    expect(ariaKeys("leave-present")).toBe("F Escape");
+    const taken = SHORTCUTS.filter(
+      (shortcut) => shortcut.id !== "present-here" && shortcut.id !== "leave-present",
+    )
+      .flatMap((shortcut) => shortcut.keys)
+      .map((key) => key.toLowerCase());
+    expect(taken).not.toContain("shift+p");
+    expect(taken).not.toContain("f");
+  });
+
   it("keeps every pane's key in the table", () => {
     for (const pane of PANES) {
       if (pane.shortcut) expect(keyHint(pane.shortcut)).not.toBe("");

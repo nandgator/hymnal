@@ -25,6 +25,8 @@ export type ShortcutId =
   | "hold"
   | "output"
   | "end-live"
+  | "present-here"
+  | "leave-present"
   | "tab"
   | "live"
   | "highlight"
@@ -47,6 +49,8 @@ export const SHORTCUTS: Shortcut[] = [
   { id: "hold", keys: ["Shift+H"], label: "Hold the Output on what it shows / release" },
   { id: "output", keys: ["O"], label: "Go live: open the Output, or bring it forward" },
   { id: "end-live", keys: ["Shift+E"], label: "End Live: close the Output window" },
+  { id: "present-here", keys: ["Shift+P"], label: "Present on this screen, full screen" },
+  { id: "leave-present", keys: ["F", "Esc"], label: "Leave presenting on this screen" },
   { id: "tab", keys: ["N"], label: "Next tab" },
   { id: "live", keys: ["L"], label: "Show or hide the Live preview" },
   { id: "highlight", keys: ["H"], label: "Light the whole song / only the current part" },

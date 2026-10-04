@@ -615,6 +615,19 @@ view is close enough to the frame to need a smaller unit.
   text button, **End Live** (an icon alone on a phone), closes the Output
   window; the status then reads Go Live again. To go dark and keep the window,
   Blank.
+- **Present here** (Board #41; SDD-0001 §16.7). Beside Go Live, a tonal button
+  with the fullscreen icon and the label **Present here**: the primary action,
+  before Go Live, where only one screen is known, and Go Live is then a quiet
+  icon-only button; with two screens Present here is the icon-only text button
+  (tooltip and name "Present here") after Go Live, so the crumb keeps its room.
+  The primary one is an icon alone on a phone. It is gone while an Output window
+  is open. Presenting, the app tab is the Output's own view full-bleed on its
+  ground, with nothing of the shell on it and no notice. The one thing laid over
+  it is the **quick switcher**: a strip at the bottom centre, at most 30rem and
+  five rows (small, single-line titles with an ellipsis), 12px corners, the
+  Output's ground at 72% over a blur (18px), a hairline of the ink at 14%, the
+  box under its list, in the Output's preset colours, never the Operator's
+  theme. It opens and closes with no motion beyond the list changing.
 - **Another tab** (Board #36; SDD-0001 §10.4). A tab that cannot hold the books
   (another tab has them) is a full page: the empty card's own shape centred on
   the page background, display-small **Hymnal is open in another tab**, one body

@@ -1627,6 +1627,8 @@ work too.
 | O                       | Open or focus the Output window |
 | Shift+E                 | End Live: close the Output      |
 | Shift+H                 | Hold the Output / release       |
+| Shift+P                 | Present on this screen (§16.7)  |
+| F, Esc                  | Leave presenting here (§16.7)   |
 | N                       | Next tab (see below)            |
 | L                       | Show or hide Live Preview       |
 | / or Ctrl/⌘+K           | Command menu: hymns and actions |
@@ -1694,11 +1696,12 @@ number matches no action, so the Finder's fast path holds: `/`, a number, Enter.
 With the box empty, the actions show, each with its key. Actions: Blank or
 Restore the Output, Hold or Release the Output (while one is open), Go live
 (Bring the Output forward, while one is open), End Live (while one is open),
-Next tab, Split or merge the tabs and Make the other tab group main (only where
-two groups fit, from 1400px; they glide as the pane toolbar's do), Show or hide
-each pane, Switch hymnbook, Library, Settings, Text size up and down, Keyboard
-shortcuts, and the Output's band size. Repeat and Undo repeat show R and U; Show
-the details now has no key.
+Present on this screen (§16.7; not while an Output window is open), Next tab,
+Split or merge the tabs and Make the other tab group main (only where two groups
+fit, from 1400px; they glide as the pane toolbar's do), Show or hide each pane,
+Switch hymnbook, Library, Settings, Text size up and down, Keyboard shortcuts,
+and the Output's band size. Repeat and Undo repeat show R and U; Show the
+details now has no key.
 
 ### 16.6 Hold
 
@@ -1748,7 +1751,69 @@ press of Freeze) moves on.
   command menu's Hold the Output / Release the Output, listed while an Output is
   open or held.
 
-### 16.7 Testing
+### 16.7 One-screen presenting: the Output as a view in the main window
+
+Board #41. On one screen (a laptop alone, or a projector that mirrors it) there
+is nowhere to drag an Output window to. Google Slides' Slideshow makes its own
+tab fullscreen, and so does this: **Present here** shows the Output's view in
+the app's own tab, fullscreen, with the Operator's state its only source.
+
+- **Entry.** A button beside Go Live, the command "Present on this screen" and
+  Shift+P (a chord, so a stray key cannot take the tab over; ADR-0028's Output
+  window keeps O). Where only one screen is known (no Window Management API, or
+  `screen.isExtended` false) Present here is the primary action and Go Live,
+  which still opens the popup, the quieter one beside it; with two screens Go
+  Live stays primary and Present here is a text button after it. It needs a
+  book, as Go Live does (a song may be chosen from the switcher), and is **not
+  offered while an Output window is open**: one audience, one place. An Output
+  window that opens or answers late while presenting here ends presenting here.
+- **What it shows.** `PresentHere` (`src/output/PresentHere.tsx`) renders the
+  same `OutputView` as the Output window, full-bleed over the shell
+  (`position: fixed`, above everything, the shell `inert` underneath), in the
+  same layout, theme, details, highlight and band size, from the Operator's
+  Presentation settings, and blank holds as it does there. Its message is the
+  one the Presenter publishes (`subscribeLocalOutput` in `channel.ts`: a
+  `BroadcastChannel` never delivers to its sender), so there is no second
+  Presenter state and Live's preview, Recents and the Operator's position are
+  the one truth. `document.documentElement.requestFullscreen()` is called in the
+  click's or key's own handler, for its activation. Where the browser refuses or
+  has none (iPhone), the view still fills the tab and F or Esc leaves it.
+- **Live.** While presenting here the tab counts as live as an open Output does:
+  the update gate holds, the tab lock is kept, Recents record, Live's dot and
+  the song's title show on air (`Presence.here`, `src/shell/updates.ts`).
+- **Driving it.** The keys are the Output window's forwarded keys, handled
+  directly by the shell and the Presenter (steps, lines, C, R, U, B, H, Home,
+  End); nothing is duplicated. `PresentHere` owns only what the Operator's
+  window would not: it takes, in the capture phase, the keys that would open a
+  sheet over the audience (`?`, Ctrl/⌘+,), Go Live, End Live and Present here
+  (O, Shift+E, Shift+P), and the switcher's keys.
+- **The quick switcher.** Ctrl/⌘+K or `/` opens a small strip at the bottom
+  centre (30rem at most, five matches at most, the box beneath the list, a
+  blurred translucent ground in the Output's own colours, so the audience sees
+  as little as possible). It is the command menu's Finder in a `compact` mode:
+  the same number and lyric search over the song's own book, without recents,
+  opening songs or actions, and a number opens only a song that exists. Enter
+  shows the top match at once and closes the strip; Esc closes it. **Digits keep
+  their Operator meaning** (a stanza jump, §16.5): an operator jumps to a verse
+  by number mid-song, so the switcher opens by Ctrl/⌘+K or `/` only. Ctrl+K is
+  the chord because Ctrl+P is the browser's print and cannot be relied on to
+  reach the page. With no song up, the strip opens at once; otherwise, the first
+  time in a session, the strip's place says "Ctrl+K to switch songs" for two
+  seconds, then fades.
+- **Leaving.** F, or Esc with the switcher closed, leaves fullscreen and returns
+  to the Operator at the same song and part, so does the browser's own Esc
+  (`fullscreenchange`); where the Keyboard Lock API exists (Chromium) Esc is
+  asked of the browser, so it can close the switcher first rather than leave.
+- **No notices.** The audience sees this tab, so none shows (the snackbar, its
+  live region): update, storage, screen and Library notices queue, and their
+  timers do not run, until presenting ends.
+- **Testing.** The entry, the fullscreen request, the keys, the switcher, Esc
+  and F, the notices and the not-while-an-Output rule are tested in
+  `App.test.tsx` with a stubbed Fullscreen API; fullscreen itself and the look
+  at 1280×720 and 1920×1080, light and dark, are hand checks (headless Chromium
+  honours `requestFullscreen`).
+
+### 16.8 Testing
 
 Screen choice is pure and unit-tested (`screens.test.ts`); the opening, the
 Settings row, the hints and the Output's fullscreen are tested against a mocked

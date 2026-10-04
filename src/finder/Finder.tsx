@@ -26,6 +26,8 @@ const LYRIC_DEBOUNCE_MS = 200;
 const NUMBER_SUGGESTIONS = 8;
 /** How many of the book's first songs show while nothing is typed. */
 export const OPENING_SONGS = 20;
+/** Matches the quick switcher lists at most. */
+const COMPACT_ROWS = 5;
 
 export interface FinderProps {
   /** The book searched: its key (SDD-0004 §10). */
@@ -45,6 +47,12 @@ export interface FinderProps {
   /** Actions listed ahead of the hymns — this makes the Finder the command
    * menu (SDD-0001 §16.5). */
   commands?: Command[];
+  /** The quick switcher over a presenting screen (SDD-0001 §16.7): a few
+   * matches for a number or words, nothing else — no recents, no opening
+   * songs — and only a song that exists is opened. */
+  compact?: boolean;
+  /** What the box starts with, e.g. the digit that opened the switcher. */
+  initialQuery?: string;
 }
 
 /** An action in the command menu. */
@@ -108,9 +116,10 @@ export function Finder(props: FinderProps) {
   // The songs are in the list's place until it is known that there are none, and both lists
   // appear together once both are read, so neither moves the other.
   const songsExpected = () => read.loading || opening().length > 0;
-  const songsShown = () => !trimmed() && opening().length > 0 && recentCount() !== undefined;
+  const songsShown = () =>
+    !props.compact && !trimmed() && opening().length > 0 && recentCount() !== undefined;
 
-  const [query, setQuery] = createSignal("");
+  const [query, setQuery] = createSignal(props.initialQuery ?? "");
   const trimmed = () => query().trim();
   const isNumber = () => /^\d+$/.test(trimmed());
 
@@ -142,16 +151,18 @@ export function Finder(props: FinderProps) {
       const prefixed = all.filter(
         (hymn) => String(hymn.number).startsWith(typed) && String(hymn.number) !== typed,
       );
-      return [...exact, ...prefixed].slice(0, NUMBER_SUGGESTIONS);
+      return [...exact, ...prefixed].slice(0, props.compact ? COMPACT_ROWS : NUMBER_SUGGESTIONS);
     }
     if (!lyricQuery()) return [];
     // `latest` keeps the previous results up while the next load.
-    return (lyricResults.latest ?? []).map((result) => ({
-      number: result.number,
-      title: result.title,
-      // The matched line is often the first line, which is the title.
-      snippet: result.snippet !== result.title ? result.snippet : undefined,
-    }));
+    return (lyricResults.latest ?? [])
+      .slice(0, props.compact ? COMPACT_ROWS : undefined)
+      .map((result) => ({
+        number: result.number,
+        title: result.title,
+        // The matched line is often the first line, which is the title.
+        snippet: result.snippet !== result.title ? result.snippet : undefined,
+      }));
   });
 
   const rows = createMemo((): Row[] => [
@@ -183,7 +194,7 @@ export function Finder(props: FinderProps) {
     if (row) return pick(row);
     // A number with no suggestion still opens — Presenter reports it if no
     // such hymn exists.
-    if (isNumber()) return props.onSelect(Number(trimmed()));
+    if (isNumber() && !props.compact) return props.onSelect(Number(trimmed()));
     if (trimmed() && !isNumber()) setLyricQuery(trimmed());
   };
 
@@ -195,7 +206,7 @@ export function Finder(props: FinderProps) {
     } else if (event.key === "ArrowUp" && count) {
       event.preventDefault();
       setActive((i) => (i < 0 ? count - 1 : (i - 1 + count) % count));
-    } else if (event.key === "Escape" && query()) {
+    } else if (event.key === "Escape" && query() && !props.compact) {
       // Clear first; a second Escape reaches the sheet and closes it.
       event.preventDefault();
       event.stopPropagation();
@@ -341,7 +352,7 @@ export function Finder(props: FinderProps) {
         </For>
       </div>
 
-      <Show when={!trimmed()}>
+      <Show when={!trimmed() && !props.compact}>
         {/* Recents is there while it has entries (or while there are no songs
             to show instead); its own count says which. */}
         <section hidden={recentCount() === undefined || (recentCount() === 0 && songsExpected())}>

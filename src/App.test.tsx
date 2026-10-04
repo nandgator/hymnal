@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.tsx";
 import type { BookRow, ContentAdmin, ContentStore } from "./persistence/content-store.ts";
 import type { UserState } from "./persistence/user-state.ts";
@@ -26,8 +26,15 @@ vi.mock("./persistence/content-store.ts", () => {
       hymnbookId,
       number,
       title: number === 1 ? "Mocked Hymn" : `Mocked Hymn ${number}`,
-      parts: [{ id: "s1", kind: "stanza", lines: ["A line"] }],
-      sequence: [{ partId: "s1" }],
+      // Song 3 has two parts, for the tests that step through one.
+      parts:
+        number === 3
+          ? [
+              { id: "s1", kind: "stanza", label: "1", lines: ["First line"] },
+              { id: "s2", kind: "stanza", label: "2", lines: ["Second line"] },
+            ]
+          : [{ id: "s1", kind: "stanza", lines: ["A line"] }],
+      sequence: number === 3 ? [{ partId: "s1" }, { partId: "s2" }] : [{ partId: "s1" }],
       meta: {},
     }),
     searchLyrics: async () => [],
@@ -1559,4 +1566,207 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
       timeout: 10000,
     });
   }, 15000);
+});
+
+describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
+  const FULLSCREEN = { configurable: true } as const;
+  const setFullscreen = (element: Element | null) =>
+    Object.defineProperty(document, "fullscreenElement", { ...FULLSCREEN, value: element });
+  let requestFullscreen: ReturnType<typeof vi.fn>;
+  let exitFullscreen: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    requestFullscreen = vi.fn(async () => {
+      setFullscreen(document.documentElement);
+      document.dispatchEvent(new Event("fullscreenchange"));
+    });
+    exitFullscreen = vi.fn(async () => {
+      setFullscreen(null);
+      document.dispatchEvent(new Event("fullscreenchange"));
+    });
+    Object.assign(document.documentElement, { requestFullscreen });
+    Object.assign(document, { exitFullscreen });
+  });
+  afterEach(() => {
+    Reflect.deleteProperty(document.documentElement, "requestFullscreen");
+    Reflect.deleteProperty(document, "exitFullscreen");
+    Reflect.deleteProperty(document, "fullscreenElement");
+    Reflect.deleteProperty(window, "getScreenDetails");
+    Reflect.deleteProperty(window.screen, "isExtended");
+    vi.restoreAllMocks();
+  });
+
+  const notices = (pattern: RegExp) =>
+    screen.queryAllByText(pattern).filter((el) => !el.closest(".snackbar-leaving")).length;
+
+  /** Song 3 (two parts) is up in the Presenter. */
+  async function songUp() {
+    render(() => <App />);
+    await openFinder();
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+      target: { value: "3" },
+    });
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
+    await screen.findByRole("img", { name: "Live output preview" });
+  }
+  const region = () => screen.queryByRole("region", { name: "Presenting on this screen" });
+  const lit = () => region()?.querySelector(".output-line-current")?.textContent;
+  async function presentHere() {
+    fireEvent.click(await screen.findByRole("button", { name: "Present here" }));
+    await screen.findByRole("region", { name: "Presenting on this screen" });
+  }
+
+  it("offers Present here as the primary action on one screen, with Go Live beside it as the popup", async () => {
+    render(() => <App />);
+    const here = await screen.findByRole("button", { name: "Present here" });
+    const popup = screen.getByRole("button", { name: "Go Live" });
+    expect(here).toHaveClass("present-button");
+    expect(popup).toHaveClass("present-secondary");
+  });
+
+  it("with two screens, Go Live stays primary and Present here is the quieter second choice", async () => {
+    const screens = [
+      { label: "A", width: 1440, height: 900, left: 0, top: 0, isPrimary: true },
+      { label: "B", width: 1280, height: 800, left: 1440, top: 0 },
+    ];
+    Object.assign(window, {
+      getScreenDetails: async () =>
+        Object.assign(new EventTarget(), { screens, currentScreen: screens[0] }),
+    });
+    Object.defineProperty(window.screen, "isExtended", { value: true, configurable: true });
+    render(() => <App />);
+    const here = await screen.findByRole("button", { name: "Present here" });
+    expect(here).not.toHaveClass("present-button");
+    expect(screen.getByRole("button", { name: "Go Live" })).not.toHaveClass("present-secondary");
+  });
+
+  it("asks the browser for fullscreen on the click and shows the song full-bleed", async () => {
+    await songUp();
+    await presentHere();
+    expect(requestFullscreen).toHaveBeenCalledTimes(1);
+    expect(lit()).toContain("First line");
+    expect(screen.queryByRole("button", { name: "Present here" })).not.toBeInTheDocument();
+  });
+
+  it("is also entered from Shift+P and from the command list", async () => {
+    await songUp();
+    fireEvent.keyDown(window, { key: "P", shiftKey: true });
+    await screen.findByRole("region", { name: "Presenting on this screen" });
+    expect(requestFullscreen).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(region()).toBeNull());
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const palette = within(await screen.findByRole("dialog", { name: "Search" }));
+    fireEvent.input(palette.getByRole("combobox"), { target: { value: "present on" } });
+    fireEvent.mouseDown(await palette.findByRole("option", { name: /Present on This Screen/ }));
+    await screen.findByRole("region", { name: "Presenting on this screen" });
+    expect(requestFullscreen).toHaveBeenCalledTimes(2);
+  });
+
+  it("steps through the song with the keys the Output window forwards", async () => {
+    await songUp();
+    await presentHere();
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    await waitFor(() => expect(lit()).toContain("Second line"));
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    await waitFor(() => expect(lit()).toContain("First line"));
+  });
+
+  it("opens the switcher with Ctrl+K, and Enter shows the song at once", async () => {
+    await songUp();
+    await presentHere();
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const switcher = within(await screen.findByRole("search", { name: "Switch song" }));
+    const input = switcher.getByRole("combobox", { name: "Find a song" });
+    expect(input).toHaveFocus();
+    fireEvent.input(input, { target: { value: "1" } });
+    fireEvent.submit(input.closest("form") as HTMLFormElement);
+    await waitFor(() => expect(lit()).toContain("A line"));
+    expect(screen.queryByRole("search", { name: "Switch song" })).not.toBeInTheDocument();
+    // Still presenting, still fullscreen.
+    expect(region()).not.toBeNull();
+    expect(exitFullscreen).not.toHaveBeenCalled();
+  });
+
+  it("keeps a digit a stanza jump while presenting, never opening the switcher", async () => {
+    await songUp();
+    await presentHere();
+    fireEvent.keyDown(window, { key: "2" });
+    await waitFor(() => expect(lit()).toContain("Second line"));
+    expect(screen.queryByRole("search", { name: "Switch song" })).not.toBeInTheDocument();
+  });
+
+  it("says once, briefly, where the switcher is, and not the second time", async () => {
+    await songUp();
+    await presentHere();
+    fireEvent.keyDown(window, { key: "f" });
+    await waitFor(() => expect(region()).toBeNull());
+    await presentHere();
+    expect(screen.queryByText("Ctrl+K to switch songs")).not.toBeInTheDocument();
+  });
+
+  it("Esc closes only the switcher when it is open, and leaves when it is not", async () => {
+    await songUp();
+    await presentHere();
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const input = await screen.findByRole("combobox", { name: "Find a song" });
+    fireEvent.keyDown(input, { key: "Escape" });
+    await waitFor(() =>
+      expect(screen.queryByRole("search", { name: "Switch song" })).not.toBeInTheDocument(),
+    );
+    expect(region()).not.toBeNull();
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(region()).toBeNull());
+    expect(exitFullscreen).toHaveBeenCalled();
+  });
+
+  it("leaves with F, and returns to the Operator at the same song and part", async () => {
+    await songUp();
+    await presentHere();
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    await waitFor(() => expect(lit()).toContain("Second line"));
+    fireEvent.keyDown(window, { key: "f" });
+    await waitFor(() => expect(region()).toBeNull());
+    expect(exitFullscreen).toHaveBeenCalled();
+    // The Operator's own Presenter never went away: the same song, the same part.
+    expect(screen.getByRole("button", { name: /#3\s*Mocked Hymn 3/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "2", pressed: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Present here" })).toBeInTheDocument();
+  });
+
+  it("leaves when the browser leaves fullscreen by itself (Esc where it is not captured)", async () => {
+    await songUp();
+    await presentHere();
+    setFullscreen(null);
+    document.dispatchEvent(new Event("fullscreenchange"));
+    await waitFor(() => expect(region()).toBeNull());
+  });
+
+  it("shows no notice while presenting, and the queued one after leaving", async () => {
+    await songUp();
+    await presentHere();
+    updates.set(true);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(notices(/Update ready/)).toBe(0);
+    expect(document.querySelector(".snackbar")).toBeNull();
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(region()).toBeNull());
+    await waitFor(() => expect(notices(/Update ready/)).toBeGreaterThan(0));
+    updates.set(false);
+  });
+
+  it("is not offered while an Output window is live", async () => {
+    render(() => <App />);
+    await screen.findByRole("button", { name: "Present here" });
+    const output = new BroadcastChannel("hymnal-output");
+    output.postMessage({ type: "hello", id: "test-output" });
+    await screen.findByRole("button", { name: "On Air" });
+    expect(screen.queryByRole("button", { name: "Present here" })).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "P", shiftKey: true });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(region()).toBeNull();
+    expect(requestFullscreen).not.toHaveBeenCalled();
+    output.postMessage({ type: "bye", id: "test-output" });
+    output.close();
+  });
 });

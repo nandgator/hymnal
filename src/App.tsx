@@ -18,18 +18,21 @@ import { Library } from "./library/Library.tsx";
 import {
   closeOutput,
   type HeldView,
+  type OutputMessage,
   revealCues,
   setOutputBlanked,
   setOutputHeld,
   setOutputPresentation,
   subscribeHold,
   subscribeKeys,
+  subscribeLocalOutput,
   subscribeOutputShape,
   subscribeOutputState,
   subscribePlacement,
 } from "./output/channel.ts";
 import { mirroredNote, reviewScreens, type ScreensSnapshot } from "./output/displayChange.ts";
 import { Output } from "./output/Output.tsx";
+import { PresentHere } from "./output/PresentHere.tsx";
 import {
   moveGuidance,
   moveShortcutHint,
@@ -270,6 +273,39 @@ function Operator(props: Shared) {
   // On air status, and Live's dot the on-air light.
   const presence = props.presence;
   const presentingOutput = presence.open;
+  // One-screen presenting (Board #41, SDD-0001 §16.7): this tab is the
+  // Output, fullscreen. The Operator's state stays the one source of truth;
+  // presenting here only shows the Presenter's published message in the tab.
+  const presentingHere = presence.here;
+  const [hereMessage, setHereMessage] =
+    createSignal<Extract<OutputMessage, { type: "content" | "idle" }>>();
+  onMount(() => onCleanup(subscribeLocalOutput(setHereMessage)));
+  // Whether fullscreen was ever entered here: leaving it ends presenting, but
+  // a browser that refused it keeps the view until F or Esc.
+  let hereWasFullscreen = false;
+  // Where keyboard lock is supported, Esc reaches the page, so it can close
+  // the switcher before it leaves; elsewhere the browser's own Esc leaves.
+  type KeyboardLock = { lock?: (keys: string[]) => Promise<void>; unlock?: () => void };
+  const keyboardLock = () => (navigator as Navigator & { keyboard?: KeyboardLock }).keyboard;
+  const onHereFullscreen = () => {
+    if (!presentingHere()) return;
+    if (document.fullscreenElement) hereWasFullscreen = true;
+    else if (hereWasFullscreen) leavePresentingHere();
+  };
+  const leavePresentingHere = () => {
+    if (!presentingHere()) return;
+    presence.setHere(false);
+    hereWasFullscreen = false;
+    document.removeEventListener("fullscreenchange", onHereFullscreen);
+    keyboardLock()?.unlock?.();
+    if (document.fullscreenElement)
+      void Promise.resolve(document.exitFullscreen?.()).catch(() => {});
+  };
+  onCleanup(() => document.removeEventListener("fullscreenchange", onHereFullscreen));
+  // An Output window that opens (or answers late) takes over the audience.
+  createEffect(() => {
+    if (presentingOutput() && presentingHere()) leavePresentingHere();
+  });
   // Hold (SDD-0001 §16.6): the channel owns it (and what it froze on), the
   // Output being the truth; here is only its view. Nothing to hold without
   // an Output, so it can't start then, and it ends with the window.
@@ -343,6 +379,8 @@ function Operator(props: Shared) {
   const HINT_MS = 8000;
   createEffect(() => {
     const shown = screenNotice();
+    // Nothing is on screen while presenting here, so nothing is timed.
+    if (presentingHere()) return;
     if (
       shown !== "drag" &&
       shown !== "fullscreen" &&
@@ -372,7 +410,7 @@ function Operator(props: Shared) {
   // A word from the Library (books left unloaded), put away by itself or by Got it.
   const [libraryNote, setLibraryNote] = createSignal<string>();
   createEffect(() => {
-    if (!libraryNote()) return;
+    if (!libraryNote() || presentingHere()) return;
     const timer = setTimeout(() => setLibraryNote(undefined), HINT_MS);
     onCleanup(() => clearTimeout(timer));
   });
@@ -391,7 +429,7 @@ function Operator(props: Shared) {
   // window without reloading it. Opening is never blocked on the screens:
   // anything unavailable is today's plain popup, with a hint (ADR-0028).
   const openOutput = async () => {
-    if (!canGoLive()) return;
+    if (!canGoLive() || presentingHere()) return;
     if (presentingOutput()) {
       window.open("", OUTPUT_WINDOW_NAME)?.focus();
       return;
@@ -585,6 +623,8 @@ function Operator(props: Shared) {
   // The one notice on screen: a screen notice (about the Output, shown even
   // live) wins; the rest are the picked one (DESIGN.md § Snackbar).
   const snackbar = (): SnackbarProps | undefined => {
+    // The audience sees this tab: notices queue until it is left (§16.7).
+    if (presentingHere()) return undefined;
     const shown = screenNotice();
     if (shown === "connected")
       return {
@@ -653,6 +693,24 @@ function Operator(props: Shared) {
   const openSheet = (open: (value: boolean) => void) => {
     closeSheets();
     open(true);
+  };
+
+  // One screen known: no Window Management, or no second screen (§16.7).
+  const oneScreen = () => !screens.supported || !screens.extended();
+  const canPresentHere = () => canGoLive() && !presentingOutput() && !presentingHere();
+  // The click or key is the activation fullscreen needs, so the request is
+  // made at once, before anything is awaited.
+  const presentHere = () => {
+    if (!canPresentHere()) return;
+    closeSheets();
+    setScreenNotice(undefined);
+    presence.setHere(true);
+    document.addEventListener("fullscreenchange", onHereFullscreen);
+    const root = document.documentElement;
+    if (root.requestFullscreen) void Promise.resolve(root.requestFullscreen()).catch(() => {});
+    void keyboardLock()
+      ?.lock?.(["Escape"])
+      ?.catch?.(() => {});
   };
 
   const go = (next: Section) => {
@@ -770,6 +828,15 @@ function Operator(props: Shared) {
           ]),
       ...(presentingOutput()
         ? [{ label: "End Live", hint: keyHint("end-live"), run: run(endLive) }]
+        : []),
+      ...(canPresentHere()
+        ? [
+            {
+              label: "Present on this screen",
+              hint: keyHint("present-here"),
+              run: run(presentHere),
+            },
+          ]
         : []),
       ...(presenting() && presenterActions()
         ? [
@@ -920,6 +987,12 @@ function Operator(props: Shared) {
       dismissNotice();
       return;
     }
+    // Shift+P, Present on this screen: a chord, so a stray key cannot take over this one.
+    if (event.key === "P" && event.shiftKey) {
+      event.preventDefault();
+      presentHere();
+      return;
+    }
     // Shift+E, a chord so a stray key cannot end the show.
     if (event.key === "E" && event.shiftKey) {
       event.preventDefault();
@@ -980,411 +1053,465 @@ function Operator(props: Shared) {
   );
 
   return (
-    <div class="shell">
-      <Show when={expanded()}>
-        <nav
-          class="nav-rail"
-          aria-label="Sections"
-          ref={(el) =>
-            onCleanup(
-              glideList(el, {
-                rows: ".rail-item:enabled",
-                current: '.rail-item[aria-current="page"]',
-              }).stop,
-            )
-          }
-        >
-          <For each={SECTIONS}>{(item) => sectionButton(item, "rail")}</For>
-          <div class="rail-foot">
-            <button
-              type="button"
-              class="rail-item"
-              aria-haspopup="dialog"
-              aria-keyshortcuts={ariaKeys("settings")}
-              title={withKey("Settings", "settings", expanded())}
-              onClick={() => setSettingsOpen(true)}
-            >
-              <span class="rail-indicator">
-                <span class="icon icon-settings" aria-hidden="true" />
-              </span>
-              <span class="rail-label">Settings</span>
-            </button>
-          </div>
-        </nav>
-      </Show>
-
-      <div class="shell-main">
-        <header
-          class="switcher-row"
-          ref={(el) => {
-            // A Finder's search bar sticks just under this row, whatever
-            // height the text scale gives it.
-            if (typeof ResizeObserver !== "function") return;
-            const observer = new ResizeObserver(() =>
-              el
-                .closest<HTMLElement>(".shell")
-                ?.style.setProperty("--switcher-height", `${el.offsetHeight}px`),
-            );
-            observer.observe(el);
-            onCleanup(() => observer.disconnect());
-          }}
-        >
-          <Show when={!expanded()}>
-            <button
-              type="button"
-              class="btn-text icon-button"
-              ref={(el) => onCleanup(hoverButton(el))}
-              aria-haspopup="dialog"
-              onClick={() => setMenuOpen(true)}
-            >
-              <span class="icon icon-menu" aria-hidden="true" />
-              <span class="visually-hidden">Menu</span>
-            </button>
-          </Show>
+    <>
+      <div class="shell" inert={presentingHere()}>
+        <Show when={expanded()}>
           <nav
-            class="crumbs"
-            aria-label="Hymnbook and song"
-            ref={(el) => onCleanup(hoverGroup(el, ".crumb:enabled", { gap: 150 }))}
+            class="nav-rail"
+            aria-label="Sections"
+            ref={(el) =>
+              onCleanup(
+                glideList(el, {
+                  rows: ".rail-item:enabled",
+                  current: '.rail-item[aria-current="page"]',
+                }).stop,
+              )
+            }
           >
-            <Show when={crumbBook()} fallback={<span class="crumb-static">Hymnal</span>}>
-              {(book) => (
-                <button
-                  type="button"
-                  class="crumb crumb-book"
-                  aria-haspopup="dialog"
-                  onClick={() => setBookPickerOpen(true)}
-                >
-                  {/* On a phone, beside a hymn, the book is its icon; its
-                      title stays the accessible name (styles.css). */}
-                  <span class="icon icon-library crumb-book-icon" aria-hidden="true" />
-                  <span class="crumb-text">{book().title}</span>
-                  <span class="icon icon-expand" aria-hidden="true" />
-                </button>
-              )}
+            <For each={SECTIONS}>{(item) => sectionButton(item, "rail")}</For>
+            <div class="rail-foot">
+              <button
+                type="button"
+                class="rail-item"
+                aria-haspopup="dialog"
+                aria-keyshortcuts={ariaKeys("settings")}
+                title={withKey("Settings", "settings", expanded())}
+                onClick={() => setSettingsOpen(true)}
+              >
+                <span class="rail-indicator">
+                  <span class="icon icon-settings" aria-hidden="true" />
+                </span>
+                <span class="rail-label">Settings</span>
+              </button>
+            </div>
+          </nav>
+        </Show>
+
+        <div class="shell-main">
+          <header
+            class="switcher-row"
+            ref={(el) => {
+              // A Finder's search bar sticks just under this row, whatever
+              // height the text scale gives it.
+              if (typeof ResizeObserver !== "function") return;
+              const observer = new ResizeObserver(() =>
+                el
+                  .closest<HTMLElement>(".shell")
+                  ?.style.setProperty("--switcher-height", `${el.offsetHeight}px`),
+              );
+              observer.observe(el);
+              onCleanup(() => observer.disconnect());
+            }}
+          >
+            <Show when={!expanded()}>
+              <button
+                type="button"
+                class="btn-text icon-button"
+                ref={(el) => onCleanup(hoverButton(el))}
+                aria-haspopup="dialog"
+                onClick={() => setMenuOpen(true)}
+              >
+                <span class="icon icon-menu" aria-hidden="true" />
+                <span class="visually-hidden">Menu</span>
+              </button>
             </Show>
-            <Show when={section() === "present" && hymn()}>
-              {(current) => (
-                <>
-                  <span class="crumb-separator" aria-hidden="true">
-                    /
-                  </span>
+            <nav
+              class="crumbs"
+              aria-label="Hymnbook and song"
+              ref={(el) => onCleanup(hoverGroup(el, ".crumb:enabled", { gap: 150 }))}
+            >
+              <Show when={crumbBook()} fallback={<span class="crumb-static">Hymnal</span>}>
+                {(book) => (
                   <button
                     type="button"
-                    class="crumb crumb-hymn"
+                    class="crumb crumb-book"
                     aria-haspopup="dialog"
-                    onClick={openHymnPicker}
+                    onClick={() => setBookPickerOpen(true)}
                   >
-                    <span class="crumb-number">#{current().number}</span>
-                    <span class="crumb-text">{titleCase(current().title)}</span>
+                    {/* On a phone, beside a hymn, the book is its icon; its
+                      title stays the accessible name (styles.css). */}
+                    <span class="icon icon-library crumb-book-icon" aria-hidden="true" />
+                    <span class="crumb-text">{book().title}</span>
                     <span class="icon icon-expand" aria-hidden="true" />
                   </button>
-                </>
-              )}
-            </Show>
-          </nav>
-          {/* The command menu, findable (the mockup): the same box as
+                )}
+              </Show>
+              <Show when={section() === "present" && hymn()}>
+                {(current) => (
+                  <>
+                    <span class="crumb-separator" aria-hidden="true">
+                      /
+                    </span>
+                    <button
+                      type="button"
+                      class="crumb crumb-hymn"
+                      aria-haspopup="dialog"
+                      onClick={openHymnPicker}
+                    >
+                      <span class="crumb-number">#{current().number}</span>
+                      <span class="crumb-text">{titleCase(current().title)}</span>
+                      <span class="icon icon-expand" aria-hidden="true" />
+                    </button>
+                  </>
+                )}
+              </Show>
+            </nav>
+            {/* The command menu, findable (the mockup): the same box as
               Ctrl/⌘+K and /. On a phone, its icon. */}
-          <Show when={hymnbook()}>
-            <button
-              type="button"
-              class="switcher-find"
-              ref={(el) => onCleanup(hoverButton(el))}
-              aria-haspopup="dialog"
-              aria-keyshortcuts={ariaKeys("command-menu", 1)}
-              onClick={openCommandMenu}
-            >
-              <span class="icon icon-search" aria-hidden="true" />
-              <span class="switcher-find-text">Find a song or action</span>
-              <span class="key-combo switcher-find-key" aria-hidden="true">
-                <For each={keyCaps(keyHint("command-menu", 1))}>
-                  {(cap) => <kbd class="key-hint">{cap}</kbd>}
-                </For>
-              </span>
-            </button>
-          </Show>
-          {/* Go live (PRINCIPLES.md: emphasis follows the task): a one-off
+            <Show when={hymnbook()}>
+              <button
+                type="button"
+                class="switcher-find"
+                ref={(el) => onCleanup(hoverButton(el))}
+                aria-haspopup="dialog"
+                aria-keyshortcuts={ariaKeys("command-menu", 1)}
+                onClick={openCommandMenu}
+              >
+                <span class="icon icon-search" aria-hidden="true" />
+                <span class="switcher-find-text">Find a song or action</span>
+                <span class="key-combo switcher-find-key" aria-hidden="true">
+                  <For each={keyCaps(keyHint("command-menu", 1))}>
+                    {(cap) => <kbd class="key-hint">{cap}</kbd>}
+                  </For>
+                </span>
+              </button>
+            </Show>
+            {/* Go live (PRINCIPLES.md: emphasis follows the task): a one-off
               action, so it becomes a status once the Output is open — On
               air — and then brings that window forward. Top right on every
               screen, where Slides and Keynote put theirs. Blanked is the
               Output's other status, so it shows here too — on every
               screen, whether Live is on screen or not (SDD-0001 §16.5);
               B, Live's Restore or the command menu restore it. */}
-          <div
-            class="live-controls"
-            ref={(el) =>
-              onCleanup(hoverGroup(el, ".present-button:enabled, .end-live-button:enabled"))
-            }
-          >
-            <button
-              type="button"
-              class="present-button"
-              classList={{
-                presenting: presentingOutput(),
-                "present-blanked": presentingOutput() && blanked(),
-                "present-held": presentingOutput() && !blanked() && !!held(),
-              }}
-              aria-keyshortcuts={ariaKeys("output")}
-              disabled={!canGoLive()}
-              aria-description={!canGoLive() ? "Load a songbook first" : undefined}
-              title={
-                !canGoLive()
-                  ? "Load a songbook first"
-                  : !presentingOutput()
-                    ? withKey("Open the Output", "output", expanded())
-                    : blanked()
-                      ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
-                      : held()
-                        ? `The Output is held${expanded() ? `; ${keyHint("hold")} releases it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
-                        : withKey("Bring the Output forward", "output", expanded())
+            <div
+              class="live-controls"
+              ref={(el) =>
+                onCleanup(
+                  hoverGroup(
+                    el,
+                    ".present-button:enabled, .present-here-button:enabled, .end-live-button:enabled",
+                  ),
+                )
               }
-              onClick={openOutput}
             >
-              <Show
-                when={presentingOutput()}
-                fallback={<span class="icon icon-present" aria-hidden="true" />}
-              >
-                <span class="on-air" aria-hidden="true" />
+              {/* Present here (SDD-0001 §16.7): this tab, fullscreen. The
+                primary action on one screen, where a popup is what you would
+                have to drag nowhere; a quieter choice beside Go Live where a
+                projector may be. Not offered while an Output window is. */}
+              <Show when={canPresentHere()}>
+                <button
+                  type="button"
+                  class={
+                    oneScreen()
+                      ? "present-button present-here-first"
+                      : "btn-text present-here-button"
+                  }
+                  aria-keyshortcuts={ariaKeys("present-here")}
+                  aria-label="Present here"
+                  disabled={!canGoLive()}
+                  title={withKey("Present on this screen, full screen", "present-here", expanded())}
+                  onClick={presentHere}
+                >
+                  <span class="icon icon-fullscreen" aria-hidden="true" />
+                  <span class="present-here-label">Present here</span>
+                </button>
               </Show>
-              <SwapLabel
-                labels={["Go Live", "On Air", "Blanked", "Held"]}
-                current={
-                  !presentingOutput()
-                    ? "Go Live"
-                    : blanked()
-                      ? "Blanked"
-                      : held()
-                        ? "Held"
-                        : "On Air"
-                }
-              />
-            </button>
-            {/* End Live: closes the Output window. Beside the
-              status, not in it, so the status never doubles as the way out;
-              an icon alone on a phone. */}
-            <Show when={presentingOutput()}>
               <button
                 type="button"
-                class="btn-text end-live-button"
-                aria-keyshortcuts={ariaKeys("end-live")}
-                title={withKey("End Live: close the Output window", "end-live", expanded())}
-                onClick={endLive}
-              >
-                <span class="icon icon-stop" aria-hidden="true" />
-                <span class="end-live-label">End Live</span>
-              </button>
-            </Show>
-          </div>
-        </header>
-
-        <main
-          class="workspace"
-          classList={{ "workspace-full": section() === "present" && !!hymnNumber() }}
-        >
-          <Switch>
-            <Match when={section() === "library"}>
-              <Library
-                books={books}
-                currentKey={currentKey()}
-                presentedKey={presentedKey()}
-                outputLive={presence.live()}
-                onEndLive={endLive}
-                onChoose={setCurrentKey}
-                onOpen={chooseHymnbook}
-                onStorageRefused={() => setKeepFile(true)}
-                onNotice={setLibraryNote}
-              />
-            </Match>
-            <Match when={section() === "present" && !hymnNumber()}>
-              {hymnbook() && (
-                <Finder
-                  hymnbookId={currentKey() as string}
-                  bookTitle={hymnbook()?.title}
-                  onSelect={chooseHymn}
-                />
-              )}
-            </Match>
-            <Match when={section() === "present" && hymnNumber() && presentedKey()}>
-              <Presenter
-                hymnNumber={hymnNumber() as HymnNumber}
-                hymnbookId={presentedKey() as string}
-                onLoaded={setHymn}
-                onBack={openHymnPicker}
-                blanked={blanked()}
-                onToggleBlank={toggleBlank}
-                held={held()}
-                onToggleHold={toggleHold}
-                presenting={presentingOutput()}
-                panes={preferences.preferences().panes}
-                workspace={preferences.preferences().workspace}
-                onWorkspaceChange={(workspace) =>
-                  preferences.update({ ...preferences.preferences(), workspace })
+                class="present-button"
+                classList={{
+                  "present-secondary": oneScreen() && canPresentHere(),
+                  presenting: presentingOutput(),
+                  "present-blanked": presentingOutput() && blanked(),
+                  "present-held": presentingOutput() && !blanked() && !!held(),
+                }}
+                aria-keyshortcuts={ariaKeys("output")}
+                disabled={!canGoLive()}
+                aria-description={!canGoLive() ? "Load a songbook first" : undefined}
+                title={
+                  !canGoLive()
+                    ? "Load a songbook first"
+                    : !presentingOutput()
+                      ? withKey("Open the Output", "output", expanded())
+                      : blanked()
+                        ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
+                        : held()
+                          ? `The Output is held${expanded() ? `; ${keyHint("hold")} releases it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
+                          : withKey("Bring the Output forward", "output", expanded())
                 }
-                onSelectHymn={(number) => chooseHymn(number, presentedKey())}
-                scrollSync={preferences.preferences().scrollSync ?? true}
-                onActions={(actions) => setPresenterActions(() => actions)}
-                hymnbookTitle={presentedBook()?.title}
-                cues={outputCuesOf(preferences.preferences())}
-                revealCues={cuesRevealed()}
-                pinChorus={pinChorusOf(preferences.preferences())}
-                wholeSong={wholeSongOf(preferences.preferences())}
-                liveLandscape={outputLandscape()}
-                highlight={highlightOf(preferences.preferences())}
-              />
-            </Match>
-          </Switch>
-        </main>
-      </div>
+                onClick={openOutput}
+              >
+                <Show
+                  when={presentingOutput()}
+                  fallback={<span class="icon icon-present" aria-hidden="true" />}
+                >
+                  <span class="on-air" aria-hidden="true" />
+                </Show>
+                <SwapLabel
+                  labels={["Go Live", "On Air", "Blanked", "Held"]}
+                  current={
+                    !presentingOutput()
+                      ? "Go Live"
+                      : blanked()
+                        ? "Blanked"
+                        : held()
+                          ? "Held"
+                          : "On Air"
+                  }
+                />
+              </button>
+              {/* End Live: closes the Output window. Beside the
+              status, not in it, so the status never doubles as the way out;
+              an icon alone on a phone. */}
+              <Show when={presentingOutput()}>
+                <button
+                  type="button"
+                  class="btn-text end-live-button"
+                  aria-keyshortcuts={ariaKeys("end-live")}
+                  title={withKey("End Live: close the Output window", "end-live", expanded())}
+                  onClick={endLive}
+                >
+                  <span class="icon icon-stop" aria-hidden="true" />
+                  <span class="end-live-label">End Live</span>
+                </button>
+              </Show>
+            </div>
+          </header>
 
-      <Sheet
-        open={hymnPickerOpen()}
-        onClose={() => setHymnPickerOpen(false)}
-        title="Go to a Song"
-        placement={expanded() ? "center" : "bottom"}
-      >
-        <Show when={hymnbook()}>
+          <main
+            class="workspace"
+            classList={{ "workspace-full": section() === "present" && !!hymnNumber() }}
+          >
+            <Switch>
+              <Match when={section() === "library"}>
+                <Library
+                  books={books}
+                  currentKey={currentKey()}
+                  presentedKey={presentedKey()}
+                  outputLive={presence.live()}
+                  onEndLive={endLive}
+                  onChoose={setCurrentKey}
+                  onOpen={chooseHymnbook}
+                  onStorageRefused={() => setKeepFile(true)}
+                  onNotice={setLibraryNote}
+                />
+              </Match>
+              <Match when={section() === "present" && !hymnNumber()}>
+                {hymnbook() && (
+                  <Finder
+                    hymnbookId={currentKey() as string}
+                    bookTitle={hymnbook()?.title}
+                    onSelect={chooseHymn}
+                  />
+                )}
+              </Match>
+              <Match when={section() === "present" && hymnNumber() && presentedKey()}>
+                <Presenter
+                  hymnNumber={hymnNumber() as HymnNumber}
+                  hymnbookId={presentedKey() as string}
+                  onLoaded={setHymn}
+                  onBack={openHymnPicker}
+                  blanked={blanked()}
+                  onToggleBlank={toggleBlank}
+                  held={held()}
+                  onToggleHold={toggleHold}
+                  presenting={presentingOutput() || presentingHere()}
+                  panes={preferences.preferences().panes}
+                  workspace={preferences.preferences().workspace}
+                  onWorkspaceChange={(workspace) =>
+                    preferences.update({ ...preferences.preferences(), workspace })
+                  }
+                  onSelectHymn={(number) => chooseHymn(number, presentedKey())}
+                  scrollSync={preferences.preferences().scrollSync ?? true}
+                  onActions={(actions) => setPresenterActions(() => actions)}
+                  hymnbookTitle={presentedBook()?.title}
+                  cues={outputCuesOf(preferences.preferences())}
+                  revealCues={cuesRevealed()}
+                  pinChorus={pinChorusOf(preferences.preferences())}
+                  wholeSong={wholeSongOf(preferences.preferences())}
+                  liveLandscape={outputLandscape()}
+                  highlight={highlightOf(preferences.preferences())}
+                />
+              </Match>
+            </Switch>
+          </main>
+        </div>
+
+        <Sheet
+          open={hymnPickerOpen()}
+          onClose={() => setHymnPickerOpen(false)}
+          title="Go to a Song"
+          placement={expanded() ? "center" : "bottom"}
+        >
+          <Show when={hymnbook()}>
+            <Finder
+              hymnbookId={currentKey() as string}
+              bookTitle={hymnbook()?.title}
+              current={hymnNumber()}
+              onSelect={chooseHymn}
+            />
+          </Show>
+        </Sheet>
+
+        <Sheet
+          open={commandMenuOpen()}
+          onClose={() => setCommandMenuOpen(false)}
+          title="Search"
+          placement={expanded() ? "center" : "bottom"}
+        >
           <Finder
             hymnbookId={currentKey() as string}
             bookTitle={hymnbook()?.title}
             current={hymnNumber()}
-            onSelect={chooseHymn}
+            onSelect={(number) => {
+              // Closing it and choosing are one step: the scope must not be put back first.
+              batch(() => {
+                setCommandMenuOpen(false);
+                chooseHymn(number);
+              });
+            }}
+            commands={commands().map((command) => ({
+              ...command,
+              label: titleCase(command.label),
+            }))}
           />
-        </Show>
-      </Sheet>
+        </Sheet>
 
-      <Sheet
-        open={commandMenuOpen()}
-        onClose={() => setCommandMenuOpen(false)}
-        title="Search"
-        placement={expanded() ? "center" : "bottom"}
-      >
-        <Finder
-          hymnbookId={currentKey() as string}
-          bookTitle={hymnbook()?.title}
-          current={hymnNumber()}
-          onSelect={(number) => {
-            // Closing it and choosing are one step: the scope must not be put back first.
-            batch(() => {
-              setCommandMenuOpen(false);
-              chooseHymn(number);
-            });
-          }}
-          commands={commands().map((command) => ({ ...command, label: titleCase(command.label) }))}
-        />
-      </Sheet>
-
-      <Sheet
-        open={shortcutsOpen()}
-        onClose={closeShortcuts}
-        closeLabel={shortcutsReturn() ? "Back" : undefined}
-        title="Keyboard Shortcuts"
-        placement={expanded() ? "center" : "bottom"}
-      >
-        <table class="shortcut-table">
-          <tbody>
-            <For each={SHORTCUTS}>
-              {(shortcut) => (
-                <tr>
-                  <th scope="row" class="shortcut-keys">
-                    <For each={shortcut.keys}>
-                      {(key) => (
-                        <span class="key-combo">
-                          {/* "Ctrl+K" is two caps; a lone "+" stays one. */}
-                          <For each={keyCaps(key)}>
-                            {(cap) => <kbd class="key-hint">{cap}</kbd>}
-                          </For>
-                        </span>
-                      )}
-                    </For>
-                  </th>
-                  <td class="body-large">{shortcut.label}</td>
-                </tr>
-              )}
-            </For>
-          </tbody>
-        </table>
-      </Sheet>
-
-      <Sheet
-        open={bookPickerOpen()}
-        onClose={() => setBookPickerOpen(false)}
-        title="Hymnbooks"
-        placement={expanded() ? "center" : "bottom"}
-      >
-        <ul
-          class="list glide-list"
-          ref={(el) =>
-            onCleanup(
-              glideList(el, {
-                rows: ".list-row:enabled",
-                current: '.list-row[aria-current="true"]',
-              }).stop,
-            )
-          }
+        <Sheet
+          open={shortcutsOpen()}
+          onClose={closeShortcuts}
+          closeLabel={shortcutsReturn() ? "Back" : undefined}
+          title="Keyboard Shortcuts"
+          placement={expanded() ? "center" : "bottom"}
         >
-          <For each={installed()}>
-            {(book) => (
-              <li>
-                <button
-                  type="button"
-                  class="list-row"
-                  aria-current={book.key === currentKey() ? "true" : undefined}
-                  onClick={() => chooseHymnbook(book.key)}
-                >
-                  {book.title}
-                  <span class="list-row-supporting">
-                    {" "}
-                    — {book.songs.toLocaleString("en-US")} songs
-                  </span>
-                </button>
-              </li>
-            )}
-          </For>
-        </ul>
-      </Sheet>
+          <table class="shortcut-table">
+            <tbody>
+              <For each={SHORTCUTS}>
+                {(shortcut) => (
+                  <tr>
+                    <th scope="row" class="shortcut-keys">
+                      <For each={shortcut.keys}>
+                        {(key) => (
+                          <span class="key-combo">
+                            {/* "Ctrl+K" is two caps; a lone "+" stays one. */}
+                            <For each={keyCaps(key)}>
+                              {(cap) => <kbd class="key-hint">{cap}</kbd>}
+                            </For>
+                          </span>
+                        )}
+                      </For>
+                    </th>
+                    <td class="body-large">{shortcut.label}</td>
+                  </tr>
+                )}
+              </For>
+            </tbody>
+          </table>
+        </Sheet>
 
-      {/* A persistent live region, filled when a notice appears: a region
-          inserted already full is not reliably announced. */}
-      <div class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
-        {!screenNotice() && libraryNote() ? libraryNote() : noticeMessage()}
-      </div>
-      <SnackbarHost notice={snackbar()} />
-
-      <Sheet open={menuOpen()} onClose={() => setMenuOpen(false)} title="Menu">
-        <nav aria-label="Sections">
+        <Sheet
+          open={bookPickerOpen()}
+          onClose={() => setBookPickerOpen(false)}
+          title="Hymnbooks"
+          placement={expanded() ? "center" : "bottom"}
+        >
           <ul
             class="list glide-list"
             ref={(el) =>
               onCleanup(
                 glideList(el, {
                   rows: ".list-row:enabled",
-                  current: '.list-row[aria-current="page"]',
+                  current: '.list-row[aria-current="true"]',
                 }).stop,
               )
             }
           >
-            <For each={SECTIONS}>{(item) => <li>{sectionButton(item, "menu")}</li>}</For>
+            <For each={installed()}>
+              {(book) => (
+                <li>
+                  <button
+                    type="button"
+                    class="list-row"
+                    aria-current={book.key === currentKey() ? "true" : undefined}
+                    onClick={() => chooseHymnbook(book.key)}
+                  >
+                    {book.title}
+                    <span class="list-row-supporting">
+                      {" "}
+                      — {book.songs.toLocaleString("en-US")} songs
+                    </span>
+                  </button>
+                </li>
+              )}
+            </For>
           </ul>
-        </nav>
-        <Settings
-          controller={preferences}
-          screens={screens}
-          onShowShortcuts={() => showShortcuts(setMenuOpen)}
-        />
-      </Sheet>
+        </Sheet>
 
-      <Sheet
-        open={settingsOpen()}
-        onClose={() => setSettingsOpen(false)}
-        title="Settings"
-        placement={expanded() ? "center" : "bottom"}
-      >
-        <Settings
-          controller={preferences}
-          screens={screens}
-          onShowShortcuts={() => showShortcuts(setSettingsOpen)}
+        {/* A persistent live region, filled when a notice appears: a region
+          inserted already full is not reliably announced. */}
+        <div class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
+          {presentingHere()
+            ? ""
+            : !screenNotice() && libraryNote()
+              ? libraryNote()
+              : noticeMessage()}
+        </div>
+        <SnackbarHost notice={snackbar()} />
+
+        <Sheet open={menuOpen()} onClose={() => setMenuOpen(false)} title="Menu">
+          <nav aria-label="Sections">
+            <ul
+              class="list glide-list"
+              ref={(el) =>
+                onCleanup(
+                  glideList(el, {
+                    rows: ".list-row:enabled",
+                    current: '.list-row[aria-current="page"]',
+                  }).stop,
+                )
+              }
+            >
+              <For each={SECTIONS}>{(item) => <li>{sectionButton(item, "menu")}</li>}</For>
+            </ul>
+          </nav>
+          <Settings
+            controller={preferences}
+            screens={screens}
+            onShowShortcuts={() => showShortcuts(setMenuOpen)}
+          />
+        </Sheet>
+
+        <Sheet
+          open={settingsOpen()}
+          onClose={() => setSettingsOpen(false)}
+          title="Settings"
+          placement={expanded() ? "center" : "bottom"}
+        >
+          <Settings
+            controller={preferences}
+            screens={screens}
+            onShowShortcuts={() => showShortcuts(setSettingsOpen)}
+          />
+        </Sheet>
+      </div>
+      <Show when={presentingHere()}>
+        <PresentHere
+          message={hereMessage() ?? { type: "idle" }}
+          blanked={blanked()}
+          theme={preferences.preferences().outputTheme ?? DEFAULT_OUTPUT_THEME}
+          cues={outputCuesOf(preferences.preferences())}
+          reveal={cuesRevealed()}
+          pinChorus={pinChorusOf(preferences.preferences())}
+          wholeSong={wholeSongOf(preferences.preferences())}
+          highlight={highlightOf(preferences.preferences())}
+          bandSize={bandSizeOf(preferences.preferences())}
+          hymnbookId={(presentedKey() ?? currentKey()) as string}
+          onSelect={(number) => chooseHymn(number, presentedKey() ?? currentKey())}
+          onLeave={leavePresentingHere}
+          startWithSwitcher={!hymnNumber()}
         />
-      </Sheet>
-    </div>
+      </Show>
+    </>
   );
 }
 

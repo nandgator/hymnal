@@ -36,6 +36,10 @@ export interface Presence {
    * reload at load time cannot slip an update in under an Output not yet
    * heard from. */
   live: Accessor<boolean>;
+  /** This tab is presenting on its own screen (Board #41, SDD-0001 §16.7):
+   * as live as an open Output, for the update gate and the tab lock. */
+  here: Accessor<boolean>;
+  setHere: (presenting: boolean) => void;
 }
 
 /** Tracks the Output's presence from a subscribe function (the channel's). Call under a reactive owner. */
@@ -45,6 +49,7 @@ export function createPresence(
 ): Presence {
   const [open, setOpen] = createSignal(false);
   const [known, setKnown] = createSignal(false);
+  const [here, setHere] = createSignal(false);
   const unsubscribe = subscribe((value) => {
     setOpen(value);
     setKnown(true);
@@ -54,7 +59,7 @@ export function createPresence(
     clearTimeout(timer);
     unsubscribe();
   });
-  return { open, known, live: () => open() || !known() };
+  return { open, known, live: () => open() || !known() || here(), here, setHere };
 }
 
 /** Runs `restart` only if the gate allows it now; says whether it did. */

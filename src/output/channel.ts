@@ -217,10 +217,27 @@ export function revealCues(): void {
   getChannel().postMessage({ type: "reveal" } satisfies OutputMessage);
 }
 
+/** What this window itself publishes, for a view in the same window (Board
+ * #41): a BroadcastChannel never delivers to its own sender. */
+const localListeners = new Set<
+  (message: Extract<OutputMessage, { type: "content" | "idle" }>) => void
+>();
+
+/** Calls `handler` with whatever was last published here, then with each
+ * later publish. Returns an unsubscribe function. */
+export function subscribeLocalOutput(
+  handler: (message: Extract<OutputMessage, { type: "content" | "idle" }>) => void,
+): () => void {
+  localListeners.add(handler);
+  if (lastPublished?.type === "content" || lastPublished?.type === "idle") handler(lastPublished);
+  return () => localListeners.delete(handler);
+}
+
 export function publishOutput(message: Extract<OutputMessage, { type: "content" | "idle" }>): void {
   wantedContent = message;
   if (held) return;
   lastPublished = message;
+  for (const listener of [...localListeners]) listener(message);
   getChannel().postMessage(message);
 }
 

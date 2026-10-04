@@ -1751,7 +1751,14 @@ input[type="checkbox"].switch:disabled {
     padding: 0;
   }
 
-  .end-live-label {
+  .present-here-button {
+    width: 2.5rem;
+    padding: 0;
+    gap: 0;
+  }
+
+  .end-live-label,
+  .present-here-label {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -5443,4 +5450,140 @@ fieldset.book-main {
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-sm);
+}
+
+/* One-screen presenting (Board #41, SDD-0001 §16.7): the Output's own view,
+   full-bleed over the app, in this tab. The ground is the Output's, never the
+   Operator's theme; the one thing laid over it is the quick switcher, a small
+   strip at the bottom centre with a blurred backdrop. */
+.icon-fullscreen {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M120-120v-200h80v120h120v80H120Zm520 0v-80h120v-120h80v200H640ZM120-640v-200h200v80H200v120h-80Zm640 0v-120H640v-80h200v200h-80Z'/%3E%3C/svg%3E");
+}
+
+.present-here {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  background-color: var(--output-ground);
+  color: var(--output-ink);
+  cursor: none;
+}
+
+/* Go Live beside Present here on one screen: the popup is the second choice. */
+.present-button.present-secondary {
+  justify-content: center;
+  gap: 0;
+  width: 2.5rem;
+  padding: 0;
+  background-color: transparent;
+  color: var(--md-sys-color-primary);
+  font-size: 0;
+}
+
+.present-button.present-secondary .swap-label,
+.present-here-button .present-here-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.present-here-button {
+  justify-content: center;
+  gap: 0;
+  width: 2.5rem;
+  padding: 0;
+}
+
+/* The first-time hint where the switcher will be: two seconds, then gone. */
+.present-switcher-hint {
+  position: absolute;
+  bottom: 3cqmin;
+  left: 50%;
+  padding: 0.5rem 1rem;
+  border-radius: var(--shape-md);
+  background-color: color-mix(in srgb, var(--output-ground) 72%, transparent);
+  color: var(--output-ink-muted);
+  font-size: 0.9375rem;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--output-ink) 14%, transparent);
+  transform: translateX(-50%);
+  animation: present-hint 2s ease both;
+}
+
+@keyframes present-hint {
+  0%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.present-here-first {
+  order: -1;
+}
+
+.present-switcher {
+  position: absolute;
+  z-index: 10;
+  bottom: 3cqmin;
+  left: 50%;
+  display: flex;
+  width: min(30rem, calc(100% - 2rem));
+  max-height: 60%;
+  padding: 0.5rem;
+  border-radius: var(--shape-md);
+  background-color: color-mix(in srgb, var(--output-ground) 72%, transparent);
+  color: var(--output-ink);
+  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--output-ink) 14%, transparent);
+  transform: translateX(-50%);
+  cursor: default;
+  /* The box takes this strip's ink, not the Operator's theme. */
+  --md-sys-color-surface: var(--output-ground);
+  --md-sys-color-on-surface: var(--output-ink);
+  --md-sys-color-on-surface-variant: var(--output-ink-muted);
+  --md-sys-color-outline: var(--output-ink-muted);
+  --md-sys-color-primary: color-mix(in srgb, var(--output-ink) 70%, transparent);
+  --md-sys-color-surface-container: color-mix(in srgb, var(--output-ink) 10%, transparent);
+  --md-sys-color-surface-container-high: color-mix(in srgb, var(--output-ink) 16%, transparent);
+}
+
+/* Small: the audience should see as little of it as possible. */
+.present-switcher .text-field input {
+  min-height: 2.5rem;
+  font-size: 0.9375rem;
+}
+
+.present-switcher .list-row {
+  min-height: 2.5rem;
+  padding-block: 0.25rem;
+  font-size: 0.9375rem;
+}
+
+.present-switcher .finder-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.present-switcher .finder {
+  display: flex;
+  flex: 1;
+  flex-direction: column-reverse;
+  gap: var(--space-xs);
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.present-switcher .finder-form {
+  flex: none;
+}
+
+.present-switcher .finder-scope {
+  display: none;
 }
