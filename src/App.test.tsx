@@ -1258,6 +1258,24 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     await waitFor(() => expect(win.moveTo).toHaveBeenCalledWith(2720, 0));
   });
 
+  it("leaves an open Output alone when any other setting changes, never taking it out of fullscreen", async () => {
+    // Every preference change re-runs the screen-choice effect; only a change
+    // of the chosen screen may move the Output (a move leaves fullscreen).
+    const { win } = await goLive();
+    const exitFullscreen = vi.fn(() => Promise.resolve());
+    Object.assign(win.document, { fullscreenElement: {}, exitFullscreen });
+    fireEvent.click(screen.getByRole("button", { name: /^(Settings|Menu)$/ }));
+    const title = await screen.findByRole("switch", { name: /Show song title/ });
+    fireEvent.click(title);
+    await waitFor(() => expect(title).toBeChecked());
+    fireEvent.click(await screen.findByRole("switch", { name: /Show song number/ }));
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    expect(exitFullscreen).not.toHaveBeenCalled();
+    expect(win.moveTo).not.toHaveBeenCalled();
+    expect(win.resizeTo).not.toHaveBeenCalled();
+  });
+
   it("gives no drag hint to a single-screen user, with the API or without it", async () => {
     attach([laptop]);
     Object.defineProperty(window.screen, "isExtended", { value: false, configurable: true });

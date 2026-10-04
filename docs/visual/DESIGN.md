@@ -396,20 +396,27 @@ problem than a warm, devotional, legible-at-distance tool.
   Nothing may scroll behind them, since movement across a fixed frame draws the
   eye, and the top of a screen reads as a notification. A filled island, then an
   outlined one, at the top both outranked the lit lyrics.
-  - **The caption, a lower third**: hymnbook · title · part · ×N (e.g.
-    `Hymnbook · Amazing Grace · Verse 2 · ×2`) as plain `output-ink-dimmed` text
-    centred in the bottom margin, no container. A stanza reads **Verse n**,
-    other parts by kind (Chorus, Bridge, Tag); ×N shows only on a repeat.
+  - **The caption, a lower third**: hymnbook · title · ×N (e.g.
+    `Hymnbook · Amazing Grace · ×2`) as plain `output-ink-dimmed` text centred
+    in the bottom margin, no container. ×N shows only on a repeat.
+  - **The part marker, over the song**: the part's name, centred in the top
+    margin beside the number, in the whole-song markers' type (0.55 of the
+    lyrics' size, weight 400, a step under the lit ink). A stanza reads **Verse
+    n**, other parts by kind (Chorus, Bridge, Tag). It names the part the focus
+    is in, or, while scrolling by hand, the one at the reading band's centre.
   - **The number badge**, for those following in a printed songbook: the hymn's
     number in a FAB-like tonal tile (9% ink over the ground,
     `output-ink-muted`), top left, larger than the caption so it reads from the
     back, inset equally from top and left (in `cqmin`, so the corner gap stays
     even at any aspect ratio). It changes only with the hymn, so it's still
     ground too.
-  - **Each takes its margin.** While a cue shows there, that safe margin grows
-    from 10% to 16%. The fit and the eyeline respect it, so lit lines never
-    enter it, and the lyrics fade out inside it: only lines not being sung are
-    ever dimmed by it. Toggling a cue refits the hymn.
+  - **The margins are reserved.** In the scroll the top and bottom safe margins
+    are always 16%, with their soft edge fades, whether or not a cue shows in
+    them: toggling a cue only fades its text in or out, and no lyric moves. The
+    fit and the eyeline respect them, so lit lines never enter them, and the
+    lyrics fade out inside them: only lines not being sung are ever dimmed by
+    them. (The whole-song layout keeps its own margins: 10%, 16% where a cue
+    shows.)
   - **Fade, one switch for all** ("Fade the details", on by default): the cues
     show together, at a new hymn, on the Output coming back from blank, or on
     Show the details now, and fade together 8s later. Part steps (keys, a hand

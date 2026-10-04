@@ -92,14 +92,13 @@ export interface OutputViewProps {
   highlight?: Highlight;
 }
 
-/** The cue caption, e.g. "Hymnbook · Amazing Grace · Verse 2 · ×2": only
- * the cues switched on, ×N only on a repeat. Empty with none on. The number
- * is its own badge, not part of it. */
+/** The cue caption, e.g. "Hymnbook · Amazing Grace · ×2": only the cues
+ * switched on, ×N only on a repeat. Empty with none on. The number is its own
+ * badge, and the part its own marker over the song, not part of it. */
 export function cueCaption(message: ContentMessage, cues: OutputCues = {}): string {
   return [
     cues.hymnbook && message.hymnbookTitle,
     cues.title && message.title,
-    cues.part && message.part,
     cues.repeat && (message.repeat ?? 1) > 1 && `×${message.repeat}`,
   ]
     .filter(Boolean)
@@ -298,15 +297,44 @@ export function OutputView(props: OutputViewProps) {
     const whole = focus.start === start && focus.end >= end;
     return whole ? null : { start: focus.start - start, end: focus.end - start };
   };
-  // The whole song marks its parts itself, so the caption leaves the part out.
-  const caption = () =>
-    cueCaption(props.message, fullSong() ? { ...props.cues, part: false } : props.cues);
-  // Memos, so they change only when a cue turns on or off — not on every
-  // step, which would refit (and snap) instead of scrolling smoothly.
+  // The caption names no part: the whole song marks its parts itself, and the
+  // scroll has its marker over the song.
+  const caption = () => cueCaption(props.message, props.cues);
+  // Memos, so they change only when a cue turns on or off, or the layout
+  // changes: the bands that follow are numbers, so a cue turning on or off
+  // does not refit (and snap) the view.
   const hasCaption = createMemo(() => !!caption());
   const badge = createMemo(() => !!props.cues?.number);
-  const safeBottom = () => (hasCaption() ? CUE_SAFE : SAFE);
-  const safeTop = () => (badge() ? CUE_SAFE : SAFE);
+  const marked = createMemo(() => !!props.cues?.part);
+  // The scroll reserves the top and bottom bands whether or not a detail shows
+  // in them: switching one on or off moves no lyric, and the soft edges stay.
+  // Full Song keeps its own margins, taken only for a cue that shows.
+  const reserved = createMemo(() => !fullSong());
+  const safeBottom = createMemo(() => (reserved() || hasCaption() ? CUE_SAFE : SAFE));
+  const safeTop = createMemo(() => (reserved() || badge() ? CUE_SAFE : SAFE));
+  // A detail switched off fades away where it was: its last words are kept
+  // while it does.
+  const [heldCaption, setHeldCaption] = createSignal("");
+  createComputed(() => {
+    const now = caption();
+    if (now) setHeldCaption(now);
+  });
+  // The part over the song: the one the focus is in, or, while scrolling by
+  // hand, the one at the reading band's centre.
+  const partName = () => {
+    const band = bandLit();
+    if (band) {
+      const id = props.message.lines[Math.floor((band.start + band.end - 1) / 2)]?.partId;
+      const name = props.message.parts?.find((part) => part.id === id)?.name;
+      if (name) return name;
+    }
+    return props.message.part ?? "";
+  };
+  const [heldPart, setHeldPart] = createSignal("");
+  createComputed(() => {
+    const now = partName();
+    if (now) setHeldPart(now);
+  });
 
   // Cues set to fade (DESIGN.md § Typography): all show together at a new
   // hymn, on coming back from blank, or when the operator asks, then fade
@@ -528,9 +556,9 @@ export function OutputView(props: OutputViewProps) {
     position("instant");
   };
 
-  // Cues turning on or off change the room, and pinning the layout: fit
-  // again.
-  createEffect(on([hasCaption, badge, () => !!props.pinChorus], refit, { defer: true }));
+  // A change of the bands (Full Song's cues) changes the room, and pinning
+  // the layout: fit again.
+  createEffect(on([safeTop, safeBottom, () => !!props.pinChorus], refit, { defer: true }));
 
   createEffect(() => {
     const { hymnbookId, number } = props.message;
@@ -631,10 +659,25 @@ export function OutputView(props: OutputViewProps) {
       {...(props.variant === "mini" ? { role: "img", "aria-label": "Live output preview" } : {})}
     >
       {/* The songbook number: top left, sticky and zero-height like the
-          caption, and still — it changes only with the hymn. */}
-      <Show when={badge()}>
+          caption, and still — it changes only with the hymn. Always there in
+          the scroll, its soft edge too; the number fades in and out. */}
+      <Show when={reserved() || badge()}>
         <div class="output-badge" classList={{ "output-cue-faded": !cuesShown() }}>
-          <p class="output-badge-text">{props.message.number}</p>
+          <p class="output-badge-text" classList={{ "output-cue-off": !badge() }}>
+            {props.message.number}
+          </p>
+        </div>
+      </Show>
+      {/* The part, over the song: centred in the top band beside the number. */}
+      <Show when={reserved()}>
+        <div
+          class="output-marker"
+          aria-hidden="true"
+          classList={{ "output-cue-faded": !cuesShown() }}
+        >
+          <p class="output-marker-text" classList={{ "output-cue-off": !marked() }}>
+            {heldPart()}
+          </p>
         </div>
       </Show>
       {/* Side by side (SDD-0001 §16.1): first, sticky to the top and
@@ -689,12 +732,12 @@ export function OutputView(props: OutputViewProps) {
       {/* Last, sticky to the bottom and zero-height: it rides the bottom
           safe margin, taking no room from the lyrics (DESIGN.md §
           Typography). */}
-      <Show when={caption()}>
-        {(caption) => (
-          <div class="output-caption" classList={{ "output-cue-faded": !cuesShown() }}>
-            <p class="output-caption-text">{caption()}</p>
-          </div>
-        )}
+      <Show when={reserved() || hasCaption()}>
+        <div class="output-caption" classList={{ "output-cue-faded": !cuesShown() }}>
+          <p class="output-caption-text" classList={{ "output-cue-off": !hasCaption() }}>
+            {heldCaption()}
+          </p>
+        </div>
       </Show>
     </div>
   );

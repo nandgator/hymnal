@@ -45,14 +45,20 @@ is what portrait screens show.
   which knows the part's kind and label), and shown or hidden by the one
   setting, **Show parts**, on by default, which is the part cue (`cues.part`) of
   the part-by-part layout too: one idea, where you are in the song, drawn per
-  layout. Part by part it is the cue beside the number and title ("Verse 2",
-  "Chorus"); here it is these markers, and the caption leaves the part out,
-  since the markers already say it. It reaches the Output in the presentation
+  layout. Part by part it is one small marker over the song ("Verse 2",
+  "Chorus"), centred in the top band beside the number, in these markers' type
+  (0.55 of the lyrics' size, light, muted); here it is these markers. The
+  caption leaves the part out in both: the marker already says it. The
+  part-by-part marker names the part the focus is in, or, while scrolling by
+  hand, the one at the reading band's centre (`parts[].name`, the cue's own
+  label, sent beside `marker`). It reaches the Output in the presentation
   message's `cues`. Turning it off lays the song out again without the rows. (It
   replaces a separate "Part labels" switch; a stored `partLabels` is read once,
   the two merged: on if either was on.)
-- **Cues** (number badge, caption) are as in the scroll layout. The safe margins
-  grow to 16% where a cue shows, as there, and the fit respects them.
+- **Cues** (number badge, caption) are as in the scroll layout, except the
+  margins: here they grow to 16% only where a cue shows, and the fit respects
+  them. The scroll reserves both bands always (SDD-0001 § 16.1); this layout
+  keeps its own, since its columns use the whole height.
 - **Alignment**: one column, each part centred as the scroll shows it, its tint
   hugging its lines; two or more, lines left-aligned as printed.
 - **Parts** are boxes with padding 0.3em by 0.6em, nothing between them, so the

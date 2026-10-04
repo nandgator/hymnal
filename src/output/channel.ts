@@ -28,7 +28,7 @@ export type OutputMessage =
       chorus?: PartId;
       /** The hymn's parts in printed order, each once, for the whole-song
        * layout (SDD-0005). Without it the Output scrolls. */
-      parts?: { id: PartId; lines: string[]; marker?: string }[];
+      parts?: { id: PartId; lines: string[]; marker?: string; name?: string }[];
     }
   | { type: "idle" }
   /** Hides what's presented, or shows it again — distinct from `idle`,

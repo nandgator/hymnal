@@ -1213,12 +1213,21 @@ label, no recurrence cue unless the operator turns one on** — those are Operat
 aids; a cue tracking the _stored_ order has no meaning to a congregation
 watching lyrics. Cues (hymn number, title, hymnbook, part, repeat ×N) are
 opt-in, one switch each (by default the number and hymnbook, fading after a few
-seconds): the number as a badge top left (for printed songbooks), the rest as a
-lower-third caption, each on still ground in a safe margin that grows while it
-shows (`visual/DESIGN.md`). The `content` message carries what they need
-(hymnbook title, the focused part's display label, its repeat count), so the
-Output formats the cues from the message and the `presentation` cues alone. **A
-repeat stays in place**: an ad-hoc occurrence repeating the one before it
+seconds): the number as a badge top left (for printed songbooks), the part as a
+small marker over the song, centred in the top band beside the badge (the
+whole-song markers' type: 0.55 of the lyrics' size, light, muted; it names the
+part the focus is in, or while scrolling by hand the one at the reading band's
+centre, and follows "Show parts"), and the rest (hymnbook, title, repeat) as a
+lower-third caption, each on still ground (`visual/DESIGN.md`). **The bands are
+reserved, whether or not a cue shows in them**: the scroll's top and bottom
+margins are always 16% with their soft edge fades, so switching a cue on or off
+only fades its text, moves no lyric and refits nothing (on a short screen the
+lyrics keep the same, smaller box with every cue off as with every one on; the
+reserve was kept). Full Song (SDD-0005) keeps its own margins. The `content`
+message carries what they need (hymnbook title, the focused part's display
+label, each part's label for the marker while scrolling, its repeat count), so
+the Output formats the cues from the message and the `presentation` cues alone.
+**A repeat stays in place**: an ad-hoc occurrence repeating the one before it
 (`repeatOrdinal > 1`) adds no lines to the flattened column; its focus is the
 earlier copy's, so the Output doesn't scroll away to identical text and
 `positionOfLine` never lands on it.

@@ -1,6 +1,7 @@
 import {
   batch,
   createEffect,
+  createMemo,
   createSignal,
   For,
   Match,
@@ -434,10 +435,13 @@ function Operator(props: Shared) {
     setScreenNotice(undefined);
     if (screen) void moveTo(screen);
   };
-  // Choosing a screen in Settings moves an open Output there.
+  // Choosing a screen in Settings moves an open Output there. A memo, so it
+  // answers a change of the choice only: `on` alone re-runs on every
+  // preference change, and moving the window leaves its fullscreen.
+  const rememberedKey = createMemo(() => JSON.stringify(remembered() ?? null));
   createEffect(
     on(
-      () => JSON.stringify(remembered() ?? null),
+      rememberedKey,
       () => {
         if (!presentingOutput()) return;
         const choice = chooseScreen({

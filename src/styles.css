@@ -4291,6 +4291,37 @@ html[data-scrolling],
   transition: opacity 300ms ease;
 }
 
+/* The part, over the song (SDD-0005 § 1): the lit part's name, centred in the
+   top band beside the number, in the whole song's marker type: 0.55 of the
+   lyrics' size, light, muted a step under the lit ink. Sticky at zero height
+   like the badge, on its own line with it (the tile's middle), and clear of
+   it: the sides leave room for the widest number. */
+.output-marker {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 0;
+  pointer-events: none;
+}
+
+.output-marker-text {
+  position: absolute;
+  top: 8cqmin;
+  inset-inline: 26cqmin;
+  margin: 0;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--output-ink) 70%, var(--output-ground));
+  font-size: calc(7.5cqmin * var(--fit, 1) * 0.55);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  line-height: 2;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  transition: opacity 300ms ease;
+}
+
 /* Full Song has nothing to scroll past: its cues take the view's own edges. */
 .output-view-fullsong :is(.output-badge, .output-caption) {
   position: absolute;
@@ -4305,13 +4336,14 @@ html[data-scrolling],
   bottom: 0;
 }
 
-.output-blanked :is(.output-caption-text, .output-badge-text),
-.output-cue-faded :is(.output-caption-text, .output-badge-text) {
+.output-blanked :is(.output-caption-text, .output-badge-text, .output-marker-text),
+.output-cue-faded :is(.output-caption-text, .output-badge-text, .output-marker-text),
+.output-cue-off {
   opacity: 0;
 }
 
 /* Fading out, slower than blank: a cue receding, not a cut. */
-.output-cue-faded :is(.output-caption-text, .output-badge-text) {
+.output-cue-faded :is(.output-caption-text, .output-badge-text, .output-marker-text) {
   transition-duration: 1200ms;
 }
 

@@ -307,6 +307,7 @@ export function Presenter(props: PresenterProps) {
         id: part.id,
         lines: [...part.lines],
         marker: partMarker(part),
+        name: partCueLabel(part),
       })),
     };
   });

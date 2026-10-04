@@ -630,7 +630,7 @@ describe("Output", () => {
     expect(document.querySelector(".full-song")).not.toBeInTheDocument();
   });
 
-  it("shows no caption until a cue is on, then only the cues switched on", () => {
+  it("shows no detail until a cue is on, then only the cues switched on", () => {
     render(() => <Output />);
     channel.handler?.({
       type: "content",
@@ -643,7 +643,12 @@ describe("Output", () => {
       part: "Chorus",
       repeat: 2,
     });
-    expect(document.querySelector(".output-caption")).not.toBeInTheDocument();
+    // The bands are there, their soft edges with them; nothing shows in them.
+    const off = (selector: string) =>
+      document.querySelector(selector)?.classList.contains("output-cue-off");
+    expect(off(".output-caption-text")).toBe(true);
+    expect(off(".output-badge-text")).toBe(true);
+    expect(off(".output-marker-text")).toBe(true);
 
     channel.handler?.({
       type: "presentation",
@@ -653,7 +658,9 @@ describe("Output", () => {
       bandSize: "part",
     });
     expect(document.querySelector(".output-caption")).toHaveTextContent("Test Hymn · ×2");
-    expect(document.querySelector(".output-badge")).not.toBeInTheDocument();
+    expect(off(".output-caption-text")).toBe(false);
+    expect(off(".output-badge-text")).toBe(true);
+    expect(off(".output-marker-text")).toBe(true);
     channel.handler?.({
       type: "presentation",
       theme: "warm",
@@ -661,11 +668,92 @@ describe("Output", () => {
       pinChorus: false,
       bandSize: "part",
     });
+    // The part is not in the caption: it is the marker over the song.
     expect(document.querySelector(".output-caption")).toHaveTextContent(
-      "Test Book · Test Hymn · Chorus · ×2",
+      "Test Book · Test Hymn · ×2",
     );
+    expect(document.querySelector(".output-caption")).not.toHaveTextContent("Chorus");
+    expect(document.querySelector(".output-marker")).toHaveTextContent("Chorus");
+    expect(off(".output-marker-text")).toBe(false);
     // The number is its own badge, for songbooks.
     expect(document.querySelector(".output-badge")).toHaveTextContent("7");
+    expect(off(".output-badge-text")).toBe(false);
+
+    // Switched off again, a detail keeps its words while it fades.
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: {},
+      pinChorus: false,
+      bandSize: "part",
+    });
+    expect(document.querySelector(".output-caption")).toHaveTextContent("Test Book");
+    expect(off(".output-caption-text")).toBe(true);
+    expect(off(".output-marker-text")).toBe(true);
+  });
+
+  it("keeps the lyrics' box when a detail is switched on or off: no refit, no scroll", () => {
+    render(() => <Output />);
+    show(2);
+    const view = document.querySelector(".output-view") as HTMLElement;
+    const before = [
+      view.style.getPropertyValue("--fit"),
+      view.style.getPropertyValue("--safe-bottom"),
+    ];
+    scrollTo.mockClear();
+    for (const cues of [
+      { title: true },
+      { title: true, number: true, part: true },
+      { part: true },
+      {},
+    ]) {
+      channel.handler?.({
+        type: "presentation",
+        theme: "warm",
+        cues,
+        pinChorus: false,
+        bandSize: "part",
+      });
+      expect(scrollTo).not.toHaveBeenCalled();
+      expect([
+        view.style.getPropertyValue("--fit"),
+        view.style.getPropertyValue("--safe-bottom"),
+      ]).toEqual(before);
+      expect(document.querySelector(".output-badge")).toBeInTheDocument();
+      expect(document.querySelector(".output-caption")).toBeInTheDocument();
+    }
+  });
+
+  it("marks the part at the reading band's centre while scrolling by hand, as it is named", () => {
+    vi.useFakeTimers();
+    render(() => <Output />);
+    channel.handler?.({
+      type: "presentation",
+      theme: "warm",
+      cues: { part: true },
+      pinChorus: false,
+      bandSize: "part",
+    });
+    channel.handler?.({
+      type: "content",
+      hymnbookId: "book",
+      number: 7,
+      title: "Test Hymn",
+      lines: LINES,
+      focus: { start: 2, end: 3 },
+      part: "Chorus",
+      parts: [
+        { id: "s1", lines: ["Line 1a", "Line 1b"], name: "Verse 1" },
+        { id: "c", lines: ["Chorus line"], name: "Chorus" },
+      ],
+    });
+    const marker = document.querySelector(".output-marker");
+    expect(marker).toHaveTextContent("Chorus");
+    const view = document.querySelector(".output-view") as HTMLElement;
+    // jsdom has no layout, so every line sits at 0: the first is at the band.
+    fireEvent.wheel(view);
+    fireEvent.scroll(view);
+    expect(marker).toHaveTextContent("Verse 1");
   });
 
   it("names the chorus's lines, unmarked while flowing", () => {
@@ -767,7 +855,7 @@ describe("Output", () => {
         part,
       });
     content(0, "Verse 1");
-    const caption = () => document.querySelector(".output-caption");
+    const caption = () => document.querySelector(".output-marker");
     const badge = () => document.querySelector(".output-badge");
     expect(caption()).not.toHaveClass("output-cue-faded");
 
@@ -799,7 +887,7 @@ describe("Output", () => {
     expect(badge()).toHaveClass("output-cue-faded");
   });
 
-  it("still scrolls smoothly between steps with cues on, refitting only when they toggle", () => {
+  it("still scrolls smoothly between steps with cues on", () => {
     render(() => <Output />);
     channel.handler?.({
       type: "presentation",
