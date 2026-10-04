@@ -226,9 +226,7 @@ describe("Library: nothing held, the first run (ADR-0026)", () => {
     const s = setup({ rows: [] });
     s.store.ensureInstalled.mockImplementation(async () => ({ state: "ready" }));
     s.view();
-    expect(
-      await screen.findByRole("heading", { name: "Bring your first songbook" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Bring a songbook" })).toBeInTheDocument();
     expect(screen.getByText(/It stays on this device/)).toBeInTheDocument();
     expect(screen.queryByText(/importer/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "From Text" })).toBeInTheDocument();
@@ -247,7 +245,7 @@ describe("Library: nothing held, the first run (ADR-0026)", () => {
     let finish: (r: LoadReview) => void = () => {};
     s.admin.review.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
     s.view();
-    await screen.findByRole("heading", { name: "Bring your first songbook" });
+    await screen.findByRole("heading", { name: "Bring a songbook" });
     pickFile();
     expect(
       await screen.findByRole("progressbar", { name: "Reading the book" }),

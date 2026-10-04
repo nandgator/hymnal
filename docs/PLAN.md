@@ -136,6 +136,9 @@ only, here:
 
 ## Log
 
+- 2026-10-04 — Feedback: the Finder's first songs follow the scope; From Text
+  suggests a language from the script; Go Live waits for a book; "Bring a
+  songbook"
 - 2026-10-03 — Library feedback: a chosen book aims the Finder (the crumb keeps
   the song's book); Load Books queue with Back/Next; the Finder lists a book's
   first songs; plainer empty state and source field; Manage Books gone

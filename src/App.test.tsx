@@ -108,6 +108,13 @@ vi.mock("./shell/updates.ts", async (importOriginal) => {
 /** The Library has listed the books: the first run's wait is over. */
 const booksReady = () => screen.findByRole("heading", { name: "Library" });
 
+/** Go Live, once a book is held (it is off until then). */
+async function clickGoLive() {
+  const button = screen.getByRole("button", { name: "Go Live" });
+  await waitFor(() => expect(button).toBeEnabled());
+  fireEvent.click(button);
+}
+
 /** Present, from the rail: the Finder of the current book. */
 async function openFinder() {
   await booksReady();
@@ -500,6 +507,7 @@ describe("App", () => {
   it("opens the Output as a named window, so a second click reuses it", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
     render(() => <App />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
 
     fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
 
@@ -508,6 +516,32 @@ describe("App", () => {
       "hymnal-output",
       "popup",
     );
+  });
+
+  it("keeps Go Live off until a book is loaded: the button, the O key and the command menu", async () => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    const held = mocks.rows;
+    mocks.rows = [];
+    try {
+      render(() => <App />);
+      await screen.findByRole("heading", { name: "Bring a songbook" });
+      const goLive = screen.getByRole("button", { name: "Go Live" });
+      expect(goLive).toBeDisabled();
+      expect(goLive).toHaveAttribute("aria-description", "Load a songbook first");
+      fireEvent.keyDown(window, { key: "o" });
+      fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+      expect(open).not.toHaveBeenCalled();
+      expect(screen.queryByRole("dialog", { name: "Search" })).not.toBeInTheDocument();
+    } finally {
+      mocks.rows = held;
+    }
+  });
+
+  it("enables Go Live once any book is loaded, with no song chosen", async () => {
+    render(() => <App />);
+    await booksReady();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
+    expect(screen.getByRole("button", { name: "Go Live" })).not.toHaveAttribute("aria-description");
   });
 
   it("renders only the chrome-less Output when loaded with ?output=1", () => {
@@ -893,7 +927,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
     render(() => <App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await clickGoLive();
 
     await waitFor(() => expect(open).toHaveBeenCalled());
     expect(getScreenDetails).not.toHaveBeenCalled();
@@ -908,7 +942,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     vi.spyOn(window, "open").mockReturnValue(null);
     render(() => <App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await clickGoLive();
 
     expect((await screen.findAllByText(/blocked the Output window/)).length).toBeGreaterThan(0);
   });
@@ -972,7 +1006,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     expect(screen.queryByRole("button", { name: "End Live" })).not.toBeInTheDocument();
     expect(win.moveTo).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await clickGoLive();
     await waitFor(() => expect(seen).toContainEqual({ type: "ended", ended: false }));
     expect(await screen.findByRole("button", { name: "On Air" })).toBeInTheDocument();
     // Only the named window was brought forward: nothing opened at a URL.
@@ -1014,7 +1048,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     expect(seen).not.toContainEqual({ type: "ended", ended: false });
     // Go Live is the one thing that says it is lit again.
     vi.spyOn(window, "open").mockReturnValue({ focus: vi.fn() } as unknown as Window);
-    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await clickGoLive();
     await waitFor(() => expect(seen).toContainEqual({ type: "ended", ended: false }));
     expect(await screen.findByRole("button", { name: "On Air" })).toBeInTheDocument();
     output.close();
@@ -1051,7 +1085,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     expect(within(again).queryByRole("option", { name: /End Live/ })).not.toBeInTheDocument();
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
 
-    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await clickGoLive();
     await screen.findByRole("button", { name: "On Air" });
     seen.length = 0;
     // A plain E does nothing; Shift+E ends it.
@@ -1069,7 +1103,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     // blocked
     vi.spyOn(window, "open").mockReturnValue(null);
     const first = render(() => <App />);
-    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await clickGoLive();
     await screen.findAllByText(/blocked the Output window/);
     fireEvent.keyDown(window, { key: "Escape" });
     await waitFor(() => expect(noticeText(/blocked the Output window/)).toBe(0));
@@ -1179,7 +1213,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     Reflect.deleteProperty(window.screen, "isExtended");
     const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
     render(() => <App />);
-    fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+    await clickGoLive();
     await waitFor(() => expect(open).toHaveBeenCalled());
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(noticeText(/Drag the Output to the projector/)).toBe(0);

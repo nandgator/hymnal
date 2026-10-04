@@ -307,10 +307,15 @@ function Operator(props: Shared) {
     preferences.update({ ...prefs, [flag]: true });
     setScreenNotice(id);
   };
+  // Nothing to show with no book loaded: Go Live waits for one (any book
+  // will do; no song need be chosen yet). The button, the O key and the
+  // command menu all honour it.
+  const canGoLive = () => readable().length > 0;
   // Opening once, then bringing it forward: an empty URL targets the named
   // window without reloading it. Opening is never blocked on the screens:
   // anything unavailable is today's plain popup, with a hint (ADR-0028).
   const openOutput = async () => {
+    if (!canGoLive()) return;
     if (presentingOutput()) {
       if (ended()) resumeLive();
       window.open("", OUTPUT_WINDOW_NAME)?.focus();
@@ -592,15 +597,19 @@ function Operator(props: Shared) {
         hint: keyHint("blank"),
         run: run(toggleBlank),
       },
-      {
-        label: liveNow()
-          ? "Bring the Output forward"
-          : presentingOutput()
-            ? "Go live: resume on the Output"
-            : "Go live: open the Output",
-        hint: keyHint("output"),
-        run: run(openOutput),
-      },
+      ...(!canGoLive()
+        ? []
+        : [
+            {
+              label: liveNow()
+                ? "Bring the Output forward"
+                : presentingOutput()
+                  ? "Go live: resume on the Output"
+                  : "Go live: open the Output",
+              hint: keyHint("output"),
+              run: run(openOutput),
+            },
+          ]),
       ...(liveNow() ? [{ label: "End Live", hint: keyHint("end-live"), run: run(endLive) }] : []),
       ...(presenting() && presenterActions()
         ? [
@@ -936,16 +945,20 @@ function Operator(props: Shared) {
               "present-blanked": liveNow() && blanked(),
             }}
             aria-keyshortcuts={ariaKeys("output")}
+            disabled={!canGoLive()}
+            aria-description={!canGoLive() ? "Load a songbook first" : undefined}
             title={
-              !liveNow()
-                ? withKey(
-                    presentingOutput() ? "Go live again on the open Output" : "Open the Output",
-                    "output",
-                    expanded(),
-                  )
-                : blanked()
-                  ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
-                  : withKey("Bring the Output forward", "output", expanded())
+              !canGoLive()
+                ? "Load a songbook first"
+                : !liveNow()
+                  ? withKey(
+                      presentingOutput() ? "Go live again on the open Output" : "Open the Output",
+                      "output",
+                      expanded(),
+                    )
+                  : blanked()
+                    ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
+                    : withKey("Bring the Output forward", "output", expanded())
             }
             onClick={openOutput}
           >

@@ -363,16 +363,16 @@ problem than a warm, devotional, legible-at-distance tool.
 
 ### Hierarchy
 
-| Token           | Size                                            | Weight | Line height | Use                                                        |
-| --------------- | ----------------------------------------------- | ------ | ----------- | ---------------------------------------------------------- |
-| `display-small` | 36px                                            | 400    | 44px        | The Library's empty first run: "Bring your first songbook" |
-| `title-large`   | 22px                                            | 500    | 28px        | Screen headers (hymn title in Operator)                    |
-| `title-medium`  | 16px                                            | 500    | 24px        | Section labels (part label, "Recent")                      |
-| `label-large`   | 14px                                            | 500    | 20px        | Buttons, chips                                             |
-| `label-small`   | 11px                                            | 500    | 16px        | Assist chip (recurrence cue)                               |
-| `body-large`    | 16px                                            | 400    | 24px        | Running UI text                                            |
-| `hymn-display`  | `clamp(1.25rem, 1.0625rem + 0.75vw, 2.1875rem)` | 400    | 1.7         | Lyric lines, Operator view                                 |
-| `output-line`   | `clamp(2.2rem, 6.5vw, 5rem)`                    | 500    | 1.35        | Output view, every line (lit or dimmed)                    |
+| Token           | Size                                            | Weight | Line height | Use                                               |
+| --------------- | ----------------------------------------------- | ------ | ----------- | ------------------------------------------------- |
+| `display-small` | 36px                                            | 400    | 44px        | The Library's empty first run: "Bring a songbook" |
+| `title-large`   | 22px                                            | 500    | 28px        | Screen headers (hymn title in Operator)           |
+| `title-medium`  | 16px                                            | 500    | 24px        | Section labels (part label, "Recent")             |
+| `label-large`   | 14px                                            | 500    | 20px        | Buttons, chips                                    |
+| `label-small`   | 11px                                            | 500    | 16px        | Assist chip (recurrence cue)                      |
+| `body-large`    | 16px                                            | 400    | 24px        | Running UI text                                   |
+| `hymn-display`  | `clamp(1.25rem, 1.0625rem + 0.75vw, 2.1875rem)` | 400    | 1.7         | Lyric lines, Operator view                        |
+| `output-line`   | `clamp(2.2rem, 6.5vw, 5rem)`                    | 500    | 1.35        | Output view, every line (lit or dimmed)           |
 
 ### Principles
 
@@ -708,9 +708,9 @@ view is close enough to the frame to need a smaller unit.
     No spinner. From an empty Library the empty card turns into the same lines
     in its own shape.
   - **Nothing held** (the first run): the card keeps the skeleton's shape,
-    display-small "Bring your first songbook", one body line (load a file or
-    type one in; it stays on this device), the filled **Load Books** and a tonal
-    **From Text**. Find and Go Live are disabled.
+    display-small "Bring a songbook", one body line (load a file or type one in;
+    it stays on this device), the filled **Load Books** and a tonal **From
+    Text**. Find and Go Live are disabled.
   - **The review** is a sheet, bottom under 840px and centred from it, taller
     than the others (88% of the height), its Cancel pinned, its content
     scrolling and its one action bar sticky. Read-only throughout: the book's

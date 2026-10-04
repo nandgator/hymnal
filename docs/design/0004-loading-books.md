@@ -441,9 +441,9 @@ Library; this says what it shows and does.
   current, or none.
 - **Nothing held** is the first run (ADR-0026), chosen by the maintainer: the
   Library says, in a line, that a songbook file is loaded or typed in and stays
-  on this device ("Bring your first songbook"), and offers **Load Books** (the
-  filled button) and **From Text**. No demo book, no download. The Finder and
-  the Operator say "no book yet" and link to it.
+  on this device ("Bring a songbook"), and offers **Load Books** (the filled
+  button) and **From Text**. No demo book, no download. The Finder and the
+  Operator say "no book yet" and link to it.
 
 Chosen, by the maintainer: the first load asks for persistent storage
 (`navigator.storage.persist()`), since a loaded book has no host to come back
@@ -527,7 +527,15 @@ returns to the sheet with everything typed kept; a successful load clears it.
    (`new Intl.Locale(code).maximize().script`) and shown as a quiet line,
    "Script: Malayalam (Mlym) · Change", editable only on Change; choosing
    another language derives it again. The id (still from the title) and the song
-   number move under **Advanced**.
+   number move under **Advanced**. The pasted text may suggest the language, on
+   the device only (`src/library/detectLanguage.ts`): the dominant script by
+   Unicode property, where a script implies one main language (Malayalam is
+   `ml`, Tamil `ta`, Hangul `ko`); for a script several languages share
+   (Devanagari, Bengali, Arabic, Cyrillic, Latin, Han), Chrome's
+   `LanguageDetector` if it is there, only when its model is already `available`
+   (never downloaded for this) and only for a result of 0.8 or more that fits
+   the script. The suggestion is preselected with the line "Looks like
+   Malayalam", and never replaces a language the person picked.
 2. **Errors are field errors.** Each is under its field, in the field-error
    style (outline and helper text in `error`). "There is no song text." is the
    Song text field's; the parser's errors are listed under it as "Line 12:

@@ -91,7 +91,10 @@ export function Finder(props: FinderProps) {
   const store = () => props.store ?? getContentStore();
   const listId = `finder-options-${++nextId}`;
 
-  const [hymns] = createResource(() => store().listHymns(id()));
+  // Keyed by the book, so another book is read again; until it is, nothing of
+  // the last book's shows.
+  const [read] = createResource(id, (book) => store().listHymns(book));
+  const hymns = () => (read.loading ? undefined : read());
   // The book from its start, by number, while nothing is typed: there is
   // always something to open (SDD-0001 §13).
   const opening = createMemo(() =>
@@ -103,7 +106,7 @@ export function Finder(props: FinderProps) {
   createEffect(on(id, () => setRecentCount(undefined), { defer: true }));
   // The songs are in the list's place until it is known that there are none, and both lists
   // appear together once both are read, so neither moves the other.
-  const songsExpected = () => hymns.loading || opening().length > 0;
+  const songsExpected = () => read.loading || opening().length > 0;
   const songsShown = () => !trimmed() && opening().length > 0 && recentCount() !== undefined;
 
   const [query, setQuery] = createSignal("");

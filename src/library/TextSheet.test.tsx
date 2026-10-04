@@ -273,6 +273,47 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
   });
 });
 
+describe("Library: a language suggested by the text", () => {
+  const ML_TEXT = "മലയാളം ഭാഷ എഴുതിയ വാക്കുകൾ ഇവിടെ";
+  const language = (dialog: Dialog) => dialog.getByRole("combobox", { name: "Language" });
+
+  it("preselects the script's language with a quiet line, and derives the script", async () => {
+    const { dialog } = await openSheet();
+    type(dialog, "Song text", ML_TEXT);
+    await waitFor(() => expect(language(dialog)).toHaveValue("മലയാളം — Malayalam"));
+    expect(dialog.getByText("Looks like Malayalam")).toBeInTheDocument();
+    expect(dialog.getByText(/^Script: Malayalam/)).toBeInTheDocument();
+  });
+
+  it("suggests nothing for a script that several languages share", async () => {
+    const { dialog } = await openSheet();
+    type(dialog, "Song text", "Plain words written in English here");
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    expect(language(dialog)).toHaveValue("");
+    expect(dialog.queryByText(/^Looks like/)).not.toBeInTheDocument();
+  });
+
+  it("never overrides a language the person chose, before or after the text", async () => {
+    const { dialog } = await openSheet();
+    chooseLanguage(dialog, "Tamil");
+    type(dialog, "Song text", ML_TEXT);
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    expect(language(dialog)).toHaveValue("தமிழ் — Tamil");
+    expect(dialog.queryByText(/^Looks like/)).not.toBeInTheDocument();
+  });
+
+  it("a language picked over a suggestion is the person's, and the line goes", async () => {
+    const { dialog } = await openSheet();
+    type(dialog, "Song text", ML_TEXT);
+    await dialog.findByText("Looks like Malayalam");
+    chooseLanguage(dialog, "Tamil");
+    expect(dialog.queryByText(/^Looks like/)).not.toBeInTheDocument();
+    type(dialog, "Song text", `${ML_TEXT} ${ML_TEXT}`);
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    expect(language(dialog)).toHaveValue("தமிழ் — Tamil");
+  });
+});
+
 describe("Library: the language of a book from text", () => {
   it("lists languages by their own name and English, searchable by either", async () => {
     const { dialog } = await openSheet();

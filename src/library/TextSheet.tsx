@@ -1,15 +1,25 @@
-import { createEffect, createSignal, For, type JSX, Show } from "solid-js";
+import { batch, createEffect, createSignal, For, type JSX, onCleanup, Show } from "solid-js";
 import type { TextError } from "../import/songtext.ts";
 import { Sheet } from "../shell/Sheet.tsx";
 import { count } from "./books.ts";
+import { suggestLanguage } from "./detectLanguage.ts";
 import { LanguagePicker } from "./LanguagePicker.tsx";
-import { scriptName, scriptOf } from "./languages.ts";
+import { englishName, scriptName, scriptOf } from "./languages.ts";
 import { type FieldProblems, joinSongTexts, slugify, type TextFields } from "./textbook.ts";
+
+/** Typing or pasting pauses this long before the text is read for a language. */
+const SUGGEST_DELAY_MS = 300;
 
 /** What has been typed in the text sheet; kept by the Library so a Cancel in the review comes back to it. */
 export function createTextDraft() {
   const [title, setTitle] = createSignal("");
   const [language, setLanguage] = createSignal("");
+  // The language is the person's once picked; until then the text may suggest
+  // one, preselected and never over a choice (detectLanguage.ts).
+  const [chosen, setChosen] = createSignal(false);
+  const [suggested, setSuggested] = createSignal<string>();
+  let suggestTimer: ReturnType<typeof setTimeout> | undefined;
+  let suggestRun = 0;
   // The script follows the language ("ml" is Mlym) until it is changed by hand.
   const [scriptEdit, setScriptEdit] = createSignal<string>();
   const script = () => scriptEdit() ?? scriptOf(language());
@@ -19,7 +29,24 @@ export function createTextDraft() {
   const [sourceText, setSourceText] = createSignal("");
   // The id follows the title until it is edited by hand.
   const [idEdited, setIdEdited] = createSignal(false);
+  const scheduleSuggest = () => {
+    clearTimeout(suggestTimer);
+    const run = ++suggestRun;
+    suggestTimer = setTimeout(async () => {
+      const code = await suggestLanguage(songText() || sourceText());
+      if (run !== suggestRun || chosen()) return;
+      batch(() => {
+        setSuggested(code);
+        setLanguage(code ?? "");
+        setScriptEdit(undefined);
+      });
+    }, SUGGEST_DELAY_MS);
+  };
+  onCleanup(() => clearTimeout(suggestTimer));
   return {
+    /** The language the text suggests, while it is still the one set. */
+    suggestion: () =>
+      !chosen() && suggested() && suggested() === language() ? suggested() : undefined,
     title,
     language,
     script,
@@ -32,6 +59,8 @@ export function createTextDraft() {
       if (!idEdited()) setId(slugify(value));
     },
     setLanguage: (code: string) => {
+      setChosen(true);
+      setSuggested(undefined);
       setLanguage(code);
       setScriptEdit(undefined);
     },
@@ -43,9 +72,19 @@ export function createTextDraft() {
       setId(value === "" ? slugify(title()) : value);
     },
     setNumber,
-    setSongText,
-    setSourceText,
+    setSongText: (value: string) => {
+      setSongText(value);
+      scheduleSuggest();
+    },
+    setSourceText: (value: string) => {
+      setSourceText(value);
+      scheduleSuggest();
+    },
     reset: () => {
+      clearTimeout(suggestTimer);
+      suggestRun++;
+      setChosen(false);
+      setSuggested(undefined);
       for (const set of [setTitle, setLanguage, setId, setNumber, setSongText, setSourceText]) {
         set("");
       }
@@ -234,6 +273,13 @@ export function TextSheet(props: TextSheetProps) {
             <span class="field-hint field-problem" id="book-language-hint" role="alert">
               {props.problems.language}
             </span>
+          </Show>
+          <Show when={d.suggestion()}>
+            {(code) => (
+              <span class="field-hint" id="book-language-suggestion">
+                Looks like {englishName(code()) ?? code()}
+              </span>
+            )}
           </Show>
           <Show when={d.language()}>
             <div class="script-line">

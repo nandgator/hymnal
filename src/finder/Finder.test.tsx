@@ -202,6 +202,27 @@ describe("Finder", () => {
     expect(screen.queryByRole("heading", { name: "Recents" })).not.toBeInTheDocument();
   });
 
+  it("lists the first songs of the book now searched, not the last one's", async () => {
+    const [id, setId] = createSignal("en");
+    const store = fakeStore({
+      listHymns: async (book) =>
+        book === "en"
+          ? [{ number: 1, title: "English Opening" }]
+          : [{ number: 2, title: "Malayalam Opening" }],
+    });
+    render(() => (
+      <Finder hymnbookId={id()} store={store} userState={fakeUserState()} onSelect={vi.fn()} />
+    ));
+    expect(
+      await within(await screen.findByRole("region", { name: "Songs" })).findByText(
+        "English Opening",
+      ),
+    ).toBeInTheDocument();
+    setId("ml");
+    expect(await screen.findByText("Malayalam Opening")).toBeInTheDocument();
+    expect(screen.queryByText("English Opening")).not.toBeInTheDocument();
+  });
+
   it("says which book it searches", async () => {
     render(() => (
       <Finder

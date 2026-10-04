@@ -734,7 +734,7 @@ export function Library(props: LibraryProps) {
         when={reading()}
         fallback={
           <>
-            <h1 class="display-small">Bring your first songbook</h1>
+            <h1 class="display-small">Bring a songbook</h1>
             <p class="body-large on-surface-variant">
               Load a songbook file, or type one in. It stays on this device.
             </p>

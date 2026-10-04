@@ -535,6 +535,7 @@ button:disabled {
   background-color: transparent;
 }
 
+.present-button:disabled,
 .rail-item:disabled,
 .menu-item:disabled {
   opacity: 0.38;
