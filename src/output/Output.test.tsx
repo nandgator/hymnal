@@ -1083,7 +1083,7 @@ describe("Output on the Operator's screen, Wayland included (ADR-0028)", () => {
       expect.objectContaining({ onTarget: true }),
     );
     // The window's own prompt names the screen.
-    expect(await screen.findByText(/press F to fill HXA 32", 1280×720/)).toBeInTheDocument();
+    expect(await screen.findByText(/click to fill HXA 32", 1280×720/)).toBeInTheDocument();
 
     // A click is the activation; the browser fullscreens it on the target.
     fireEvent.click(window);
@@ -1190,26 +1190,39 @@ describe("Output where the system cannot place windows (GNOME on Wayland, ADR-00
         refused: true,
       }),
     );
-    expect(
-      await screen.findByText(/Move this window to HXA 32", 1280×720, then press F\./),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Super\+Shift\+Arrow moves a window/)).toBeInTheDocument();
+    // The short instruction is a tooltip behind a small icon; the Operator's
+    // notice carries the full text, the Linux shortcut included.
+    const tip = await screen.findByRole("tooltip");
+    expect(tip).toHaveTextContent('Move this window to HXA 32", 1280×720, then press F');
+    expect(screen.queryByText(/Super\+Shift/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /place this window/i })).toHaveAttribute(
+      "aria-describedby",
+      tip.id,
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("shows the shortcut only on Linux", async () => {
-    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+  it("shows the icon with the cursor and drops the hint while fullscreen", async () => {
     attach();
-    fullscreenApi();
-    render(() => <Output />);
-    await screen.findByText(/Move this window to HXA/);
-    expect(screen.queryByText(/Super\+Shift/)).not.toBeInTheDocument();
+    const { request } = fullscreenApi();
+    const { container } = render(() => <Output />);
+    await screen.findByRole("tooltip");
+    const hint = container.querySelector(".output-hint");
+    // Idle cursor: the hint is faded out (CSS); the mouse moving wakes it.
+    expect(hint).not.toHaveClass("output-hint-awake");
+    fireEvent.mouseMove(window);
+    expect(hint).toHaveClass("output-hint-awake");
+    fireEvent.keyDown(window, { key: "f" });
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    expect(container.querySelector(".output-hint")).toBeNull();
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
 
   it("fills the screen on F once the window is on the target, and reports it verified", async () => {
     const details = attach();
     const { request } = fullscreenApi();
     render(() => <Output />);
-    await screen.findByText(/Move this window to HXA/);
+    await screen.findByText(/Move this window to HXA/, { selector: "[role=tooltip]" });
 
     details.currentScreen = hxa;
     details.dispatchEvent(new Event("currentscreenchange"));
@@ -1231,7 +1244,7 @@ describe("Output where the system cannot place windows (GNOME on Wayland, ADR-00
         refused: true,
       }),
     );
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
 
   it("F always fills the screen it is on, even when currentScreen never changes, and says screen unconfirmed", async () => {
@@ -1239,7 +1252,7 @@ describe("Output where the system cannot place windows (GNOME on Wayland, ADR-00
     const details = attach();
     const { request, exit } = fullscreenApi();
     render(() => <Output />);
-    await screen.findByText(/Move this window to HXA/);
+    await screen.findByText(/Move this window to HXA/, { selector: "[role=tooltip]" });
     expect(request).toHaveBeenCalledTimes(1);
 
     fireEvent.keyDown(window, { key: "f" });
@@ -1263,7 +1276,7 @@ describe("Output where the system cannot place windows (GNOME on Wayland, ADR-00
     attach();
     const { request } = fullscreenApi();
     render(() => <Output />);
-    await screen.findByText(/Move this window to HXA/);
+    await screen.findByText(/Move this window to HXA/, { selector: "[role=tooltip]" });
     fireEvent.click(window);
     await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(2));
     expect(request).toHaveBeenLastCalledWith();
@@ -1273,7 +1286,7 @@ describe("Output where the system cannot place windows (GNOME on Wayland, ADR-00
     const details = attach();
     const { request } = fullscreenApi();
     render(() => <Output />);
-    await screen.findByText(/Move this window to HXA/);
+    await screen.findByText(/Move this window to HXA/, { selector: "[role=tooltip]" });
     const fresh = Object.assign(new EventTarget(), { screens: [builtIn, hxa], currentScreen: hxa });
     Object.assign(window, { getScreenDetails: vi.fn(async () => fresh) });
     fireEvent.keyDown(window, { key: "f" });
@@ -1292,7 +1305,7 @@ describe("Output where the system cannot place windows (GNOME on Wayland, ADR-00
     attach();
     fullscreenApi();
     render(() => <Output />);
-    await screen.findByText(/Move this window to HXA/);
+    await screen.findByText(/Move this window to HXA/, { selector: "[role=tooltip]" });
     const fresh = Object.assign(new EventTarget(), { screens: [builtIn, hxa], currentScreen: hxa });
     Object.assign(window, { getScreenDetails: vi.fn(async () => fresh) });
     window.dispatchEvent(new Event("resize"));
@@ -1311,7 +1324,7 @@ describe("Output where the system cannot place windows (GNOME on Wayland, ADR-00
     attach();
     const { request } = fullscreenApi();
     render(() => <Output />);
-    expect(await screen.findByText(/Move this window to HXA/)).toBeInTheDocument();
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(/Move this window to HXA/);
     expect(request).not.toHaveBeenCalled();
     expect(channel.reportOutputPlacement).toHaveBeenLastCalledWith({
       onTarget: false,

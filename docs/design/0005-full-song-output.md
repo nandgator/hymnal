@@ -135,20 +135,22 @@ says there are pages.
 
 **The chorus on every page.** On a paged song that sings a chorus more than
 once, the chorus is not printed once for the Output to flip back to each time it
-is sung; each page is its verses with the chorus after each verse that the
-sequence follows with it, in sung order (before the first verse, if the song
-opens on the chorus). Moving verse, chorus, next verse on one page needs no page
-turn: only a step to a verse on another page turns it. The chorus after a page's
-last verse stays on that page. The tint lands on the chorus copy that follows
-the verse just sung. The repeated chorus is counted in the fit: the verses are
-cut into pages by their height with their chorus, and a page's items are its
-slots, so the pages still fit with part labels on or off. A page of verse and
-chorus that cannot reach the floor, where the plain split (the chorus printed
-once, the Output flipping to it) can reach it or goes less far below it, falls
-back to the plain split for that song. A song that fits one page is unchanged:
-the chorus is printed once. The layout's pages hold slots (a part's place on a
-page) and the layout says which part each slot shows; the content message
-carries the sung order (the lines it already holds) and the hymn's chorus.
+is sung; each page that sings it carries one copy, so singing it never turns the
+page. A page's copy sits at the chorus's first sung position on that page: after
+the verse the sequence first follows with it there, or before the verse the song
+opens on, if that is on the page. Singing the chorus at any point on the page
+tints that one copy, with no turn; only a step to a verse on another page turns
+it. A page the chorus is never sung beside has none. The repeated chorus is
+counted in the fit: the verses are cut into pages by their height, and each
+page's items are its verses and its one chorus, as slots, so the pages still fit
+with part labels on or off. A page of verses and chorus that cannot reach the
+floor, where the plain split (the chorus printed once, the Output flipping to
+it) can reach it or goes less far below it, falls back to the plain split for
+that song. A song that fits one page is unchanged: the chorus is printed once.
+The layout's pages hold slots (a part's place on a page) and the layout says
+which part each slot shows; the content message carries the sung order (the
+lines it already holds) and the hymn's chorus. The tint's copy is the one on the
+page of the verse the chorus sits beside in the sung order.
 
 ## 4. The tint's motion
 
@@ -245,16 +247,16 @@ the part of the focused line. A message without `parts` shows the scroll.
 
 `fullSong.test.ts` pins the rule with a synthetic measure: balancing, ties, the
 smaller column count, the floor and pages, one part, a part taller than a
-column, and the chorus on every page (after each verse, in sung order, an
-opening chorus, counted in the fit, the fall back, a chorus sung once).
+column, and the chorus on every page (once per page, at its first sung position,
+an opening chorus, counted in the fit, the fall back, a chorus sung once).
 `fullSongText.test.ts` pins the arithmetic: breaking, wrapping, heights, and
 that the rule runs on it. `FullSong.test.tsx` checks the order, the tint's part,
 the lit lines, the page shown, a turn with both pages mounted and the old one
 gone at its end, the tint on the new part's box once its page is there, the
 markers, the layout made again when the page disagrees, and a pass over a whole
-sung order with a repeated chorus: the tint on the right copy and a page turning
-only into a verse. `Output.test.tsx` checks the markers' setting (Show parts),
-that no combination of settings, steps and turns draws a pinned chorus with the
-columns, and the swap between layouts. The glide's geometry is the existing
-one's, tested there; its page-turn timing (the two sum to one) is pinned in
-`fullSongGlide.test.ts`.
+sung order with a repeated chorus: each page showing the chorus once, the tint
+on its copy, and a page turning only into a verse. `Output.test.tsx` checks the
+markers' setting (Show parts), that no combination of settings, steps and turns
+draws a pinned chorus with the columns, and the swap between layouts. The
+glide's geometry is the existing one's, tested there; its page-turn timing (the
+two sum to one) is pinned in `fullSongGlide.test.ts`.

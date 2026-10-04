@@ -3263,7 +3263,6 @@ html[data-scrolling],
   --glide-row-radius: var(--button-shape);
 }
 
-
 [data-hover-glide] .seq-block:not([aria-current="step"]):hover,
 [data-hover-glide] .seq-line:hover {
   background-color: transparent;
@@ -3815,21 +3814,75 @@ html[data-scrolling],
   cursor: default;
 }
 
-/* The Output's own prompt while the browser has refused fullscreen on the
-   chosen screen until a click or F (ADR-0028): small, in a corner, gone the
-   moment it is fullscreen. */
-.output-prompt {
+/* The Output's placement hint (ADR-0028): while it is not fullscreen, a small
+   info icon in a corner, shown with the cursor (it fades when the mouse is
+   still) and kept while focused or hovered; its short instruction is a tooltip
+   that appears on hover or focus. The instructions in full are the Operator's
+   notice. */
+.output-hint {
   position: fixed;
   z-index: 10;
   right: 1.5vmin;
   bottom: 1.5vmin;
-  padding: 0.6em 1em;
-  border-radius: var(--shape-md);
-  background-color: color-mix(in srgb, var(--output-ground) 70%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  flex-direction: row-reverse;
   color: var(--output-ink-muted);
   font-family: var(--font-family);
   font-size: max(0.875rem, 1.6vmin);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.output-hint-awake,
+.output-hint:hover,
+.output-hint:focus-within {
+  opacity: 1;
+}
+
+.output-hint-icon {
+  display: grid;
+  place-items: center;
+  width: max(1.5rem, 2.6vmin);
+  height: max(1.5rem, 2.6vmin);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.output-hint-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.output-hint-tip {
+  margin: 0;
+  padding: 0.6em 1em;
+  border-radius: var(--shape-md);
+  background-color: color-mix(in srgb, var(--output-ground) 70%, transparent);
+  opacity: 0;
   pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.output-hint:hover .output-hint-tip,
+.output-hint:focus-within .output-hint-tip {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .output-hint,
+  .output-hint-tip {
+    transition: none;
+  }
 }
 
 /* A full screen either side, so any line — first or last — can reach the

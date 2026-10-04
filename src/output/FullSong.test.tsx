@@ -348,8 +348,9 @@ describe("signature", () => {
   });
 });
 
-// The chorus sung after every verse, in a song that pages: it is shown on each
-// page that sings it, so only a step to a verse on another page turns the page.
+// The chorus sung after every verse, in a song that pages: it is printed once
+// on each page that sings it, so only a step to a verse on another page turns
+// the page.
 describe("a chorus repeated on every page", () => {
   const settle = () => new Promise((resolve) => setTimeout(resolve, 30));
   const VERSES = Array.from({ length: 12 }, (_, i) => ({
@@ -386,18 +387,20 @@ describe("a chorus repeated on every page", () => {
     ));
   };
 
-  it("lays each page's verses with the chorus after each, and turns only between verses on different pages", async () => {
+  it("prints the chorus once on each page, and turns only between verses on different pages", async () => {
     const [at, setAt] = createSignal(0);
     const { container } = renderAt(at);
     await settle();
     expect(pagesIn(container)).toHaveLength(1); // one page mounted at a time
     const first = textsOn(container, "0");
-    // Verse, chorus, verse, chorus: more than one chorus on the page.
-    expect(first.filter((t) => t?.startsWith("Chorus")).length).toBeGreaterThan(1);
+    // Once on the page, after its first verse.
+    expect(first.filter((t) => t?.startsWith("Chorus"))).toHaveLength(1);
+    expect(first[1]).toMatch(/^Chorus/);
     expect(first.filter((t) => t?.startsWith("Verse")).length).toBeGreaterThan(1);
 
     // Step through the whole sung order: a page turns only into a verse.
     let page = "0";
+    const seen = new Set<string>();
     for (let k = 1; k < sequence.length; k++) {
       setAt(k);
       await Promise.resolve();
@@ -415,13 +418,18 @@ describe("a chorus repeated on every page", () => {
       if (turned) expect(nextPage).not.toBe(page);
       else expect(nextPage).toBe(page);
       page = nextPage;
+      if (!seen.has(page)) {
+        seen.add(page);
+        // Each page shows the chorus exactly once.
+        expect(textsOn(container, page).filter((t) => t?.startsWith("Chorus"))).toHaveLength(1);
+      }
       const label = isChorus ? "Chorus" : `Verse ${Number(sequence[k].slice(1))}`;
       expect(container.querySelector(".full-part-current")).toHaveTextContent(label);
     }
     expect(page).not.toBe("0");
   });
 
-  it("tints the chorus copy that follows the verse just sung", async () => {
+  it("tints the page's one chorus copy each time it is sung, with no turn", async () => {
     const [at, setAt] = createSignal(1);
     const { container } = renderAt(at);
     await settle();
@@ -429,10 +437,18 @@ describe("a chorus repeated on every page", () => {
       [...container.querySelectorAll(".full-page .full-part")].filter((p) =>
         p.textContent?.startsWith("Chorus"),
       );
-    // Sung: s1, c, s2, c ...: the first copy follows s1.
-    expect(container.querySelector(".full-part-current")).toBe(copies()[0]);
-    setAt(3); // the chorus after s2
+    // Sung: s1, c, s2, c ...: one copy on the page, tinted for both.
+    expect(copies()).toHaveLength(1);
+    const copy = copies()[0];
+    expect(container.querySelector(".full-part-current")).toBe(copy);
+    setAt(2);
     await settle();
-    expect(container.querySelector(".full-part-current")).toBe(copies()[1]);
+    expect(container.querySelector(".full-part-current")).not.toBe(copy);
+    setAt(3); // the chorus after s2
+    await Promise.resolve();
+    expect(pagesIn(container)).toHaveLength(1);
+    await settle();
+    expect(copies()).toHaveLength(1);
+    expect(container.querySelector(".full-part-current")).toBe(copies()[0]);
   });
 });

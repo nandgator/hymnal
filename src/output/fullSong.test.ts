@@ -306,7 +306,7 @@ describe("layoutSong with the chorus sung on every page", () => {
     expect(layout.slots).toEqual([0, 1, 2, 3]);
   });
 
-  it("puts the chorus after each verse on each page, in sung order", () => {
+  it("prints the chorus once on each page, after the page's first verse", () => {
     const { lines, count, sung } = song(14);
     const { measure } = measureOf(lines, { wrap: 0.1 });
     const layout = layoutSong(count, measure, ROOM, sung);
@@ -314,17 +314,47 @@ describe("layoutSong with the chorus sung on every page", () => {
     expect(layout.belowFloor).toBe(false);
     for (const slots of partOf(layout)) {
       const parts = slots.map((s) => layout.slots[s]);
-      // Verse, chorus, verse, chorus, in the sung order.
-      expect(parts.filter((p) => p === 1)).toHaveLength(parts.length / 2);
-      parts.forEach((p, i) => {
-        expect(p === 1).toBe(i % 2 === 1);
-      });
+      expect(parts.filter((p) => p === 1)).toHaveLength(1);
+      // Sung 0 C 2 C 3 C: the first sung chorus on a page follows its first verse.
+      expect(parts.indexOf(1)).toBe(1);
     }
     // Every verse exactly once, in printed order.
     const verses = layout.slots.filter((p) => p !== 1);
     expect(verses).toEqual([0, ...Array.from({ length: 13 }, (_, i) => i + 2)]);
+    expect(layout.slots.filter((p) => p === 1)).toHaveLength(layout.pages.length);
     // Slot ids are unique, and each page's slots are its own.
     expect(new Set(partOf(layout).flat()).size).toBe(layout.slots.length);
+  });
+
+  it("places the chorus at its first sung position on the page, not the last verse", () => {
+    // Printed 0 C 2..14; sung 0 2 3 4 5 6 7 C 8 9 ... 14 C: the chorus first
+    // follows verse 7, and last verse 14.
+    const { lines, count } = song(14);
+    const verses = [0, ...Array.from({ length: 13 }, (_, i) => i + 2)];
+    const order = [...verses.slice(0, 7), 1, ...verses.slice(7), 1];
+    const layout = layoutSong(count, measureOf(lines, { wrap: 0.1 }).measure, ROOM, {
+      chorus: 1,
+      order,
+    });
+    expect(layout.pages.length).toBeGreaterThan(1);
+    for (const slots of partOf(layout)) {
+      const parts = slots.map((s) => layout.slots[s]);
+      const at = parts.indexOf(1);
+      if (at < 0) continue;
+      expect(parts.filter((p) => p === 1)).toHaveLength(1);
+      // The verse before the copy is the first verse of the page that the
+      // chorus follows in the sung order.
+      const follows = parts[at - 1];
+      expect([7, 14]).toContain(follows);
+      if (parts.includes(7)) expect(follows).toBe(7);
+    }
+    // Every sung chorus has a copy on the page of the verse it follows.
+    const pageOf = (verse: number) =>
+      layout.pages.findIndex((p) => flat(p.columns).some((s) => layout.slots[s] === verse));
+    for (const verse of [7, 14]) {
+      const page = layout.pages[pageOf(verse)];
+      expect(flat(page.columns).some((s) => layout.slots[s] === 1)).toBe(true);
+    }
   });
 
   it("counts the repeated chorus in the fit: pages are smaller than the plain split's", () => {
@@ -347,7 +377,9 @@ describe("layoutSong with the chorus sung on every page", () => {
     const opening = { chorus: 1, order: [1, ...sung.order] };
     const layout = layoutSong(count, measureOf(lines, { wrap: 0.1 }).measure, ROOM, opening);
     const first = layout.pages[0].columns.flat().map((s) => layout.slots[s]);
-    expect(first.slice(0, 3)).toEqual([1, 0, 1]);
+    // Once on the page, before the verse the song opens on.
+    expect(first.slice(0, 2)).toEqual([1, 0]);
+    expect(first.filter((p) => p === 1)).toHaveLength(1);
   });
 
   it("falls back to the plain split when a page with its chorus cannot fit a verse", () => {

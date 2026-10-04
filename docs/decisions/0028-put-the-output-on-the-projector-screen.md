@@ -293,3 +293,17 @@ gate never opened. A person's explicit F is never gated now:
 **F toggles (2026-10-04).** In the Output, F on a fullscreen window leaves
 fullscreen, as Esc does, and is not forwarded to the Operator; F again goes back
 in. So the message can say "press F again" whichever state it is in.
+
+### The placement hints leave the projector's text (2026-10-04)
+
+The Output is what the audience sees, so it carries no instructions as text. The
+Operator's notice says them in full ("Move this window to <screen>, then press
+F." and, on Linux, the Super+Shift+Arrow line). The Output shows a small info
+icon in a corner while it is not fullscreen and a placement hint applies (the
+move guidance, "Press F or click to fill this screen", or the click prompt after
+a refused fullscreen request). Its short instruction is a tooltip that shows on
+hover or focus; the icon itself is shown only while the cursor is awake (the
+same idle timer that hides the cursor), or while hovered or focused. It is gone
+while fullscreen, and the Linux shortcut is not on the Output at all. F and a
+click behave as before. The notes above that say the Output "says" these lines
+mean this tooltip.

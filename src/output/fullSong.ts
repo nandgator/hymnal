@@ -246,12 +246,14 @@ export function layoutSong(count: number, measure: Measure, room: number, sung?:
 }
 
 /**
- * The paged layout with the chorus repeated: the verses (every part but the
- * chorus) are cut into pages, each page showing its verses in printed order
- * with the chorus after each one it follows in the sung order (before the
- * first, if the song opens on it), so a step from a verse to its chorus and
- * on to the next verse of the page turns nothing. Null when the song sings
- * its chorus once or never, or has fewer than two other parts.
+ * The paged layout with the chorus on each page that sings it: the verses
+ * (every part but the chorus) are cut into pages, each page showing its verses
+ * in printed order with one copy of the chorus, at its first sung position on
+ * that page: after the verse it first follows there, or before the verse the
+ * song opens on. So a step from a verse to the chorus and on to the next verse
+ * of the page turns nothing, and singing the chorus again on the page tints
+ * the same copy. A page the chorus never touches has none. Null when the song
+ * sings its chorus once or never, or has fewer than two other parts.
  */
 function layoutRepeating(
   count: number,
@@ -263,20 +265,24 @@ function layoutRepeating(
   if (order.filter((p) => p === chorus).length < 2) return null;
   const verses = Array.from({ length: count }, (_, i) => i).filter((i) => i !== chorus);
   if (verses.length < 2) return null;
-  const follows = new Set<number>();
-  for (const [i, part] of order.entries())
-    if (part === chorus && i > 0 && order[i - 1] !== chorus) follows.add(order[i - 1]);
-  const opening = order[0] === chorus ? order.find((p) => p !== chorus) : undefined;
-  const itemsOf = (run: number[]) =>
-    run.flatMap((p) => [
-      ...(p === opening ? [chorus] : []),
-      p,
-      ...(follows.has(p) ? [chorus] : []),
-    ]);
-  const cutWeights = verses.map(
-    (p) =>
-      weights[p] + (follows.has(p) ? weights[chorus] : 0) + (p === opening ? weights[chorus] : 0),
-  );
+  // Each place the chorus is sung, as the verse it sits beside: the one it
+  // follows, or (opening the song) the one it precedes, in sung order.
+  const beside: { verse: number; before: boolean }[] = [];
+  for (const [i, part] of order.entries()) {
+    if (part !== chorus) continue;
+    if (i > 0) beside.push({ verse: order[i - 1], before: false });
+    else {
+      const next = order.find((p) => p !== chorus);
+      if (next !== undefined) beside.push({ verse: next, before: true });
+    }
+  }
+  const itemsOf = (run: number[]) => {
+    const first = beside.find((b) => run.includes(b.verse));
+    return run.flatMap((p) =>
+      first?.verse === p ? (first.before ? [chorus, p] : [p, chorus]) : [p],
+    );
+  };
+  const cutWeights = verses.map((p) => weights[p]);
 
   let chosen: { pages: number[][]; fits: PageFit[]; fit: number } | null = null;
   for (let pages = 2; pages <= verses.length; pages++) {

@@ -11,8 +11,6 @@ import {
 import { OutputView } from "./OutputView.tsx";
 import {
   type DetailedScreen,
-  moveGuidance,
-  moveShortcutHint,
   type PlacementReport,
   parseTarget,
   pickTarget,
@@ -307,26 +305,34 @@ export function Output() {
   return (
     <>
       <Show when={wantsFullscreen() && (placementFailed() || refused()) && target}>
-        {(wanted) => (
-          <div class="output-prompt" role="status">
-            <Show
-              when={placementFailed()}
-              fallback={<p>Click here or press F to fill {describeScreen(wanted())}</p>}
-            >
-              <Show
-                when={onTarget()}
-                fallback={
-                  <>
-                    <p>{moveGuidance(describeScreen(wanted()))}</p>
-                    <Show when={moveShortcutHint()}>{(hint) => <p>{hint()}</p>}</Show>
-                  </>
-                }
+        {(wanted) => {
+          // The instruction in full is the Operator's notice; here a short
+          // one, behind an icon the audience does not notice (ADR-0028).
+          const hint = () =>
+            placementFailed()
+              ? onTarget()
+                ? "Press F or click to fill this screen"
+                : `Move this window to ${describeScreen(wanted())}, then press F`
+              : `Press F or click to fill ${describeScreen(wanted())}`;
+          return (
+            <div class="output-hint" classList={{ "output-hint-awake": cursorVisible() }}>
+              <button
+                type="button"
+                class="output-hint-icon"
+                aria-label="How to place this window"
+                aria-describedby="output-hint-tip"
               >
-                <p>Press F or click to fill this screen</p>
-              </Show>
-            </Show>
-          </div>
-        )}
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9.5" />
+                  <path d="M12 11v6M12 7.2v.1" />
+                </svg>
+              </button>
+              <p id="output-hint-tip" class="output-hint-tip" role="tooltip">
+                {hint()}
+              </p>
+            </div>
+          );
+        }}
       </Show>
       <Show
         when={content()}

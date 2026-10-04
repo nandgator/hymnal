@@ -268,24 +268,6 @@ export function FullSong(props: FullSongProps) {
     onCleanup(() => observer.disconnect());
   });
 
-  /** The slot the current part is shown in. A part on one page is in one
-   * slot; a chorus repeated on pages has one after each verse it follows, and
-   * the current one is the copy after the part sung before it. */
-  const currentSlot = createMemo(() => {
-    const l = layout();
-    const part = currentIndex();
-    if (!l || part < 0 || l.slots.length === props.parts.length) return part;
-    const copies = l.slots.flatMap((p, s) => (p === part ? [s] : []));
-    if (copies.length < 2) return copies[0] ?? part;
-    // The part sung just before this one; none at the start, where the copy
-    // is the one before the song's first verse.
-    const sequence = props.sequence ?? [];
-    let k = (props.at ?? 0) - 1;
-    while (k >= 0 && sequence[k] === props.current) k--;
-    const before = k >= 0 ? props.parts.findIndex((p) => p.id === sequence[k]) : -1;
-    return copies.find((s) => l.slots[s - 1] === before) ?? copies[0];
-  });
-
   const locate = (l: Computed, index: number) => {
     for (const [page, { columns }] of l.pages.entries()) {
       const column = columns.findIndex((c) => c.includes(index));
@@ -293,6 +275,30 @@ export function FullSong(props: FullSongProps) {
     }
     return null;
   };
+
+  /** The slot the current part is shown in. A part on one page is in one
+   * slot; a chorus printed on each page that sings it has one copy per page,
+   * and the current one is the copy on the page of the verse it sits beside:
+   * the one sung just before it, or after it at the song's start. */
+  const currentSlot = createMemo(() => {
+    const l = layout();
+    const part = currentIndex();
+    if (!l || part < 0 || l.slots.length === props.parts.length) return part;
+    const copies = l.slots.flatMap((p, s) => (p === part ? [s] : []));
+    if (copies.length < 2) return copies[0] ?? part;
+    const sequence = props.sequence ?? [];
+    const at = props.at ?? 0;
+    let k = at - 1;
+    while (k >= 0 && sequence[k] === props.current) k--;
+    if (k < 0) {
+      k = at + 1;
+      while (k < sequence.length && sequence[k] === props.current) k++;
+    }
+    const beside = props.parts.findIndex((p) => p.id === sequence[k]);
+    const verse = l.slots.indexOf(beside);
+    const page = verse >= 0 ? locate(l, verse)?.page : undefined;
+    return copies.find((s) => locate(l, s)?.page === page) ?? copies[0];
+  });
 
   // How the step that just happened moves: decided with the colours, in the
   // same batch, so the CSS transition timing matches the tint's.
