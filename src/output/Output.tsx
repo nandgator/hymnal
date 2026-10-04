@@ -1,8 +1,23 @@
 import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
 import type { BandSize, Highlight, OutputCues } from "../persistence/user-state.ts";
 import { easeThemeChange } from "../shell/theme.ts";
-import { forwardKey, type OutputMessage, requestSeek, subscribeOutput } from "./channel.ts";
+import {
+  forwardKey,
+  type OutputMessage,
+  reportOutputPlacement,
+  requestSeek,
+  subscribeOutput,
+} from "./channel.ts";
 import { OutputView } from "./OutputView.tsx";
+import { type DetailedScreen, parseTarget, pickTarget, reportPlacement } from "./placement.ts";
+import { describeScreen } from "./screens.ts";
+
+/** The Window Management API's shape, as far as the Output reads it. */
+interface ScreenDetailsLike extends EventTarget {
+  screens: readonly DetailedScreen[];
+  currentScreen: DetailedScreen;
+}
+type WindowWithScreens = Window & { getScreenDetails?: () => Promise<ScreenDetailsLike> };
 
 const CURSOR_IDLE_MS = 2000;
 /** Named keys forwarded to the Operator, besides every printable one. */
@@ -94,11 +109,71 @@ export function Output() {
   // or F key goes fullscreen instead, and neither reaches the Operator.
   const placed = new URLSearchParams(window.location.search).has("placed");
   const [wantsFullscreen, setWantsFullscreen] = createSignal(false);
-  const goFullscreen = () =>
-    document.documentElement.requestFullscreen?.().then(
-      () => setWantsFullscreen(false),
-      () => setWantsFullscreen(true),
-    );
+  // A Wayland compositor ignores where a client puts its own window, so the
+  // window position proves nothing and a bare fullscreen lands on whatever
+  // screen it is on. The Output therefore finds the Operator's screen itself
+  // (the permission is per origin) and asks for fullscreen on that screen.
+  const target = placed ? parseTarget(window.location.search) : undefined;
+  let details: ScreenDetailsLike | undefined;
+  let picked: DetailedScreen | undefined;
+  let fullscreenOnPicked = false;
+  // Without a target there is nothing to look up: ready at once, so a click
+  // goes fullscreen synchronously, while its activation is surely live.
+  let detailsDone = !target;
+  const [refused, setRefused] = createSignal(false);
+  const report = () => {
+    if (!target) return;
+    reportOutputPlacement(placementNow());
+  };
+  const placementNow = () =>
+    reportPlacement({
+      target,
+      picked,
+      currentScreen: details?.currentScreen,
+      fullscreen: !!document.fullscreenElement,
+      fullscreenOnPicked,
+    });
+  const detailsReady: Promise<void> = target
+    ? (async () => {
+        try {
+          details = await (window as WindowWithScreens).getScreenDetails?.();
+          if (!details) return;
+          const live = details;
+          picked = pickTarget(live.screens, target);
+          live.addEventListener("screenschange", () => {
+            picked = pickTarget(live.screens, target);
+            report();
+          });
+          live.addEventListener("currentscreenchange", report);
+        } catch {
+          // No permission or no API: today's behaviour, and never "verified".
+        } finally {
+          detailsDone = true;
+          report();
+        }
+      })()
+    : Promise.resolve();
+  const requestNow = async () => {
+    const root = document.documentElement;
+    if (!root.requestFullscreen) return;
+    const chosen = picked;
+    try {
+      await (chosen
+        ? root.requestFullscreen({ screen: chosen } as FullscreenOptions)
+        : root.requestFullscreen());
+      fullscreenOnPicked = !!chosen;
+      setRefused(false);
+      setWantsFullscreen(false);
+    } catch {
+      setRefused(true);
+      setWantsFullscreen(true);
+    }
+    report();
+  };
+  const goFullscreen = (): Promise<void> | undefined => {
+    if (detailsDone) return requestNow();
+    return detailsReady.then(requestNow);
+  };
   onMount(() => {
     if (!placed || document.fullscreenElement) return;
     if (!document.documentElement.requestFullscreen) return;
@@ -107,7 +182,9 @@ export function Output() {
   });
   const onFullscreenChange = () => {
     // Leaving fullscreen (a move to another screen) re-arms the click and F.
+    if (!document.fullscreenElement) fullscreenOnPicked = false;
     setWantsFullscreen(placed && !document.fullscreenElement);
+    report();
   };
   const onFirstClick = (event: MouseEvent) => {
     if (!wantsFullscreen()) return;
@@ -143,40 +220,51 @@ export function Output() {
   onCleanup(() => window.removeEventListener("keydown", onKeyDown));
 
   onMount(() => {
-    const unsubscribe = subscribeOutput(receive, () =>
-      stated() ? { blanked: blanked() } : undefined,
+    const unsubscribe = subscribeOutput(
+      receive,
+      () => (stated() ? { blanked: blanked() } : undefined),
+      () => (target && detailsDone ? placementNow() : undefined),
     );
     onCleanup(unsubscribe);
   });
 
   return (
-    <Show
-      when={content()}
-      fallback={<div class="output-idle" classList={{ "output-cursor": cursorVisible() }} />}
-    >
-      {(current) => (
-        <OutputView
-          message={current()}
-          variant="full"
-          blanked={blanked() || !stated()}
-          cues={cues()}
-          reveal={reveal()}
-          pinChorus={pinChorus()}
-          wholeSong={wholeSong()}
-          partLabels={partLabels()}
-          highlight={highlight()}
-          bandSize={bandSize()}
-          onSeek={(line, whole) =>
-            requestSeek({
-              hymnbookId: current().hymnbookId,
-              number: current().number,
-              line,
-              whole,
-            })
-          }
-          classList={{ "output-cursor": cursorVisible() }}
-        />
-      )}
-    </Show>
+    <>
+      <Show when={wantsFullscreen() && refused() && target}>
+        {(wanted) => (
+          <div class="output-prompt" role="status">
+            Click here or press F to fill {describeScreen(wanted())}
+          </div>
+        )}
+      </Show>
+      <Show
+        when={content()}
+        fallback={<div class="output-idle" classList={{ "output-cursor": cursorVisible() }} />}
+      >
+        {(current) => (
+          <OutputView
+            message={current()}
+            variant="full"
+            blanked={blanked() || !stated()}
+            cues={cues()}
+            reveal={reveal()}
+            pinChorus={pinChorus()}
+            wholeSong={wholeSong()}
+            partLabels={partLabels()}
+            highlight={highlight()}
+            bandSize={bandSize()}
+            onSeek={(line, whole) =>
+              requestSeek({
+                hymnbookId: current().hymnbookId,
+                number: current().number,
+                line,
+                whole,
+              })
+            }
+            classList={{ "output-cursor": cursorVisible() }}
+          />
+        )}
+      </Show>
+    </>
   );
 }

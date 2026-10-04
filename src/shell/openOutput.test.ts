@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { encodeTarget, parseTarget } from "../output/placement.ts";
 import type { ScreenInfo } from "../output/screens.ts";
 import { type OpenOutputInput, openOutputWindow, placedUrl } from "./openOutput.ts";
 import type { OutputScreens } from "./outputScreens.ts";
@@ -49,7 +50,7 @@ describe("openOutputWindow", () => {
     const args = input(fake({ screens: () => [laptop, projector] }));
     const pending = openOutputWindow(args);
     expect(args.open).toHaveBeenCalledWith(
-      "/?output=1&placed=1",
+      `/?output=1&placed=1&screen=${encodeURIComponent(encodeTarget(projector))}`,
       "out",
       "popup,left=1920,top=0,width=1920,height=1080",
     );
@@ -121,5 +122,16 @@ describe("placedUrl", () => {
   it("adds placed to a URL with or without a query", () => {
     expect(placedUrl("/?output=1")).toBe("/?output=1&placed=1");
     expect(placedUrl("/x")).toBe("/x?placed=1");
+  });
+
+  it("names the screen, so the Output can fullscreen on it itself", () => {
+    const url = new URL(placedUrl("/?output=1", projector), "http://x");
+    expect(parseTarget(url.search)).toEqual({
+      label: projector.label,
+      width: projector.width,
+      height: projector.height,
+      left: projector.left,
+      top: projector.top,
+    });
   });
 });

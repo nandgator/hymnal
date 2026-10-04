@@ -3701,6 +3701,23 @@ html[data-scrolling],
   cursor: default;
 }
 
+/* The Output's own prompt while the browser has refused fullscreen on the
+   chosen screen until a click or F (ADR-0028): small, in a corner, gone the
+   moment it is fullscreen. */
+.output-prompt {
+  position: fixed;
+  z-index: 10;
+  right: 1.5vmin;
+  bottom: 1.5vmin;
+  padding: 0.6em 1em;
+  border-radius: var(--shape-md);
+  background-color: color-mix(in srgb, var(--output-ground) 70%, transparent);
+  color: var(--output-ink-muted);
+  font-family: var(--font-family);
+  font-size: max(0.875rem, 1.6vmin);
+  pointer-events: none;
+}
+
 /* A full screen either side, so any line — first or last — can reach the
    eyeline. */
 .output-spacer {

@@ -1,3 +1,4 @@
+import { encodeTarget } from "../output/placement.ts";
 import { chooseScreen, featuresFor, type ScreenInfo, type ScreenKey } from "../output/screens.ts";
 import { type OutputScreens, screenIsExtended } from "./outputScreens.ts";
 
@@ -16,8 +17,15 @@ export interface OpenOutputInput {
   open?: (url: string, name: string, features: string) => Window | null;
 }
 
-/** The URL a placed Output opens at: it knows to try fullscreen. */
-export const placedUrl = (url: string) => `${url}${url.includes("?") ? "&" : "?"}placed=1`;
+/**
+ * The URL a placed Output opens at: it knows to try fullscreen, and on which
+ * screen. The window cannot be positioned on Wayland, so the Output is told
+ * the screen and asks for fullscreen on it itself (ADR-0028).
+ */
+export const placedUrl = (url: string, screen?: ScreenInfo) =>
+  `${url}${url.includes("?") ? "&" : "?"}placed=1${
+    screen ? `&screen=${encodeURIComponent(encodeTarget(screen))}` : ""
+  }`;
 
 /**
  * Opens the Output (ADR-0028). With the Window Management API and a second
@@ -54,7 +62,7 @@ export async function openOutputWindow({
     return {
       kind: "placed",
       screen: choice.screen,
-      win: open(placedUrl(url), name, featuresFor(choice.screen)),
+      win: open(placedUrl(url, choice.screen), name, featuresFor(choice.screen)),
     };
   } catch {
     return plain("error");

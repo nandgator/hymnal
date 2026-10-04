@@ -893,13 +893,41 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     await waitFor(() => expect(open).toHaveBeenCalled());
     expect(getScreenDetails).toHaveBeenCalledTimes(1);
     expect(open).toHaveBeenCalledWith(
-      expect.stringMatching(/\?output=1&placed=1$/),
+      expect.stringMatching(/\?output=1&placed=1&screen=.+EPSON.+$/),
       "hymnal-output",
       "popup,left=1440,top=0,width=1280,height=800",
     );
+    // Nothing has verified the window is there (on Wayland it may not be),
+    // so the notice says what to do, not that it is done.
     expect(
-      (await screen.findAllByText(/click it or press F/, {}, { timeout: 3000 })).length,
+      (
+        await screen.findAllByText(
+          /press F there\) to put it on EPSON PJ, 1280×800/,
+          {},
+          { timeout: 3000 },
+        )
+      ).length,
     ).toBeGreaterThan(0);
+    expect(noticeText(/The Output is on the projector screen/)).toBe(0);
+  });
+
+  it("says it is on the projector screen only once the Output reports it verifiably is", async () => {
+    const { output } = await goLive();
+    output.postMessage({ type: "placement", onTarget: false, fullscreen: false });
+    await screen.findAllByText(/press F there\) to put it on EPSON PJ/, {}, { timeout: 3000 });
+    output.postMessage({ type: "placement", onTarget: true, fullscreen: true });
+    await screen.findAllByText(/The Output is on the projector screen\./);
+    expect(noticeText(/press F there/)).toBe(0);
+    output.close();
+  });
+
+  it("stays quiet when the Output verified the placement before the grace ran out", async () => {
+    const { output } = await goLive();
+    output.postMessage({ type: "placement", onTarget: true, fullscreen: true });
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    expect(noticeText(/press F there/)).toBe(0);
+    expect(noticeText(/The Output is on the projector screen/)).toBe(0);
+    output.close();
   });
 
   it("opens the plain popup, with a one-time drag hint, when the permission is denied", async () => {
@@ -1124,9 +1152,9 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
 
   it("lets Escape put away the fullscreen, gone and back notices", async () => {
     const { details } = await goLive();
-    await screen.findAllByText(/click it or press F/, {}, { timeout: 3000 });
+    await screen.findAllByText(/press F there/, {}, { timeout: 3000 });
     fireEvent.keyDown(window, { key: "Escape" });
-    await waitFor(() => expect(noticeText(/click it or press F/)).toBe(0));
+    await waitFor(() => expect(noticeText(/press F there/)).toBe(0));
 
     unplug(details as never);
     await screen.findAllByText(/screen the Output was on is gone/);

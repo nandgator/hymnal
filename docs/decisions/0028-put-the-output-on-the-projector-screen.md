@@ -190,3 +190,45 @@ The user answered on 2026-10-02, each as recommended:
 3. **Permission**: asked on Go live, the first time, only when a second screen
    is attached (`screen.isExtended`); a "Detect screens" button in the Output
    screen setting as well.
+
+## Implementation notes
+
+### Wayland: a client cannot place its own window (2026-10-04)
+
+Found on GNOME, Wayland, Chromium, two screens: Go Live opened the Output as an
+ordinary window on the main screen, and the app still said it was on the
+projector. A Wayland compositor decides where windows go: it ignores the
+`left`/`top` in `window.open` and `moveTo`, and `screenX`/`screenY` read 0 or
+mean nothing. Step 5 above ("open it there") therefore cannot be relied on, and
+two things the first build assumed were wrong:
+
+- the notice was raised from the Operator's own intent (the screen it asked for)
+  and a grace timer, not from anything the window had done;
+- `requestFullscreen()` with no `screen` goes fullscreen on whatever screen the
+  window is on, and `moveOutputTo` and the position poll compared `screenX` with
+  the screen's `left`, which a compositor can fool.
+
+The fix does not depend on window position:
+
+1. The Operator opens the Output at `?output=1&placed=1&screen=<json>`, where
+   the JSON is the chosen screen's label, size and position (the key the app
+   already remembers, plus the position to tell two identical monitors apart).
+2. The Output calls `getScreenDetails()` itself (the permission is per origin),
+   picks the matching screen, and on the first user activation (a click or F; it
+   also tries once on load) calls `requestFullscreen({ screen })`. That places
+   the window on the chosen screen on Wayland, X11, Windows and macOS. If the
+   API or permission is missing, or the screen is gone, it falls back to a bare
+   `requestFullscreen()`.
+3. The Output reports over the channel whether it is _verifiably_ there:
+   fullscreen on the screen it asked for, or a `currentScreen` that is the
+   target. The Operator says "The Output is on the projector screen" only on
+   that report. After the grace period without it, the notice says what to do:
+   "Click the Output window (or press F there) to put it on <screen>." The
+   Output shows a small prompt of its own, naming the screen, while the browser
+   has refused fullscreen and until it is fullscreen. The position poll stands
+   down once an Output reports for itself.
+
+Not changed: the update gate, and End Live closing the window. Moving an open
+Output from Settings still uses `moveTo`, which a Wayland compositor ignores; it
+then says "could not move", which is true. Verifying on the real Wayland machine
+is open point 2's remaining half.

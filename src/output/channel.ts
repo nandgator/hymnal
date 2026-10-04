@@ -1,6 +1,7 @@
 import type { FlatLine, LineRange } from "../domain/sequence-engine.ts";
 import type { HymnbookId, HymnNumber, PartId } from "../domain/types.ts";
 import type { BandSize, Highlight, OutputCues, OutputTheme } from "../persistence/user-state.ts";
+import type { PlacementReport } from "./placement.ts";
 
 /**
  * Presenter → Output, one browser, two windows (Board #11, SDD-0001 §16.1).
@@ -70,7 +71,12 @@ type HelloMessage = {
   /** Its blank state, once an Operator has told it any; a window that has
    * not been told is new, and is told. */
   state?: OutputState;
+  /** Where the window verifiably is, if it has found out (ADR-0028). */
+  placement?: PlacementReport;
 };
+
+/** Output → Operator: where the window verifiably is (ADR-0028, Wayland). */
+type PlacementMessage = { type: "placement" } & PlacementReport;
 
 /** Output → Operator: the window's shape changed (resized, rotated). */
 type ShapeMessage = { type: "shape"; id: string; landscape: boolean; state?: OutputState };
@@ -109,6 +115,7 @@ type ChannelMessage =
   | OutputMessage
   | HelloMessage
   | ShapeMessage
+  | PlacementMessage
   | ByeMessage
   | PingMessage
   | SeekMessage
@@ -201,6 +208,8 @@ export function subscribeOutput(
   handler: (message: OutputMessage) => void,
   /** The window's blank state, once it has been told any. */
   stateOf?: () => OutputState | undefined,
+  /** Where the window verifiably is, for an Operator that asks (ping). */
+  placementOf?: () => PlacementReport | undefined,
 ): () => void {
   const target = getChannel();
   const id = crypto.randomUUID();
@@ -212,6 +221,7 @@ export function subscribeOutput(
       id,
       landscape: landscape(),
       state: stateOf?.(),
+      placement: placementOf?.(),
     } satisfies HelloMessage);
   const onResize = () => {
     if (landscape() === wasLandscape) return;
@@ -250,6 +260,25 @@ export function subscribeOutput(
     window.removeEventListener("pagehide", bye);
     target.removeEventListener("message", listener);
   };
+}
+
+/** Output calls this when it learns where it is (ADR-0028). */
+export function reportOutputPlacement(report: PlacementReport): void {
+  getChannel().postMessage({ type: "placement", ...report } satisfies PlacementMessage);
+}
+
+/** Operator: where an Output verifiably is, as it says so; returns an unsubscribe function. */
+export function subscribePlacement(handler: (report: PlacementReport) => void): () => void {
+  const target = getChannel();
+  const listener = (event: MessageEvent<ChannelMessage>) => {
+    const { data } = event;
+    if (data.type === "placement")
+      handler({ onTarget: data.onTarget, fullscreen: data.fullscreen });
+    else if (data.type === "hello" && data.placement) handler(data.placement);
+  };
+  target.addEventListener("message", listener);
+  target.postMessage({ type: "ping" } satisfies PingMessage);
+  return () => target.removeEventListener("message", listener);
 }
 
 /** Output calls this when a person's scroll comes to rest (SDD-0001 §16.1). */

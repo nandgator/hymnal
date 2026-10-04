@@ -12,6 +12,7 @@ const channel = vi.hoisted(() => ({
   unsubscribe: vi.fn(),
   requestSeek: vi.fn(),
   forwardKey: vi.fn(),
+  reportOutputPlacement: vi.fn(),
 }));
 vi.mock("./channel.ts", () => ({
   subscribeOutput: (
@@ -24,6 +25,7 @@ vi.mock("./channel.ts", () => ({
   },
   requestSeek: channel.requestSeek,
   forwardKey: channel.forwardKey,
+  reportOutputPlacement: channel.reportOutputPlacement,
 }));
 
 const LINES: FlatLine[] = [
@@ -913,5 +915,114 @@ describe("Output placed on a screen (ADR-0028)", () => {
     fireEvent.keyDown(window, { key: "f" });
     expect(request).not.toHaveBeenCalled();
     expect(channel.forwardKey).toHaveBeenCalledWith(expect.objectContaining({ key: "f" }));
+  });
+});
+
+describe("Output on the Operator's screen, Wayland included (ADR-0028)", () => {
+  const builtIn = { label: "Built-in display", width: 1920, height: 1080, left: 0, top: 0 };
+  const hxa = { label: 'HXA 32"', width: 1280, height: 720, left: 1920, top: 0 };
+  const target = encodeURIComponent(JSON.stringify(hxa));
+  const url = `/?output=1&placed=1&screen=${target}`;
+
+  /** The Window Management API in this window; `currentScreen` is the main screen, as on Wayland. */
+  function attach(currentScreen = builtIn) {
+    const details = Object.assign(new EventTarget(), {
+      screens: [builtIn, hxa],
+      currentScreen,
+    });
+    const getScreenDetails = vi.fn(async () => details);
+    Object.assign(window, { getScreenDetails });
+    return { details, getScreenDetails };
+  }
+
+  beforeEach(() => {
+    channel.reportOutputPlacement.mockClear();
+  });
+  afterEach(() => {
+    window.history.replaceState(null, "", "/");
+    Reflect.deleteProperty(window, "getScreenDetails");
+    Reflect.deleteProperty(document.documentElement, "requestFullscreen");
+    Reflect.deleteProperty(document, "fullscreenElement");
+  });
+
+  it("asks for fullscreen on the chosen screen, not on whatever screen it is on", async () => {
+    window.history.replaceState(null, "", url);
+    attach();
+    const request = vi.fn(async () => {});
+    Object.assign(document.documentElement, { requestFullscreen: request });
+    render(() => <Output />);
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    expect(request).toHaveBeenCalledWith({ screen: hxa });
+  });
+
+  it("says it is on the target only once it verifiably is", async () => {
+    window.history.replaceState(null, "", url);
+    attach(builtIn);
+    // Refused without a gesture: the window stays where the compositor put it.
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("needs a gesture"))
+      .mockImplementation(async () => {
+        Object.defineProperty(document, "fullscreenElement", {
+          value: document.documentElement,
+          configurable: true,
+        });
+      });
+    Object.assign(document.documentElement, { requestFullscreen: request });
+    render(() => <Output />);
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() =>
+      expect(channel.reportOutputPlacement).toHaveBeenLastCalledWith({
+        onTarget: false,
+        fullscreen: false,
+      }),
+    );
+    expect(channel.reportOutputPlacement).not.toHaveBeenCalledWith(
+      expect.objectContaining({ onTarget: true }),
+    );
+    // The window's own prompt names the screen.
+    expect(await screen.findByText(/press F to fill HXA 32", 1280×720/)).toBeInTheDocument();
+
+    // A click is the activation; the browser fullscreens it on the target.
+    fireEvent.click(window);
+    await vi.waitFor(() => expect(request).toHaveBeenLastCalledWith({ screen: hxa }));
+    await vi.waitFor(() =>
+      expect(channel.reportOutputPlacement).toHaveBeenLastCalledWith({
+        onTarget: true,
+        fullscreen: true,
+      }),
+    );
+  });
+
+  it("reports on target when currentScreen is the target", async () => {
+    window.history.replaceState(null, "", url);
+    const { details } = attach(builtIn);
+    Object.assign(document.documentElement, { requestFullscreen: vi.fn().mockRejectedValue(1) });
+    render(() => <Output />);
+    await vi.waitFor(() => expect(channel.reportOutputPlacement).toHaveBeenCalled());
+    channel.reportOutputPlacement.mockClear();
+    details.currentScreen = hxa;
+    details.dispatchEvent(new Event("currentscreenchange"));
+    expect(channel.reportOutputPlacement).toHaveBeenCalledWith({
+      onTarget: true,
+      fullscreen: false,
+    });
+  });
+
+  it("falls back to a bare fullscreen when the screens cannot be read, and never claims placement", async () => {
+    window.history.replaceState(null, "", url);
+    Object.assign(window, {
+      getScreenDetails: vi.fn(async () => {
+        throw new DOMException("no", "NotAllowedError");
+      }),
+    });
+    const request = vi.fn(async () => {});
+    Object.assign(document.documentElement, { requestFullscreen: request });
+    render(() => <Output />);
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    expect(request).toHaveBeenCalledWith();
+    expect(channel.reportOutputPlacement).not.toHaveBeenCalledWith(
+      expect.objectContaining({ onTarget: true }),
+    );
   });
 });

@@ -22,10 +22,12 @@ import {
   subscribeKeys,
   subscribeOutputShape,
   subscribeOutputState,
+  subscribePlacement,
 } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
 import {
   chooseScreen,
+  describeScreen,
   keyOf,
   rememberedScreenOf,
   type ScreenInfo,
@@ -97,15 +99,22 @@ const FULLSCREEN_GRACE_MS = 1200;
 const TRACK_MS = 2000;
 
 /** Notices about where the Output window is (DESIGN.md § Snackbar). */
-const SCREEN_NOTICES: Record<ScreenNoticeId, string> = {
+const SCREEN_NOTICES: Record<Exclude<ScreenNoticeId, "activate">, string> = {
   drag: "Drag the Output to the projector, then press F11 for fullscreen.",
-  fullscreen: "The Output is on the projector screen. If it isn't fullscreen, click it or press F.",
+  // Said only once the Output has verified it (ADR-0028, Wayland).
+  fullscreen: "The Output is on the projector screen.",
   blocked:
     "The browser blocked the Output window. Allow pop-ups for this site, then Go Live again.",
   gone: "The screen the Output was on is gone. The window stays where it is; drag it back.",
   back: "That screen is back. Move the Output to it?",
   stuck: "The Output could not move. Drag it to the screen yourself.",
 };
+
+/** The text of a screen notice; `activate` names the screen, which only the Operator knows. */
+const screenNoticeText = (id: ScreenNoticeId, screenLabel: string | undefined): string =>
+  id === "activate"
+    ? `Click the Output window (or press F there) to put it on ${screenLabel ?? "the projector"}.`
+    : SCREEN_NOTICES[id];
 
 function isOutputWindow(): boolean {
   return new URLSearchParams(window.location.search).has("output");
@@ -254,6 +263,21 @@ function Operator(props: Shared) {
   // measured against.
   let outputWin: Window | null = null;
   const [placedOn, setPlacedOn] = createSignal<ScreenKey>();
+  // Whether the Output has said it is verifiably on the chosen screen, and
+  // which screen that is. A window position proves nothing on Wayland, so
+  // only the Output's own word counts (ADR-0028).
+  const [verified, setVerified] = createSignal(false);
+  const [placeLabel, setPlaceLabel] = createSignal<string>();
+  let outputReports = false;
+  onMount(() =>
+    onCleanup(
+      subscribePlacement((report) => {
+        outputReports = true;
+        setVerified(report.onTarget);
+        if (report.onTarget && screenNotice() === "activate") setScreenNotice("fullscreen");
+      }),
+    ),
+  );
   const [screenNotice, setScreenNotice] = createSignal<ScreenNoticeId>();
   // A screen the Output was on has gone; offered back when it returns.
   const [goneFrom, setGoneFrom] = createSignal<ScreenKey>();
@@ -261,7 +285,13 @@ function Operator(props: Shared) {
   const HINT_MS = 8000;
   createEffect(() => {
     const shown = screenNotice();
-    if (shown !== "drag" && shown !== "fullscreen" && shown !== "blocked" && shown !== "stuck")
+    if (
+      shown !== "drag" &&
+      shown !== "fullscreen" &&
+      shown !== "activate" &&
+      shown !== "blocked" &&
+      shown !== "stuck"
+    )
       return;
     const timer = setTimeout(() => setScreenNotice(undefined), HINT_MS);
     onCleanup(() => clearTimeout(timer));
@@ -272,6 +302,9 @@ function Operator(props: Shared) {
       if (open || !was) return;
       setPlacedOn(undefined);
       setGoneFrom(undefined);
+      setVerified(false);
+      setPlaceLabel(undefined);
+      outputReports = false;
       outputWin = null;
       setScreenNotice(undefined);
     }),
@@ -284,11 +317,10 @@ function Operator(props: Shared) {
     onCleanup(() => clearTimeout(timer));
   });
   // Each hint is shown once, ever: marked when it first appears.
-  const showHintOnce = (id: "drag" | "fullscreen") => {
+  const showHintOnce = (id: "drag") => {
     const prefs = preferences.preferences();
-    const flag = id === "drag" ? "dragHintDismissed" : "fullscreenHintDismissed";
-    if (!preferences.loaded() || prefs[flag]) return;
-    preferences.update({ ...prefs, [flag]: true });
+    if (!preferences.loaded() || prefs.dragHintDismissed) return;
+    preferences.update({ ...prefs, dragHintDismissed: true });
     setScreenNotice(id);
   };
   // Nothing to show with no book loaded: Go Live waits for one (any book
@@ -315,18 +347,17 @@ function Operator(props: Shared) {
     if (!outcome.win) setScreenNotice("blocked");
     else if (outcome.kind === "placed") {
       setPlacedOn(keyOf(outcome.screen));
-      // Unless the Output went fullscreen by itself, the hint says how.
+      setPlaceLabel(describeScreen(outcome.screen));
+      setVerified(false);
+      // Unless the Output has verified that it is there, say what to do. The
+      // Operator cannot know: on Wayland the window may sit on this screen.
       const win = outcome.win;
       setTimeout(() => {
         // Closed in the meantime (the close effect above forgets the window):
         // a hint about a gone window would also hold back the update notice
         // for its whole stay.
         if (outputWin !== win) return;
-        let fullscreen = false;
-        try {
-          fullscreen = !!win.document?.fullscreenElement;
-        } catch {}
-        if (!fullscreen) showHintOnce("fullscreen");
+        if (!verified()) setScreenNotice("activate");
       }, FULLSCREEN_GRACE_MS);
     } else if (mayHaveSecondScreen()) showHintOnce("drag");
   };
@@ -351,6 +382,8 @@ function Operator(props: Shared) {
     const timer = setInterval(() => {
       const win = outputWin;
       const known = screens.screens();
+      // Its own report is better than a window position, which is 0 on Wayland.
+      if (outputReports) return;
       if (!win || win.closed || !presentingOutput() || known.length === 0) return;
       const at = screenAt(
         known,
@@ -426,7 +459,7 @@ function Operator(props: Shared) {
   const noticeMessage = () => {
     const shown = notice();
     if (shown === "update") return "Update ready";
-    if (isScreenNotice(shown)) return SCREEN_NOTICES[shown];
+    if (isScreenNotice(shown)) return screenNoticeText(shown, placeLabel());
     if (shown === "keep-file")
       return "Your browser may clear stored books if space runs low. Keep the book file, so you can load it again.";
     if (shown === "safari-hint")
@@ -441,7 +474,7 @@ function Operator(props: Shared) {
     const shown = screenNotice();
     if (shown)
       return {
-        message: SCREEN_NOTICES[shown],
+        message: screenNoticeText(shown, placeLabel()),
         action: shown === "back" ? "Move it" : "Got it",
         onAction: shown === "back" ? moveBack : () => setScreenNotice(undefined),
         dismissLabel: shown === "back" ? "Stay" : undefined,

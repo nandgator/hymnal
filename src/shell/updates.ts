@@ -69,6 +69,7 @@ export function restartIfAllowed(state: UpdateState, restart: () => void): boole
 export const SCREEN_NOTICE_IDS = [
   "drag",
   "fullscreen",
+  "activate",
   "blocked",
   "gone",
   "back",
