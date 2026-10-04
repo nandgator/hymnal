@@ -985,6 +985,26 @@ describe("Output placed on a screen (ADR-0028)", () => {
     expect(channel.forwardKey).not.toHaveBeenCalled();
   });
 
+  it("leaves fullscreen on F, as Esc does, and does not forward it", async () => {
+    Object.defineProperty(document, "fullscreenElement", {
+      value: document.documentElement,
+      configurable: true,
+    });
+    const exit = vi.fn(async () => {
+      Reflect.deleteProperty(document, "fullscreenElement");
+    });
+    Object.assign(document, { exitFullscreen: exit });
+    render(() => <Output />);
+    show(0);
+
+    fireEvent.keyDown(window, { key: "f" });
+
+    expect(exit).toHaveBeenCalledTimes(1);
+    expect(channel.forwardKey).not.toHaveBeenCalled();
+    Reflect.deleteProperty(document, "fullscreenElement");
+    Reflect.deleteProperty(document, "exitFullscreen");
+  });
+
   it("leaves clicks and F alone when it was not placed", () => {
     const request = vi.fn(async () => {});
     Object.assign(document.documentElement, { requestFullscreen: request });

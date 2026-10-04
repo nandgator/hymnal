@@ -289,3 +289,7 @@ gate never opened. A person's explicit F is never gated now:
   Otherwise the report is fullscreen with `unconfirmed: true`, and the Operator
   says what is true: "The Output is fullscreen. If it isn't on <screen>, press
   Esc there, move it, and press F again." The move guidance stays until then.
+
+**F toggles (2026-10-04).** In the Output, F on a fullscreen window leaves
+fullscreen, as Esc does, and is not forwarded to the Operator; F again goes back
+in. So the message can say "press F again" whichever state it is in.

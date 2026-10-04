@@ -276,7 +276,14 @@ export function Output() {
   // chords stay the browser's.
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (wantsFullscreen() && (event.key === "f" || event.key === "F")) {
+    const isF = event.key === "f" || event.key === "F";
+    // F toggles: fullscreen, it does what Esc does and leaves it.
+    if (isF && document.fullscreenElement) {
+      event.preventDefault();
+      void document.exitFullscreen?.().catch(() => {});
+      return;
+    }
+    if (wantsFullscreen() && isF) {
       event.preventDefault();
       void goFullscreen();
       return;
