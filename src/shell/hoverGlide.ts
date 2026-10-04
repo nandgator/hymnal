@@ -22,6 +22,14 @@ const FADE_MS = 150;
 /** The pointer crossing a gap between rows is not leaving: the layer waits
  * this long (ms) for the next row before it lets go. */
 const GAP_MS = 60;
+/** ...and as long as the pointer keeps moving within this reach (px) of a row
+ * it is still crossing: a slow hand takes far longer than GAP_MS to cross the
+ * space between two rail items, and the layer must glide on, not go out and
+ * fade back in place. */
+const GAP_REACH = 28;
+/** A pointer crossing that way pauses no longer than this (ms) before the
+ * layer lets go: a hand is not as steady as a script. */
+const CROSSING_MS = 150;
 
 export const DEFAULT_ROWS = "button:enabled, a[href]";
 
@@ -88,7 +96,13 @@ export function glideRows(
   const layer = document.createElement("div");
   layer.className = "hover-glide";
   layer.setAttribute("aria-hidden", "true");
-  list.prepend(layer);
+  // A lone button's layer goes last: a framework writing the button's own
+  // text into its first child must find the text, not the layer.
+  const attach = () => {
+    if (options.whole) list.append(layer);
+    else list.prepend(layer);
+  };
+  attach();
   // The rows' own hover fill stands down while the layer is there.
   list.dataset.hoverGlide = "";
 
@@ -110,6 +124,9 @@ export function glideRows(
 
   const place = (row: HTMLElement) => {
     clearTimeout(gap);
+    // A framework writing a button's text (`textContent`) sweeps the layer
+    // out with it: put it back.
+    if (layer.parentNode !== list) attach();
     const to = boxOf(row, list);
     // Already there, or on its way: the pointer and an active-row signal
     // can both name the row, and the second must not restart the glide.
@@ -286,6 +303,24 @@ export function glideRows(
       gap = setTimeout(hide, options.gap ?? GAP_MS);
     }
   };
+  // A pointer still moving through the space between rows keeps the layer
+  // waiting for the next row (the wait restarts at every move), so it glides
+  // from row to row however slowly the hand crosses the gap.
+  const onMove = (event: PointerEvent) => {
+    if (event.pointerType === "touch" || !visible || rowOf(event.target) || focusedRow()) return;
+    const { clientX: x, clientY: y } = event;
+    const candidates = options.whole ? [list] : [...list.querySelectorAll<HTMLElement>(rows)];
+    const near = candidates.some((row) => {
+      const r = row.getBoundingClientRect();
+      const dx = Math.max(r.left - x, 0, x - r.right);
+      const dy = Math.max(r.top - y, 0, y - r.bottom);
+      return Math.hypot(dx, dy) <= GAP_REACH;
+    });
+    if (near) {
+      clearTimeout(gap);
+      gap = setTimeout(hide, Math.max(options.gap ?? GAP_MS, CROSSING_MS));
+    }
+  };
   const onLeave = (event: PointerEvent) => {
     if (event.pointerType === "touch") return;
     entry = null;
@@ -302,6 +337,7 @@ export function glideRows(
   };
 
   list.addEventListener("pointerover", onOver);
+  list.addEventListener("pointermove", onMove);
   list.addEventListener("pointerleave", onLeave);
   list.addEventListener("focusin", onFocusIn);
   list.addEventListener("focusout", onFocusOut);
@@ -310,6 +346,7 @@ export function glideRows(
     stop: () => {
       clearTimeout(gap);
       list.removeEventListener("pointerover", onOver);
+      list.removeEventListener("pointermove", onMove);
       list.removeEventListener("pointerleave", onLeave);
       list.removeEventListener("focusin", onFocusIn);
       list.removeEventListener("focusout", onFocusOut);

@@ -1,4 +1,5 @@
 import { createEffect, createSignal, onCleanup, Show, untrack } from "solid-js";
+import { hoverGroup } from "./hoverGlide.ts";
 
 export interface SnackbarProps {
   message: string;
@@ -57,7 +58,7 @@ export function SnackbarHost(props: { notice: SnackbarProps | undefined }) {
  */
 export function Snackbar(props: SnackbarProps) {
   return (
-    <div class="snackbar">
+    <div class="snackbar" ref={(el) => onCleanup(hoverGroup(el, "button:enabled", { gap: 150 }))}>
       <span class="snackbar-message">{props.message}</span>
       <button type="button" class="btn-text snackbar-action" onClick={() => props.onAction()}>
         {props.action}

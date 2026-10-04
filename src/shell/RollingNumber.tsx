@@ -2,6 +2,8 @@ import { createEffect, createSignal, For } from "solid-js";
 
 export interface RollingNumberProps {
   value: number;
+  /** A countdown: the rolls are quicker, so many can run close together. */
+  rapid?: boolean;
 }
 
 interface Face {
@@ -38,7 +40,11 @@ export function RollingNumber(props: RollingNumberProps) {
   const drop = (gone: Face) => setFaces((all) => all.filter((face) => face.key !== gone.key));
 
   return (
-    <span class="rolling-number" data-direction={direction()}>
+    <span
+      class="rolling-number"
+      data-direction={direction()}
+      data-rapid={props.rapid ? "" : undefined}
+    >
       <For each={faces()}>
         {(face) => (
           <span

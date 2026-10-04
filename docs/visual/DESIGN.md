@@ -616,31 +616,34 @@ view is close enough to the frame to need a smaller unit.
   It**, and the Safari note about keeping books, with **Got it**. One pattern at
   every width, for every notice: a **floating card** on the current theme's
   `surface-container-highest` (text `on-surface`, the action in `primary`),
-  elevation 3, 12px corners, never wider than 36rem, **top-centre of the
-  workspace just below the top bar** (beside the rail from 840px; on a phone the
-  full width less the 16px gutters). It is fixed, so it never moves the layout
-  and covers only the top of the panes briefly. It **enters** with a short slide
-  down and fade (250ms, emphasised easing) and **leaves** the same way reversed
-  (150ms); with reduced motion it only fades. In forced colours it gains a 1px
-  CanvasText border. One at a time, the update first, then the keep-your-file
-  note, then Safari's, and **never while the Output is live** (On Air or
-  Blanked). It takes no focus; a persistent live region announces its message.
-  Keyboard: Esc puts it away (Later; the note's Got it), and the command menu
-  has **Restart to update**, **Dismiss the storage note** and **Dismiss the Home
-  Screen note**. Its buttons have a visible focus ring. Undo still stays in the
-  Repeat row, not here. **Screen notices** are the exception to "never while
-  live": they are about the Output window itself and caused by it, so they show
-  at once, are dismissed (**Got it**) and never repeat once seen. They use the
-  same card, in the same place, so the layout does not move live, and they come
-  before the update. Six: "Drag the Output to the projector, then press F11" (a
-  plain popup, once, and **only when a second screen may exist**:
-  `screen.isExtended` is true, with or without the Window Management API; where
-  the browser cannot say (Firefox, Safari) or says one screen, it is not shown,
-  so a single-screen user is never nagged), "The Output is on the projector
-  screen. If it isn't fullscreen, click it or press F" (once), "The browser
-  blocked the Output window" (pop-ups), "The screen the Output was on is gone"
-  (the window stays), and "That screen is back. Move the Output to it?" with
-  **Move it** and a close (Stay).
+  elevation 3, 12px corners, never wider than 36rem, **bottom-left of the
+  workspace, 16px in from the rail and from the bottom, level with the rail's
+  Settings item** (from 840px; it ends before the Presenter's stage, so the
+  transport at the stage's foot is never covered; on a phone the full width less
+  the 16px gutters, **above the dock** and the safe area). It is fixed, so it
+  never moves the layout and covers only the foot of the lyrics briefly. It
+  **enters** rising from below with a fade (250ms, emphasised easing) and
+  **leaves** the same way reversed (150ms); with reduced motion it only fades.
+  Its action and close wear the shared hover layer as a group (Interaction
+  states). In forced colours it gains a 1px CanvasText border. One at a time,
+  the update first, then the keep-your-file note, then Safari's, and **never
+  while the Output is live** (On Air or Blanked). It takes no focus; a
+  persistent live region announces its message. Keyboard: Esc puts it away
+  (Later; the note's Got it), and the command menu has **Restart to update**,
+  **Dismiss the storage note** and **Dismiss the Home Screen note**. Its buttons
+  have a visible focus ring. Undo still stays in the Repeat row, not here.
+  **Screen notices** are the exception to "never while live": they are about the
+  Output window itself and caused by it, so they show at once, are dismissed
+  (**Got it**) and never repeat once seen. They use the same card, in the same
+  place, so the layout does not move live, and they come before the update. Six:
+  "Drag the Output to the projector, then press F11" (a plain popup, once, and
+  **only when a second screen may exist**: `screen.isExtended` is true, with or
+  without the Window Management API; where the browser cannot say (Firefox,
+  Safari) or says one screen, it is not shown, so a single-screen user is never
+  nagged), "The Output is on the projector screen. If it isn't fullscreen, click
+  it or press F" (once), "The browser blocked the Output window" (pop-ups), "The
+  screen the Output was on is gone" (the window stays), and "That screen is
+  back. Move the Output to it?" with **Move it** and a close (Stay).
 - **The Library** (Board #28 part 5; SDD-0004 §9). A list of the books held, in
   the default width, the mockup's `Library` header sticking under the switcher
   row as the Finder's field does (title-large, "N books on this device", and a
@@ -827,10 +830,16 @@ view is close enough to the frame to need a smaller unit.
   back with a slight overshoot, Material 3 Expressive's press kept small; an
   icon that changes meaning (Blank to Restore) turns in. The Repeat count is a
   rolling number (an odometer): the old count rolls out as the new one rolls in,
-  up as it grows and down on Undo. It is in the text colour, not Repeat's
-  primary: coloured text means a control. Each rail section eases in on arrival,
-  the Library as the Operator. In the command menu the highlight follows a
-  moving pointer and leaves with it; Enter then takes the top match (§
+  up as it grows and down on Undo. **Reset** counts it down through the numbers
+  (×9, ×8 … ×1), the first at once and each pause shorter, the whole run capped
+  at about 450ms however large the count (a big count skips numbers), then the
+  ×N fades; the last Undo rolls to ×1 and fades too. The state (and the Output)
+  change at once, only the display counts; reduced motion has no countdown, the
+  number just fades; the count's room stays, so Undo and Reset never move.
+  Moving to another part follows the count at once. It is in the text colour,
+  not Repeat's primary: coloured text means a control. Each rail section eases
+  in on arrival, the Library as the Operator. In the command menu the highlight
+  follows a moving pointer and leaves with it; Enter then takes the top match (§
   Interaction states). Reduced motion shows the end state, with what appears and
   goes keeping its fade: a menu, a sheet and its scrim, a tab's content and a
   notice fade and lose their zoom, rise and sink. **The Lyrics tint** slides and
@@ -1077,16 +1086,20 @@ layer (`show(row)`). The rows paint no hover of their own. Touch has no hover:
 no layer there, and a tap leaves nothing behind.
 
 **Buttons wear it too.** A group of adjacent buttons (a pane's toolbar: expand,
-move, close; the text sizer's A− and A+; Repeat, Undo and Reset) is a list: one
-layer glides between them (`hoverGroup`, `.glide-group`; Repeat's row waits
-300ms over the count between its buttons before it lets go). A lone button (a
-sheet's Close or Back, Back to search, Blank and Restore, the menu button) has
-the layer inside it, entering from the side the pointer came by and leaving by
-the side it went (`hoverButton`, `.glide-self`). Neither paints a hover or focus
-fill of its own; a press still shows its state layer and squeeze. A pressed
-control (Blanked) keeps its tone and shows no layer. The lyrics card is a list
-too, of lines and blocks: one layer glides between them, wearing each one's
-corner radius (a row says so with `--glide-row-radius`; it glides with the
+move, close; the text sizer's A− and A+; Repeat, Undo and Reset; the transport's
+four; the hymnbook and hymn crumbs; Go Live and End Live; a notice's action and
+close) is a list: one layer glides between them (`hoverGroup`, `.glide-group`;
+Repeat's row waits 300ms over the count between its buttons before it lets go).
+A pointer still moving within 28px of a row, over the space between two, keeps
+the layer and restarts that wait, so a slow hand crossing the rail's gap glides
+from item to item on either axis, never out and back in place. A lone button (a
+sheet's Close or Back, Back to search, Blank and Restore, the menu button, the
+search box) has the layer inside it, entering from the side the pointer came by
+and leaving by the side it went (`hoverButton`, `.glide-self`). Neither paints a
+hover or focus fill of its own; a press still shows its state layer and squeeze.
+A pressed control (Blanked) keeps its tone and shows no layer. The lyrics card
+is a list too, of lines and blocks: one layer glides between them, wearing each
+one's corner radius (a row says so with `--glide-row-radius`; it glides with the
 move), over the current part's tint so a line of it is lit, though the current
 block as a whole is not. The parts pad's keys are rows of the pad: the layer
 sits over the keys' fills and **under the current key's pill**, which wins, so

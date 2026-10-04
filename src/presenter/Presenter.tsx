@@ -55,6 +55,7 @@ import {
 } from "../shell/workspace.ts";
 import { glideBack, glideLyrics, watchTint } from "./lyricsGlide.ts";
 import { placePad, watchPad } from "./padGlide.ts";
+import { createRepeatDisplay } from "./repeatCount.ts";
 
 // Most parts carry no label — it's printed only for numbered stanzas
 // (SDD-0001 §2.1). Every other part falls back to its kind: "Pre-chorus".
@@ -243,11 +244,15 @@ export function Presenter(props: PresenterProps) {
   });
   // Reset takes back every repeat at once; at ×2 it would only do what Undo
   // does, so it's offered from ×3 — a run of three or more showings.
-  const canResetRepeats = createMemo(() => {
+  const runOfCursor = () => {
     const here = cursor()?.occurrenceIndex ?? -1;
-    const run = runs().find((r) => here >= r.first && here <= r.last);
+    return runs().find((r) => here >= r.first && here <= r.last);
+  };
+  const canResetRepeats = createMemo(() => {
+    const run = runOfCursor();
     return !!run && run.last - run.first >= 2;
   });
+  const repeatDisplay = createRepeatDisplay(repeatOrdinal, () => runOfCursor()?.first);
   const repeat = () => mutate((e) => e.repeatCurrent());
   const undoRepeat = () => mutate((e) => e.undoRepeat());
   const resetRepeats = () => mutate((e) => e.resetRepeats());
@@ -536,6 +541,11 @@ export function Presenter(props: PresenterProps) {
     if (dock.scrollWidth > dock.clientWidth) root.dataset.dockCollapse = "1";
     const shell = dock.closest<HTMLElement>(".shell") ?? dock.parentElement;
     shell?.style.setProperty("--dock-height", `${dock.offsetHeight}px`);
+    // The notice lies outside the shell and keeps clear of the dock too. Only
+    // on a change: the root's style is watched (above).
+    const height = `${dock.offsetHeight}px`;
+    if (root.style.getPropertyValue("--dock-height") !== height)
+      root.style.setProperty("--dock-height", height);
   };
   onMount(() => {
     window.addEventListener("resize", fitDock);
@@ -547,8 +557,30 @@ export function Presenter(props: PresenterProps) {
       window.removeEventListener("resize", fitDock);
       scaleObserver.disconnect();
       delete document.documentElement.dataset.dockCollapse;
+      document.documentElement.style.removeProperty("--dock-height");
     });
   });
+
+  // The notice sits bottom-left of the workspace; it must not reach the
+  // stage's transport, which sits at the stage's foot. The stage's left edge
+  // is on the root as `--stage-left`, and the notice narrows to end before it.
+  const keepNoticeClear = (stage: HTMLElement) => {
+    const root = document.documentElement;
+    const fit = () => {
+      const left = `${Math.round(stage.getBoundingClientRect().left)}px`;
+      if (root.style.getPropertyValue("--stage-left") !== left)
+        root.style.setProperty("--stage-left", left);
+    };
+    queueMicrotask(fit);
+    window.addEventListener("resize", fit);
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(fit) : undefined;
+    observer?.observe(stage);
+    return () => {
+      window.removeEventListener("resize", fit);
+      observer?.disconnect();
+      root.style.removeProperty("--stage-left");
+    };
+  };
 
   const backButton = () => (
     <Show when={props.onBack}>
@@ -604,7 +636,10 @@ export function Presenter(props: PresenterProps) {
   // (DESIGN.md § Structure). From 840px it sits at the stage's foot, under
   // Parts, beside what it drives, and never moves; a phone's is the dock.
   const transport = () => (
-    <div class="transport">
+    <div
+      class="transport"
+      ref={(el) => onCleanup(hoverGroup(el, ".dock-button:enabled", { gap: 150 }))}
+    >
       {dockButton(
         "Previous part",
         "Part",
@@ -739,10 +774,21 @@ export function Presenter(props: PresenterProps) {
           {/* Held in place before any repeat — the count unseen, Undo and
             Reset disabled — so nothing moves when they apply (SDD-0001
             §16.4). Short on screen; the full names are the accessible ones. */}
+          {/* The state changes at once; only the number on show counts down
+            behind it, and fades when the repeats are gone (repeatCount.ts).
+            Its room stays, so Undo and Reset never move. */}
           <span class="repeat-count" aria-live="polite">
-            <Show when={repeatOrdinal() > 1}>
-              ×<RollingNumber value={repeatOrdinal()} />
-              <span class="visually-hidden"> — sung {repeatOrdinal()} times in a row</span>
+            <Show when={repeatDisplay.visible()}>
+              <span
+                class="repeat-count-value"
+                classList={{ "repeat-count-fading": repeatDisplay.fading() }}
+                aria-hidden="true"
+              >
+                ×<RollingNumber value={repeatDisplay.shown()} rapid={repeatDisplay.rapid()} />
+              </span>
+              <Show when={repeatOrdinal() > 1}>
+                <span class="visually-hidden"> — sung {repeatOrdinal()} times in a row</span>
+              </Show>
             </Show>
           </span>
           <span class="repeat-actions">
@@ -1194,7 +1240,11 @@ export function Presenter(props: PresenterProps) {
                     <h3 class="area-title">Parts</h3>
                   </div>
                   {partsNavigator(loaded())}
-                  <nav class="stage-transport" aria-label="Navigate">
+                  <nav
+                    class="stage-transport"
+                    aria-label="Navigate"
+                    ref={(el) => onCleanup(keepNoticeClear(el))}
+                  >
                     {transport()}
                   </nav>
                 </aside>

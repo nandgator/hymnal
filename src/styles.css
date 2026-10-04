@@ -1795,6 +1795,26 @@ input[type="checkbox"].switch:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+/* The number on show fades as the repeats end (repeatCount.ts); the count's
+   room stays, so Undo and Reset never move. */
+.repeat-count-value {
+  display: inline-block;
+  transition: opacity var(--motion-short) var(--motion-standard);
+}
+
+.repeat-count-fading {
+  opacity: 0;
+}
+
+/* A countdown rolls its numbers quicker, so several can overlap in a blur. */
+.rolling-number[data-rapid] .rolling-face {
+  animation-duration: 120ms;
+}
+
+.rolling-number[data-rapid] .rolling-face-leaving {
+  animation-duration: 90ms;
+}
+
 /* A rolling number (RollingNumber): the old value rolls out as the new one
    rolls in, up as the count grows and down as it shrinks — quick, at the
    emphasised easing, clipped to one line, a slight blur on the move, as a
@@ -2300,16 +2320,51 @@ input[type="checkbox"].switch:disabled {
   --glide-radius: var(--button-shape);
 }
 
-:is(.glide-self, .glide-group :is(.btn-text, .area-icon, .menu-button)):is(
-  :hover,
-  :focus-visible
-):not(:active, :disabled, [aria-pressed="true"]) {
+:is(
+  .glide-self,
+  .glide-group
+    :is(.btn-text, .area-icon, .menu-button, .dock-button, .present-button, .snackbar-close)
+):is(:hover, :focus-visible):not(:active, :disabled, [aria-pressed="true"]) {
   --state-a: 0;
 }
 
-.glide-group :is(.area-icon, .menu-button):hover,
+/* A group of filled buttons (the transport, Go Live and End Live): their
+   fills would hide a layer behind them, so theirs is over them, a veil the
+   text shows through. The crumbs' own hover fill stands down for it. */
+:is(.transport, .live-controls) > .hover-glide {
+  z-index: 1;
+}
+
+.crumbs.glide-group {
+  --glide-radius: var(--shape-sm);
+}
+
+.crumbs.glide-group .crumb:hover {
+  background-color: transparent;
+}
+
+.live-controls {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+@media (max-width: 599px) {
+  .live-controls {
+    gap: var(--space-xxs);
+  }
+}
+
+.glide-group :is(.area-icon, .menu-button, .snackbar-close):hover,
 .glide-self:is(.area-icon, .menu-button, .live-control):not([aria-pressed="true"]):hover {
   background-color: transparent;
+}
+
+/* A filled, tonal or outlined button's layer is its own content colour, as
+   its state layer was: it reads over any fill, in either theme. */
+.glide-self:is(.btn-filled, .btn-tonal, .btn-outlined) > .hover-glide {
+  background-color: color-mix(in srgb, currentColor 8%, transparent);
 }
 
 .live-control.glide-self[aria-pressed="true"] > .hover-glide {
@@ -4221,13 +4276,15 @@ html[data-scrolling],
 }
 
 /* The notice (DESIGN.md § Snackbar): the shell's one floating card, on the
-   theme's own raised surface, top-centre of the workspace just under the top
-   bar (beside the rail from 840px). Fixed, so it never moves the layout; the
-   region ignores the pointer so it never blocks what lies around the card. */
+   theme's own raised surface, bottom-left of the workspace beside the rail's
+   Settings item (from 840px), and on a phone the full width less the
+   gutters, above the dock and the safe area. Fixed, so it never moves the
+   layout; the region ignores the pointer so it never blocks what lies
+   around the card. It rises in from below and sinks back. */
 .snackbar-region {
   position: fixed;
-  top: calc(var(--switcher-height, 3.5rem) + var(--space-xs));
   right: 0;
+  bottom: calc(var(--dock-height, 0px) + max(var(--space-md), env(safe-area-inset-bottom, 0px)));
   left: 0;
   z-index: 6;
   display: flex;
@@ -4239,7 +4296,18 @@ html[data-scrolling],
 
 @media (min-width: 840px) {
   .snackbar-region {
+    right: auto;
+    bottom: max(var(--space-md), env(safe-area-inset-bottom, 0px));
     left: 80px;
+    justify-content: flex-start;
+    /* Never past the Presenter's stage (--stage-left), so the transport at
+       the stage's foot is never covered. */
+    width: min(
+      calc(36rem + 2 * var(--space-md)),
+      calc(100vw - 80px),
+      calc(var(--stage-left, 100vw) - 80px)
+    );
+    box-sizing: border-box;
   }
 }
 
@@ -4250,14 +4318,14 @@ html[data-scrolling],
 @keyframes notice-in {
   from {
     opacity: 0;
-    transform: translateY(-12px);
+    transform: translateY(12px);
   }
 }
 
 @keyframes notice-out {
   to {
     opacity: 0;
-    transform: translateY(-12px);
+    transform: translateY(12px);
   }
 }
 

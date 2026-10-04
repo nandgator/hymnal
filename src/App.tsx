@@ -52,9 +52,10 @@ import {
   wholeSongOf,
 } from "./persistence/user-state.ts";
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
+import { autoHover } from "./shell/autoHover.ts";
 import { titleCase } from "./shell/case.ts";
 import { glideList } from "./shell/glideList.ts";
-import { hoverButton } from "./shell/hoverGlide.ts";
+import { hoverButton, hoverGroup } from "./shell/hoverGlide.ts";
 import {
   ariaKeys,
   ignoresShortcuts,
@@ -165,6 +166,9 @@ function Operator(props: Shared) {
     const key = song.hymnbookId ?? presentedKey();
     return readable().find((book) => book.key === key) ?? hymnbook();
   };
+  // Every standalone button wears the hover layer (autoHover.ts).
+  onMount(() => onCleanup(autoHover()));
+
   // The current book starts as the book of the newest recent still held,
   // else the first held book, and is chosen again if it stops being held
   // (a removal), SDD-0004 §9. Nothing held: none.
@@ -910,7 +914,11 @@ function Operator(props: Shared) {
               <span class="visually-hidden">Menu</span>
             </button>
           </Show>
-          <nav class="crumbs" aria-label="Hymnbook and song">
+          <nav
+            class="crumbs"
+            aria-label="Hymnbook and song"
+            ref={(el) => onCleanup(hoverGroup(el, ".crumb:enabled", { gap: 150 }))}
+          >
             <Show when={crumbBook()} fallback={<span class="crumb-static">Hymnal</span>}>
               {(book) => (
                 <button
@@ -953,6 +961,7 @@ function Operator(props: Shared) {
             <button
               type="button"
               class="switcher-find"
+              ref={(el) => onCleanup(hoverButton(el))}
               aria-haspopup="dialog"
               aria-keyshortcuts={ariaKeys("command-menu", 1)}
               onClick={openCommandMenu}
@@ -973,53 +982,60 @@ function Operator(props: Shared) {
               Output's other status, so it shows here too — on every
               screen, whether Live is on screen or not (SDD-0001 §16.5);
               B, Live's Restore or the command menu restore it. */}
-          <button
-            type="button"
-            class="present-button"
-            classList={{
-              presenting: presentingOutput(),
-              "present-blanked": presentingOutput() && blanked(),
-            }}
-            aria-keyshortcuts={ariaKeys("output")}
-            disabled={!canGoLive()}
-            aria-description={!canGoLive() ? "Load a songbook first" : undefined}
-            title={
-              !canGoLive()
-                ? "Load a songbook first"
-                : !presentingOutput()
-                  ? withKey("Open the Output", "output", expanded())
-                  : blanked()
-                    ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
-                    : withKey("Bring the Output forward", "output", expanded())
+          <div
+            class="live-controls"
+            ref={(el) =>
+              onCleanup(hoverGroup(el, ".present-button:enabled, .end-live-button:enabled"))
             }
-            onClick={openOutput}
           >
-            <Show
-              when={presentingOutput()}
-              fallback={<span class="icon icon-present" aria-hidden="true" />}
-            >
-              <span class="on-air" aria-hidden="true" />
-            </Show>
-            <SwapLabel
-              labels={["Go Live", "On Air", "Blanked"]}
-              current={!presentingOutput() ? "Go Live" : blanked() ? "Blanked" : "On Air"}
-            />
-          </button>
-          {/* End Live: closes the Output window. Beside the
-              status, not in it, so the status never doubles as the way out;
-              an icon alone on a phone. */}
-          <Show when={presentingOutput()}>
             <button
               type="button"
-              class="btn-text end-live-button"
-              aria-keyshortcuts={ariaKeys("end-live")}
-              title={withKey("End Live: close the Output window", "end-live", expanded())}
-              onClick={endLive}
+              class="present-button"
+              classList={{
+                presenting: presentingOutput(),
+                "present-blanked": presentingOutput() && blanked(),
+              }}
+              aria-keyshortcuts={ariaKeys("output")}
+              disabled={!canGoLive()}
+              aria-description={!canGoLive() ? "Load a songbook first" : undefined}
+              title={
+                !canGoLive()
+                  ? "Load a songbook first"
+                  : !presentingOutput()
+                    ? withKey("Open the Output", "output", expanded())
+                    : blanked()
+                      ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
+                      : withKey("Bring the Output forward", "output", expanded())
+              }
+              onClick={openOutput}
             >
-              <span class="icon icon-stop" aria-hidden="true" />
-              <span class="end-live-label">End Live</span>
+              <Show
+                when={presentingOutput()}
+                fallback={<span class="icon icon-present" aria-hidden="true" />}
+              >
+                <span class="on-air" aria-hidden="true" />
+              </Show>
+              <SwapLabel
+                labels={["Go Live", "On Air", "Blanked"]}
+                current={!presentingOutput() ? "Go Live" : blanked() ? "Blanked" : "On Air"}
+              />
             </button>
-          </Show>
+            {/* End Live: closes the Output window. Beside the
+              status, not in it, so the status never doubles as the way out;
+              an icon alone on a phone. */}
+            <Show when={presentingOutput()}>
+              <button
+                type="button"
+                class="btn-text end-live-button"
+                aria-keyshortcuts={ariaKeys("end-live")}
+                title={withKey("End Live: close the Output window", "end-live", expanded())}
+                onClick={endLive}
+              >
+                <span class="icon icon-stop" aria-hidden="true" />
+                <span class="end-live-label">End Live</span>
+              </button>
+            </Show>
+          </div>
         </header>
 
         <main
