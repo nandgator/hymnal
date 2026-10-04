@@ -943,7 +943,7 @@ view is close enough to the frame to need a smaller unit.
   at once in its printed form, in columns, left-aligned (one column: centred).
   Nothing scrolls. Parts are whole, in printed order, balanced across as few
   columns as buy type size; the type, one size for the song, shrinks to fit,
-  down to a fit of 0.2875 of 9cqmin (28px on a 1080p screen). A song that would
+  down to a fit of 0.275 of 9cqmin (26.7px on a 1080p screen). A song that would
   need less is split into pages of whole parts and the page turns with the tint;
   no page says so. A chorus the song sings after its verses is printed again on
   each page that sings it, after the verse it follows, so the tint moves from a

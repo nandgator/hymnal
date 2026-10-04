@@ -8,9 +8,9 @@
 export const FULL_TYPE = 0.09;
 /** The type scale at its fullest: the scale model's own size. */
 export const FULL_FIT_MAX = 1;
-/** Below this the song splits into pages: 0.2875 of 9cqmin, 28px on a 1080p
- * screen, 1.15 times the 24px it was (0.3 of 7.5cqmin). */
-export const FULL_FIT_FLOOR = 0.2875;
+/** Below this the song splits into pages: 0.275 of 9cqmin, 26.7px on a 1080p
+ * screen, 1.1 times the 24.3px it was (0.3 of 7.5cqmin). */
+export const FULL_FIT_FLOOR = 0.275;
 /** The least the type will ever go, when even pages cannot reach the floor
  * (the same size as before: 0.15 of the old). */
 export const FULL_FIT_MIN = 0.125;

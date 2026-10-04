@@ -113,18 +113,18 @@ list of part indices; also whether it is below the floor.
 On the 1,907 songs of the two bundled books, at 1920x1080 with the 16% bands:
 before the larger type (9cqmin was 7.5, the floor 0.30 of it, 24px) 1,884 songs
 were one page and 23 paged, the median type 36px (Malayalam) and 42px (English);
-now (the floor 0.2875 of 9cqmin, 28px) 1,805 are one page and 102 paged, the
-median 36px and 42px. The type a song gets is what fits, so a typical song is
-unchanged: the step is in the cap (a short song is set 20% larger) and the floor
-(a long one pages rather than going below 28px). A floor at the full 20% (29px)
-would page 135. 6 Malayalam songs still fall below the floor: a part taller than
-a column.
+now (the floor 0.275 of 9cqmin, 26.7px, the maintainer's choice of a 10% step)
+57 are paged, the median still 36px and 42px. The type a song gets is what fits,
+so a typical song is unchanged: the step is in the cap (a short song is set 20%
+larger) and the floor (a long one pages rather than going below 26.7px). A 15%
+step (28px) would page 102, a 20% one (29px) 135. 6 Malayalam songs still fall
+below the floor: a part taller than a column.
 
 ## 3. The floor, and pages
 
-The floor is a **fit of 0.2875**: 28px at 1080p, 2.6% of the screen's height (it
-was 24px). A song whose best single-page fit is above it is one page. Below it
-the song is split, never scrolled:
+The floor is a **fit of 0.275**: 26.7px at 1080p, 2.5% of the screen's height
+(it was 24px). A song whose best single-page fit is above it is one page. Below
+it the song is split, never scrolled:
 
 1. For 2 pages, 3, and so on up to one page per part, cut the printed order into
    runs of whole parts, balanced by the parts' heights at one column and the
