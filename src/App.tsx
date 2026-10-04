@@ -335,6 +335,10 @@ function Operator(props: Shared) {
       // Unless the Output went fullscreen by itself, the hint says how.
       const win = outcome.win;
       setTimeout(() => {
+        // Closed in the meantime (the close effect above forgets the window):
+        // a hint about a gone window would also hold back the update notice
+        // for its whole stay.
+        if (outputWin !== win) return;
         let fullscreen = false;
         try {
           fullscreen = !!win.document?.fullscreenElement;

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   forgetOutputEnded,
   publishOutput,
@@ -23,6 +23,39 @@ const CHANNEL_NAME = "hymnal-output";
 function nextMessage(channel: BroadcastChannel): Promise<unknown> {
   return new Promise((resolve) => {
     channel.addEventListener("message", (event) => resolve(event.data), { once: true });
+  });
+}
+
+// Nothing here waits a fixed time for a message to cross: how long delivery
+// takes depends on the machine's load. A message reaches another channel in
+// the order it was posted, so a fence (a seek nothing else reads) posted after
+// the traffic under test, and seen to arrive, proves that traffic was
+// delivered. settle() fences both ways: the module has handled what `other`
+// posted, and `other` has received what the module answered.
+const FENCE = { hymnbookId: "fence", number: 0, line: 0 };
+const isFence = (data: unknown) =>
+  (data as { type?: string; hymnbookId?: string }).type === "seek" &&
+  (data as { hymnbookId?: string }).hymnbookId === FENCE.hymnbookId;
+const record = (into: unknown[]) => (event: MessageEvent) => {
+  if (!isFence(event.data)) into.push(event.data);
+};
+async function settle(other: BroadcastChannel): Promise<void> {
+  await new Promise<void>((resolve) => {
+    const unsubscribe = subscribeSeek((seek) => {
+      if (seek.hymnbookId !== FENCE.hymnbookId) return;
+      unsubscribe();
+      resolve();
+    });
+    other.postMessage({ type: "seek", ...FENCE });
+  });
+  await new Promise<void>((resolve) => {
+    const arrived = (event: MessageEvent) => {
+      if (!isFence(event.data)) return;
+      other.removeEventListener("message", arrived);
+      resolve();
+    };
+    other.addEventListener("message", arrived);
+    requestSeek({ ...FENCE, whole: false });
   });
 }
 
@@ -64,12 +97,12 @@ describe("output channel", () => {
     const unsubscribe = subscribeOutput((message) => seen.push(message));
 
     otherWindow.postMessage({ type: "idle" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await settle(otherWindow);
     expect(seen).toEqual([{ type: "idle" }]);
 
     unsubscribe();
     otherWindow.postMessage({ type: "idle" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await settle(otherWindow);
     expect(seen).toEqual([{ type: "idle" }]); // unchanged — no second delivery
 
     otherWindow.close();
@@ -99,7 +132,7 @@ describe("output channel", () => {
     });
 
     presenterWindow.postMessage({ type: "hello" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await settle(presenterWindow);
     expect(seen).toEqual([]);
 
     unsubscribe();
@@ -115,7 +148,7 @@ describe("output channel", () => {
     outputWindow.postMessage({ type: "hello", id: "b" });
     outputWindow.postMessage({ type: "bye", id: "b" });
     outputWindow.postMessage({ type: "bye", id: "a" });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await settle(outputWindow);
     // b has not said, then is gone, so a's shape stands until a leaves.
     expect(seen).toEqual([false, true, undefined, true, undefined]);
 
@@ -124,7 +157,7 @@ describe("output channel", () => {
     outputWindow.postMessage({ type: "hello", id: "x", landscape: true });
     outputWindow.postMessage({ type: "hello", id: "y", landscape: false });
     outputWindow.postMessage({ type: "shape", id: "x", landscape: true });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await settle(outputWindow);
     expect(seen).toEqual([true, false, true]);
 
     unsubscribe();
@@ -143,7 +176,7 @@ describe("output channel", () => {
     outputWindow.postMessage({ type: "hello", id: "b" });
     outputWindow.postMessage({ type: "bye", id: "a" });
     outputWindow.postMessage({ type: "bye", id: "b" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await settle(outputWindow);
     expect(seen).toEqual([true, true, true, false]);
 
     unsubscribe();
@@ -157,13 +190,13 @@ describe("output channel", () => {
     expect(await blank).toEqual({ type: "blank", blanked: true });
 
     const seen: unknown[] = [];
-    otherWindow.onmessage = (event) => seen.push(event.data);
+    otherWindow.onmessage = record(seen);
     otherWindow.postMessage({ type: "hello" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await settle(otherWindow);
     expect(seen).toContainEqual({ type: "blank", blanked: true });
 
     setOutputBlanked(false);
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await settle(otherWindow);
     expect(seen.at(-1)).toEqual({ type: "blank", blanked: false });
     otherWindow.close();
   });
@@ -175,13 +208,13 @@ describe("output channel", () => {
     expect(await ended).toEqual({ type: "ended", ended: true });
 
     const seen: unknown[] = [];
-    otherWindow.onmessage = (event) => seen.push(event.data);
+    otherWindow.onmessage = record(seen);
     otherWindow.postMessage({ type: "hello" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await settle(otherWindow);
     expect(seen).toContainEqual({ type: "ended", ended: true });
 
     setOutputEnded(false);
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await settle(otherWindow);
     expect(seen.at(-1)).toEqual({ type: "ended", ended: false });
     otherWindow.close();
   });
@@ -192,11 +225,13 @@ describe("output channel", () => {
     setOutputBlanked(true);
     setOutputEnded(true);
     publishOutput({ type: "idle" });
-    await new Promise((resolve) => setTimeout(resolve, 20)); // what was posted live
+    await settle(otherWindow);
     const seen: string[] = [];
-    otherWindow.onmessage = (event) => seen.push(event.data.type);
+    otherWindow.onmessage = (event) => {
+      if (!isFence(event.data)) seen.push(event.data.type);
+    };
     otherWindow.postMessage({ type: "hello", id: "late" });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await settle(otherWindow);
     expect(seen).toEqual(["presentation", "blank", "ended", "idle"]);
     setOutputBlanked(false);
     setOutputEnded(false);
@@ -208,27 +243,27 @@ describe("output channel", () => {
     const states: unknown[] = [];
     const unsubscribe = subscribeOutputState((state) => states.push(state));
     const seen: unknown[] = [];
-    otherWindow.onmessage = (event) => seen.push(event.data);
+    otherWindow.onmessage = record(seen);
     // A reloaded Operator knows nothing; the Output says it is ended.
     otherWindow.postMessage({
       type: "hello",
       id: "held",
       state: { blanked: false, ended: true },
     });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await settle(otherWindow);
     expect(states).toEqual([{ blanked: false, ended: true }]);
     expect(seen).toContainEqual({ type: "ended", ended: true });
     expect(seen).not.toContainEqual({ type: "ended", ended: false });
     // A window with no state is new: it is told, not adopted from.
     seen.length = 0;
     otherWindow.postMessage({ type: "hello", id: "new" });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await settle(otherWindow);
     expect(states).toHaveLength(1);
     expect(seen).toContainEqual({ type: "ended", ended: true });
     // A closed window's end is forgotten without a word.
     seen.length = 0;
     forgetOutputEnded();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await settle(otherWindow);
     expect(seen).toEqual([]);
     unsubscribe();
     otherWindow.close();
@@ -237,17 +272,17 @@ describe("output channel", () => {
   it("an Output reports its dark states in hello and shape once told, none before", async () => {
     const operator = new BroadcastChannel(CHANNEL_NAME);
     const seen: { type: string; state?: unknown }[] = [];
-    operator.onmessage = (event) => seen.push(event.data);
+    operator.onmessage = record(seen);
     let state: { blanked: boolean; ended: boolean } | undefined;
     const unsubscribe = subscribeOutput(
       () => {},
       () => state,
     );
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await settle(operator);
     expect(seen.find((m) => m.type === "hello")?.state).toBeUndefined();
     state = { blanked: true, ended: false };
     operator.postMessage({ type: "ping" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await settle(operator);
     expect(seen.filter((m) => m.type === "hello").at(-1)?.state).toEqual(state);
     unsubscribe();
     operator.close();
@@ -258,7 +293,7 @@ describe("output channel", () => {
     const seen: unknown[] = [];
     const unsubscribe = subscribeOutput((message) => seen.push(message));
     operator.postMessage({ type: "ended", ended: true });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await settle(operator);
     expect(seen).toContainEqual({ type: "ended", ended: true });
     unsubscribe();
     operator.close();
@@ -282,9 +317,9 @@ describe("output channel", () => {
     });
 
     const seen: unknown[] = [];
-    otherWindow.onmessage = (event) => seen.push(event.data);
+    otherWindow.onmessage = record(seen);
     otherWindow.postMessage({ type: "hello" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await settle(otherWindow);
     expect(seen).toContainEqual({
       type: "presentation",
       theme: "warm",
@@ -303,7 +338,9 @@ describe("output channel", () => {
     const outputWindow = new BroadcastChannel(CHANNEL_NAME);
 
     outputWindow.postMessage({ type: "seek", hymnbookId: "book", number: 7, line: 3 });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    // Both listeners sit on one channel, so by the time the seek is in, the
+    // same event has been through the other.
+    await vi.waitFor(() => expect(seeks).toHaveLength(1));
 
     expect(seeks).toEqual([{ type: "seek", hymnbookId: "book", number: 7, line: 3 }]);
     expect(outputs.some((message) => (message as { type: string }).type === "seek")).toBe(false);

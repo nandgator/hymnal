@@ -10,6 +10,12 @@ vi.mock("./fullSong.ts", async (original) => {
   return { ...actual, layoutSong: vi.fn(actual.layoutSong) };
 });
 
+// Until what is scheduled has run, not for a fixed time: a layout waits for the
+// next frame, and under CPU load 30ms might not reach one. Callbacks run in the
+// order they were asked for, so a frame asked for now runs after any already
+// waiting; the timeout then lets what they started finish.
+const settle = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve)));
+
 // jsdom has no layout: give the sheet a box (1080p by default).
 const box = (name: "clientWidth" | "clientHeight" | "offsetHeight", value: number) =>
   Object.defineProperty(HTMLElement.prototype, name, { value, configurable: true });
@@ -96,10 +102,10 @@ describe("FullSong", () => {
     const parts = PARTS.map((p) => ({ ...p, marker: "1" }));
     const [shown, setShown] = createSignal(PARTS as typeof parts);
     render(() => <FullSong {...props({ parts: shown() })} />);
-    await new Promise((resolve) => setTimeout(resolve, 30));
+    await settle();
     const before = vi.mocked(rule.layoutSong).mock.calls.length;
     setShown(parts);
-    await new Promise((resolve) => setTimeout(resolve, 30));
+    await settle();
     expect(vi.mocked(rule.layoutSong).mock.calls.length).toBeGreaterThan(before);
   });
 
@@ -109,7 +115,6 @@ describe("FullSong", () => {
   });
 
   describe("laying out", () => {
-    const settle = () => new Promise((resolve) => setTimeout(resolve, 30));
     afterEach(() => {
       vi.restoreAllMocks();
       // biome-ignore lint/suspicious/noExplicitAny: the test's stub of document.fonts
@@ -158,7 +163,6 @@ const LONG = Array.from({ length: 6 }, (_, i) => ({
 }));
 
 describe("pages", () => {
-  const settle = () => new Promise((resolve) => setTimeout(resolve, 30));
   const pagesIn = (container: HTMLElement) =>
     [...container.querySelectorAll<HTMLElement>(".full-page")].map((p) => [
       p.dataset.page,
@@ -247,9 +251,11 @@ describe("pages", () => {
         ["1", "in"],
       ]);
       animate.mockClear();
-      // Back again before the turn is done.
+      // Back again before the turn is done. Only microtasks pass here: the turn's
+      // guard (a real 600ms timer) must not get a turn of its own, which a busy
+      // machine can hand it between a step and a wait of any length.
       setCurrent("s1");
-      await settle();
+      await Promise.resolve();
       expect(pagesIn(container)).toEqual([
         ["0", "manual"],
         ["1", "manual"],
@@ -301,8 +307,6 @@ describe("pages", () => {
 });
 
 describe("checking the layout in the page", () => {
-  const settle = () => new Promise((resolve) => setTimeout(resolve, 30));
-
   it("makes the layout again for a smaller room when the page overflows", async () => {
     // The browser says every block is far too tall, so each nudge is tried,
     // and the type goes down with them, to a stop.

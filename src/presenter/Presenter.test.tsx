@@ -883,12 +883,18 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
     const published = () => publishOutput.mock.lastCall?.[0];
     const before = published();
+    // The three buttons are queried once: a role query walks the whole
+    // accessibility tree (tens of ms under jsdom, far more under CPU load), and
+    // a dozen of them would put this test past its timeout on a busy machine.
+    const repeat = screen.getByRole("button", { name: "Repeat" });
+    const undo = screen.getByRole("button", { name: "Undo repeat" });
+    const reset = screen.getByRole("button", { name: "Reset repeat" });
     // The row holds its place before any repeat: Undo and Reset disabled.
-    expect(screen.getByRole("button", { name: "Undo repeat" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Reset repeat" })).toBeDisabled();
+    expect(undo).toBeDisabled();
+    expect(reset).toBeDisabled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
-    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
+    fireEvent.click(repeat);
+    fireEvent.click(repeat);
     const count = () => document.querySelector(".repeat-count");
     expect(count()).toHaveTextContent(/^×3/);
     expect(published()).toMatchObject({ lines: before.lines, focus: before.focus });
@@ -900,22 +906,22 @@ describe("Presenter", () => {
     const lyrics = within(screen.getByRole("region", { name: "Lyrics" }));
     expect(lyrics.getAllByRole("button", { name: "Line 1a" })).toHaveLength(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "Undo repeat" }));
+    fireEvent.click(undo);
     expect(count()).toHaveTextContent(/^×2/);
     // At ×2 Reset would only do what Undo does; it's offered from ×3.
-    expect(screen.getByRole("button", { name: "Reset repeat" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
-    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
-    fireEvent.click(screen.getByRole("button", { name: "Reset repeat" }));
+    expect(reset).toBeDisabled();
+    fireEvent.click(repeat);
+    fireEvent.click(repeat);
+    fireEvent.click(reset);
     expect(count()).toBeEmptyDOMElement();
     expect(published()).toMatchObject({ lines: before.lines, focus: before.focus });
-    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
-    fireEvent.click(screen.getByRole("button", { name: "Undo repeat" }));
-    expect(screen.getByRole("button", { name: "Undo repeat" })).toBeDisabled();
+    fireEvent.click(repeat);
+    fireEvent.click(undo);
+    expect(undo).toBeDisabled();
     expect(screen.queryByText(/×/)).not.toBeInTheDocument();
 
     // Next still carries on through the song.
-    fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
+    fireEvent.click(repeat);
     fireEvent.click(screen.getByRole("button", { name: "Next part" }));
     expect(currentPart().getByRole("heading", { level: 3 })).toHaveTextContent("Chorus");
   });

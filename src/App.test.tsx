@@ -1023,8 +1023,23 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(noticeText(/Update ready/)).toBe(0);
     output.postMessage({ type: "bye", id: "test-output" });
-    await new Promise((resolve) => setTimeout(resolve, 600));
     await waitFor(() => expect(noticeText(/Update ready/)).toBeGreaterThan(0));
+    output.close();
+    updates.set(false);
+  });
+
+  it("does not raise the fullscreen hint for an Output closed before it was due", async () => {
+    // The hint is due a moment after the window opens (to see whether it went
+    // fullscreen by itself). Closed by then, it would be about a gone window,
+    // and would hold the update notice back for its whole stay.
+    const { output } = await goLive();
+    updates.set(true);
+    output.postMessage({ type: "bye", id: "test-output" });
+    await waitFor(() => expect(noticeText(/Update ready/)).toBeGreaterThan(0));
+    // Past the grace the hint waits (FULLSCREEN_GRACE_MS in App.tsx).
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    expect(noticeText(/The Output is on the projector screen/)).toBe(0);
+    expect(noticeText(/Update ready/)).toBeGreaterThan(0);
     output.close();
     updates.set(false);
   });
