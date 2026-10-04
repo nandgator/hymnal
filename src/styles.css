@@ -165,6 +165,12 @@
   color-scheme: dark;
 }
 
+/* The Output's edge fades (caption, badge, and the switcher's backdrop): solid
+   ground to here, then clear. */
+:root {
+  --output-edge-fade-solid: 60%;
+}
+
 /* Output view: outside the tonal system, apart from the Operator's theme.
    Presets (DESIGN.md § Output view), chosen in Settings > Presentation,
    redefine only these three; any element can carry one, so a Settings
@@ -4447,7 +4453,11 @@ html[data-scrolling],
   position: absolute;
   inset: auto 0 0;
   height: 16cqh;
-  background: linear-gradient(to top, var(--output-ground) 60%, transparent);
+  background: linear-gradient(
+    to top,
+    var(--output-ground) var(--output-edge-fade-solid),
+    transparent
+  );
   pointer-events: none;
 }
 
@@ -4483,7 +4493,7 @@ html[data-scrolling],
   position: absolute;
   inset: 0 0 auto;
   height: 16cqh;
-  background: linear-gradient(var(--output-ground) 60%, transparent);
+  background: linear-gradient(var(--output-ground) var(--output-edge-fade-solid), transparent);
   pointer-events: none;
 }
 
@@ -5667,19 +5677,57 @@ fieldset.book-main {
   --md-sys-color-surface-container-high: color-mix(in srgb, var(--output-ink) 16%, transparent);
 }
 
-.present-switcher::before {
-  content: "";
+/* The backdrop is the Output's own edge fade, taller: the same gradient
+   (ground, solid to --output-edge-fade-solid, then clear) dims, and a
+   progressive blur (four layers, each
+   masked to a shorter band than the last, so the blur compounds toward the
+   bottom) softens, both from nothing at the top to the most at the foot, with
+   no edge. Its height follows the list (PresentHere sets --band-height) and
+   moves with the app's motion once the first height is in. */
+.present-switcher-band {
   position: absolute;
   z-index: -1;
-  inset: -1.5rem 0 0;
+  inset: auto 0 0;
+  height: var(--band-height, 0);
   background: linear-gradient(
     to top,
-    color-mix(in srgb, var(--output-ground) 88%, transparent) 55%,
-    color-mix(in srgb, var(--output-ground) 55%, transparent)
+    var(--output-ground) var(--output-edge-fade-solid),
+    transparent
   );
-  backdrop-filter: blur(18px) saturate(1.2);
-  mask-image: linear-gradient(to top, #000 calc(100% - 1.5rem), transparent);
   pointer-events: none;
+}
+
+.present-switcher-band[data-ready] {
+  transition: height var(--motion-medium) var(--motion-emphasized);
+}
+
+.present-switcher-band > span:nth-child(1) {
+  --reach: 100%;
+}
+
+.present-switcher-band > span:nth-child(2) {
+  --reach: 75%;
+}
+
+.present-switcher-band > span:nth-child(3) {
+  --reach: 50%;
+}
+
+.present-switcher-band > span:nth-child(4) {
+  --reach: 30%;
+}
+
+.present-switcher-band > span {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(3px);
+  mask-image: linear-gradient(to top, #000, transparent var(--reach));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .present-switcher-band[data-ready] {
+    transition: none;
+  }
 }
 
 /* While the switcher is open the caption (book, title, repeat count) steps

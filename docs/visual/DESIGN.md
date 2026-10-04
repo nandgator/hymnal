@@ -658,14 +658,17 @@ view is close enough to the frame to need a smaller unit.
   one thing laid over it is the **quick switcher**: no card, the search field
   itself at the bottom centre, at most 30rem, its list (five rows, small,
   single-line titles with an ellipsis) above it, in the Output's preset colours,
-  never the Operator's theme. Behind it a full-width band of the Output's ground
-  over a blur (18px) rises 1.5rem above the top of the list and fades out
-  upward, so the list sits inside the soft blur, not on its edge. While it is
-  open the Output's bottom caption (book, title, repeat count) fades out.
-  Nothing else is ever laid over the audience's screen unasked: there is no hint
-  where the switcher is. The cursor is the Output window's: shown while the
-  mouse moves, gone after 2s still. It opens and closes with no motion beyond
-  the list changing.
+  never the Operator's theme. Behind it, a full-width backdrop in the Output's
+  own edge-fade distribution (the same gradient: ground solid to 60%, then
+  clear) dims and, as a progressive blur (stacked layers of increasing blur,
+  each masked to a shorter band), softens, both rising from nothing at the top
+  to the most at the foot, with no visible boundary. It extends 2rem above the
+  strip, follows the list's height as results come and go (250ms, emphasised),
+  so the list sits inside it, not on an edge. While it is open the Output's
+  bottom caption (book, title, repeat count) fades out. Nothing else is ever
+  laid over the audience's screen unasked: there is no hint where the switcher
+  is. The cursor is the Output window's: shown while the mouse moves, gone after
+  2s still. It opens and closes with no motion beyond the list changing.
 - **Another tab** (Board #36; SDD-0001 §10.4). A tab that cannot hold the books
   (another tab has them) is a full page: the empty card's own shape centred on
   the page background, display-small **Hymnal is open in another tab**, one body

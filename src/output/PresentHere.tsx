@@ -29,6 +29,9 @@ export interface PresentHereProps {
   startWithSwitcher?: boolean;
 }
 
+/** How far the backdrop rises above the strip, in px (2rem). */
+const BAND_RISE = 32;
+
 /**
  * One-screen presenting (Board #41, SDD-0001 §16.7): the Output's own view,
  * full-bleed over the app, in the tab itself, as Slides' Slideshow does. It
@@ -91,6 +94,22 @@ export function PresentHere(props: PresentHereProps) {
   onMount(() => window.addEventListener("keydown", onKeyDown, true));
   onCleanup(() => window.removeEventListener("keydown", onKeyDown, true));
 
+  // The backdrop's band is as tall as the strip plus a little: it follows the
+  // list as results come and go, and animates once the first height is in.
+  let band: HTMLElement | undefined;
+  const followHeight = (strip: HTMLElement) => {
+    if (typeof ResizeObserver === "undefined") return; // jsdom: no layout to follow
+    const observer = new ResizeObserver(() => {
+      if (!band) return;
+      band.style.setProperty("--band-height", `${strip.offsetHeight + BAND_RISE}px`);
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => band?.setAttribute("data-ready", "")),
+      );
+    });
+    observer.observe(strip);
+    onCleanup(() => observer.disconnect());
+  };
+
   return (
     <section
       class="present-here"
@@ -121,15 +140,22 @@ export function PresentHere(props: PresentHereProps) {
             class="present-switcher"
             role="search"
             aria-label="Switch song"
-            ref={(el) =>
+            ref={(el) => {
               // The box is the Finder's own; it takes the keys from here on.
               setTimeout(() => {
                 const input = el.querySelector("input");
                 input?.focus();
                 input?.setSelectionRange(input.value.length, input.value.length);
-              })
-            }
+              });
+              followHeight(el);
+            }}
           >
+            <div class="present-switcher-band" ref={(el) => (band = el)} aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
             <Finder
               compact
               hymnbookId={props.hymnbookId}
