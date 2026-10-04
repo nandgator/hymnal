@@ -87,7 +87,7 @@ Ordered. Top unblocked item is next.
 | 18  | Over-the-air update notices (as Supabase announces changes)                                                               | —          |
 | 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                                           | —          |
 | 22  | Service queue: line up hymns for a service (a supporting pane)                                                            | —          |
-| 23  | Arrangements: resequence a song as the band sings it, or mix hymns; saved                                                 | 22         |
+| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                   | —          |
 | 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                | Phase 2    |
 | 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                             | content    |
 | 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                             | —          |

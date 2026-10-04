@@ -575,6 +575,19 @@ actually sung, live repeats and jumps included, and its timestamps when recorded
 (#24). Today a live repeat lives only in the engine for that sitting and is lost
 on a swap; it belongs to a singing, as timestamps do.
 
+**An arrangement's steps (2026-10-04, the maintainer's shape, not built).** An
+arrangement is an ordered list of steps over the song's own parts, saved: a step
+is a whole part, a single line of a part, or a run of its lines (the first two
+lines of a four-line verse), each with a repeat count. So it can reorder parts,
+repeat a part, and repeat a line or a run of lines. It never edits the song: it
+is a path over the song's parts, as a live repeat is, and the stored sequence
+stays untouched (§5.1). It stands on its own, chosen for a song in the
+Presenter; a service queue item (#22) may name one, but needs it not. It is
+keyed by the song's identity across Replace (the song's content hash and its
+book's origin), so a reloaded book keeps its arrangements, and one whose part it
+names is gone is shown as needing review, never silently trimmed. Live editing
+(Repeat and Undo today) is how one is made: "Save as an arrangement".
+
 ---
 
 ## 9. Content pipeline
