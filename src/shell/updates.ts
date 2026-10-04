@@ -70,6 +70,7 @@ export const SCREEN_NOTICE_IDS = [
   "drag",
   "fullscreen",
   "activate",
+  "move",
   "blocked",
   "gone",
   "back",

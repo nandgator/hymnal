@@ -9,7 +9,17 @@ import {
   subscribeOutput,
 } from "./channel.ts";
 import { OutputView } from "./OutputView.tsx";
-import { type DetailedScreen, parseTarget, pickTarget, reportPlacement } from "./placement.ts";
+import {
+  type DetailedScreen,
+  moveGuidance,
+  moveShortcutHint,
+  type PlacementReport,
+  parseTarget,
+  pickTarget,
+  placementWasRefused,
+  rememberPlacementRefused,
+  reportPlacement,
+} from "./placement.ts";
 import { describeScreen } from "./screens.ts";
 
 /** The Window Management API's shape, as far as the Output reads it. */
@@ -118,19 +128,39 @@ export function Output() {
   // Without a target there is nothing to look up: ready at once, so a click
   // goes fullscreen synchronously, while its activation is surely live.
   let detailsDone = !target;
+  // The browser refused fullscreen without a gesture.
   const [refused, setRefused] = createSignal(false);
-  const report = () => {
-    if (!target) return;
-    reportOutputPlacement(placementNow());
-  };
-  const placementNow = () =>
-    reportPlacement({
+  // The system cannot put a window on another screen by fullscreen (Chromium
+  // on GNOME Wayland): remembered for the session, so the next window skips
+  // the attempt and goes straight to asking the person to move it.
+  const [placementFailed, setPlacementFailed] = createSignal(placementWasRefused());
+  const [onTarget, setOnTarget] = createSignal(false);
+  const placementNow = (): PlacementReport => ({
+    ...reportPlacement({
       target,
       picked,
       currentScreen: details?.currentScreen,
       fullscreen: !!document.fullscreenElement,
       fullscreenOnPicked,
-    });
+    }),
+    ...(placementFailed() ? { refused: true } : {}),
+  });
+  const report = () => {
+    if (!target) return;
+    const now = placementNow();
+    // Fullscreen that was asked for on the target but is on another screen:
+    // placement failed. Leave it at once, so the main screen is not taken over.
+    if (now.fullscreen && fullscreenOnPicked && details?.currentScreen && !now.onTarget) {
+      fullscreenOnPicked = false;
+      setPlacementFailed(true);
+      rememberPlacementRefused();
+      setWantsFullscreen(true);
+      void Promise.resolve(document.exitFullscreen?.()).catch(() => {});
+    }
+    const next = placementNow();
+    setOnTarget(next.onTarget);
+    reportOutputPlacement(next);
+  };
   const detailsReady: Promise<void> = target
     ? (async () => {
         try {
@@ -154,7 +184,10 @@ export function Output() {
   const requestNow = async () => {
     const root = document.documentElement;
     if (!root.requestFullscreen) return;
-    const chosen = picked;
+    // Once placement has failed, a fullscreen is only right on the screen the
+    // window is already on, and only if that is the target: a bare request.
+    if (placementFailed() && !placementNow().onTarget) return;
+    const chosen = placementFailed() ? undefined : picked;
     try {
       await (chosen
         ? root.requestFullscreen({ screen: chosen } as FullscreenOptions)
@@ -176,6 +209,10 @@ export function Output() {
     if (!placed || document.fullscreenElement) return;
     if (!document.documentElement.requestFullscreen) return;
     setWantsFullscreen(true);
+    if (placementFailed()) {
+      // No futile attempt: wait for the screens, then say how to move.
+      return;
+    }
     void goFullscreen();
   });
   const onFullscreenChange = () => {
@@ -228,10 +265,25 @@ export function Output() {
 
   return (
     <>
-      <Show when={wantsFullscreen() && refused() && target}>
+      <Show when={wantsFullscreen() && (placementFailed() || refused()) && target}>
         {(wanted) => (
           <div class="output-prompt" role="status">
-            Click here or press F to fill {describeScreen(wanted())}
+            <Show
+              when={placementFailed()}
+              fallback={<p>Click here or press F to fill {describeScreen(wanted())}</p>}
+            >
+              <Show
+                when={onTarget()}
+                fallback={
+                  <>
+                    <p>{moveGuidance(describeScreen(wanted()))}</p>
+                    <Show when={moveShortcutHint()}>{(hint) => <p>{hint()}</p>}</Show>
+                  </>
+                }
+              >
+                <p>Press F or click to fill this screen</p>
+              </Show>
+            </Show>
           </div>
         )}
       </Show>

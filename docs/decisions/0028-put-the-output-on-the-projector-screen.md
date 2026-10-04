@@ -232,3 +232,42 @@ Not changed: the update gate, and End Live closing the window. Moving an open
 Output from Settings still uses `moveTo`, which a Wayland compositor ignores; it
 then says "could not move", which is true. Verifying on the real Wayland machine
 is open point 2's remaining half.
+
+### Wayland: fullscreen cannot cross outputs either (2026-10-04)
+
+Found on real hardware: GNOME on Wayland, Chromium, a built-in 1920×1080 display
+and "HXA 32″" (1280×720) as the target. `requestFullscreen({ screen })` named
+the HXA, and Chromium drew its "To exit full screen, press Esc" bubble there,
+yet the window went fullscreen on the built-in display. On GNOME Wayland
+Chromium cannot move a window to another output when it goes fullscreen, and a
+web page cannot fix that. What it can do is notice, and make the honest path
+smooth:
+
+1. After a fullscreen request with a target screen, the Output compares
+   `getScreenDetails().currentScreen` with the target (on the request's result,
+   on `fullscreenchange` and on `currentscreenchange`). Fullscreen on any other
+   screen means placement failed: the Output calls `document.exitFullscreen()`
+   at once, so the main screen is not taken over, and remembers it for the
+   session (`placementRefused` in `sessionStorage`; the Operator stores it too,
+   so the next Output window inherits it).
+2. It then says "Move this window to <screen>, then press F." and, on Linux only
+   (`navigator.userAgentData?.platform` or `navigator.platform`),
+   "Super+Shift+Arrow moves a window to the next screen." The Operator's notice
+   says the same. F and clicks do nothing useful until the window is on the
+   target.
+3. When `currentscreenchange` shows the window on the target, the Output says
+   "Press F or click to fill this screen". F or a click calls a bare
+   `requestFullscreen()`, which is right because it is the same output. The
+   Operator's "The Output is on the projector screen" still comes only from the
+   Output's verified report; the report carries `refused` so the Operator
+   chooses the move notice over the click notice.
+4. Once refused in a session, the next Go Live skips the cross-screen attempt
+   and goes straight to the guidance.
+
+A readable `currentScreen` now decides "on the target"; "fullscreen on the
+screen it asked for" counts only where `currentScreen` is unavailable.
+
+For automatic placement, run Chromium under XWayland, where window positioning
+works: start it with `--ozone-platform=x11`, or set chrome://flags "Preferred
+Ozone platform" to X11 and relaunch. The full answer is the native wrapper
+(Tauri, later), which can place a window on an output itself.

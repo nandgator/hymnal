@@ -921,6 +921,21 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     output.close();
   });
 
+  it("tells the Operator how to move the Output when the system cannot place windows", async () => {
+    const { output } = await goLive();
+    output.postMessage({ type: "placement", onTarget: false, fullscreen: false, refused: true });
+    await screen.findAllByText(/Move this window to EPSON PJ, 1280×800, then press F\./);
+    expect(sessionStorage.getItem("placementRefused")).toBe("1");
+    // The grace timer must not replace it with the click hint.
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    expect(noticeText(/press F there/)).toBe(0);
+    output.postMessage({ type: "placement", onTarget: true, fullscreen: true, refused: true });
+    await screen.findAllByText(/The Output is on the projector screen\./);
+    expect(noticeText(/Move this window/)).toBe(0);
+    sessionStorage.clear();
+    output.close();
+  });
+
   it("stays quiet when the Output verified the placement before the grace ran out", async () => {
     const { output } = await goLive();
     output.postMessage({ type: "placement", onTarget: true, fullscreen: true });

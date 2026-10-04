@@ -270,7 +270,11 @@ export function subscribePlacement(handler: (report: PlacementReport) => void): 
   const listener = (event: MessageEvent<ChannelMessage>) => {
     const { data } = event;
     if (data.type === "placement")
-      handler({ onTarget: data.onTarget, fullscreen: data.fullscreen });
+      handler({
+        onTarget: data.onTarget,
+        fullscreen: data.fullscreen,
+        ...(data.refused ? { refused: true } : {}),
+      });
     else if (data.type === "hello" && data.placement) handler(data.placement);
   };
   target.addEventListener("message", listener);

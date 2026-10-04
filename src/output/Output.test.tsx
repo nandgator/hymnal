@@ -1035,12 +1035,14 @@ describe("Output on the Operator's screen, Wayland included (ADR-0028)", () => {
 
   it("says it is on the target only once it verifiably is", async () => {
     window.history.replaceState(null, "", url);
-    attach(builtIn);
+    const { details } = attach(builtIn);
     // Refused without a gesture: the window stays where the compositor put it.
     const request = vi
       .fn()
       .mockRejectedValueOnce(new Error("needs a gesture"))
       .mockImplementation(async () => {
+        // A system that can place it: the window is now on the target.
+        details.currentScreen = hxa;
         Object.defineProperty(document, "fullscreenElement", {
           value: document.documentElement,
           configurable: true,
@@ -1102,5 +1104,128 @@ describe("Output on the Operator's screen, Wayland included (ADR-0028)", () => {
     expect(channel.reportOutputPlacement).not.toHaveBeenCalledWith(
       expect.objectContaining({ onTarget: true }),
     );
+  });
+});
+
+describe("Output where the system cannot place windows (GNOME on Wayland, ADR-0028)", () => {
+  const builtIn = { label: "Built-in display", width: 1920, height: 1080, left: 0, top: 0 };
+  const hxa = { label: 'HXA 32"', width: 1280, height: 720, left: 1920, top: 0 };
+  const url = `/?output=1&placed=1&screen=${encodeURIComponent(JSON.stringify(hxa))}`;
+
+  /** `currentScreen` stays the main screen however fullscreen is asked for. */
+  function attach() {
+    const details = Object.assign(new EventTarget(), {
+      screens: [builtIn, hxa],
+      currentScreen: builtIn,
+    });
+    Object.assign(window, { getScreenDetails: vi.fn(async () => details) });
+    return details;
+  }
+  function fullscreenApi() {
+    const request = vi.fn(async (_options?: unknown) => {
+      Object.defineProperty(document, "fullscreenElement", {
+        value: document.documentElement,
+        configurable: true,
+      });
+      document.dispatchEvent(new Event("fullscreenchange"));
+    });
+    const exit = vi.fn(async () => {
+      Reflect.deleteProperty(document, "fullscreenElement");
+      document.dispatchEvent(new Event("fullscreenchange"));
+    });
+    Object.assign(document.documentElement, { requestFullscreen: request });
+    Object.assign(document, { exitFullscreen: exit });
+    return { request, exit };
+  }
+
+  beforeEach(() => {
+    channel.reportOutputPlacement.mockClear();
+    window.history.replaceState(null, "", url);
+    sessionStorage.clear();
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("Linux x86_64");
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.history.replaceState(null, "", "/");
+    sessionStorage.clear();
+    Reflect.deleteProperty(window, "getScreenDetails");
+    Reflect.deleteProperty(document.documentElement, "requestFullscreen");
+    Reflect.deleteProperty(document, "exitFullscreen");
+    Reflect.deleteProperty(document, "fullscreenElement");
+  });
+
+  it("exits a fullscreen that landed on the wrong screen and says how to move the window", async () => {
+    attach();
+    const { request, exit } = fullscreenApi();
+    render(() => <Output />);
+    await vi.waitFor(() => expect(exit).toHaveBeenCalledTimes(1));
+    expect(request).toHaveBeenCalledWith({ screen: hxa });
+    expect(sessionStorage.getItem("placementRefused")).toBe("1");
+    await vi.waitFor(() =>
+      expect(channel.reportOutputPlacement).toHaveBeenLastCalledWith({
+        onTarget: false,
+        fullscreen: false,
+        refused: true,
+      }),
+    );
+    expect(
+      await screen.findByText(/Move this window to HXA 32", 1280×720, then press F\./),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Super\+Shift\+Arrow moves a window/)).toBeInTheDocument();
+  });
+
+  it("shows the shortcut only on Linux", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    attach();
+    fullscreenApi();
+    render(() => <Output />);
+    await screen.findByText(/Move this window to HXA/);
+    expect(screen.queryByText(/Super\+Shift/)).not.toBeInTheDocument();
+  });
+
+  it("fills the screen on F once the window is on the target, and reports it verified", async () => {
+    const details = attach();
+    const { request } = fullscreenApi();
+    render(() => <Output />);
+    await screen.findByText(/Move this window to HXA/);
+    // F before the move must not take the main screen.
+    fireEvent.keyDown(window, { key: "f" });
+    expect(request).toHaveBeenCalledTimes(1);
+
+    details.currentScreen = hxa;
+    details.dispatchEvent(new Event("currentscreenchange"));
+    expect(await screen.findByText(/Press F or click to fill this screen/)).toBeInTheDocument();
+    expect(channel.reportOutputPlacement).toHaveBeenLastCalledWith({
+      onTarget: true,
+      fullscreen: false,
+      refused: true,
+    });
+
+    fireEvent.keyDown(window, { key: "f" });
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    expect(request).toHaveBeenLastCalledWith();
+    expect(channel.forwardKey).not.toHaveBeenCalled();
+    await vi.waitFor(() =>
+      expect(channel.reportOutputPlacement).toHaveBeenLastCalledWith({
+        onTarget: true,
+        fullscreen: true,
+        refused: true,
+      }),
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("skips the futile cross-screen attempt once the system has refused", async () => {
+    sessionStorage.setItem("placementRefused", "1");
+    attach();
+    const { request } = fullscreenApi();
+    render(() => <Output />);
+    expect(await screen.findByText(/Move this window to HXA/)).toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
+    expect(channel.reportOutputPlacement).toHaveBeenLastCalledWith({
+      onTarget: false,
+      fullscreen: false,
+      refused: true,
+    });
   });
 });

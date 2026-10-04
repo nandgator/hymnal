@@ -26,6 +26,12 @@ import {
 } from "./output/channel.ts";
 import { Output } from "./output/Output.tsx";
 import {
+  moveGuidance,
+  moveShortcutHint,
+  placementWasRefused,
+  rememberPlacementRefused,
+} from "./output/placement.ts";
+import {
   chooseScreen,
   describeScreen,
   keyOf,
@@ -98,7 +104,7 @@ const FULLSCREEN_GRACE_MS = 1200;
 const TRACK_MS = 2000;
 
 /** Notices about where the Output window is (DESIGN.md § Snackbar). */
-const SCREEN_NOTICES: Record<Exclude<ScreenNoticeId, "activate">, string> = {
+const SCREEN_NOTICES: Record<Exclude<ScreenNoticeId, "activate" | "move">, string> = {
   drag: "Drag the Output to the projector, then press F11 for fullscreen.",
   // Said only once the Output has verified it (ADR-0028, Wayland).
   fullscreen: "The Output is on the projector screen.",
@@ -110,10 +116,13 @@ const SCREEN_NOTICES: Record<Exclude<ScreenNoticeId, "activate">, string> = {
 };
 
 /** The text of a screen notice; `activate` names the screen, which only the Operator knows. */
-const screenNoticeText = (id: ScreenNoticeId, screenLabel: string | undefined): string =>
-  id === "activate"
-    ? `Click the Output window (or press F there) to put it on ${screenLabel ?? "the projector"}.`
-    : SCREEN_NOTICES[id];
+function screenNoticeText(id: ScreenNoticeId, screenLabel: string | undefined): string {
+  const named = screenLabel ?? "the projector";
+  if (id === "activate") return `Click the Output window (or press F there) to put it on ${named}.`;
+  // The system cannot place the window: the person moves it (ADR-0028).
+  if (id === "move") return [moveGuidance(named), moveShortcutHint()].filter(Boolean).join(" ");
+  return SCREEN_NOTICES[id];
+}
 
 function isOutputWindow(): boolean {
   return new URLSearchParams(window.location.search).has("output");
@@ -266,13 +275,22 @@ function Operator(props: Shared) {
   // only the Output's own word counts (ADR-0028).
   const [verified, setVerified] = createSignal(false);
   const [placeLabel, setPlaceLabel] = createSignal<string>();
+  // The Output has said the system cannot place windows: the hint is then to move it.
+  const [placementRefused, setPlacementRefused] = createSignal(placementWasRefused());
   let outputReports = false;
   onMount(() =>
     onCleanup(
       subscribePlacement((report) => {
         outputReports = true;
         setVerified(report.onTarget);
-        if (report.onTarget && screenNotice() === "activate") setScreenNotice("fullscreen");
+        if (report.refused) {
+          setPlacementRefused(true);
+          rememberPlacementRefused();
+        }
+        const shown = screenNotice();
+        if (report.onTarget) {
+          if (shown === "activate" || shown === "move") setScreenNotice("fullscreen");
+        } else if (report.refused) setScreenNotice("move");
       }),
     ),
   );
@@ -355,7 +373,8 @@ function Operator(props: Shared) {
         // a hint about a gone window would also hold back the update notice
         // for its whole stay.
         if (outputWin !== win) return;
-        if (!verified()) setScreenNotice("activate");
+        if (!verified() && screenNotice() !== "move")
+          setScreenNotice(placementRefused() ? "move" : "activate");
       }, FULLSCREEN_GRACE_MS);
     } else if (mayHaveSecondScreen()) showHintOnce("drag");
   };

@@ -77,6 +77,8 @@ export interface PlacementReport {
   /** Verifiably on the screen the Operator chose. */
   onTarget: boolean;
   fullscreen: boolean;
+  /** This system cannot place a window by fullscreen (Wayland): the person moves it. */
+  refused?: boolean;
 }
 
 /**
@@ -93,9 +95,43 @@ export function reportPlacement(input: {
   fullscreenOnPicked: boolean;
 }): PlacementReport {
   const { target, picked, currentScreen, fullscreen, fullscreenOnPicked } = input;
+  // A readable currentScreen decides; a fullscreen asked for on the picked
+  // screen only counts where the window's screen cannot be read.
   const onTarget =
     !!target &&
-    ((fullscreen && fullscreenOnPicked && !!picked) ||
-      (!!currentScreen && (isTarget(currentScreen, target) || currentScreen === picked)));
+    (currentScreen
+      ? isTarget(currentScreen, target) || currentScreen === picked
+      : fullscreen && fullscreenOnPicked && !!picked);
   return { onTarget, fullscreen };
 }
+
+/** The session flag: this system refused to place the window by fullscreen. */
+const REFUSED_KEY = "placementRefused";
+
+export function placementWasRefused(): boolean {
+  try {
+    return sessionStorage.getItem(REFUSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function rememberPlacementRefused(): void {
+  try {
+    sessionStorage.setItem(REFUSED_KEY, "1");
+  } catch {}
+}
+
+/** Linux, where the window manager has its own shortcut for moving a window. */
+export function isLinux(): boolean {
+  const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
+  return /linux/i.test(nav.userAgentData?.platform ?? nav.platform ?? "");
+}
+
+/** What to do when the page cannot move the window itself. */
+export const moveGuidance = (screenLabel: string): string =>
+  `Move this window to ${screenLabel}, then press F.`;
+
+/** The Linux-only extra line; `undefined` elsewhere. */
+export const moveShortcutHint = (): string | undefined =>
+  isLinux() ? "Super+Shift+Arrow moves a window to the next screen." : undefined;
