@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PREFERENCES } from "../persistence/user-state.ts";
 import {

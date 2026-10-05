@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 import { GLIDE_MS, type GlideItem, planCrossings, timeAtProgress } from "./glide-crossings.ts";
 

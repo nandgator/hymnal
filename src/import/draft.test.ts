@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 import type { HymnSource } from "../domain/types.ts";
 import { draftBook, firstLineTitle, titleOf } from "./draft.ts";

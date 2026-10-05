@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 import { fraction, type LoadProgress, phaseLine, throttled } from "./progress.ts";
 

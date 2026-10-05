@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 import { ImportError } from "../source.ts";

@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 import { findGutters, fontKey, linesFromRuns, type SourceRun } from "./source.ts";
 

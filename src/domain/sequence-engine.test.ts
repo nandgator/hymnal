@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 import { createSequenceEngine, flattenLines, positionOfLine } from "./sequence-engine.ts";
 import type { Hymn } from "./types.ts";

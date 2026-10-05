@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 import { CROSS_TRAVEL_EM, crossFrames, TURN_IN_START, TURN_OUT } from "./fullSongGlide.ts";
 

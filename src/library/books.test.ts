@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { createRoot } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 import type { BookRow } from "../persistence/content-store.ts";

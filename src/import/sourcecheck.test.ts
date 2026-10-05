@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 import { parseSongText } from "./songtext.ts";
 import { formatSourceCheck, normalise, sourceCheck } from "./sourcecheck.ts";

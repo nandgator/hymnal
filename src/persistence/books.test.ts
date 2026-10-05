@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, expect, it, vi } from "vitest";
 import { askPersist, commitAndPersist, removeBookAndRecents } from "./books.ts";
 import type { CommitResult } from "./load.ts";

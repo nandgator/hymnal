@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 import { axisAt, type Box, easingOf, glidePath } from "./glideGeometry.ts";
 

@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 import type { SourceLine, SourcePage } from "../src/import/source.ts";
 import { fontSummary, parsePages } from "./import.ts";

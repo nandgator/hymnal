@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 import sampleMd from "../../docs/authoring/sample.md?raw";
 import { validateCorpus } from "../domain/validate.ts";
