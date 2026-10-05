@@ -878,14 +878,79 @@ describe("Presenter", () => {
     const toolbar = screen.getByRole("toolbar", { name: "Output controls" });
     const names = [...toolbar.querySelectorAll("button")].map((b) => b.textContent);
     expect(names).toEqual(["BlankRestore", "HoldRelease", "End Live"]);
-    // One toolbar in the heading beside the label, each member with an icon.
+    // One toolbar in the heading beside the label, each member with an icon,
+    // each the transport's tonal button.
     expect(toolbar.parentElement).toHaveClass("area-header");
-    for (const button of toolbar.querySelectorAll("button"))
+    for (const button of toolbar.querySelectorAll("button")) {
       expect(button.querySelector(".icon")).not.toBeNull();
+      expect(button).toHaveClass("btn-tonal", "live-control");
+    }
     const end = screen.getByRole("button", { name: /^End Live/ });
     expect(end).toHaveAttribute("aria-keyshortcuts", "Shift+E");
     fireEvent.click(end);
     expect(onEndLive).toHaveBeenCalled();
+  });
+
+  it("puts Present Here between Hold and End Live while an Output window is live", async () => {
+    const onPresentHere = vi.fn();
+    render(() => (
+      <Presenter
+        hymnbookId="book"
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        presenting
+        outputWindow
+        onPresentHere={onPresentHere}
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    const toolbar = screen.getByRole("toolbar", { name: "Output controls" });
+    expect([...toolbar.querySelectorAll("button")].map((b) => b.textContent)).toEqual([
+      "BlankRestore",
+      "HoldRelease",
+      "Present Here",
+      "End Live",
+    ]);
+    const here = screen.getByRole("button", { name: /^Present Here/ });
+    expect(here).toHaveAttribute("aria-keyshortcuts", "Shift+P");
+    expect(here.querySelector(".icon-fullscreen")).not.toBeNull();
+    fireEvent.click(here);
+    expect(onPresentHere).toHaveBeenCalled();
+  });
+
+  it("draws Blank as a ring, Restore as a dot, and Hold as pause bars", async () => {
+    const view = render(() => (
+      <Presenter
+        hymnbookId="book"
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        presenting
+        blanked
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    expect(
+      screen.getByRole("button", { name: /^Restore/ }).querySelector(".icon-restore"),
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: /^Hold/ }).querySelector(".icon-hold"),
+    ).not.toBeNull();
+    view.unmount();
+    render(() => (
+      <Presenter
+        hymnbookId="book"
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        presenting
+      />
+    ));
+    await screen.findByText("Test Hymn");
+    expect(
+      screen.getByRole("button", { name: /^Blank/ }).querySelector(".icon-blank"),
+    ).not.toBeNull();
   });
 
   it("disables End Live in the toolbar while no Output is open", async () => {

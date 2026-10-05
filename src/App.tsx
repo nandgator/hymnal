@@ -74,7 +74,6 @@ import {
   SHORTCUTS,
   withKey,
 } from "./shell/keymap.ts";
-import { Menu } from "./shell/Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { moveOutputTo, openOutputWindow } from "./shell/openOutput.ts";
 import { createOutputScreens, mayHaveSecondScreen } from "./shell/outputScreens.ts";
@@ -697,6 +696,14 @@ function Operator(props: Shared) {
     open(true);
   };
 
+  const liveGlyph = () =>
+    !presentingOutput()
+      ? "icon-present"
+      : blanked()
+        ? "icon-blank"
+        : held()
+          ? "icon-hold"
+          : "icon-sensors";
   const canPresentHere = () => canGoLive() && !presentingOutput() && !presentingHere();
   // Go Live decides for you (SDD-0001 §16.7): an external screen is known
   // when Window Management lists a second one, or the one the operator chose
@@ -1245,84 +1252,60 @@ function Operator(props: Shared) {
               B, Live's Restore or the command menu restore it. */}
             <div
               class="live-controls"
-              ref={(el) =>
-                onCleanup(hoverGroup(el, ".present-button:enabled, .live-chevron:enabled"))
-              }
+              ref={(el) => onCleanup(hoverGroup(el, ".present-button:enabled"))}
             >
-              {/* One button, one width (DESIGN.md § Go Live): the label
-                swaps in place and the chevron's room is kept whether it
-                shows or not, so nothing beside it ever moves. Not live, one
-                click decides (an external screen known: the Output window;
-                else this tab, SDD-0001 §16.7). Live, the main part brings
-                the Output forward and the chevron opens End Live and the
-                other way to present. */}
-              <div class="live-split" classList={{ "live-split-open": presentingOutput() }}>
-                <button
-                  type="button"
-                  class="present-button"
-                  classList={{
-                    presenting: presentingOutput(),
-                    "present-blanked": presentingOutput() && blanked(),
-                    "present-held": presentingOutput() && !blanked() && !!held(),
-                  }}
-                  aria-keyshortcuts={ariaKeys("output")}
-                  disabled={!canGoLive()}
-                  aria-description={!canGoLive() ? "Load a songbook first" : undefined}
-                  title={
-                    !canGoLive()
-                      ? "Load a songbook first"
-                      : !presentingOutput()
-                        ? goLiveTarget() === "window"
-                          ? withKey("Go Live: open the Output window", "output", expanded())
-                          : withKey("Go Live: present on this screen", "present-here", expanded())
-                        : blanked()
-                          ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
-                          : held()
-                            ? `The Output is held${expanded() ? `; ${keyHint("hold")} releases it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
-                            : withKey("Bring the Output forward", "output", expanded())
-                  }
-                  onClick={() => (presentingOutput() ? void openOutput() : goLive())}
-                >
-                  <Show
-                    when={presentingOutput()}
-                    fallback={<span class="icon icon-present" aria-hidden="true" />}
-                  >
-                    <span class="on-air" aria-hidden="true" />
-                  </Show>
-                  <SwapLabel
-                    labels={["Go Live", "On Air", "Blanked", "Held"]}
-                    current={
-                      !presentingOutput()
-                        ? "Go Live"
-                        : blanked()
-                          ? "Blanked"
-                          : held()
-                            ? "Held"
-                            : "On Air"
-                    }
-                  />
-                </button>
-                <Show when={presentingOutput()}>
-                  <Menu
-                    split
-                    label="Live options"
-                    items={[
-                      {
-                        label: "End Live",
-                        icon: "icon-stop",
-                        hint: keyHint("end-live"),
-                        run: endLive,
-                      },
-                      {
-                        label: "Present on This Screen",
-                        icon: "icon-fullscreen",
-                        hint: keyHint("present-here"),
-                        run: switchToHere,
-                      },
-                    ]}
-                  />
+              {/* One button, one width (DESIGN.md § Go Live): the label swaps
+                in place, so nothing beside it ever moves. Not live, one click
+                decides (an external screen known: the Output window; else
+                this tab, SDD-0001 §16.7). Live, it brings the Output
+                forward; End Live and Present Here are Live's toolbar's. */}
+              <button
+                type="button"
+                class="present-button"
+                classList={{
+                  presenting: presentingOutput(),
+                  "present-blanked": presentingOutput() && blanked(),
+                  "present-held": presentingOutput() && !blanked() && !!held(),
+                }}
+                aria-keyshortcuts={ariaKeys("output")}
+                disabled={!canGoLive()}
+                aria-description={!canGoLive() ? "Load a songbook first" : undefined}
+                title={
+                  !canGoLive()
+                    ? "Load a songbook first"
+                    : !presentingOutput()
+                      ? goLiveTarget() === "window"
+                        ? withKey("Go Live: open the Output window", "output", expanded())
+                        : withKey("Go Live: present on this screen", "present-here", expanded())
+                      : blanked()
+                        ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
+                        : held()
+                          ? `The Output is held${expanded() ? `; ${keyHint("hold")} releases it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
+                          : withKey("Bring the Output forward", "output", expanded())
+                }
+                onClick={() => (presentingOutput() ? void openOutput() : goLive())}
+              >
+                {/* The state's glyph, turning over as it changes: Go Live's
+                  screen, then broadcasting, a ring (blanked) or pause bars
+                  (held) in the live colour (DESIGN.md § Go Live). */}
+                <Show when={liveGlyph()} keyed>
+                  {(glyph) => (
+                    <span class={`icon live-glyph ${glyph} icon-swap`} aria-hidden="true" />
+                  )}
                 </Show>
-              </div>
+                <SwapLabel
+                  labels={["Go Live", "On Air", "Blanked", "Held"]}
+                  current={
+                    !presentingOutput()
+                      ? "Go Live"
+                      : blanked()
+                        ? "Blanked"
+                        : held()
+                          ? "Held"
+                          : "On Air"
+                  }
+                />
+              </button>
             </div>
           </header>
 
@@ -1364,6 +1347,8 @@ function Operator(props: Shared) {
                   held={held()}
                   onToggleHold={toggleHold}
                   onEndLive={endLive}
+                  onPresentHere={switchToHere}
+                  outputWindow={presentingOutput()}
                   presenting={presentingOutput() || presentingHere()}
                   panes={preferences.preferences().panes}
                   workspace={preferences.preferences().workspace}

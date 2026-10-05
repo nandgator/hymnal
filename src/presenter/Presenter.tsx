@@ -133,6 +133,11 @@ export interface PresenterProps {
   onEndLive?: () => void;
   /** An Output window is open: Live's dot is the on-air light. */
   presenting?: boolean;
+  /** The Output is a window (not this tab): Present Here shows in Live's
+   * toolbar (SDD-0001 §16.7). */
+  outputWindow?: boolean;
+  /** Ends the window and presents in this tab instead. */
+  onPresentHere?: () => void;
   /** Which supporting panes show, by id; absent means shown (SDD-0001
    * §16.4). The shell keeps it in preferences. */
   panes?: Record<string, boolean>;
@@ -734,8 +739,7 @@ export function Presenter(props: PresenterProps) {
   const blankControl = () => (
     <button
       type="button"
-      class="live-control"
-      ref={(el) => onCleanup(hoverButton(el))}
+      class="btn-tonal live-control"
       aria-pressed={!!props.blanked}
       aria-keyshortcuts={ariaKeys("blank")}
       title={withKey(
@@ -760,8 +764,7 @@ export function Presenter(props: PresenterProps) {
   const holdControl = () => (
     <button
       type="button"
-      class="live-control"
-      ref={(el) => onCleanup(hoverButton(el))}
+      class="btn-tonal live-control"
       aria-pressed={!!props.held}
       aria-keyshortcuts={ariaKeys("hold")}
       disabled={!props.held && !props.presenting}
@@ -785,13 +788,34 @@ export function Presenter(props: PresenterProps) {
     </button>
   );
 
-  // End Live (SDD-0001 §16.4), the toolbar's third member: it closes the
+  // Present Here (SDD-0001 §16.7), only while an Output window is live: the
+  // window ends and this tab presents instead. While presenting here the
+  // window cannot open under it, so the slot is empty then.
+  const presentHereControl = () => (
+    <Show when={props.outputWindow}>
+      <button
+        type="button"
+        class="btn-tonal live-control"
+        aria-keyshortcuts={ariaKeys("present-here")}
+        title={withKey(
+          "Present on this screen, closing the Output window",
+          "present-here",
+          expanded(),
+        )}
+        onClick={() => props.onPresentHere?.()}
+      >
+        <span class="icon icon-fullscreen" aria-hidden="true" />
+        <span class="live-control-label">Present Here</span>
+      </button>
+    </Show>
+  );
+
+  // End Live (SDD-0001 §16.4), the toolbar's last member: it closes the
   // Output window, so like Hold it waits for one.
   const endLiveControl = () => (
     <button
       type="button"
-      class="live-control"
-      ref={(el) => onCleanup(hoverButton(el))}
+      class="btn-tonal live-control"
       aria-keyshortcuts={ariaKeys("end-live")}
       disabled={!props.presenting}
       title={
@@ -810,9 +834,15 @@ export function Presenter(props: PresenterProps) {
   // the strip's) end: the same size and gap for every member, on the label's
   // baseline (DESIGN.md § Buttons).
   const liveToolbar = () => (
-    <div class="live-toolbar" role="toolbar" aria-label="Output controls">
+    <div
+      class="live-toolbar"
+      role="toolbar"
+      aria-label="Output controls"
+      ref={(el) => onCleanup(hoverGroup(el, ".live-control:enabled", { gap: 150 }))}
+    >
       {blankControl()}
       {holdControl()}
+      {presentHereControl()}
       {endLiveControl()}
     </div>
   );

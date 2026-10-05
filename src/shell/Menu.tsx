@@ -1,6 +1,6 @@
 import { batch, createEffect, createSignal, For, onCleanup, Show } from "solid-js";
 import { glideList } from "./glideList.ts";
-import { keyCaps } from "./keymap.ts";
+import { KeyCombo } from "./KeyCombo.tsx";
 import { placeMenu } from "./menuPlacement.ts";
 
 export interface MenuItem {
@@ -27,9 +27,6 @@ export interface MenuProps {
   /** A choice menu (a select, in the app's own dress): the trigger is a button
    * showing this, the chosen item's text, and the items are radio items. */
   choice?: string;
-  /** The chevron of a split button: the trigger is a small button attached to
-   * its main part (the caller's), and the rows carry their icons and keys. */
-  split?: boolean;
   /** The choice button's id, so a label can point at it. */
   id?: string;
 }
@@ -47,10 +44,7 @@ export function Menu(props: MenuProps) {
   return (
     <Show
       when={
-        props.items.length === 1 &&
-        props.fold !== false &&
-        props.choice === undefined &&
-        !props.split
+        props.items.length === 1 && props.fold !== false && props.choice === undefined
           ? props.items[0]
           : undefined
       }
@@ -186,17 +180,14 @@ function MenuList(props: MenuProps) {
         fallback={
           <button
             type="button"
-            class={props.split ? "live-chevron" : "icon-button menu-button"}
+            class="icon-button menu-button"
             aria-label={props.label}
             aria-haspopup="menu"
             aria-expanded={open()}
             ref={button}
             onClick={() => setOpen((was) => !was)}
           >
-            <span
-              class={`icon ${props.split ? "icon-expand live-chevron-icon" : "icon-more-horiz"}`}
-              aria-hidden="true"
-            />
+            <span class="icon icon-more-horiz" aria-hidden="true" />
           </button>
         }
       >
@@ -253,9 +244,6 @@ function MenuList(props: MenuProps) {
                   item.run();
                 }}
               >
-                <Show when={props.split && item.icon}>
-                  <span class={`icon menu-popover-icon ${item.icon}`} aria-hidden="true" />
-                </Show>
                 <span class="menu-popover-label">
                   {item.label}
                   <Show when={item.supporting}>
@@ -263,11 +251,7 @@ function MenuList(props: MenuProps) {
                   </Show>
                 </span>
                 <Show when={item.hint}>
-                  <span class="key-combo menu-popover-key" aria-hidden="true">
-                    <For each={keyCaps(item.hint ?? "")}>
-                      {(cap) => <kbd class="key-hint">{cap}</kbd>}
-                    </For>
-                  </span>
+                  <KeyCombo class="menu-popover-key" keys={item.hint ?? ""} decorative />
                 </Show>
               </button>
             )}

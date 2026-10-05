@@ -1581,28 +1581,33 @@ workspace, the dock.
   never held and never replayed, so a window opened later is not closed by it;
   the Output answers it with `window.close()`, and its own `bye` is what turns
   the header to Go Live (the one way presence is known). It is reached from the
-  chevron of the live button (below), the command menu ("End Live", while an
-  Output is open), **Shift+E** (§16.5) and the Live pane's toolbar (a third
-  button beside Blank and Hold, off while closed). **Blank** is how to go dark
-  and keep the window. A blank held when Live ends is still held when it opens
-  again, as it is held across anything. The Output window is the source of truth
-  for its blank: once told anything it reports it in its `hello` and `shape`,
-  and a reloaded Operator adopts it. A late join replays the settings and the
-  blank before the content, and a window not yet told anything stays dark, so a
-  blanked Output never paints the song and fades it. Closing the window ends the
-  presence, and the update gate (Board #32: no update prompt while live) opens
-  with it, though not before. A book it showed may be removed once the window is
-  gone (the Library's Remove Book sheet offers End Live, which now closes the
-  window). With several outputs one day (ADR-0028), End Live closes them all;
-  closing one would be an item in that output's own menu. Not built: there is
-  one Output.
-- **One live button.** The header's live controls are one box of fixed width
-  (`.live-split`: the longest label's room, Blanked, plus the chevron's), so the
-  search never moves between Go Live, On Air, Held and Blanked. Live, it is a
-  split button: the main part brings the Output forward, the chevron (`Menu`
-  with `split`) opens End Live (Shift+E) and Present on This Screen (Shift+P),
-  each row with its icon and key. Not live, Go Live decides between the Output
-  window and presenting here by the Go Live opens setting (§16.7).
+  Live pane's toolbar (its last button, after Blank and Hold, off while closed;
+  that toolbar is the home of the live actions), the command menu ("End Live",
+  while an Output is open) and **Shift+E** (§16.5). The header's live button has
+  no menu. **Blank** is how to go dark and keep the window. A blank held when
+  Live ends is still held when it opens again, as it is held across anything.
+  The Output window is the source of truth for its blank: once told anything it
+  reports it in its `hello` and `shape`, and a reloaded Operator adopts it. A
+  late join replays the settings and the blank before the content, and a window
+  not yet told anything stays dark, so a blanked Output never paints the song
+  and fades it. Closing the window ends the presence, and the update gate (Board
+  #32: no update prompt while live) opens with it, though not before. A book it
+  showed may be removed once the window is gone (the Library's Remove Book sheet
+  offers End Live, which now closes the window). With several outputs one day
+  (ADR-0028), End Live closes them all; closing one would be an item in that
+  output's own menu. Not built: there is one Output.
+- **One live button.** The header's live control is one button of fixed width
+  (`.present-button`: the longest label's room, Blanked), so the search never
+  moves between Go Live, On Air, Held and Blanked. Live, it brings the Output
+  forward; it has no chevron and no menu. Its glyph is the state's: the screen
+  (Go Live), broadcasting (On Air), a ring (Blanked), pause bars (Held). The
+  **Live toolbar** (Live's heading, the phone strip) is Blank, Hold, **Present
+  Here** and End Live (Shift+E), in that order, all the transport's tonal
+  buttons. Present Here (Shift+P) shows only while an Output window is open: it
+  closes the window and presents in this tab, as the old menu row did. While
+  presenting here the Output Window has no way back (the window cannot open
+  under the tab), so the slot is empty then. Not live, Go Live decides between
+  the Output window and presenting here by the Go Live opens setting (§16.7).
 - **The Live pane's control is "Hide Live Preview"**, not "Hide Live", so it is
   never confused with ending Live: it hides the preview (the pane toggle, **L**,
   Settings' "Show Live Preview") and does nothing to the Output.
@@ -1794,12 +1799,12 @@ the app's own tab, fullscreen, with the Operator's state its only source.
   button of its own. The explicit choices remain: the commands "Open the Output
   Window" (O) and "Present on This Screen" (Shift+P, a chord, so a stray key
   cannot take the tab over), and, while an Output window is open, the **Present
-  on This Screen** row of the live button's menu (§16.4), which closes the
-  window and then presents here once its `bye` has landed (the click's
-  activation still serves fullscreen). It needs a book, as Go Live does (a song
-  may be chosen from the switcher), and is **not offered while an Output window
-  is open**: one audience, one place. An Output window that opens or answers
-  late while presenting here ends presenting here.
+  Here** button of Live's toolbar (§16.4), which closes the window and then
+  presents here once its `bye` has landed (the click's activation still serves
+  fullscreen). It needs a book, as Go Live does (a song may be chosen from the
+  switcher), and is **not offered while an Output window is open**: one
+  audience, one place. An Output window that opens or answers late while
+  presenting here ends presenting here.
 - **What it shows.** `PresentHere` (`src/output/PresentHere.tsx`) renders the
   same `OutputView` as the Output window, full-bleed over the shell
   (`position: fixed`, above everything, the shell `inert` underneath), in the

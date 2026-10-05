@@ -566,22 +566,32 @@ view is close enough to the frame to need a smaller unit.
   - **Blanked**: while the Output is blanked (B), Live dims and its heading's
     **Blank** control is pressed, reading **Restore** (the phone strip carries
     the same control). The operator can keep navigating behind it (SDD-0001
-    §16.5). The On Air status reads **Blanked**, its dot emptied to a ring, so
-    it shows on every screen, Live on screen or not.
-  - **The Live toolbar**: Blank, Hold and **End Live** are one group of three
-    quiet buttons at the end of Live's heading (and the phone strip's end), the
-    same height and gap (4px; 12px, 48px squares, on the strip), centred on the
-    heading's own line so they share the "Live" label's baseline; none floats at
-    the middle. Each carries an icon and its word (an icon alone on the strip).
-    End Live closes the Output window and waits, disabled, for one, as Hold
-    does; it is the third member, not the header's.
-  - **Hold**: a quiet text control beside Blank, in Live's heading and on the
-    phone strip (a square icon, like Blank's). Pressed (tonal) and reading
-    **Release** while the Output is held; off while no Output is open. Live
-    keeps showing what the audience sees, undimmed, with a small tonal **Held**
-    tag at its corner (under the strip, on a phone), and the On Air status reads
-    **Held**, its dot squared like a pause mark; **Blanked** wins if both are on
-    (SDD-0001 §16.6).
+    §16.5). The On Air status reads **Blanked**, its glyph a ring, so it shows
+    on every screen, Live on screen or not.
+  - **The Live toolbar**: **Blank, Hold, Present Here and End Live** are one
+    group at the end of Live's heading (and the phone strip's end), the Live
+    actions' one home (the header's button has no menu). They are the
+    transport's buttons (§ Buttons): tonal rounded rectangles on the neutral
+    fill, 40px tall (48px squares on the strip), one 8px gap between every pair,
+    centred on the heading's own line so they share the "Live" label's baseline.
+    Every button's width is fixed (SwapLabel keeps each label's room), so the
+    gaps do not change with state. **Pressed** (Blanked, Held) is the selected
+    tone, the secondary container, as the keypad's selected part. Each carries
+    an icon and its word; where the stage is too narrow (under 40rem) and on the
+    strip, all go icon-only together, the name kept. **Present Here** (Shift+P)
+    shows only while an Output window is live; it ends the window and presents
+    in this tab. While presenting here the Output Window has no way back, so the
+    slot stays empty. End Live closes the Output window and waits, disabled, for
+    one, as Hold does.
+  - **Blank** and **Restore** are a circle: Blank, going dark, an outlined ring;
+    Restore, coming back, a filled dot. Hold is the rounded pause bars (Release,
+    the rounded play triangle); the same ring and bars mark the header status.
+  - **Hold**: beside Blank, in Live's heading and on the phone strip. Pressed
+    and reading **Release** while the Output is held; off while no Output is
+    open. Live keeps showing what the audience sees, undimmed, with a small
+    tonal **Held** tag at its corner (under the strip, on a phone), and the On
+    Air status reads **Held**, its glyph the pause bars; **Blanked** wins if
+    both are on (SDD-0001 §16.6).
   - **Phone** (and anything under 840px): Live collapses to a thin strip showing
     the current line, expanding on tap. Below it the tabs, merged, with
     **Parts** as a third tab: This Song | Recents | Parts. On a phone one thing
@@ -637,29 +647,26 @@ view is close enough to the frame to need a smaller unit.
   once the Output is open becomes the **On Air** status, which brings that
   window forward. Live's dot is the same on-air light: grey until then. On air
   is a custom colour, red harmonised to the amber seed (Material's method), with
-  its own roles in both themes. Blanked is On Air's other state: **Blanked**,
-  the dot a ring; Held is the third, the dot a small square. To go dark and keep
-  the window, Blank.
-- **One live button, one width** The header holds a single live control, in a
-  box of fixed width (`.live-split`, 9.75rem; 5rem on a phone), so the search
-  beside it never moves, whatever the state: the box is the longest label's room
-  (**Blanked**, SwapLabel keeps every label's room) plus the chevron's, kept
-  whether the chevron shows or not. Not live, the button fills the box. Live, it
-  becomes a **split button** (Material 3): the main part, the status, brings the
-  Output forward; a small attached chevron (a 2px seam, outer corners round, the
-  seam's square) opens a menu of **End Live** (stop icon, Shift+E) and **Present
-  on This Screen** (fullscreen icon, Shift+P), each with its key. Ending is one
-  click on the chevron and one on the row; the common actions are never two
-  steps: Go Live is one click, Blank and Hold one click in Live. **Go Live
-  decides for you**, by Settings' Go Live opens: Automatic, with an external
-  screen known (Window Management lists a second screen, or the chosen screen is
-  attached), opens the Output window there, otherwise **presents here**; This
-  Screen always presents here; Output Window always opens the window. Its
-  tooltip says which. The explicit choices stay in the command menu (Open the
-  Output Window, O; Present on This Screen, Shift+P).
+  its own roles in both themes. Its glyph, in the live colour, says the state:
+  On Air is `sensors` (a dot with radiating arcs, filled, rounded), Blanked a
+  ring, Held the pause bars; Live's heading keeps its small plain dot, the
+  recording light. To go dark and keep the window, Blank.
+- **One live button, one width.** The header holds a single live control, a
+  button of fixed width (`.present-button`, 7.75rem; 3rem on a phone), so the
+  search beside it never moves, whatever the state: the longest label's room
+  (**Blanked**; SwapLabel keeps every label's room). It is never a split button:
+  not live, it is Go Live; live, the status, which brings the Output forward.
+  End Live and Present Here live in Live's toolbar. Ending is one click there;
+  Go Live is one click, Blank and Hold one click in Live. **Go Live decides for
+  you**, by Settings' Go Live opens: Automatic, with an external screen known
+  (Window Management lists a second screen, or the chosen screen is attached),
+  opens the Output window there, otherwise **presents here**; This Screen always
+  presents here; Output Window always opens the window. Its tooltip says which.
+  The explicit choices stay in the command menu (Open the Output Window, O;
+  Present on This Screen, Shift+P).
 - **Present here** (Board #41; SDD-0001 §16.7) is no button of its own: Go Live
-  starts it where no external screen is known, and the chevron's menu and
-  Shift+P offer it otherwise. Presenting, the app tab is the Output's own view
+  starts it where no external screen is known, and Live's toolbar and Shift+P
+  offer it otherwise. Presenting, the app tab is the Output's own view
   full-bleed on its ground, with nothing of the shell on it and no notice. The
   one thing laid over it is the **quick switcher**: no card, the search field
   itself at the bottom centre, at most 30rem, its list (five rows, small,
@@ -1110,9 +1117,9 @@ One rule, for every button in the app, so a row never looks half-dressed:
 
 - **A group carries icons all or none.** Text buttons side by side in one
   toolbar, row or button group (the Repeat row: Repeat, Undo, Reset; Live's
-  toolbar: Blank, Hold, End Live; the transport) either all have an icon or none
-  do. When the group is narrow, all of them go icon-only together, never one by
-  one.
+  toolbar: Blank, Hold, Present Here, End Live; the transport) either all have
+  an icon or none do. When the group is narrow, all of them go icon-only
+  together, never one by one.
 - **A lone text action has no icon**, unless the icon carries meaning the word
   does not: the one standalone button of a sheet, card or notice (Done, Cancel,
   Retry, Got It, Use Here) is its word. An icon that is part of what the button
@@ -1123,9 +1130,14 @@ One rule, for every button in the app, so a row never looks half-dressed:
 - **Icons are masks** in the existing style (`.icon-*` in `styles.css`: a
   Material Symbols path as `mask-image`, so the icon takes the text colour),
   never an image or a glyph. A new icon is added there, once.
+- **Icons are Material Symbols Rounded, filled where a filled form exists**
+  (fill 1, weight 400): rounded corners everywhere, never the sharp set.
+  Outlined is for meaning only (the Blank ring, against Restore's dot). Line
+  glyphs with no filled form (chevrons, arrows, close, check, search, menu,
+  undo, repeat) stay as drawn. Stop is a rounded square.
 - **Names are in Title Case** (§ Words): every button, tab, menu item and
   command, including a notice's action (Got It, Move the Output There) and a
-  split menu's rows (Present on This Screen). Sentences stay in sentence case.
+  menu's rows. Sentences stay in sentence case.
 
 ### Register: composed, not cozy
 

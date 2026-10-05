@@ -126,10 +126,10 @@ async function clickGoLive() {
   fireEvent.keyDown(window, { key: "o" });
 }
 
-/** End Live, from the live button's chevron menu (SDD-0001 §16.4). */
-async function endLiveFromMenu() {
-  fireEvent.click(screen.getByRole("button", { name: "Live options" }));
-  fireEvent.click(await screen.findByRole("menuitem", { name: /End Live/ }));
+/** End Live by its key, Shift+E (SDD-0001 §16.4): its button is in Live's
+ * toolbar, with a song open. */
+function endLiveFromMenu() {
+  fireEvent.keyDown(window, { key: "E", shiftKey: true });
 }
 
 /** Present, from the rail: the Finder of the current book. */
@@ -984,7 +984,7 @@ describe("App", () => {
       const { output, seen } = await liveOutput();
       fireEvent.keyDown(window, { key: "H", shiftKey: true });
       await screen.findByRole("button", { name: "Held" });
-      await endLiveFromMenu();
+      endLiveFromMenu();
       output.postMessage({ type: "bye", id: "test-output" });
       await screen.findByRole("button", { name: "Go Live" });
       // The next window opens on the current content, not held.
@@ -1246,12 +1246,10 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     closesOnCommand(output, seen);
     const opened = vi.mocked(window.open).mock.calls.length;
 
-    await endLiveFromMenu();
+    endLiveFromMenu();
     await waitFor(() => expect(seen).toContainEqual({ type: "close" }));
     expect(await screen.findByRole("button", { name: "Go Live" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "On Air" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Live options" })).not.toBeInTheDocument();
-
     await clickGoLive();
     await waitFor(() => expect(vi.mocked(window.open).mock.calls.length).toBe(opened + 1));
     // A new window at the Output's URL, placed on the remembered screen.
@@ -1270,7 +1268,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     updates.set(true);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(noticeText(/Update ready/)).toBe(0);
-    await endLiveFromMenu();
+    endLiveFromMenu();
     await screen.findByRole("button", { name: "Go Live" });
     await new Promise((resolve) => setTimeout(resolve, 600));
     await waitFor(() => expect(noticeText(/Update ready/)).toBeGreaterThan(0));
@@ -1877,18 +1875,18 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     updates.set(false);
   });
 
-  it("keeps one live button in one fixed-width box through Go Live, On Air, Held and Blanked", async () => {
+  it("keeps one live button, of one width, through Go Live, On Air, Held and Blanked", async () => {
     render(() => <App />);
     await screen.findByRole("button", { name: "Go Live" });
     const controls = document.querySelector(".live-controls") as HTMLElement;
-    const box = controls.querySelector(".live-split") as HTMLElement;
-    // The header's live controls are this one box in every state (the width
-    // is the box's class, --live-split-width; the label is SwapLabel's).
+    const box = controls.querySelector(".present-button") as HTMLElement;
+    // The header's live controls are this one button in every state: no
+    // chevron, no menu (End Live is Live's toolbar's). Its width is the
+    // class's; the label's room is SwapLabel's.
     const seen = () => {
-      expect([...controls.children].filter((el) => !el.matches(".hover-glide"))).toHaveLength(1);
-      expect(controls.querySelector(".live-split")).toBe(box);
-      expect(box).toHaveClass("live-split");
-      expect(box.querySelectorAll(".present-button")).toHaveLength(1);
+      expect([...controls.children].filter((el) => !el.matches(".hover-glide"))).toEqual([box]);
+      expect(screen.queryByRole("button", { name: "Live options" })).not.toBeInTheDocument();
+      expect(document.querySelector(".live-chevron")).toBeNull();
     };
     seen();
     const output = new BroadcastChannel("hymnal-output");
@@ -1915,22 +1913,44 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     output.close();
   });
 
-  it("has no split menu until live, then End Live and the other way to present, with their keys", async () => {
+  it("shows the live state's glyph in the header button: broadcasting, a ring when blanked, pause bars when held", async () => {
     render(() => <App />);
-    await screen.findByRole("button", { name: "Go Live" });
-    expect(screen.queryByRole("button", { name: "Live options" })).not.toBeInTheDocument();
+    const goLive = await screen.findByRole("button", { name: "Go Live" });
+    expect(goLive.querySelector(".icon-present")).not.toBeNull();
     const output = new BroadcastChannel("hymnal-output");
     output.postMessage({ type: "hello", id: "test-output" });
-    await screen.findByRole("button", { name: "On Air" });
-    fireEvent.click(screen.getByRole("button", { name: "Live options" }));
-    const end = await screen.findByRole("menuitem", { name: /End Live/ });
-    const here = screen.getByRole("menuitem", { name: /Present on This Screen/ });
-    expect(end).toHaveTextContent(/Shift\W*E/);
-    expect(here).toHaveTextContent(/Shift\W*P/);
+    const onAir = await screen.findByRole("button", { name: "On Air" });
+    expect(onAir.querySelector(".icon-sensors")).not.toBeNull();
+    fireEvent.keyDown(window, { key: "H", shiftKey: true });
+    const held = await screen.findByRole("button", { name: "Held" });
+    expect(held.querySelector(".icon-hold")).not.toBeNull();
+    expect(held.querySelector(".icon-stop")).toBeNull();
+    fireEvent.keyDown(window, { key: "b" });
+    const blanked = await screen.findByRole("button", { name: "Blanked" });
+    expect(blanked.querySelector(".icon-blank")).not.toBeNull();
+    expect(blanked.querySelector(".icon-hold, .icon-sensors")).toBeNull();
+    fireEvent.keyDown(window, { key: "b" });
+    fireEvent.keyDown(window, { key: "H", shiftKey: true });
+    output.postMessage({ type: "bye", id: "test-output" });
+    await screen.findByRole("button", { name: "Go Live" });
     output.close();
   });
 
-  it("presents here from the live menu once the Output window has closed", async () => {
+  it("offers End Live and Present Here in Live's toolbar once an Output window is live, with their keys", async () => {
+    await songUp();
+    const toolbar = screen.getByRole("toolbar", { name: "Output controls" });
+    expect(within(toolbar).queryByRole("button", { name: /^Present Here/ })).toBeNull();
+    const output = new BroadcastChannel("hymnal-output");
+    output.postMessage({ type: "hello", id: "test-output" });
+    await screen.findByRole("button", { name: "On Air" });
+    const end = within(toolbar).getByRole("button", { name: /^End Live/ });
+    const here = within(toolbar).getByRole("button", { name: /^Present Here/ });
+    expect(end).toHaveAttribute("aria-keyshortcuts", "Shift+E");
+    expect(here).toHaveAttribute("aria-keyshortcuts", "Shift+P");
+    output.close();
+  });
+
+  it("presents here from Live's toolbar once the Output window has closed", async () => {
     await songUp();
     const output = new BroadcastChannel("hymnal-output");
     output.onmessage = (event) => {
@@ -1939,8 +1959,7 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     };
     output.postMessage({ type: "hello", id: "test-output" });
     await screen.findByRole("button", { name: "On Air" });
-    fireEvent.click(screen.getByRole("button", { name: "Live options" }));
-    fireEvent.click(await screen.findByRole("menuitem", { name: /Present on This Screen/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Present Here/ }));
     await screen.findByRole("region", { name: "Presenting on this screen" });
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
     output.close();
