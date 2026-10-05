@@ -136,9 +136,11 @@ describe("Output", () => {
       const view = screen.getByRole("list").parentElement as HTMLElement;
 
       view.dispatchEvent(new WheelEvent("wheel"));
-      vi.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(900);
       view.dispatchEvent(new WheelEvent("wheel")); // still scrolling
-      vi.advanceTimersByTime(1499);
+      vi.advanceTimersByTime(900);
+      view.dispatchEvent(new Event("scroll")); // a fling carries on
+      vi.advanceTimersByTime(999);
       expect(scrollTo).not.toHaveBeenCalled();
 
       vi.advanceTimersByTime(1);

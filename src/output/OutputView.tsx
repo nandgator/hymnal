@@ -54,9 +54,10 @@ const PINNED_EYELINE = (EYELINE - BAND) / (1 - 2 * BAND);
 /** The space between the verse column and a pinned chorus, in lines: a
  * fade to still ground that lit lines never enter. */
 const PIN_GAP_LINES = 1;
-/** How long after a manual scroll stops before the view returns to the
- * focus (SDD-0001 §16.1, drift back). */
-const DRIFT_BACK_MS = 1500;
+/** How long after a manual scroll stops (its last wheel, touch or press, or
+ * the last scroll its momentum carries on with) before the view returns to
+ * the focus (SDD-0001 §16.1, drift back). */
+const DRIFT_BACK_MS = 1000;
 /** How long scrolling must pause to count as having come to rest. */
 const SEEK_REST_MS = 200;
 
@@ -253,6 +254,7 @@ export function OutputView(props: OutputViewProps) {
   let armed = false;
   let restTimer: ReturnType<typeof setTimeout> | undefined;
   let driftTimer: ReturnType<typeof setTimeout> | undefined;
+  let drifting = false;
   onCleanup(() => {
     clearTimeout(restTimer);
     clearTimeout(driftTimer);
@@ -435,6 +437,7 @@ export function OutputView(props: OutputViewProps) {
     armed = false;
     clearTimeout(restTimer);
     clearTimeout(driftTimer);
+    drifting = false;
     endBand();
     if (pinnedNow()) {
       positionPinned(behavior);
@@ -640,10 +643,17 @@ export function OutputView(props: OutputViewProps) {
     if (fullSong()) return;
     armed = !!props.onSeek;
     if (armed) startBand();
+    scheduleDrift();
+  };
+  const scheduleDrift = () => {
     clearTimeout(driftTimer);
+    drifting = true;
     driftTimer = setTimeout(() => position("smooth"), DRIFT_BACK_MS);
   };
   const onScroll = () => {
+    // A fling goes on scrolling after the last touch: the wait counts from
+    // where it stops, so the glide back never fights it.
+    if (drifting) scheduleDrift();
     if (!armed) return;
     updateBand();
     clearTimeout(restTimer);

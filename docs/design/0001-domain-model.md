@@ -1316,9 +1316,9 @@ without reworking this.
 
 **Drift back**: someone may scroll the Output window by hand (a mouse over the
 second screen). Unless scroll sync (below) takes that as a seek, the Output
-returns to the focus by itself about 1.5s after a manual scroll stops, so the
-audience is never left on empty screen. Any Operator step also re-centres it at
-once.
+returns to the focus by itself 1s after a manual scroll stops (the last wheel,
+touch or press, or the last scroll a fling carries on with), so the audience is
+never left on empty screen. Any Operator step also re-centres it at once.
 
 **Late join**: an Output window opened mid-hymn would otherwise stay blank until
 the operator's next keypress. On mount it posts a `hello` on the channel; the
@@ -1352,9 +1352,9 @@ decides.
   Output moves the Operator", on by default, kept as `preferences.scrollSync`
   (absent means on). Off, the Presenter ignores seeks. A seek naming a different
   hymn than the one open is ignored too.
-- **Drift back is the fallback.** The Output returns to the focus about 1.5s
-  after a hand scroll unless a new message arrives first: with sync off, or the
-  Operator closed, the audience comes back to what's live.
+- **Drift back is the fallback.** The Output returns to the focus 1s after a
+  hand scroll unless a new message arrives first: with sync off, or the Operator
+  closed, the audience comes back to what's live.
 - **Keys in the Output act as in the Operator.** With the Output fullscreen on
   the projector, a clicker's keys often land in its window. The Output forwards
   every plain key (no Ctrl, ⌘ or Alt) as `{ type: "key", key, shiftKey }`

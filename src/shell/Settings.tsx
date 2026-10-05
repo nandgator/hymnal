@@ -315,7 +315,7 @@ export function Settings(props: SettingsProps) {
       <legend class="visually-hidden">{legend}</legend>
       <For each={options}>
         {(option) => (
-          <label class="segment">
+          <label class="segment" data-label={option.label}>
             <input
               type="radio"
               name={`${id}-${name}`}
@@ -323,8 +323,10 @@ export function Settings(props: SettingsProps) {
               checked={current() === option.value}
               onChange={() => choose(option.value)}
             />
-            <span class="segment-check icon icon-check" aria-hidden="true" />
-            {option.label}
+            <span class="segment-face">
+              <span class="segment-check icon icon-check" aria-hidden="true" />
+              {option.label}
+            </span>
           </label>
         )}
       </For>

@@ -2635,9 +2635,11 @@ input[type="checkbox"].switch:disabled {
   padding-inline: var(--space-md);
 }
 
-/* MD3 segmented button on native radios. Every segment reserves the
-   checkmark's slot, so selection never changes a width (DESIGN.md §
-   Stability). */
+/* MD3 segmented button on native radios. A segment's width always has room
+   for the checkmark (a hidden copy of the label, with the slot, sizes it), so
+   selection never changes a width (DESIGN.md § Stability); the visible face
+   is centred in it: an unselected label alone, the selected check and label
+   together, the check's width and opacity gliding in. */
 .segmented {
   position: relative;
   isolation: isolate;
@@ -2656,24 +2658,29 @@ input[type="checkbox"].switch:disabled {
    page sideways at a large text scale on a phone. */
 .segment {
   position: relative;
-  display: inline-flex;
+  display: grid;
   flex: 1 1 0;
   align-items: center;
-  justify-content: center;
+  justify-items: center;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
-  gap: var(--space-xs);
   min-height: 2.5rem;
-  padding: 0 1rem 0 0.75rem;
+  padding: 0 1rem;
   color: var(--md-sys-color-on-surface);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
 }
 
+/* The divider is drawn, not a border, so it takes no room and each segment's
+   content stays centred in its box. */
 .segment + .segment {
-  border-inline-start: 1px solid var(--md-sys-color-outline);
+  box-shadow: inset 1px 0 0 var(--md-sys-color-outline);
+}
+
+.segment + .segment:dir(rtl) {
+  box-shadow: inset -1px 0 0 var(--md-sys-color-outline);
 }
 
 /* A segmented button's hover highlight and its selected pill are layers
@@ -2693,14 +2700,40 @@ input[type="checkbox"].switch:disabled {
   background-color: transparent;
 }
 
-.segment-check {
+/* The sizer: the label and the checkmark's slot, invisible. */
+.segment::before {
+  content: attr(data-label);
+  grid-area: 1 / 1;
+  box-sizing: content-box;
+  padding-inline-start: calc(1.125rem + var(--space-xs));
+  height: 0;
+  overflow: hidden;
   visibility: hidden;
-  width: 1.125rem;
+}
+
+.segment-face {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.segment-check {
+  flex: none;
+  width: 0;
   height: 1.125rem;
+  margin-inline-end: 0;
+  opacity: 0;
+  transition:
+    width var(--motion-medium) var(--motion-emphasized),
+    margin-inline-end var(--motion-medium) var(--motion-emphasized),
+    opacity var(--motion-medium) var(--motion-standard);
 }
 
 .segment:has(:checked) .segment-check {
-  visibility: visible;
+  width: 1.125rem;
+  margin-inline-end: var(--space-xs);
+  opacity: 1;
 }
 
 /* Three long labels on a phone: the checkmark's slot goes (the pill still
@@ -2709,6 +2742,10 @@ input[type="checkbox"].switch:disabled {
   .segmented-tight .segment {
     flex-basis: auto;
     padding: 0 0.75rem;
+  }
+
+  .segmented-tight .segment::before {
+    padding-inline-start: 0;
   }
 
   .segmented-tight .segment-check {
