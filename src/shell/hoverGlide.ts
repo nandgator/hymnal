@@ -56,15 +56,79 @@ const blurOf = (layer: HTMLElement) => {
   return match ? Number.parseFloat(match[1] ?? "0") : 0;
 };
 
+/** How far (px, in the list's own coordinates) a layer may reach on each side
+ * before it would add scrollable overflow to the list or to whatever scrolls
+ * around it. `Infinity` where nothing could scroll. */
+export interface Room {
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+export const OPEN_ROOM: Room = {
+  right: Number.POSITIVE_INFINITY,
+  bottom: Number.POSITIVE_INFINITY,
+  left: Number.NEGATIVE_INFINITY,
+};
+
 /** Where a layer sits just off its row, on the side the pointer came from or
- * went to: a row's height above or below, half its width (at most 96px) beside. */
-function drift(box: Box, side: Side | null): Box {
+ * went to: a row's height above or below, half its width (at most 96px) beside.
+ * It never reaches past `room`: a layer drifting out of a full-width row would
+ * otherwise widen the scrollable overflow of the list it sits in, and a
+ * scrollbar would flash under the row while it slid. */
+export function drift(box: Box, side: Side | null, room: Room = OPEN_ROOM): Box {
   const out = { ...box };
   if (side === "top") out.y -= box.h;
-  else if (side === "bottom") out.y += box.h;
-  else if (side === "left") out.x -= Math.min(box.w / 2, SIDE_DRIFT);
-  else if (side === "right") out.x += Math.min(box.w / 2, SIDE_DRIFT);
+  else if (side === "bottom") out.y = Math.min(out.y + box.h, Math.max(box.y, room.bottom - box.h));
+  else if (side === "left") {
+    out.x = Math.max(out.x - Math.min(box.w / 2, SIDE_DRIFT), Math.min(box.x, room.left));
+  } else if (side === "right") {
+    out.x = Math.min(out.x + Math.min(box.w / 2, SIDE_DRIFT), Math.max(box.x, room.right - box.w));
+  }
   return out;
+}
+
+/** The nearest ancestor (the list itself included) that clips or scrolls an
+ * axis, else the page. */
+function scrollerOf(list: HTMLElement, axis: "x" | "y"): HTMLElement {
+  for (let n: HTMLElement | null = list; n && n !== document.documentElement; n = n.parentElement) {
+    const cs = getComputedStyle(n);
+    if ((axis === "x" ? cs.overflowX : cs.overflowY) !== "visible") return n;
+  }
+  return document.documentElement;
+}
+
+/** The room a layer in `list` has before it adds scrollable overflow. Layout
+ * is measured by offsets and sizes, rects only for where the scroller sits
+ * against the list (a zoom-in scales the rects, so they are divided back). */
+export function roomOf(list: HTMLElement): Room {
+  const rect = list.getBoundingClientRect();
+  const scale = list.offsetWidth > 0 && rect.width > 0 ? rect.width / list.offsetWidth : 1;
+  const originX = rect.left + list.clientLeft * scale;
+  const originY = rect.top + list.clientTop * scale;
+  const room = { ...OPEN_ROOM };
+  // No layout (jsdom, or a list not rendered): nothing to measure, nothing to limit.
+  if (list.offsetWidth === 0 && list.offsetHeight === 0) return room;
+  const sx = scrollerOf(list, "x");
+  const sy = scrollerOf(list, "y");
+  const root = document.documentElement;
+  const rx = sx === root ? { left: 0, clientLeft: 0 } : sx.getBoundingClientRect();
+  const ry = sy === root ? { top: 0, clientTop: 0 } : sy.getBoundingClientRect();
+  const leftOf = sx === root ? 0 : rx.left + sx.clientLeft * scale;
+  const topOf = sy === root ? 0 : ry.top + sy.clientTop * scale;
+  // Scrollable width is the content's extent from the scroller's padding edge;
+  // a scroll offset moves the whole of it.
+  room.right =
+    (leftOf - originX) / scale + Math.max(sx.scrollWidth, sx.clientWidth) - sx.scrollLeft;
+  room.bottom =
+    (topOf - originY) / scale + Math.max(sy.scrollHeight, sy.clientHeight) - sy.scrollTop;
+  if (getComputedStyle(sx).direction === "rtl") {
+    room.left =
+      (leftOf - originX) / scale -
+      (Math.max(sx.scrollWidth, sx.clientWidth) - sx.clientWidth) -
+      sx.scrollLeft;
+  }
+  return room;
 }
 
 export interface RowGlide {
@@ -180,7 +244,7 @@ export function glideRows(
     } else if (!lit || !from) {
       anim = layer.animate(
         [
-          { ...frame(drift(to, entry)), opacity: 0, filter: `blur(${HOVER_BLUR}px)` },
+          { ...frame(drift(to, entry, roomOf(list))), opacity: 0, filter: `blur(${HOVER_BLUR}px)` },
           { ...frame(to), opacity: 1, filter: "blur(0px)" },
         ],
         glideTiming(layer),
@@ -237,7 +301,7 @@ export function glideRows(
     anim = layer.animate(
       [
         { ...frame(from), opacity, filter: `blur(${blur}px)` },
-        { ...frame(drift(from, side)), opacity: 0, filter: `blur(${HOVER_BLUR}px)` },
+        { ...frame(drift(from, side, roomOf(list))), opacity: 0, filter: `blur(${HOVER_BLUR}px)` },
       ],
       timing,
     );
