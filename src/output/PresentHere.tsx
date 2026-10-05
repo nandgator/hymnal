@@ -151,10 +151,10 @@ export function PresentHere(props: PresentHereProps) {
             }}
           >
             <div class="present-switcher-band" ref={(el) => (band = el)} aria-hidden="true">
-              <span />
-              <span />
-              <span />
-              <span />
+              <span class="present-switcher-blur" />
+              <span class="present-switcher-blur" />
+              <span class="present-switcher-blur" />
+              <span class="present-switcher-blur" />
             </div>
             <Finder
               compact

@@ -5701,23 +5701,23 @@ fieldset.book-main {
   transition: height var(--motion-medium) var(--motion-emphasized);
 }
 
-.present-switcher-band > span:nth-child(1) {
+.present-switcher-blur:nth-child(1) {
   --reach: 100%;
 }
 
-.present-switcher-band > span:nth-child(2) {
+.present-switcher-blur:nth-child(2) {
   --reach: 75%;
 }
 
-.present-switcher-band > span:nth-child(3) {
+.present-switcher-blur:nth-child(3) {
   --reach: 50%;
 }
 
-.present-switcher-band > span:nth-child(4) {
+.present-switcher-blur:nth-child(4) {
   --reach: 30%;
 }
 
-.present-switcher-band > span {
+.present-switcher-blur {
   position: absolute;
   inset: 0;
   backdrop-filter: blur(3px);
