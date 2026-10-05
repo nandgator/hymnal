@@ -335,6 +335,14 @@ describe("Finder", () => {
     expect(
       screen.getByRole("option", { name: /^#2\s*Title\s*—\s*A different line$/ }),
     ).toBeInTheDocument();
+    // Title and matched line are separate items, so each ellipsizes in its
+    // own style (a cut line ends in a muted "…", not the title's bright one).
+    const row = screen.getByRole("option", { name: /^#2/ });
+    expect(row.querySelector(".finder-title")?.textContent).toBe("Title");
+    const snippet = row.querySelector(".finder-snippet");
+    expect(snippet?.textContent).toMatch(/^—\s*A different line$/);
+    expect(snippet?.classList.contains("list-row-supporting")).toBe(true);
+    expect(snippet?.parentElement).toBe(row.querySelector(".finder-title")?.parentElement);
   });
 
   it("reports no matches for a lyric search with no results", async () => {

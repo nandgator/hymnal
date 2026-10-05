@@ -219,6 +219,11 @@ export function easeThemeChange(
   apply: () => void,
   was: [name: string, value: string],
   from: "control" | "middle" = "control",
+  /** Puts the copy's controls back as they were: the choice just made is
+   * already in the page's own radio (the browser checks it before it
+   * tells anyone), so a copy of the page shows it, before its pill, which
+   * glides only once the hole opens. */
+  asWas: (layer: HTMLElement) => void = () => {},
 ) {
   if (!canAnimate()) return apply();
   const [x, y] = origin(from);
@@ -230,6 +235,7 @@ export function easeThemeChange(
   document.body.append(layer);
   layer.showPopover?.();
   settle();
+  asWas(layer);
   // Still: a copied sheet would replay its opening.
   for (const animation of layer.getAnimations({ subtree: true })) animation.cancel();
   apply();

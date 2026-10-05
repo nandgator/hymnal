@@ -1452,10 +1452,11 @@ function Operator(props: Shared) {
                     aria-current={book.key === currentKey() ? "true" : undefined}
                     onClick={() => chooseHymnbook(book.key)}
                   >
-                    {book.title}
-                    <span class="list-row-supporting">
-                      {" "}
-                      — {book.songs.toLocaleString("en-US")} songs
+                    <span class="finder-text">
+                      <span class="finder-title">{book.title}</span>
+                      <span class="list-row-supporting finder-count">
+                        — {book.songs.toLocaleString("en-US")} songs
+                      </span>
                     </span>
                   </button>
                 </li>

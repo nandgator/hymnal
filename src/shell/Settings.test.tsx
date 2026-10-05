@@ -78,6 +78,44 @@ describe("Settings", () => {
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
   });
 
+  it("shows the theme control as it was under the reveal's old-theme copy", async () => {
+    // jsdom has no Web Animations: enough of them for a reveal to start.
+    const never = { finished: new Promise(() => {}), cancel() {}, pause() {}, play() {} };
+    vi.stubGlobal("matchMedia", () => ({
+      matches: false,
+      addEventListener() {},
+      removeEventListener() {},
+    }));
+    vi.stubGlobal("requestAnimationFrame", () => 0);
+    Object.assign(document.body, { animate: () => never });
+    Object.assign(document, { getAnimations: () => [] });
+    Object.assign(HTMLElement.prototype, { getAnimations: () => [] });
+    try {
+      render(() => <Settings userState={fakeUserState()} />);
+      await screen.findByRole("radio", { name: "System" });
+      const display = within(screen.getByRole("region", { name: "Display" }));
+      display.getByRole("radio", { name: "Light" }).focus();
+      fireEvent.click(display.getByRole("radio", { name: "Light" }));
+
+      // The copy is the old page: the choice marked is still System's, not
+      // the Light that the browser has already checked in the live control.
+      const copy = document.querySelector(".theme-layer");
+      expect(copy).not.toBeNull();
+      const marked = [...(copy?.querySelectorAll<HTMLInputElement>("input[type=radio]") ?? [])]
+        .filter((input) => input.checked)
+        .map((input) => input.closest("label")?.getAttribute("data-label"));
+      expect(marked).toContain("System");
+      expect(marked).not.toContain("Light");
+    } finally {
+      await new Promise((resolve) => setTimeout(resolve));
+      vi.unstubAllGlobals();
+      Reflect.deleteProperty(document.body, "animate");
+      Reflect.deleteProperty(document, "getAnimations");
+      Reflect.deleteProperty(HTMLElement.prototype, "getAnimations");
+      document.querySelector(".theme-layer")?.remove();
+    }
+  });
+
   it("steps the font scale up and down within bounds", async () => {
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);

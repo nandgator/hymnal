@@ -18,6 +18,8 @@ export function stillCopy(el: HTMLElement): { copy: HTMLElement; settle: () => v
       // Unnamed first: a radio sharing the page's group would take its
       // checked state away.
       same.removeAttribute("name");
+      // Kept for a caller that sets the copy's group back as it was.
+      if (source.type === "radio") same.dataset.group = source.name;
       same.checked = source.checked;
       same.value = source.value;
     }

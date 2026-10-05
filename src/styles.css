@@ -1321,6 +1321,51 @@ input[type="checkbox"].switch:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+/* A result's title and its muted matched line are two flex items, each its
+   own ellipsis, so a cut line ends in a muted "…" and a cut title in a
+   bright one. The title keeps its natural width; the line takes what is
+   left, nothing at all beside a title that fills the row. Malayalam glyphs
+   overhang their advance: the clip box leaves them room. */
+.finder-text {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.finder-title,
+.finder-snippet {
+  min-width: 0;
+  padding-inline-end: var(--space-xxs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finder-title {
+  flex: none;
+  max-width: 100%;
+}
+
+/* The space before the dash is its own padding: with none of the row left,
+   nothing of the line shows, not even the dash. */
+.finder-snippet {
+  flex: 1 1 0;
+  padding-inline-start: 0.3em;
+}
+
+/* A short fact (the book list's song count) is kept whole: the title gives
+   way to it. */
+.finder-count {
+  flex: none;
+  padding-inline-start: 0.3em;
+  white-space: nowrap;
+}
+
+.finder-title:has(+ .finder-count) {
+  flex: 0 1 auto;
+}
+
 /* A key hint: the command menu's rows and the shortcut sheet. */
 /* A key cap: one height, one shape (6px, nested inside a 12px control),
    the tone above whatever it sits on. Its character is the cap's lower
@@ -5858,13 +5903,6 @@ fieldset.book-main {
   min-height: 2.5rem;
   padding-block: 0.25rem;
   font-size: 0.9375rem;
-}
-
-.present-switcher .finder-title {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .present-switcher .finder {

@@ -435,11 +435,13 @@ export function Finder(props: FinderProps) {
                             {(hymn) => (
                               <>
                                 <span class="finder-number">#{hymn().number}</span>
-                                <span class="finder-title">
-                                  {titleCase(hymn().title)}
+                                <span class="finder-text">
+                                  <span class="finder-title">{titleCase(hymn().title)}</span>
                                   <Show when={hymn().snippet}>
                                     {(snippet) => (
-                                      <span class="list-row-supporting"> — {snippet()}</span>
+                                      <span class="finder-snippet list-row-supporting">
+                                        — {snippet()}
+                                      </span>
                                     )}
                                   </Show>
                                 </span>

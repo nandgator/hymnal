@@ -223,7 +223,16 @@ export function createPreferences(state: UserState = defaultUserState): Preferen
     const current = preferences();
     // A theme eases: revealed over the old (theme.ts).
     if (next.theme !== current.theme)
-      easeThemeChange(() => mutate(next), ["data-theme-copy", shownTheme()]);
+      easeThemeChange(
+        () => mutate(next),
+        ["data-theme-copy", shownTheme()],
+        "control",
+        (layer) =>
+          radioAsWas(
+            layer,
+            THEMES.findIndex((theme) => theme.value === current.theme),
+          ),
+      );
     else if (next.outputTheme !== current.outputTheme) {
       // Only Live shows the presentation's theme; the reveal plays there.
       const lives = [...document.querySelectorAll<HTMLElement>(LIVE_SELECTOR)].filter(
@@ -252,6 +261,19 @@ export function createPreferences(state: UserState = defaultUserState): Preferen
       update({ ...current, outputCues: { ...outputCuesOf(current), [id]: on } });
     },
   };
+}
+
+/** The radio group last used (the focused radio's), in a still copy of the
+ * page, set back to its `index`-th choice: what was chosen before. */
+function radioAsWas(layer: HTMLElement, index: number) {
+  const used = document.activeElement;
+  if (!(used instanceof HTMLInputElement) || used.type !== "radio" || index < 0) return;
+  const group = [...layer.querySelectorAll<HTMLInputElement>("input[data-group]")].filter(
+    (radio) => radio.dataset.group === used.name,
+  );
+  group.forEach((radio, i) => {
+    radio.checked = i === index;
+  });
 }
 
 export interface SettingsProps {
