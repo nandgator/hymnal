@@ -1,7 +1,13 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Position } from "../domain/types.ts";
-import { bandSizeOf, DEFAULT_PREFERENCES, openUserState, type UserState } from "./user-state.ts";
+import {
+  bandSizeOf,
+  DEFAULT_PREFERENCES,
+  goLiveOf,
+  openUserState,
+  type UserState,
+} from "./user-state.ts";
 
 const position = (hymnNumber: number): Position => ({
   hymnbookId: "mal-ymef-athmeeya-geethangal-16",
@@ -98,6 +104,15 @@ describe("preferences", () => {
       bandSize: "line",
     });
     expect(bandSizeOf(await state.getPreferences())).toBe("line");
+  });
+
+  it("reads Go Live opens as Automatic when none is stored or the value is unknown", async () => {
+    expect(goLiveOf(await state.getPreferences())).toBe("auto");
+    await state.setPreferences({ theme: "light", fontScale: 1, goLive: "window" });
+    expect(goLiveOf(await state.getPreferences())).toBe("window");
+    await state.setPreferences({ theme: "light", fontScale: 1, goLive: "projector" } as never);
+    expect(await state.getPreferences()).toEqual({ theme: "light", fontScale: 1 });
+    expect(goLiveOf({ theme: "light", fontScale: 1, goLive: 3 } as never)).toBe("auto");
   });
 
   it("falls back to a part for a stored band size that is neither", async () => {

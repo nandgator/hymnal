@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   recents: [] as import("./persistence/user-state.ts").RecentEntry[],
   addRecent: vi.fn(async (_book: string, _number: number) => {}),
   admin: {} as Record<string, unknown>,
+  /** Stored preferences a test sets before it renders. */
+  prefs: {} as Record<string, unknown>,
 }));
 
 vi.mock("./persistence/content-store.ts", () => {
@@ -91,7 +93,7 @@ vi.mock("./persistence/user-state.ts", async (importOriginal) => {
     getRecents: async () => mocks.recents,
     addRecent: (book, number) => mocks.addRecent(book, number),
     dropRecents: async () => {},
-    getPreferences: async () => ({ theme: "system", fontScale: 1 }),
+    getPreferences: async () => ({ theme: "system", fontScale: 1, ...mocks.prefs }),
     setPreferences: async () => {},
   };
   return { ...(await importOriginal<typeof import("./persistence/user-state.ts")>()), userState };
@@ -1625,6 +1627,7 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     Reflect.deleteProperty(document, "fullscreenElement");
     Reflect.deleteProperty(window, "getScreenDetails");
     Reflect.deleteProperty(window.screen, "isExtended");
+    mocks.prefs = {};
     vi.restoreAllMocks();
   });
 
@@ -1677,6 +1680,62 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     await waitFor(() => expect(open).toHaveBeenCalled());
     expect(region()).toBeNull();
     expect(requestFullscreen).not.toHaveBeenCalled();
+  });
+
+  describe("the Go Live opens setting", () => {
+    const panels = [
+      { label: "A", width: 1440, height: 900, left: 0, top: 0, isPrimary: true },
+      { label: "B", width: 1280, height: 800, left: 1440, top: 0 },
+    ];
+    function externalScreen() {
+      Object.assign(window, {
+        getScreenDetails: async () =>
+          Object.assign(new EventTarget(), { screens: panels, currentScreen: panels[0] }),
+      });
+      Object.defineProperty(window.screen, "isExtended", { value: true, configurable: true });
+    }
+    const cases = [
+      { goLive: "auto", external: false, outcome: "here" },
+      { goLive: "auto", external: true, outcome: "window" },
+      { goLive: "here", external: false, outcome: "here" },
+      { goLive: "here", external: true, outcome: "here" },
+      { goLive: "window", external: false, outcome: "window" },
+      { goLive: "window", external: true, outcome: "window" },
+      { goLive: "nonsense", external: true, outcome: "window" },
+      { goLive: "nonsense", external: false, outcome: "here" },
+    ];
+    for (const { goLive, external, outcome } of cases) {
+      it(`${goLive} with ${external ? "an external screen" : "one screen"} goes ${outcome}`, async () => {
+        mocks.prefs = { goLive };
+        if (external) externalScreen();
+        const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
+        render(() => <App />);
+        const button = await screen.findByRole("button", { name: "Go Live" });
+        await waitFor(() => expect(button).toBeEnabled());
+        // Let the stored setting and the screens load.
+        await waitFor(() =>
+          expect(button.title).toContain(outcome === "window" ? "Output window" : "this screen"),
+        );
+        fireEvent.click(button);
+        if (outcome === "window") {
+          await waitFor(() => expect(open).toHaveBeenCalled());
+          expect(region()).toBeNull();
+        } else {
+          await screen.findByRole("region", { name: "Presenting on this screen" });
+          expect(open).not.toHaveBeenCalled();
+        }
+      });
+    }
+
+    it("leaves O and Shift+P as they are under any setting", async () => {
+      mocks.prefs = { goLive: "here" };
+      const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
+      render(() => <App />);
+      const button = await screen.findByRole("button", { name: "Go Live" });
+      await waitFor(() => expect(button).toBeEnabled());
+      fireEvent.keyDown(window, { key: "o" });
+      await waitFor(() => expect(open).toHaveBeenCalled());
+    });
   });
 
   it("asks the browser for fullscreen on the click and shows the song full-bleed", async () => {

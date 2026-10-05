@@ -22,6 +22,8 @@ import {
   DEFAULT_OUTPUT_THEME,
   DEFAULT_PREFERENCES,
   userState as defaultUserState,
+  type GoLive,
+  goLiveOf,
   type Highlight,
   highlightOf,
   type OutputCues,
@@ -80,6 +82,10 @@ export const OUTPUT_CUES: {
 /** Every other Presentation and Output setting's words, in one place: a short
  * sentence a volunteer at the projector understands at a glance. */
 export const SETTING_COPY = {
+  goLive: {
+    title: "Go Live opens",
+    hint: "Where Go Live shows the song: a projector window when one is found, or this screen.",
+  },
   outputTheme: {
     title: "Output theme",
     hint: "The colours on the projector screen. This screen keeps its own.",
@@ -117,6 +123,12 @@ export const SETTING_COPY = {
     several: "Automatic picks an external screen, not your own.",
   },
 } as const;
+
+const GO_LIVES: { value: GoLive; label: string }[] = [
+  { value: "auto", label: "Automatic" },
+  { value: "here", label: "This Screen" },
+  { value: "window", label: "Output Window" },
+];
 
 const HIGHLIGHTS: { value: Highlight; label: string }[] = [
   { value: "part", label: "Current part" },
@@ -293,8 +305,13 @@ export function Settings(props: SettingsProps) {
     options: { value: T; label: string }[],
     current: () => T,
     choose: (value: T) => void,
+    tight = false,
   ) => (
-    <fieldset class="segmented" ref={(el) => glideSegments(el, current)}>
+    <fieldset
+      class="segmented"
+      classList={{ "segmented-tight": tight }}
+      ref={(el) => glideSegments(el, current)}
+    >
       <legend class="visually-hidden">{legend}</legend>
       <For each={options}>
         {(option) => (
@@ -500,40 +517,57 @@ export function Settings(props: SettingsProps) {
         <h3 id={`${id}-presentation`} class="settings-heading">
           Presentation
         </h3>
+        <div class="settings-row">
+          <span class="settings-label">
+            {SETTING_COPY.goLive.title}
+            <span class="settings-supporting">{SETTING_COPY.goLive.hint}</span>
+          </span>
+          {segmented(
+            SETTING_COPY.goLive.title,
+            "go-live",
+            GO_LIVES,
+            () => goLiveOf(preferences()),
+            (goLive) => update({ ...preferences(), goLive }),
+            true,
+          )}
+        </div>
+        {/* The screen is chosen only for a window: This Screen has none. */}
         <Show when={screens.supported}>
-          <div class="settings-row">
-            <span class="settings-label">
-              Output screen
-              <span class="settings-supporting">{screenNote()}</span>
-            </span>
-            <div class="settings-screen-control">
-              <Show
-                when={!oneScreen()}
-                fallback={<span class="settings-screen-text">One screen attached</span>}
-              >
-                <Menu
-                  id={`${id}-output-screen`}
-                  label="Output screen"
-                  choice={chosenText()}
-                  items={[
-                    {
-                      label: "Automatic",
-                      current: chosenScreen() === "auto",
-                      run: () => chooseScreenAt("auto"),
-                    },
-                    ...screenList().map((entry, index) => ({
-                      label: entry.text,
-                      current: chosenScreen() === String(index),
-                      run: () => chooseScreenAt(String(index)),
-                    })),
-                  ]}
-                />
-              </Show>
-              <button type="button" class="btn-text" onClick={() => void screens.detect()}>
-                Detect Screens
-              </button>
+          <Disclosure open={goLiveOf(preferences()) !== "here"}>
+            <div class="settings-row">
+              <span class="settings-label">
+                Output screen
+                <span class="settings-supporting">{screenNote()}</span>
+              </span>
+              <div class="settings-screen-control">
+                <Show
+                  when={!oneScreen()}
+                  fallback={<span class="settings-screen-text">One screen attached</span>}
+                >
+                  <Menu
+                    id={`${id}-output-screen`}
+                    label="Output screen"
+                    choice={chosenText()}
+                    items={[
+                      {
+                        label: "Automatic",
+                        current: chosenScreen() === "auto",
+                        run: () => chooseScreenAt("auto"),
+                      },
+                      ...screenList().map((entry, index) => ({
+                        label: entry.text,
+                        current: chosenScreen() === String(index),
+                        run: () => chooseScreenAt(String(index)),
+                      })),
+                    ]}
+                  />
+                </Show>
+                <button type="button" class="btn-text" onClick={() => void screens.detect()}>
+                  Detect Screens
+                </button>
+              </div>
             </div>
-          </div>
+          </Disclosure>
         </Show>
         <div class="settings-row">
           <span class="settings-label">

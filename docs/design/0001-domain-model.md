@@ -1376,10 +1376,12 @@ show under it: Part by part has "Pin the chorus", "Scrolling the Output moves
 this screen" and "Highlight while scrolling" (Whole song does not scroll by
 hand); Whole song has none, and shows nothing. Under "On the Output", which
 holds the cue switches for both layouts, "Fade the details" shows only while a
-cue is on. Those two are the only nesting. If a group ever needs more, it gets a
-drill-in page, not a deeper indent. Every setting's words are one short plain
-sentence saying what you will see (`SETTING_COPY` and `OUTPUT_CUES` in
-`Settings.tsx`).
+cue is on. Go Live opens is a choice too (Automatic | This Screen | Output
+Window, the `goLive` preference), and the Output screen choice shows under
+Automatic and Output Window only, since This Screen has no screen to choose.
+Those three are the only nesting. If a group ever needs more, it gets a drill-in
+page, not a deeper indent. Every setting's words are one short plain sentence
+saying what you will see (`SETTING_COPY` and `OUTPUT_CUES` in `Settings.tsx`).
 
 **Presentation settings travel with the content.** The Output theme (Dark,
 Light, Contrast, Warm) and the cue switches are Operator preferences, sent as
@@ -1600,7 +1602,7 @@ workspace, the dock.
   split button: the main part brings the Output forward, the chevron (`Menu`
   with `split`) opens End Live (Shift+E) and Present on This Screen (Shift+P),
   each row with its icon and key. Not live, Go Live decides between the Output
-  window and presenting here (§16.7).
+  window and presenting here by the Go Live opens setting (§16.7).
 - **The Live pane's control is "Hide Live Preview"**, not "Hide Live", so it is
   never confused with ending Live: it hides the preview (the pane toggle, **L**,
   Settings' "Show Live Preview") and does nothing to the Output.
@@ -1779,15 +1781,21 @@ is nowhere to drag an Output window to. Google Slides' Slideshow makes its own
 tab fullscreen, and so does this: **Present here** shows the Output's view in
 the app's own tab, fullscreen, with the Operator's state its only source.
 
-- **Entry.** The header has one live button, **Go Live**, and it decides: when
+- **Entry.** The header has one live button, **Go Live**, and it decides by the
+  setting **Go Live opens** (Settings, Presentation; the `goLive` preference,
+  read through `goLiveOf`, so a missing or unknown value is Automatic). **This
+  Screen** always presents here; **Output Window** always opens the window, even
+  with one screen (to drag it to a projector the browser cannot see, or a
+  mirrored one). **Automatic**, the default, is the rest of this paragraph: when
   an external screen is known (Window Management is granted and
   `screen.isExtended`, or the screen the operator chose is attached) it opens
-  the Output window as before (ADR-0028); otherwise it presents here. Present
-  here has no button of its own. The explicit choices remain: the commands "Open
-  the Output Window" (O) and "Present on This Screen" (Shift+P, a chord, so a
-  stray key cannot take the tab over), and, while an Output window is open, the
-  **Present on This Screen** row of the live button's menu (§16.4), which closes
-  the window and then presents here once its `bye` has landed (the click's
+  the Output window as before (ADR-0028); otherwise it presents here. The
+  button's tooltip says what it will do under the setting. Present here has no
+  button of its own. The explicit choices remain: the commands "Open the Output
+  Window" (O) and "Present on This Screen" (Shift+P, a chord, so a stray key
+  cannot take the tab over), and, while an Output window is open, the **Present
+  on This Screen** row of the live button's menu (§16.4), which closes the
+  window and then presents here once its `bye` has landed (the click's
   activation still serves fullscreen). It needs a book, as Go Live does (a song
   may be chosen from the switcher), and is **not offered while an Output window
   is open**: one audience, one place. An Output window that opens or answers

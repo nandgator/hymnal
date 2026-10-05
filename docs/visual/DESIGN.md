@@ -603,17 +603,22 @@ view is close enough to the frame to need a smaller unit.
     Settings sheet (nested navigation, § Motion), not a second dialog: its
     header says Back and returns to Settings, Escape too. Opened by `?` or the
     command, the sheet opens straight on that page and says Close.
-    **Presentation** (part 4): the Output theme (Dark | Light | Contrast | Warm)
-    and one switch per cue; and, in Chrome and Edge only, **Output screen**: a
-    choice menu (the Menu component with its trigger a button showing the
-    choice, a chevron after it, never a native select) of Automatic and the
-    screens by label and size ("Built-in" for the laptop's panel, a remembered
-    one not attached marked "not connected"; the chosen one is the tonal pill;
-    arrows, Enter and Esc work, and ArrowDown opens it). With one screen
-    attached there is no list: the text "One screen attached" instead. A text
-    **Detect Screens** button asks the browser to list the screens; its
-    supporting line says what Automatic picks, or that permission is blocked.
-    Hidden where the browser cannot place a window.
+    **Presentation** (part 4): at the top, **Go Live opens**, a segmented choice
+    of **Automatic | This Screen | Output Window** (Automatic by default), and
+    under it, in a disclosure shown for Automatic and Output Window only (hidden
+    values kept) the Output screen (on a phone its three long labels drop the
+    checkmark's slot, the pill still marking the choice); then the Output theme
+    (Dark | Light | Contrast | Warm) and one switch per cue. The disclosure's
+    **Output screen**, in Chrome and Edge only, is a choice menu (the Menu
+    component with its trigger a button showing the choice, a chevron after it,
+    never a native select) of Automatic and the screens by label and size
+    ("Built-in" for the laptop's panel, a remembered one not attached marked
+    "not connected"; the chosen one is the tonal pill; arrows, Enter and Esc
+    work, and ArrowDown opens it). With one screen attached there is no list:
+    the text "One screen attached" instead. A text **Detect Screens** button
+    asks the browser to list the screens; its supporting line says what
+    Automatic picks, or that permission is blocked. Hidden where the browser
+    cannot place a window.
   - **Show/hide**: Live, remembered, and the tab layout (SDD-0001 §16.4). This
     hymn and the dock never hide.
 - **One transport** (Board #26, PRINCIPLES.md). From 840px it sits at the
@@ -646,11 +651,12 @@ view is close enough to the frame to need a smaller unit.
   on This Screen** (fullscreen icon, Shift+P), each with its key. Ending is one
   click on the chevron and one on the row; the common actions are never two
   steps: Go Live is one click, Blank and Hold one click in Live. **Go Live
-  decides for you:** with an external screen known (Window Management lists a
-  second screen, or the chosen screen is attached) it opens the Output window
-  there; otherwise it **presents here**. Its tooltip says which. The explicit
-  choices stay in the command menu (Open the Output Window, O; Present on This
-  Screen, Shift+P).
+  decides for you**, by Settings' Go Live opens: Automatic, with an external
+  screen known (Window Management lists a second screen, or the chosen screen is
+  attached), opens the Output window there, otherwise **presents here**; This
+  Screen always presents here; Output Window always opens the window. Its
+  tooltip says which. The explicit choices stay in the command menu (Open the
+  Output Window, O; Present on This Screen, Shift+P).
 - **Present here** (Board #41; SDD-0001 §16.7) is no button of its own: Go Live
   starts it where no external screen is known, and the chevron's menu and
   Shift+P offer it otherwise. Presenting, the app tab is the Output's own view

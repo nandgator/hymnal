@@ -415,6 +415,75 @@ describe("Settings: Output screen (ADR-0028)", () => {
   }
   afterEach(() => Reflect.deleteProperty(window, "getScreenDetails"));
 
+  const goLiveGroup = () => screen.getByRole("group", { name: "Go Live opens" });
+  const screenOpen = () =>
+    screen
+      .getByRole("button", { name: "Detect Screens", hidden: true })
+      .closest(".settings-disclosure")
+      ?.getAttribute("data-open");
+
+  it("offers Go Live opens as three choices, Automatic by default, beside the screen choice", async () => {
+    attach([panel, projector]);
+    const setPreferences = vi.fn(async () => {});
+    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
+    await screen.findByRole("button", { name: "Detect Screens" });
+    const labels = within(goLiveGroup())
+      .getAllByRole("radio")
+      .map((r) => r.closest("label")?.textContent);
+    expect(labels).toEqual(["Automatic", "This Screen", "Output Window"]);
+    expect(within(goLiveGroup()).getByRole("radio", { name: "Automatic" })).toBeChecked();
+    fireEvent.click(within(goLiveGroup()).getByRole("radio", { name: "Output Window" }));
+    expect(setPreferences).toHaveBeenLastCalledWith(expect.objectContaining({ goLive: "window" }));
+  });
+
+  it("hides the screen picker under This Screen and keeps what was chosen", async () => {
+    attach([panel, projector]);
+    const setPreferences = vi.fn(async () => {});
+    render(() => (
+      <Settings
+        userState={fakeUserState({
+          setPreferences,
+          getPreferences: async () => ({
+            ...DEFAULT_PREFERENCES,
+            outputScreen: { label: "EPSON PJ", width: 1280, height: 800 },
+          }),
+        })}
+      />
+    ));
+    await screen.findByRole("button", { name: "Detect Screens" });
+    expect(screenOpen()).toBe("true");
+    fireEvent.click(within(goLiveGroup()).getByRole("radio", { name: "This Screen" }));
+    expect(screenOpen()).toBe("false");
+    expect(
+      screen
+        .getByRole("button", { name: "Detect Screens", hidden: true })
+        .closest(".settings-disclosure"),
+    ).toHaveAttribute("inert");
+    expect(setPreferences).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        goLive: "here",
+        outputScreen: { label: "EPSON PJ", width: 1280, height: 800 },
+      }),
+    );
+    fireEvent.click(within(goLiveGroup()).getByRole("radio", { name: "Output Window" }));
+    expect(screenOpen()).toBe("true");
+    expect(screen.getByRole("button", { name: /^Output screen/ })).toHaveTextContent("EPSON PJ");
+  });
+
+  it("reads an unknown stored value as Automatic", async () => {
+    attach([panel, projector]);
+    render(() => (
+      <Settings
+        userState={fakeUserState({
+          getPreferences: async () => ({ ...DEFAULT_PREFERENCES, goLive: "sideways" as never }),
+        })}
+      />
+    ));
+    await screen.findByRole("button", { name: "Detect Screens" });
+    expect(within(goLiveGroup()).getByRole("radio", { name: "Automatic" })).toBeChecked();
+    expect(screenOpen()).toBe("true");
+  });
+
   it("is left out where the browser has no Window Management API", () => {
     render(() => <Settings userState={fakeUserState()} />);
     expect(screen.queryByLabelText("Output screen")).not.toBeInTheDocument();

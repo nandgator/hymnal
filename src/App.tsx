@@ -53,6 +53,7 @@ import { getContentAdmin, getContentStore } from "./persistence/content-store.ts
 import {
   bandSizeOf,
   DEFAULT_OUTPUT_THEME,
+  goLiveOf,
   highlightOf,
   outputCuesOf,
   pinChorusOf,
@@ -710,9 +711,16 @@ function Operator(props: Shared) {
       !!chosen && screens.screens().length > 1 && screens.screens().some((s) => sameKey(s, chosen))
     );
   };
+  // The setting (Settings → Presentation, SDD-0001 §16.7) can fix the answer:
+  // this screen, or the window even with one screen.
+  const goLiveTarget = (): "window" | "here" => {
+    const chosen = goLiveOf(preferences.preferences());
+    if (chosen === "auto") return externalKnown() ? "window" : "here";
+    return chosen === "window" ? "window" : "here";
+  };
   const goLive = () => {
     if (!canGoLive() || presentingOutput() || presentingHere()) return;
-    if (externalKnown()) void openOutput();
+    if (goLiveTarget() === "window") void openOutput();
     else presentHere();
   };
   // The click or key is the activation fullscreen needs, so the request is
@@ -1264,7 +1272,7 @@ function Operator(props: Shared) {
                     !canGoLive()
                       ? "Load a songbook first"
                       : !presentingOutput()
-                        ? externalKnown()
+                        ? goLiveTarget() === "window"
                           ? withKey("Go Live: open the Output window", "output", expanded())
                           : withKey("Go Live: present on this screen", "present-here", expanded())
                         : blanked()

@@ -2703,6 +2703,19 @@ input[type="checkbox"].switch:disabled {
   visibility: visible;
 }
 
+/* Three long labels on a phone: the checkmark's slot goes (the pill still
+   marks the choice), the same in every state, so nothing shifts. */
+@media (max-width: 480px) {
+  .segmented-tight .segment {
+    flex-basis: auto;
+    padding: 0 0.75rem;
+  }
+
+  .segmented-tight .segment-check {
+    display: none;
+  }
+}
+
 .segment-input {
   position: absolute;
   opacity: 0;

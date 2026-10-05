@@ -73,11 +73,22 @@ export interface Preferences {
   /** The screen the operator chose for the Output, by label and size; absent
    * means Automatic — SDD-0001 §16.1, ADR-0028. Read through `rememberedScreenOf`. */
   outputScreen?: ScreenKey;
+  /** Where Go Live shows the song; absent means Automatic — SDD-0001 §16.7.
+   * Read through {@link goLiveOf}. */
+  goLive?: GoLive;
   /** "Drag it to the projector and press F11" was shown; once. */
   dragHintDismissed?: boolean;
   /** "Click the Output, or press F, for fullscreen" was shown; once. */
   fullscreenHintDismissed?: boolean;
 }
+
+/** Where Go Live opens: the Output window when an external screen is known and
+ * this screen otherwise (`auto`), always this screen, or always the window. */
+export type GoLive = "auto" | "here" | "window";
+
+/** An unknown stored value, or none, is Automatic. */
+export const goLiveOf = (preferences: Preferences): GoLive =>
+  preferences.goLive === "here" || preferences.goLive === "window" ? preferences.goLive : "auto";
 
 /** The cues when none are chosen: what a songbook congregation needs, the
  * number and the book, fading after a few seconds (DESIGN.md § Typography). */
@@ -203,6 +214,7 @@ export function openUserState(dbName: string): UserState {
         pinRefrain,
         partLabels,
         bandSize,
+        goLive,
         ...stored
       } = ((await readDoc()).preferences ?? {}) as Partial<Preferences> & {
         navigator?: unknown;
@@ -229,6 +241,7 @@ export function openUserState(dbName: string): UserState {
         ...stored,
         ...(outputCues ? { outputCues } : {}),
         ...(bandSize === "part" || bandSize === "line" ? { bandSize } : {}),
+        ...(goLive === "here" || goLive === "window" ? { goLive } : {}),
       };
     },
 
