@@ -296,8 +296,12 @@ describe("Settings", () => {
     });
 
     it("reflects a layout changed elsewhere (the command menu, a key)", async () => {
-      const controller = createPreferences(fakeUserState());
-      render(() => <Settings controller={controller} />);
+      // Made inside the render's root, as App makes it, so it is disposed.
+      let controller!: ReturnType<typeof createPreferences>;
+      render(() => {
+        controller = createPreferences(fakeUserState());
+        return <Settings controller={controller} />;
+      });
       await screen.findByText("100%");
       const presentation = within(screen.getByRole("region", { name: "Presentation" }));
       controller.update({ ...controller.preferences(), wholeSong: true });
