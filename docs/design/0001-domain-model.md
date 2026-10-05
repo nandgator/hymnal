@@ -1600,10 +1600,10 @@ workspace, the dock.
   (`.present-button`: the longest label's room, Blanked), so the search never
   moves between Go Live, On Air, Held and Blanked. Live, it brings the Output
   forward; it has no chevron and no menu. Its glyph is the state's: the screen
-  (Go Live), broadcasting (On Air), the screen struck through (Blanked), pause
-  bars (Held). The **Live toolbar** (a row under the Live preview, the phone
-  strip) is Blank, Hold, **Present Here** and End Live (Shift+E), in that order,
-  all the transport's tonal buttons. Present Here (Shift+P) is always there: not
+  (Go Live), broadcasting (On Air), a slashed circle (Blanked), pause bars
+  (Held). The **Live toolbar** (a row under the Live preview, the phone strip)
+  is Blank, Hold, **Present Here** and End Live (Shift+E), in that order, all
+  the transport's tonal buttons. Present Here (Shift+P) is always there: not
   live it presents in this tab (whatever Go Live opens says); with an Output
   window open it closes the window and presents in this tab, as the old menu row
   did. Blank, Hold and End Live wait, disabled, while not live. Go Live itself

@@ -918,7 +918,7 @@ describe("Presenter", () => {
     ]);
     const here = screen.getByRole("button", { name: /^Present Here/ });
     expect(here).toHaveAttribute("aria-keyshortcuts", "Shift+P");
-    expect(here.querySelector(".icon-laptop")).not.toBeNull();
+    expect(here.querySelector(".icon-here")).not.toBeNull();
     fireEvent.click(here);
     expect(onPresentHere).toHaveBeenCalled();
   });
@@ -946,7 +946,7 @@ describe("Presenter", () => {
     expect(onPresentHere).toHaveBeenCalled();
   });
 
-  it("draws Blank as a screen turned off, Restore as a screen, and Hold as pause bars", async () => {
+  it("draws Blank as a slashed circle, Restore as a dot, and Hold as pause bars", async () => {
     const view = render(() => (
       <Presenter
         hymnbookId="book"

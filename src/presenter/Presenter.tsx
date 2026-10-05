@@ -805,7 +805,7 @@ export function Presenter(props: PresenterProps) {
       )}
       onClick={() => props.onPresentHere?.()}
     >
-      <span class="icon icon-laptop" aria-hidden="true" />
+      <span class="icon icon-here" aria-hidden="true" />
       <span class="live-control-label">Present Here</span>
     </button>
   );

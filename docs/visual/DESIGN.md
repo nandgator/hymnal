@@ -566,8 +566,8 @@ view is close enough to the frame to need a smaller unit.
   - **Blanked**: while the Output is blanked (B), Live dims and the toolbar's
     **Blank** control is pressed, reading **Restore** (the phone strip carries
     the same control). The operator can keep navigating behind it (SDD-0001
-    §16.5). The On Air status reads **Blanked**, its glyph the screen struck
-    through, so it shows on every screen, Live on screen or not.
+    §16.5). The On Air status reads **Blanked**, its glyph a slashed circle, so
+    it shows on every screen, Live on screen or not.
   - **The Live toolbar**: **Blank, Hold, Present Here and End Live** are one row
     of their own, full width under the Live preview (the preview's width, its
     margins), as the transport's row sits under Parts; Live's heading keeps only
@@ -591,11 +591,12 @@ view is close enough to the frame to need a smaller unit.
     this tab. Blank, Hold and End Live wait, disabled, while not live. (While
     presenting here the shell is off screen, so the row is too.) End Live closes
     the Output window.
-  - **Blank** and **Restore** are a screen: Blank, going dark, the screen struck
-    through (like a projector's A/V Mute); Restore, the plain screen. Present
-    Here is a laptop: this device. Hold is the rounded pause bars (Release, the
-    rounded play triangle); the same struck screen and bars mark the header
-    status.
+  - **Each control has its own shape**, so none is mistaken at a glance: Blank,
+    going dark, a slashed circle (`hide_source`); Restore, coming back, a filled
+    dot (`circle`); Hold the rounded pause bars (Release, the play triangle);
+    Present Here a crosshair (`my_location`, here); End Live a stop in a circle
+    (`stop_circle`). Go Live keeps the only screen. The same slashed circle and
+    bars mark the header status.
   - **Hold**: beside Blank, in Live's toolbar and on the phone strip. Pressed
     and reading **Release** while the Output is held; off while no Output is
     open. Live keeps showing what the audience sees, undimmed, with a small
@@ -658,9 +659,9 @@ view is close enough to the frame to need a smaller unit.
   window forward. Live's dot is the same on-air light: grey until then. On air
   is a custom colour, red harmonised to the amber seed (Material's method), with
   its own roles in both themes. Its glyph, in the live colour, says the state:
-  On Air is `sensors` (a dot with radiating arcs, filled, rounded), Blanked the
-  screen struck through, Held the pause bars; Live's heading keeps its small
-  plain dot, the recording light. To go dark and keep the window, Blank.
+  On Air is `sensors` (a dot with radiating arcs, filled, rounded), Blanked a
+  slashed circle, Held the pause bars; Live's heading keeps its small plain dot,
+  the recording light. To go dark and keep the window, Blank.
 - **One live button, one width.** The header holds a single live control, a
   button of fixed width (`.present-button`, 7.75rem; 3rem on a phone), so the
   search beside it never moves, whatever the state: the longest label's room
@@ -1149,7 +1150,7 @@ One rule, for every button in the app, so a row never looks half-dressed:
 - **Icons are Material Symbols Rounded, filled where a filled form exists**
   (fill 1, weight 400): rounded corners everywhere, never the sharp set. Line
   glyphs with no filled form (chevrons, arrows, close, check, search, menu,
-  undo, repeat) stay as drawn. Stop is a rounded square.
+  undo, repeat) stay as drawn. End Live is a stop in a circle.
 - **Names are in Title Case** (§ Words): every button, tab, menu item and
   command, including a notice's action (Got It, Move the Output There) and a
   menu's rows. Sentences stay in sentence case.
