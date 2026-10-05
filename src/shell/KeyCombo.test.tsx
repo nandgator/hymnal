@@ -61,4 +61,34 @@ describe("the quick switcher's list (styles.css)", () => {
     const rule = /\.present-switcher \[role="listbox"\]\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
     expect(rule).toMatch(/overflow:\s*clip/);
   });
+
+  const css = () => readFileSync(resolve(__dirname, "../styles.css"), "utf8");
+  const ruleOf = (selector: string) => {
+    const escaped = selector.replace(/[.[\]()]/g, "\\$&");
+    return new RegExp(`${escaped}\\s*\\{([^}]*)\\}`).exec(css())?.[1] ?? "";
+  };
+
+  // Recorded 2026-10-05 ("search wiggles"): a row's nowrap title made its grid
+  // track as wide as the text, so the rows ran past the field, the list
+  // scrolled sideways and its scrollbar made the field bob. Layout is not
+  // testable in jsdom, so these pin the rules that keep the list as wide as
+  // the field.
+  it("keeps every row as wide as the field, however long its title", () => {
+    expect(ruleOf(".present-switcher .finder-row")).toMatch(
+      /grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+    );
+  });
+
+  it("never scrolls the list sideways", () => {
+    expect(ruleOf(".present-switcher .finder")).toMatch(/overflow-x:\s*hidden/);
+  });
+
+  // The dim and the blur begin at the same height: every blur layer's mask is
+  // clear at the fade's top, as the dim is, and the zone is short.
+  it("starts the blur where the dim starts, in a short fade", () => {
+    expect(css()).toMatch(/--fade-zone:\s*3\.75rem/);
+    expect(ruleOf(".present-switcher-blur")).toMatch(
+      /mask-image:\s*linear-gradient\(to top,\s*#000 var\(--full\),\s*transparent 100%\)/,
+    );
+  });
 });

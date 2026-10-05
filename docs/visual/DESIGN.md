@@ -667,21 +667,22 @@ view is close enough to the frame to need a smaller unit.
   never the Operator's theme. Behind it, a full-width backdrop in two zones. The
   **solid zone** covers the whole stack (the field, every row, 0.75rem more):
   the Output's ground at full strength, so no row is ever see-through, whatever
-  the count. Above it, a **fade zone** of a fixed 5.5rem (a little over two rows
-  of the switcher's type) in the Output's own edge-fade distribution (the same
-  gradient token: ground solid to 60%, then clear) dims and, as a progressive
-  blur (stacked layers of increasing blur, each masked to a shorter band),
-  softens, both from nothing at its top to the most at its foot, with no visible
-  boundary; the lyric line nearest the stack lies in it, never cut by its top.
-  The results come and go with a motion: a row that is new expands and fades in,
-  one that is no longer a result collapses and fades out, the list's height
-  eases (250ms, emphasised) and both zones follow it frame by frame; the field
-  never moves, the list grows up from it. Reduced motion: no height moves, a new
-  row fades in and a leaving one is gone at once. While it is open the Output's
-  bottom caption (book, title, repeat count) fades out. Nothing else is ever
-  laid over the audience's screen unasked: there is no hint where the switcher
-  is. The cursor is the Output window's: shown while the mouse moves, gone after
-  2s still. It opens and closes with no motion beyond the list changing.
+  the count. Above it, a **fade zone** of a fixed 3.75rem (a little under two
+  rows of the switcher's type) in the Output's own edge-fade distribution (the
+  same gradient token: ground solid to 60%, then clear) dims and, as a
+  progressive blur (stacked layers of increasing blur, each masked to a shorter
+  band), softens, both from nothing at its top to the most at its foot, with no
+  visible boundary; the lyric line nearest the stack lies in it, never cut by
+  its top. The results come and go with a motion: a row that is new expands and
+  fades in, one that is no longer a result collapses and fades out, the list's
+  height eases (250ms, emphasised) and both zones follow it frame by frame; the
+  field never moves, the list grows up from it. Reduced motion: no height moves,
+  a new row fades in and a leaving one is gone at once. While it is open the
+  Output's bottom caption (book, title, repeat count) fades out. Nothing else is
+  ever laid over the audience's screen unasked: there is no hint where the
+  switcher is. The cursor is the Output window's: shown while the mouse moves,
+  gone after 2s still. It opens and closes with no motion beyond the list
+  changing.
 - **Another tab** (Board #36; SDD-0001 §10.4). A tab that cannot hold the books
   (another tab has them) is a full page: the empty card's own shape centred on
   the page background, display-small **Hymnal is open in another tab**, one body
