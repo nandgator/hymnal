@@ -946,7 +946,7 @@ describe("Presenter", () => {
     expect(onPresentHere).toHaveBeenCalled();
   });
 
-  it("draws Blank as a ring, Restore as a dot, and Hold as pause bars", async () => {
+  it("draws Blank as a screen turned off, Restore as a screen, and Hold as pause bars", async () => {
     const view = render(() => (
       <Presenter
         hymnbookId="book"
