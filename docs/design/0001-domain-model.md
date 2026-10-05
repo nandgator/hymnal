@@ -1601,13 +1601,14 @@ workspace, the dock.
   moves between Go Live, On Air, Held and Blanked. Live, it brings the Output
   forward; it has no chevron and no menu. Its glyph is the state's: the screen
   (Go Live), broadcasting (On Air), a ring (Blanked), pause bars (Held). The
-  **Live toolbar** (Live's heading, the phone strip) is Blank, Hold, **Present
-  Here** and End Live (Shift+E), in that order, all the transport's tonal
-  buttons. Present Here (Shift+P) shows only while an Output window is open: it
-  closes the window and presents in this tab, as the old menu row did. While
-  presenting here the Output Window has no way back (the window cannot open
-  under the tab), so the slot is empty then. Not live, Go Live decides between
-  the Output window and presenting here by the Go Live opens setting (§16.7).
+  **Live toolbar** (a row under the Live preview, the phone strip) is Blank,
+  Hold, **Present Here** and End Live (Shift+E), in that order, all the
+  transport's tonal buttons. Present Here (Shift+P) is always there: not live it
+  presents in this tab (whatever Go Live opens says); with an Output window open
+  it closes the window and presents in this tab, as the old menu row did. Blank,
+  Hold and End Live wait, disabled, while not live. Go Live itself decides
+  between the Output window and presenting here by the Go Live opens setting
+  (§16.7).
 - **The Live pane's control is "Hide Live Preview"**, not "Hide Live", so it is
   never confused with ending Live: it hides the preview (the pane toggle, **L**,
   Settings' "Show Live Preview") and does nothing to the Output.

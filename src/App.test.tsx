@@ -1649,10 +1649,11 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     await screen.findByRole("region", { name: "Presenting on this screen" });
   }
 
-  it("Go Live presents here when no external screen is known, with no second button", async () => {
+  it("Go Live presents here when no external screen is known, with no second button in the header", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
     await songUp();
-    expect(screen.queryByRole("button", { name: /Present here/i })).not.toBeInTheDocument();
+    // Present Here lives in Live's toolbar, not beside Go Live.
+    expect(screen.getAllByRole("button", { name: /Go Live|On Air/ })).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
     await screen.findByRole("region", { name: "Presenting on this screen" });
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
@@ -1936,10 +1937,12 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     output.close();
   });
 
-  it("offers End Live and Present Here in Live's toolbar once an Output window is live, with their keys", async () => {
+  it("keeps Present Here in Live's toolbar always, and End Live once an Output window is live, with their keys", async () => {
     await songUp();
     const toolbar = screen.getByRole("toolbar", { name: "Output controls" });
-    expect(within(toolbar).queryByRole("button", { name: /^Present Here/ })).toBeNull();
+    // Not live: Present Here is there and enabled, End Live waits.
+    expect(within(toolbar).getByRole("button", { name: /^Present Here/ })).toBeEnabled();
+    expect(within(toolbar).getByRole("button", { name: /^End Live/ })).toBeDisabled();
     const output = new BroadcastChannel("hymnal-output");
     output.postMessage({ type: "hello", id: "test-output" });
     await screen.findByRole("button", { name: "On Air" });
@@ -1948,6 +1951,13 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     expect(end).toHaveAttribute("aria-keyshortcuts", "Shift+E");
     expect(here).toHaveAttribute("aria-keyshortcuts", "Shift+P");
     output.close();
+  });
+
+  it("presents here from Live's toolbar when not live", async () => {
+    await songUp();
+    fireEvent.click(screen.getByRole("button", { name: /^Present Here/ }));
+    await screen.findByRole("region", { name: "Presenting on this screen" });
+    expect(requestFullscreen).toHaveBeenCalledTimes(1);
   });
 
   it("presents here from Live's toolbar once the Output window has closed", async () => {

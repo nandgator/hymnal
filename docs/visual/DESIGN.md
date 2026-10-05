@@ -494,10 +494,10 @@ view is close enough to the frame to need a smaller unit.
   so a new feature joins an area instead of adding a row of controls:
   - **What they see**, a rail on the right from 840px: **Live** (the anchor, a
     true miniature of the Output at its 16:9 shape, with the part before and
-    after dimmed), its controls at the end of its heading (one toolbar: Blank,
-    Hold, End Live; the follow status joins it), then a divider and **Parts**:
-    the Repeat row (Repeat · ×2 · Undo · Reset, holding its height) and the
-    keypad (Chorus full width, verses in fixed-width cells).
+    after dimmed), under it its controls in a row of their own (the Live
+    toolbar: Blank, Hold, Present Here, End Live; § The Live toolbar), then a
+    divider and **Parts**: the Repeat row (Repeat · ×2 · Undo · Reset, holding
+    its height) and the keypad (Chorus full width, verses in fixed-width cells).
   - **This hymn**: the lyrics in sung order, tap a part or a line to send it
     live (ProPresenter's click-a-slide-to-go-live).
   - **Coming up**: Recents now, the service queue later (Board #22).
@@ -563,30 +563,38 @@ view is close enough to the frame to need a smaller unit.
     that Live shrinks before the keypad does. The stage never scrolls as a
     whole; the keypad and the tabs scroll inside themselves, and the page never
     does.
-  - **Blanked**: while the Output is blanked (B), Live dims and its heading's
+  - **Blanked**: while the Output is blanked (B), Live dims and the toolbar's
     **Blank** control is pressed, reading **Restore** (the phone strip carries
     the same control). The operator can keep navigating behind it (SDD-0001
     §16.5). The On Air status reads **Blanked**, its glyph a ring, so it shows
     on every screen, Live on screen or not.
-  - **The Live toolbar**: **Blank, Hold, Present Here and End Live** are one
-    group at the end of Live's heading (and the phone strip's end), the Live
-    actions' one home (the header's button has no menu). They are the
-    transport's buttons (§ Buttons): tonal rounded rectangles on the neutral
-    fill, 40px tall (48px squares on the strip), one 8px gap between every pair,
-    centred on the heading's own line so they share the "Live" label's baseline.
-    Every button's width is fixed (SwapLabel keeps each label's room), so the
-    gaps do not change with state. **Pressed** (Blanked, Held) is the selected
-    tone, the secondary container, as the keypad's selected part. Each carries
-    an icon and its word; where the stage is too narrow (under 40rem) and on the
-    strip, all go icon-only together, the name kept. **Present Here** (Shift+P)
-    shows only while an Output window is live; it ends the window and presents
-    in this tab. While presenting here the Output Window has no way back, so the
-    slot stays empty. End Live closes the Output window and waits, disabled, for
-    one, as Hold does.
+  - **The Live toolbar**: **Blank, Hold, Present Here and End Live** are one row
+    of their own, full width under the Live preview (the preview's width, its
+    margins), as the transport's row sits under Parts; Live's heading keeps only
+    its "Live" label. On the phone strip they stay at the strip's end. They are
+    the Live actions' one home (the header's button has no menu), and the
+    transport's buttons (§ Buttons): equal-width tonal rounded rectangles on the
+    neutral fill, one 8px gap between every pair, equal in height, in every
+    state. The stage's rail is a fixed 408px, too narrow for "Present Here"
+    beside an icon in a quarter of the row, so in the row each button stacks its
+    icon over its word (56px tall, the word at 12px). **Icon-only only where
+    space forces it**: the phone strip (48px squares), and any row too narrow
+    even so, decided by the row's own width (rem, so the text size counts):
+    under 22rem, where four columns can no longer hold the widest word plus
+    padding. All go icon-only together, the name kept as the accessible name and
+    the tooltip. If the Live pane is hidden the toolbar goes with it; the header
+    status, Ctrl+K and the keys remain. **Pressed** (Blanked, Held) is the
+    selected tone, the secondary container, as the keypad's selected part.
+    **Present Here** (Shift+P) is always there, so the row is always four equal
+    columns: not live, it starts presenting in this tab, whatever Settings' Go
+    Live opens; with an Output window live, it ends the window and presents in
+    this tab. Blank, Hold and End Live wait, disabled, while not live. (While
+    presenting here the shell is off screen, so the row is too.) End Live closes
+    the Output window.
   - **Blank** and **Restore** are a circle: Blank, going dark, an outlined ring;
     Restore, coming back, a filled dot. Hold is the rounded pause bars (Release,
     the rounded play triangle); the same ring and bars mark the header status.
-  - **Hold**: beside Blank, in Live's heading and on the phone strip. Pressed
+  - **Hold**: beside Blank, in Live's toolbar and on the phone strip. Pressed
     and reading **Release** while the Output is held; off while no Output is
     open. Live keeps showing what the audience sees, undimmed, with a small
     tonal **Held** tag at its corner (under the strip, on a phone), and the On
@@ -1127,6 +1135,12 @@ One rule, for every button in the app, so a row never looks half-dressed:
 - **An icon-only button always has a name and a tooltip:** an `aria-label` (or
   visually hidden text) and a `title`, with its key in the tooltip when it has
   one. Where a text button drops its word to fit, the word stays as the name.
+- **An icon-only variant of a labelled button is centred exactly.** The hidden
+  word leaves no gap or padding behind it: the icon's centre is the button's
+  centre, within 1px. The M3 leading-icon inset (16px before the icon) is a
+  zero-specificity rule (`:where(:has(...))`), so every icon-only variant's own
+  `padding: 0` wins; any new variant resets padding and gap, and hides the word
+  out of the layout (`position: absolute`), never by width alone.
 - **Icons are masks** in the existing style (`.icon-*` in `styles.css`: a
   Material Symbols path as `mask-image`, so the icon takes the text colour),
   never an image or a glyph. A new icon is added there, once.

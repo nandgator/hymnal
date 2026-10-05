@@ -133,10 +133,10 @@ export interface PresenterProps {
   onEndLive?: () => void;
   /** An Output window is open: Live's dot is the on-air light. */
   presenting?: boolean;
-  /** The Output is a window (not this tab): Present Here shows in Live's
-   * toolbar (SDD-0001 §16.7). */
+  /** The Output is a window (not this tab): Present Here's tooltip says it
+   * closes it (SDD-0001 §16.7). */
   outputWindow?: boolean;
-  /** Ends the window and presents in this tab instead. */
+  /** Presents in this tab, ending the Output window first if one is open. */
   onPresentHere?: () => void;
   /** Which supporting panes show, by id; absent means shown (SDD-0001
    * §16.4). The shell keeps it in preferences. */
@@ -788,26 +788,26 @@ export function Presenter(props: PresenterProps) {
     </button>
   );
 
-  // Present Here (SDD-0001 §16.7), only while an Output window is live: the
-  // window ends and this tab presents instead. While presenting here the
-  // window cannot open under it, so the slot is empty then.
+  // Present Here (SDD-0001 §16.7), always there: not live, it presents in
+  // this tab; with an Output window live, the window ends and this tab
+  // presents instead. (While presenting here the shell is not on screen.)
   const presentHereControl = () => (
-    <Show when={props.outputWindow}>
-      <button
-        type="button"
-        class="btn-tonal live-control"
-        aria-keyshortcuts={ariaKeys("present-here")}
-        title={withKey(
-          "Present on this screen, closing the Output window",
-          "present-here",
-          expanded(),
-        )}
-        onClick={() => props.onPresentHere?.()}
-      >
-        <span class="icon icon-fullscreen" aria-hidden="true" />
-        <span class="live-control-label">Present Here</span>
-      </button>
-    </Show>
+    <button
+      type="button"
+      class="btn-tonal live-control"
+      aria-keyshortcuts={ariaKeys("present-here")}
+      title={withKey(
+        props.outputWindow
+          ? "Present on this screen, closing the Output window"
+          : "Present on this screen",
+        "present-here",
+        expanded(),
+      )}
+      onClick={() => props.onPresentHere?.()}
+    >
+      <span class="icon icon-fullscreen" aria-hidden="true" />
+      <span class="live-control-label">Present Here</span>
+    </button>
   );
 
   // End Live (SDD-0001 §16.4), the toolbar's last member: it closes the
@@ -1362,10 +1362,6 @@ export function Presenter(props: PresenterProps) {
                         >
                           Live
                         </h3>
-                        {/* What changes the audience screen sits in Live's
-                            own heading, one toolbar; the follow status
-                            joins it later. */}
-                        {liveToolbar()}
                       </div>
                     </Show>
                     <Show when={roomy()} fallback={<div class="stage-strip">{liveStrip()}</div>}>
@@ -1374,6 +1370,10 @@ export function Presenter(props: PresenterProps) {
                       <section class="live-pane" aria-label="Live">
                         {livePreview()}
                       </section>
+                      {/* What changes the audience screen: its own row
+                          under the preview, as the transport's under
+                          Parts, in the preview's width. */}
+                      <div class="stage-live-bar">{liveToolbar()}</div>
                     </Show>
                     <div class="stage-divider" />
                   </Show>

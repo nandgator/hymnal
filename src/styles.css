@@ -1029,8 +1029,11 @@ button:disabled {
   box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
 }
 
-/* M3: a leading icon takes 16px before it, the label keeps 24px after. */
-:is(.btn-filled, .btn-tonal, .btn-outlined):has(> .icon:first-child) {
+/* M3: a leading icon takes 16px before it, the label keeps 24px after. The
+   :has() is inside :where() so it adds no specificity: any variant that
+   resets the padding (an icon-only square, a narrower row) wins, and its icon
+   sits exactly centred with no leftover inset. */
+:is(.btn-filled, .btn-tonal, .btn-outlined):where(:has(> .icon:first-child)) {
   padding-inline-start: 1rem;
 }
 
@@ -2551,17 +2554,44 @@ input[type="checkbox"].switch:disabled {
   clip-path: inset(50%);
 }
 
-@container stage (max-width: 40rem) {
-  .area-header .live-control {
-    flex: none;
-    justify-content: center;
+/* In the stage the toolbar is its own row under the preview, as the
+   transport's under Parts: in the preview's width, equal columns, icon and
+   label on every button. Icon-only only where the labels cannot fit even
+   here: each column needs its label (the widest, Present Here, sets it)
+   plus padding, so the row's own width decides (rem, so the user's text
+   size counts); always four members. */
+.stage-live-bar {
+  flex: none;
+  container: live-bar / inline-size;
+  margin: var(--space-sm) var(--space-md) 0;
+}
+
+.stage-live-bar .live-toolbar {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  width: 100%;
+}
+
+.stage-live-bar .live-control {
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  min-height: 3.5rem;
+  padding: var(--space-xs) var(--space-xxs);
+  font-size: 0.75rem;
+}
+
+@container live-bar (max-width: 22rem) {
+  .stage-live-bar .live-control {
+    flex-direction: row;
     gap: 0;
-    width: 2.5rem;
+    min-height: 3rem;
     padding: 0;
     font-size: 0;
   }
 
-  .area-header .live-control :is(.swap-label, .live-control-label) {
+  .live-toolbar .live-control :is(.swap-label, .live-control-label) {
     position: absolute;
     width: 1px;
     height: 1px;
