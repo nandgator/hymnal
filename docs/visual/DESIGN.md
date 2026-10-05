@@ -592,9 +592,10 @@ view is close enough to the frame to need a smaller unit.
     presenting here the shell is off screen, so the row is too.) End Live closes
     the Output window.
   - **Blank** and **Restore** are a screen: Blank, going dark, the screen struck
-    through (like a projector's A/V Mute); Restore, the plain screen. Hold is
-    the rounded pause bars (Release, the rounded play triangle); the same struck
-    screen and bars mark the header status.
+    through (like a projector's A/V Mute); Restore, the plain screen. Present
+    Here is a laptop: this device. Hold is the rounded pause bars (Release, the
+    rounded play triangle); the same struck screen and bars mark the header
+    status.
   - **Hold**: beside Blank, in Live's toolbar and on the phone strip. Pressed
     and reading **Release** while the Output is held; off while no Output is
     open. Live keeps showing what the audience sees, undimmed, with a small

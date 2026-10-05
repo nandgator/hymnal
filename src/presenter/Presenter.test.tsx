@@ -918,7 +918,7 @@ describe("Presenter", () => {
     ]);
     const here = screen.getByRole("button", { name: /^Present Here/ });
     expect(here).toHaveAttribute("aria-keyshortcuts", "Shift+P");
-    expect(here.querySelector(".icon-fullscreen")).not.toBeNull();
+    expect(here.querySelector(".icon-laptop")).not.toBeNull();
     fireEvent.click(here);
     expect(onPresentHere).toHaveBeenCalled();
   });
