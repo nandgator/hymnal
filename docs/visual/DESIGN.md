@@ -591,17 +591,18 @@ view is close enough to the frame to need a smaller unit.
     this tab. Blank, Hold and End Live wait, disabled, while not live. (While
     presenting here the shell is off screen, so the row is too.) End Live closes
     the Output window.
-  - **Each control has its own shape**, so none is mistaken at a glance: Blank,
-    going dark, a slashed circle (`hide_source`); Restore, coming back, a filled
-    dot (`circle`); Hold the rounded pause bars (Release, the play triangle);
-    Present Here a crosshair (`my_location`, here); End Live a stop in a circle
-    (`stop_circle`). Go Live keeps the only screen. The same slashed circle and
-    bars mark the header status.
+  - **One round family, each with its own mark**, so the row reads as one set
+    and none is mistaken at a glance, all filled circles: Blank, going dark, a
+    slashed circle (`hide_source`); Restore, coming back, a plain dot
+    (`circle`); Hold pause in a circle (`pause_circle`; Release `play_circle`);
+    Present Here two swap arrows (`swap_horizontal_circle`, to this screen); End
+    Live a stop in a circle (`stop_circle`). Go Live keeps the only screen. The
+    same Blank and Hold glyphs mark the header status.
   - **Hold**: beside Blank, in Live's toolbar and on the phone strip. Pressed
     and reading **Release** while the Output is held; off while no Output is
     open. Live keeps showing what the audience sees, undimmed, with a small
     tonal **Held** tag at its corner (under the strip, on a phone), and the On
-    Air status reads **Held**, its glyph the pause bars; **Blanked** wins if
+    Air status reads **Held**, its glyph pause in a circle; **Blanked** wins if
     both are on (SDD-0001 §16.6).
   - **Phone** (and anything under 840px): Live collapses to a thin strip showing
     the current line, expanding on tap. Below it the tabs, merged, with
@@ -660,8 +661,8 @@ view is close enough to the frame to need a smaller unit.
   is a custom colour, red harmonised to the amber seed (Material's method), with
   its own roles in both themes. Its glyph, in the live colour, says the state:
   On Air is `sensors` (a dot with radiating arcs, filled, rounded), Blanked a
-  slashed circle, Held the pause bars; Live's heading keeps its small plain dot,
-  the recording light. To go dark and keep the window, Blank.
+  slashed circle, Held pause in a circle; Live's heading keeps its small plain
+  dot, the recording light. To go dark and keep the window, Blank.
 - **One live button, one width.** The header holds a single live control, a
   button of fixed width (`.present-button`, 7.75rem; 3rem on a phone), so the
   search beside it never moves, whatever the state: the longest label's room

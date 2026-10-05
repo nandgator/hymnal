@@ -946,7 +946,7 @@ describe("Presenter", () => {
     expect(onPresentHere).toHaveBeenCalled();
   });
 
-  it("draws Blank as a slashed circle, Restore as a dot, and Hold as pause bars", async () => {
+  it("draws Blank as a slashed circle, Restore as a dot, and Hold as pause in a circle", async () => {
     const view = render(() => (
       <Presenter
         hymnbookId="book"

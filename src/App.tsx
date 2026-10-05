@@ -1286,7 +1286,7 @@ function Operator(props: Shared) {
                 onClick={() => (presentingOutput() ? void openOutput() : goLive())}
               >
                 {/* The state's glyph, turning over as it changes: Go Live's
-                  screen, then broadcasting, a slashed circle (blanked) or pause bars
+                  screen, then broadcasting, a slashed circle (blanked) or pause in a circle
                   (held) in the live colour (DESIGN.md § Go Live). */}
                 <Show when={liveGlyph()} keyed>
                   {(glyph) => (
