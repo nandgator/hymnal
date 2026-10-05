@@ -309,6 +309,7 @@ export function Settings(props: SettingsProps) {
   ) => (
     <fieldset
       class="segmented"
+      data-keep-motion=""
       classList={{ "segmented-tight": tight }}
       ref={(el) => glideSegments(el, current)}
     >

@@ -884,81 +884,84 @@ view is close enough to the frame to need a smaller unit.
   brings more as the browser repaints itself (150–367ms, measured), which the
   circle would jump through. Controls' own colour transitions end as they start,
   in Live too, where the lines' 200ms fade under the hole read as a crossfade
-  (`theme.ts`). The system's theme changing, while the Operator follows it, is
-  revealed from the middle: its media query's listener runs as the frame begins,
-  before it's painted. Panels once glided into the other layout, but the two
-  share too little and a window still being dragged stranded them mid-way. A tab
-  change is not a layout change, so the tab bar's one pill glides to the
-  selected tab and the new content softly zooms in, in the page itself (a View
-  Transition there cross-faded snapshots of the tab labels, which flickered).
-  **The parts pad's selected key** is one pill behind the keys, not a fill on
-  the key: whatever changes the current part (a key, Part and Line, the
-  keyboard, digits), the pill glides from the old key's box to the new one's,
-  position and size together over 250ms (never a scale, so its corners keep
-  their radius) and softening to a 2px blur at the middle of the move, crisp on
-  landing (the pill alone; not under reduced motion or forced colours), as the
-  label's colour changes over the same time. It travels the real way, as one
-  object: where a plain move of the two boxes would send an edge against the
-  travel (a key on the right floating left into the full-width Chorus bar would
-  swell its right edge rightward; the bar narrowing to a key on the right would
-  pull its right edge leftward) that edge holds while the rest sets off, starts
-  30% of the way in (75ms) and arrives with the others, so the pill is seen
-  moving, then stretching, never swelling out of its middle (`glidePath`,
-  `glideGeometry.ts`: sampled in time, the emphasised curve applied there).
-  Between keys, on a row or across rows, nothing goes against the travel and the
-  glide is the plain one. Both label colours are dark on the pad's light fills
-  (light on its dark ones), so the text reads whether the pill is under it or
-  not. With no pill yet (the pad shown anew, a song just changed) it appears in
-  place, and a pad that reflows, from a window resize, a phone or a desktop
-  width, keeps it on its key without animating (`padGlide.ts`). A song chosen
-  from Recents glides to the top, every row moving from where it was to where it
-  lands, the group headings (Today, Yesterday, Before) with them; the rising row
-  passes over the rows it crosses, not under; a heading whose group emptied
-  fades out where it stood (150ms). A menu grows from its button and shrinks
-  back to it, quicker (150ms, the exit easing); a sheet rises over a blurred
-  page and sinks away on close; every control's change of state eases. **Sheet
-  pages** (nested navigation inside one sheet, `Sheet`'s `page`): the one
-  `<dialog>` stays open, so the scrim never blinks, and its content pushes and
-  pops. It is the tab switch's timing (`tab-in`: 250ms, the emphasised easing, a
-  fade) with the Repeat count's travel and 2px blur (`roll-in-*`): the new page
-  comes from the inline-end (2.5rem), the old one steps 1.5rem toward the
-  inline-start, both fading through the blur; Back is the mirror; the header's
-  title cross-fades; the sheet's height eases between the two pages' heights
-  (capped by the sheet's own maximum, so two tall pages hold still). Focus moves
-  to the new page's heading, and Back returns it to the row it left. Reduced
-  motion is a crossfade: no travel, blur or height glide. The root stays mounted
-  underneath, so its scroll position survives. **Press**: a control gives a
-  little under the finger (96%) at once and springs back with a slight
-  overshoot, Material 3 Expressive's press kept small; an icon that changes
-  meaning (Blank to Restore) turns in. The Repeat count is a rolling number (an
-  odometer): the old count rolls out as the new one rolls in, up as it grows and
-  down on Undo. **Reset** counts it down through the numbers (×9, ×8 … ×1), the
-  first at once and each pause shorter, the whole run capped at about 450ms
-  however large the count (a big count skips numbers), then the ×N fades; the
-  last Undo rolls to ×1 and fades too. The state (and the Output) change at
-  once, only the display counts; reduced motion has no countdown, the number
-  just fades; the count's room stays, so Undo and Reset never move. Moving to
-  another part follows the count at once. It is in the text colour, not Repeat's
-  primary: coloured text means a control. Each rail section eases in on arrival,
-  the Library as the Operator. In the command menu the highlight follows a
-  moving pointer and leaves with it; Enter then takes the top match (§
-  Interaction states). Reduced motion shows the end state, with what appears and
-  goes keeping its fade: a menu, a sheet and its scrim, a tab's content and a
-  notice fade and lose their zoom, rise and sink. **The Lyrics tint** slides and
-  resizes with the scroll in 250ms (`lyricsGlide.ts`: one animation clocks both,
-  so they land together; translate and height, never scaleY, which warps the
-  corners). Its leading edge arrives first and the trailing edge follows, so it
-  stretches over the new part, then lets go of the old; a jump of more than a
-  screen fades it instead. The text changes colour in those same 250ms and
-  easing, so the part the tint leaves dims and the one it reaches brightens as
-  the tint passes, never ahead or behind it. **Full Song's tint** (SDD-0005, the
-  Output) does the same within a column. Across columns it fades, overlapped so
-  some part is always lit: the old tint fades out in place over the first 60%,
-  the new one fades in over the last 80% travelling 1.6em from the left, the
-  text following in step. A page turn is a handoff within 250ms: the old page
-  fades out over the first 110ms, the new one rises 12px and fades in from 90ms
-  (a 20ms overlap at low opacity, so text never doubles), the tint going out and
-  coming in with its pages. Reduced motion shows the end state.
+  (`theme.ts`), except a segmented button's own motion (`data-keep-motion`: its
+  pill and its checkmark), which waits, paused, until the hole opens and then
+  plays in full, so the Theme control moves like the others. The system's theme
+  changing, while the Operator follows it, is revealed from the middle: its
+  media query's listener runs as the frame begins, before it's painted. Panels
+  once glided into the other layout, but the two share too little and a window
+  still being dragged stranded them mid-way. A tab change is not a layout
+  change, so the tab bar's one pill glides to the selected tab and the new
+  content softly zooms in, in the page itself (a View Transition there
+  cross-faded snapshots of the tab labels, which flickered). **The parts pad's
+  selected key** is one pill behind the keys, not a fill on the key: whatever
+  changes the current part (a key, Part and Line, the keyboard, digits), the
+  pill glides from the old key's box to the new one's, position and size
+  together over 250ms (never a scale, so its corners keep their radius) and
+  softening to a 2px blur at the middle of the move, crisp on landing (the pill
+  alone; not under reduced motion or forced colours), as the label's colour
+  changes over the same time. It travels the real way, as one object: where a
+  plain move of the two boxes would send an edge against the travel (a key on
+  the right floating left into the full-width Chorus bar would swell its right
+  edge rightward; the bar narrowing to a key on the right would pull its right
+  edge leftward) that edge holds while the rest sets off, starts 30% of the way
+  in (75ms) and arrives with the others, so the pill is seen moving, then
+  stretching, never swelling out of its middle (`glidePath`, `glideGeometry.ts`:
+  sampled in time, the emphasised curve applied there). Between keys, on a row
+  or across rows, nothing goes against the travel and the glide is the plain
+  one. Both label colours are dark on the pad's light fills (light on its dark
+  ones), so the text reads whether the pill is under it or not. With no pill yet
+  (the pad shown anew, a song just changed) it appears in place, and a pad that
+  reflows, from a window resize, a phone or a desktop width, keeps it on its key
+  without animating (`padGlide.ts`). A song chosen from Recents glides to the
+  top, every row moving from where it was to where it lands, the group headings
+  (Today, Yesterday, Before) with them; the rising row passes over the rows it
+  crosses, not under; a heading whose group emptied fades out where it stood
+  (150ms). A menu grows from its button and shrinks back to it, quicker (150ms,
+  the exit easing); a sheet rises over a blurred page and sinks away on close;
+  every control's change of state eases. **Sheet pages** (nested navigation
+  inside one sheet, `Sheet`'s `page`): the one `<dialog>` stays open, so the
+  scrim never blinks, and its content pushes and pops. It is the tab switch's
+  timing (`tab-in`: 250ms, the emphasised easing, a fade) with the Repeat
+  count's travel and 2px blur (`roll-in-*`): the new page comes from the
+  inline-end (2.5rem), the old one steps 1.5rem toward the inline-start, both
+  fading through the blur; Back is the mirror; the header's title cross-fades;
+  the sheet's height eases between the two pages' heights (capped by the sheet's
+  own maximum, so two tall pages hold still). Focus moves to the new page's
+  heading, and Back returns it to the row it left. Reduced motion is a
+  crossfade: no travel, blur or height glide. The root stays mounted underneath,
+  so its scroll position survives. **Press**: a control gives a little under the
+  finger (96%) at once and springs back with a slight overshoot, Material 3
+  Expressive's press kept small; an icon that changes meaning (Blank to Restore)
+  turns in. The Repeat count is a rolling number (an odometer): the old count
+  rolls out as the new one rolls in, up as it grows and down on Undo. **Reset**
+  counts it down through the numbers (×9, ×8 … ×1), the first at once and each
+  pause shorter, the whole run capped at about 450ms however large the count (a
+  big count skips numbers), then the ×N fades; the last Undo rolls to ×1 and
+  fades too. The state (and the Output) change at once, only the display counts;
+  reduced motion has no countdown, the number just fades; the count's room
+  stays, so Undo and Reset never move. Moving to another part follows the count
+  at once. It is in the text colour, not Repeat's primary: coloured text means a
+  control. Each rail section eases in on arrival, the Library as the Operator.
+  In the command menu the highlight follows a moving pointer and leaves with it;
+  Enter then takes the top match (§ Interaction states). Reduced motion shows
+  the end state, with what appears and goes keeping its fade: a menu, a sheet
+  and its scrim, a tab's content and a notice fade and lose their zoom, rise and
+  sink. **The Lyrics tint** slides and resizes with the scroll in 250ms
+  (`lyricsGlide.ts`: one animation clocks both, so they land together; translate
+  and height, never scaleY, which warps the corners). Its leading edge arrives
+  first and the trailing edge follows, so it stretches over the new part, then
+  lets go of the old; a jump of more than a screen fades it instead. The text
+  changes colour in those same 250ms and easing, so the part the tint leaves
+  dims and the one it reaches brightens as the tint passes, never ahead or
+  behind it. **Full Song's tint** (SDD-0005, the Output) does the same within a
+  column. Across columns it fades, overlapped so some part is always lit: the
+  old tint fades out in place over the first 60%, the new one fades in over the
+  last 80% travelling 1.6em from the left, the text following in step. A page
+  turn is a handoff within 250ms: the old page fades out over the first 110ms,
+  the new one rises 12px and fades in from 90ms (a 20ms overlap at low opacity,
+  so text never doubles), the tint going out and coming in with its pages.
+  Reduced motion shows the end state.
 - **Motion tokens** (`src/styles.css`, `:root`): `--motion-emphasized`
   `cubic-bezier(0.2, 0, 0, 1)` for what moves (glides, enters, selection);
   `--motion-exit` `cubic-bezier(0.3, 0, 0.8, 0.15)` for what leaves;

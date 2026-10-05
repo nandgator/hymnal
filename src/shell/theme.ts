@@ -64,6 +64,7 @@ function open(
   shape: "circle" | "strip",
   remove: () => void,
   feather = shape === "strip" ? STRIP_FEATHER : FEATHER,
+  release: () => void = () => {},
 ) {
   const { width, height } = copy.getBoundingClientRect();
   // Sized so that, fully open, even the feathered edge is past every corner.
@@ -81,11 +82,12 @@ function open(
   copy.style.setProperty("--reveal-rx", `${rx + edge}px`);
   copy.style.setProperty("--reveal-ry", `${ry + edge}px`);
   copy.style.setProperty("--reveal-feather", `${edge}px`);
-  whenSteady(() =>
+  whenSteady(() => {
+    release();
     copy
       .animate({ "--reveal-p": [0, 1] }, { duration: THEME_MS, easing: STANDARD })
-      .finished.then(remove, remove),
-  );
+      .finished.then(remove, remove);
+  });
 }
 
 /**
@@ -117,9 +119,44 @@ function whenSteady(start: () => void) {
  * measured).
  */
 function endTransitions(within: Document | HTMLElement) {
-  const animations =
-    within instanceof Document ? within.getAnimations() : within.getAnimations({ subtree: true });
-  for (const animation of animations) if (animation instanceof CSSTransition) animation.finish();
+  for (const animation of animationsIn(within))
+    if (animation instanceof CSSTransition && !kept(animation)) animation.finish();
+}
+
+const animationsIn = (within: Document | HTMLElement) =>
+  within instanceof Document ? within.getAnimations() : within.getAnimations({ subtree: true });
+
+/** Motion of a control's own (a segmented button's pill and checkmark,
+ * marked `data-keep-motion`) is not the page's colours: it is the change's
+ * answer, and plays in full. */
+const KEEP = "[data-keep-motion]";
+const kept = (animation: Animation) => {
+  const target = (animation.effect as KeyframeEffect | null)?.target;
+  return target instanceof Element && target.closest(KEEP) !== null;
+};
+
+/**
+ * The kept motion waits, paused at its first frame, until the hole starts
+ * to open: under the still copy (held whole until frames are steady, up to
+ * 600ms) it would play unseen, and the control, uncovered, would show only
+ * its end. A control's pill starts its glide in a microtask after the
+ * change, so it is caught on a second pass. Returns the release.
+ */
+function holdKept(): () => void {
+  const held = new Set<Animation>();
+  const hold = () => {
+    for (const animation of animationsIn(document))
+      if (kept(animation) && animation.playState === "running") {
+        animation.pause();
+        held.add(animation);
+      }
+  };
+  hold();
+  queueMicrotask(hold);
+  return () => {
+    for (const animation of held) if (animation.playState === "paused") animation.play();
+    held.clear();
+  };
 }
 
 /** A still copy of the whole window: the page, and any open sheet over it
@@ -197,8 +234,16 @@ export function easeThemeChange(
   for (const animation of layer.getAnimations({ subtree: true })) animation.cancel();
   apply();
   endTransitions(document);
+  const release = holdKept();
   const operator = was[0] === "data-theme-copy";
-  open(layer, [x, y], "circle", () => layer.remove(), operator ? OPERATOR_FEATHER : FEATHER);
+  open(
+    layer,
+    [x, y],
+    "circle",
+    () => layer.remove(),
+    operator ? OPERATOR_FEATHER : FEATHER,
+    release,
+  );
 }
 
 /**
