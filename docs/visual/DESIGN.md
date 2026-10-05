@@ -573,28 +573,24 @@ view is close enough to the frame to need a smaller unit.
     margins), as the transport's row sits under Parts; Live's heading keeps only
     its "Live" label. On the phone strip they stay at the strip's end. They are
     the Live actions' one home (the header's button has no menu), and the
-    transport's colours (§ Buttons): tonal on the neutral fill, in every state.
-    In the row each is a **tile with the navigation rail's proportions and
-    metrics** (icon over word, 64 by 56 minimum, 12px corners, 22px icon, 4px
-    between icon and word, the word at 12px medium), taken from the same custom
-    properties (`--tile-*` in styles.css) so the two cannot drift. The four are
-    equal and spread with even space between across the preview's width, not
-    stretched into wide flat bars. The tile's width is the rail's 64px, widened
-    only to 78px so "Present Here" fits (the rail's own labels are shorter), so
-    the ratio is 1.3 where the rail's is 1.07. **Icon-only only where space
-    forces it**: the phone strip (48px squares), and any row too narrow even so,
-    decided by the row's own width (rem, so the text size counts): under 22rem,
-    where four tiles can no longer hold the widest word plus padding. All go
-    icon-only together, the name kept as the accessible name and the tooltip. If
-    the Live pane is hidden the toolbar goes with it; the header status, Ctrl+K
-    and the keys remain. **Pressed** (Blanked, Held) is the selected tone, the
-    secondary container, as the keypad's selected part. **Present Here**
-    (Shift+P) is always there, so the row is always four equal columns: not
-    live, it starts presenting in this tab, whatever Settings' Go Live opens;
-    with an Output window live, it ends the window and presents in this tab.
-    Blank, Hold and End Live wait, disabled, while not live. (While presenting
-    here the shell is off screen, so the row is too.) End Live closes the Output
-    window.
+    transport's buttons (§ Buttons): equal-width tonal rounded rectangles on the
+    neutral fill, one 8px gap between every pair, equal in height, in every
+    state. The stage's rail is a fixed 408px, too narrow for "Present Here"
+    beside an icon in a quarter of the row, so in the row each button stacks its
+    icon over its word (56px tall, the word at 12px). **Icon-only only where
+    space forces it**: the phone strip (48px squares), and any row too narrow
+    even so, decided by the row's own width (rem, so the text size counts):
+    under 22rem, where four columns can no longer hold the widest word plus
+    padding. All go icon-only together, the name kept as the accessible name and
+    the tooltip. If the Live pane is hidden the toolbar goes with it; the header
+    status, Ctrl+K and the keys remain. **Pressed** (Blanked, Held) is the
+    selected tone, the secondary container, as the keypad's selected part.
+    **Present Here** (Shift+P) is always there, so the row is always four equal
+    columns: not live, it starts presenting in this tab, whatever Settings' Go
+    Live opens; with an Output window live, it ends the window and presents in
+    this tab. Blank, Hold and End Live wait, disabled, while not live. (While
+    presenting here the shell is off screen, so the row is too.) End Live closes
+    the Output window.
   - **Blank** and **Restore** are a screen: Blank, going dark, the screen struck
     through (like a projector's A/V Mute); Restore, the plain screen. Present
     Here is a laptop: this device. Hold is the rounded pause bars (Release, the

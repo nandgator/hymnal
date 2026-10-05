@@ -70,16 +70,6 @@
   /* Register (DESIGN.md): M3 Expressive's square button shape, not the
      default pill — composed, not cozy. One token to tune it. */
   --button-shape: var(--shape-md);
-  /* The tile (DESIGN.md § Buttons): the rail's item and the Live toolbar's
-     buttons, icon over a label, one set of metrics so they cannot drift. */
-  --tile-width: 64px;
-  --tile-min-height: 56px;
-  --tile-padding-block: var(--space-xs);
-  --tile-gap: var(--space-xxs);
-  --tile-icon-size: 22px;
-  --tile-label-size: 12px;
-  --tile-label-weight: 500;
-  --tile-label-tracking: 0.02em;
 
   /* Elevation: tonal step plus a soft shadow, two levels only. */
   --elevation-1: 0 1px 2px rgb(0 0 0 / 30%), 0 1px 3px 1px rgb(0 0 0 / 15%);
@@ -533,10 +523,10 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--tile-gap);
-  width: var(--tile-width);
-  min-height: var(--tile-min-height);
-  padding: var(--tile-padding-block) 0;
+  gap: var(--space-xxs);
+  width: 64px;
+  min-height: 56px;
+  padding: var(--space-xs) 0;
   border: none;
   border-radius: var(--button-shape);
   background: none;
@@ -553,14 +543,14 @@ button:disabled {
 }
 
 .rail-item .icon {
-  width: var(--tile-icon-size);
-  height: var(--tile-icon-size);
+  width: 22px;
+  height: 22px;
 }
 
 .rail-label {
-  font-size: var(--tile-label-size);
-  font-weight: var(--tile-label-weight);
-  letter-spacing: var(--tile-label-tracking);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 .rail-item[aria-current="page"] {
@@ -2565,13 +2555,11 @@ input[type="checkbox"].switch:disabled {
 }
 
 /* In the stage the toolbar is its own row under the preview, as the
-   transport's under Parts: in the preview's width, four rail tiles (the
-   rail's metrics, the tile custom properties) spread with even space between,
-   icon and label on every button. The tiles are equal; the width is the
-   rail's, widened only to hold the widest word (Present Here, 75px at the
-   tile's label size). Icon-only only where the tiles cannot fit even so: the
-   row's own width decides (rem, so the user's text size counts); always four
-   members. */
+   transport's under Parts: in the preview's width, equal columns, icon and
+   label on every button. Icon-only only where the labels cannot fit even
+   here: each column needs its label (the widest, Present Here, sets it)
+   plus padding, so the row's own width decides (rem, so the user's text
+   size counts); always four members. */
 .stage-live-bar {
   flex: none;
   container: live-bar / inline-size;
@@ -2579,43 +2567,28 @@ input[type="checkbox"].switch:disabled {
 }
 
 .stage-live-bar .live-toolbar {
-  --live-tile-width: max(var(--tile-width), calc(var(--tile-label-size) * 6.5));
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
   width: 100%;
 }
 
 .stage-live-bar .live-control {
   flex-direction: column;
-  gap: var(--tile-gap);
-  width: var(--live-tile-width);
+  gap: 0.125rem;
   min-width: 0;
-  min-height: var(--tile-min-height);
-  padding: var(--tile-padding-block) 0;
-  font-size: var(--tile-label-size);
-  font-weight: var(--tile-label-weight);
-  letter-spacing: var(--tile-label-tracking);
-}
-
-.stage-live-bar .live-control .icon {
-  width: var(--tile-icon-size);
-  height: var(--tile-icon-size);
+  min-height: 3.5rem;
+  padding: var(--space-xs) var(--space-xxs);
+  font-size: 0.75rem;
 }
 
 @container live-bar (max-width: 22rem) {
   .stage-live-bar .live-control {
     flex-direction: row;
     gap: 0;
-    width: auto;
-    flex: 1;
     min-height: 3rem;
     padding: 0;
     font-size: 0;
-  }
-
-  .stage-live-bar .live-control .icon {
-    width: 1.25rem;
-    height: 1.25rem;
   }
 
   .live-toolbar .live-control :is(.swap-label, .live-control-label) {
