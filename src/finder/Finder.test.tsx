@@ -441,6 +441,43 @@ describe("Finder", () => {
     expect(searchLyrics).toHaveBeenCalledWith("book", "grace");
   });
 
+  it("keeps the list while the next query is pending, and empties it only for no results", async () => {
+    let finish: (rows: SearchResult[]) => void = () => {};
+    const searchLyrics = vi.fn(
+      () =>
+        new Promise<SearchResult[]>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    render(() => (
+      <Finder
+        hymnbookId="book"
+        store={fakeStore({ searchLyrics })}
+        userState={fakeUserState()}
+        onSelect={vi.fn()}
+      />
+    ));
+    await screen.findByRole("heading", { name: "Songs" });
+
+    // A number's suggestion stays up through the pause and the read of a words search.
+    fireEvent.input(find(), { target: { value: "42" } });
+    expect(await screen.findByRole("option", { name: /Forty-Second Hymn/ })).toBeInTheDocument();
+    fireEvent.input(find(), { target: { value: "grace" } });
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    await waitFor(() => expect(searchLyrics).toHaveBeenCalledWith("book", "grace"));
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+
+    // Then the new results replace it; an empty set empties it.
+    finish([{ number: 7, title: "Seventh Hymn", snippet: "x" }]);
+    expect(await screen.findByRole("option", { name: /Seventh Hymn/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Forty-Second Hymn/ })).not.toBeInTheDocument();
+    fireEvent.input(find(), { target: { value: "graces" } });
+    await waitFor(() => expect(searchLyrics).toHaveBeenCalledTimes(2));
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    finish([]);
+    await waitFor(() => expect(screen.queryAllByRole("option")).toHaveLength(0));
+  });
+
   it("clears the query on Escape", async () => {
     render(() => (
       <Finder

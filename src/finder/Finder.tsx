@@ -6,7 +6,9 @@ import {
   For,
   on,
   onCleanup,
+  onMount,
   Show,
+  untrack,
 } from "solid-js";
 import type { HymnbookId, HymnNumber } from "../domain/types.ts";
 import {
@@ -29,6 +31,11 @@ const NUMBER_SUGGESTIONS = 8;
 export const OPENING_SONGS = 20;
 /** Matches the quick switcher lists at most. */
 const COMPACT_ROWS = 5;
+/** A row leaving the switcher is gone by now, motion or none (its own
+ * transition normally ends it first). */
+const LEAVE_BACKSTOP_MS = 600;
+/** The highlight follows moving rows for at most this long. */
+const FOLLOW_MS = 800;
 
 export interface FinderProps {
   /** The book searched: its key (SDD-0004 §10). */
@@ -144,7 +151,9 @@ export function Finder(props: FinderProps) {
       text ? store().searchLyrics(id(), text) : Promise.resolve([]),
   );
 
-  const options = createMemo((): Option[] => {
+  // While the next lyric search is pending (the pause before it, or its read)
+  // the last results stay: only a result set that is empty empties the list.
+  const options = createMemo((prev: Option[]): Option[] => {
     if (isNumber()) {
       const typed = trimmed();
       const all = hymns() ?? [];
@@ -154,8 +163,8 @@ export function Finder(props: FinderProps) {
       );
       return [...exact, ...prefixed].slice(0, props.compact ? COMPACT_ROWS : NUMBER_SUGGESTIONS);
     }
-    if (!lyricQuery()) return [];
-    // `latest` keeps the previous results up while the next load.
+    if (!trimmed()) return [];
+    if (!lyricQuery() || lyricResults.loading) return prev;
     return (lyricResults.latest ?? [])
       .slice(0, props.compact ? COMPACT_ROWS : undefined)
       .map((result) => ({
@@ -164,7 +173,7 @@ export function Finder(props: FinderProps) {
         // The matched line is often the first line, which is the title.
         snippet: result.snippet !== result.title ? result.snippet : undefined,
       }));
-  });
+  }, []);
 
   const rows = createMemo((): Row[] => [
     ...(props.commands ?? [])
@@ -182,6 +191,48 @@ export function Finder(props: FinderProps) {
   createEffect(() => {
     rows();
     setActiveIndex(trimmed() ? 0 : undefined);
+  });
+
+  // The switcher's rows come and go with a motion (DESIGN.md § Output view): a
+  // row that is no longer a result stays, collapsing, until its motion ends,
+  // and a row that is new expands in. Each row is kept by what it is (its
+  // number, or its label), so a row that stays is the same element.
+  const rowKey = (row: Row) =>
+    row.kind === "command" ? `c:${row.command.label}` : `h:${row.option.number}`;
+  const lastRows = new Map<string, Row>();
+  const [shown, setShown] = createSignal<string[]>([]);
+  const [leaving, setLeaving] = createSignal<ReadonlySet<string>>(new Set());
+  let settled = false;
+  const dropRow = (key: string) => {
+    if (!untrack(leaving).has(key)) return;
+    setLeaving((set) => new Set([...set].filter((k) => k !== key)));
+    setShown((all) => all.filter((k) => k !== key));
+    lastRows.delete(key);
+  };
+  createEffect(() => {
+    const live = rows();
+    const keys = live.map(rowKey);
+    for (const row of live) lastRows.set(rowKey(row), row);
+    if (!props.compact) {
+      setShown(keys);
+      return;
+    }
+    const before = untrack(shown);
+    const next = [...keys];
+    const going = new Set<string>();
+    before.forEach((key, at) => {
+      if (keys.includes(key)) return;
+      going.add(key);
+      next.splice(Math.min(at, next.length), 0, key);
+    });
+    setLeaving(going);
+    setShown(next);
+    // Its own transition ends it; this is the backstop (no layout, no motion).
+    for (const key of going) setTimeout(() => dropRow(key), LEAVE_BACKSTOP_MS);
+  });
+  const liveIndex = (key: string) => rows().findIndex((row) => rowKey(row) === key);
+  onMount(() => {
+    settled = true;
   });
 
   const pick = (row: Row) =>
@@ -225,9 +276,19 @@ export function Finder(props: FinderProps) {
     active();
     rows();
     // After the rows have settled: a microtask on, the DOM is what to mark.
-    queueMicrotask(() =>
-      glide?.hover.show(results?.querySelector<HTMLElement>('[aria-selected="true"]') ?? null),
-    );
+    queueMicrotask(() => {
+      glide?.hover.show(results?.querySelector<HTMLElement>('[aria-selected="true"]') ?? null);
+      // The rows may be moving (the switcher's come and go with a motion): the
+      // highlight stays on its row, frame by frame, until they are still.
+      const until = performance.now() + FOLLOW_MS;
+      const frame = () => {
+        glide?.hover.follow();
+        const moving = results?.querySelector(".finder-row:is([data-entering], [data-leaving])");
+        if (moving && performance.now() < until && results?.isConnected)
+          requestAnimationFrame(frame);
+      };
+      if (typeof requestAnimationFrame === "function") requestAnimationFrame(frame);
+    });
   });
 
   return (
@@ -311,43 +372,88 @@ export function Finder(props: FinderProps) {
           onCleanup(glide.stop);
         }}
       >
-        <For each={rows()}>
-          {(row, index) => (
-            <div
-              id={optionId(index())}
-              role="option"
-              tabIndex={-1}
-              class="list-row finder-option"
-              aria-selected={active() === index()}
-              // mousemove, not mouseenter: a list appearing under a resting
-              // pointer fires mouseenter without the pointer moving, and must
-              // not steal the highlight from the top match — typing "121" then
-              // Enter must open 121, not the row that landed under the mouse.
-              onMouseMove={() => setActiveIndex(index())}
-              // mousedown, not click: keeps focus in the box while choosing.
-              onMouseDown={(event) => {
-                event.preventDefault();
-                pick(row);
-              }}
-            >
-              {row.kind === "command" ? (
-                <>
-                  <span class="finder-title">{row.command.label}</span>
-                  <Show when={row.command.hint}>{(hint) => <KeyCombo keys={hint()} />}</Show>
-                </>
-              ) : (
-                <>
-                  <span class="finder-number">#{row.option.number}</span>
-                  <span class="finder-title">
-                    {titleCase(row.option.title)}
-                    <Show when={row.option.snippet}>
-                      {(snippet) => <span class="list-row-supporting"> — {snippet()}</span>}
-                    </Show>
-                  </span>
-                </>
-              )}
-            </div>
-          )}
+        <For each={shown()}>
+          {(key) => {
+            const row = () => rows().find((r) => rowKey(r) === key) ?? lastRows.get(key);
+            const going = () => leaving().has(key);
+            const index = () => liveIndex(key);
+            return (
+              <div
+                role="presentation"
+                class="finder-row"
+                data-entering={props.compact && settled ? "" : undefined}
+                data-leaving={going() ? "" : undefined}
+                onAnimationEnd={(event) => {
+                  if (event.target === event.currentTarget)
+                    event.currentTarget.removeAttribute("data-entering");
+                }}
+                onTransitionEnd={(event) => {
+                  if (event.target === event.currentTarget) dropRow(key);
+                }}
+              >
+                <div class="finder-row-clip">
+                  <Show when={row()}>
+                    {(current) => {
+                      const command = () => {
+                        const it = current();
+                        return it.kind === "command" ? it.command : undefined;
+                      };
+                      const option = () => {
+                        const it = current();
+                        return it.kind === "hymn" ? it.option : undefined;
+                      };
+                      return (
+                        <div
+                          id={going() ? `${listId}-out-${key}` : optionId(index())}
+                          role="option"
+                          tabIndex={-1}
+                          class="list-row finder-option"
+                          aria-hidden={going() ? "true" : undefined}
+                          aria-selected={!going() && active() === index()}
+                          // mousemove, not mouseenter: a list appearing under a resting
+                          // pointer fires mouseenter without the pointer moving, and must
+                          // not steal the highlight from the top match — typing "121" then
+                          // Enter must open 121, not the row that landed under the mouse.
+                          onMouseMove={() => !going() && setActiveIndex(index())}
+                          // mousedown, not click: keeps focus in the box while choosing.
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            if (!going()) pick(current());
+                          }}
+                        >
+                          <Show
+                            when={option()}
+                            fallback={
+                              <>
+                                <span class="finder-title">{command()?.label}</span>
+                                <Show when={command()?.hint}>
+                                  {(hint) => <KeyCombo keys={hint()} />}
+                                </Show>
+                              </>
+                            }
+                          >
+                            {(hymn) => (
+                              <>
+                                <span class="finder-number">#{hymn().number}</span>
+                                <span class="finder-title">
+                                  {titleCase(hymn().title)}
+                                  <Show when={hymn().snippet}>
+                                    {(snippet) => (
+                                      <span class="list-row-supporting"> — {snippet()}</span>
+                                    )}
+                                  </Show>
+                                </span>
+                              </>
+                            )}
+                          </Show>
+                        </div>
+                      );
+                    }}
+                  </Show>
+                </div>
+              </div>
+            );
+          }}
         </For>
       </div>
 

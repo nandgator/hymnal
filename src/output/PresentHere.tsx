@@ -29,8 +29,8 @@ export interface PresentHereProps {
   startWithSwitcher?: boolean;
 }
 
-/** How far the backdrop rises above the strip, in px (2rem). */
-const BAND_RISE = 32;
+/** How far the backdrop's solid zone rises above the strip, in px (0.75rem). */
+const BAND_RISE = 12;
 
 /**
  * One-screen presenting (Board #41, SDD-0001 §16.7): the Output's own view,
@@ -94,17 +94,15 @@ export function PresentHere(props: PresentHereProps) {
   onMount(() => window.addEventListener("keydown", onKeyDown, true));
   onCleanup(() => window.removeEventListener("keydown", onKeyDown, true));
 
-  // The backdrop's band is as tall as the strip plus a little: it follows the
-  // list as results come and go, and animates once the first height is in.
+  // The backdrop's solid zone is as tall as the strip plus a little, so it
+  // covers the field and every row. The strip's height moves with the rows'
+  // own motion; the zone follows it frame by frame, in the same motion.
   let band: HTMLElement | undefined;
   const followHeight = (strip: HTMLElement) => {
     if (typeof ResizeObserver === "undefined") return; // jsdom: no layout to follow
     const observer = new ResizeObserver(() => {
       if (!band) return;
       band.style.setProperty("--band-height", `${strip.offsetHeight + BAND_RISE}px`);
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => band?.setAttribute("data-ready", "")),
-      );
     });
     observer.observe(strip);
     onCleanup(() => observer.disconnect());
@@ -151,10 +149,12 @@ export function PresentHere(props: PresentHereProps) {
             }}
           >
             <div class="present-switcher-band" ref={(el) => (band = el)} aria-hidden="true">
-              <span class="present-switcher-blur" />
-              <span class="present-switcher-blur" />
-              <span class="present-switcher-blur" />
-              <span class="present-switcher-blur" />
+              <div class="present-switcher-fade">
+                <span class="present-switcher-blur" />
+                <span class="present-switcher-blur" />
+                <span class="present-switcher-blur" />
+                <span class="present-switcher-blur" />
+              </div>
             </div>
             <Finder
               compact

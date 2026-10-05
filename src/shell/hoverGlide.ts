@@ -73,6 +73,10 @@ export interface RowGlide {
    * the Finder's is by its arrow keys. A highlight that appears this way
    * fades up in place, with no side to come from. */
   show(row: HTMLElement | null): void;
+  /** Keeps the layer on its row while the row moves or resizes (its list
+   * animating): call it each frame. It repaints at the row's present box,
+   * with no glide, and does nothing where the box has not changed. */
+  follow(): void;
   /** Removes the layer and the listeners. */
   stop(): void;
 }
@@ -343,6 +347,16 @@ export function glideRows(
   list.addEventListener("focusout", onFocusOut);
   return {
     show: (row) => (row ? place(row) : hide()),
+    follow: () => {
+      if (!visible || !on?.isConnected || !at) return;
+      const to = boxOf(on, list);
+      if (to.x === at.x && to.y === at.y && to.w === at.w && to.h === at.h) return;
+      anim?.cancel();
+      anim = null;
+      paint(layer, to);
+      layer.style.opacity = "1";
+      at = to;
+    },
     stop: () => {
       clearTimeout(gap);
       list.removeEventListener("pointerover", onOver);

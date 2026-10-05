@@ -5690,28 +5690,35 @@ fieldset.book-main {
   --md-sys-color-surface-container-high: color-mix(in srgb, var(--output-ink) 16%, transparent);
 }
 
-/* The backdrop is the Output's own edge fade, taller: the same gradient
-   (ground, solid to --output-edge-fade-solid, then clear) dims, and a
-   progressive blur (four layers, each
-   masked to a shorter band than the last, so the blur compounds toward the
-   bottom) softens, both from nothing at the top to the most at the foot, with
-   no edge. Its height follows the list (PresentHere sets --band-height) and
-   moves with the app's motion once the first height is in. */
+/* The backdrop is two zones. The solid zone covers the whole stack (the field,
+   every row, a margin): the Output's ground at full strength, so no row is ever
+   see-through, whatever the count. PresentHere sets its height (--band-height)
+   from the strip's, every frame, so it moves with the rows' own motion. Above
+   it sits the fade zone, a fixed height (5.5rem, about two rows and a half of
+   the switcher's type): the Output's own edge-fade gradient (ground, solid to
+   --output-edge-fade-solid, then clear) dims, and a progressive blur (four
+   layers, each masked to a shorter band than the last, so the blur compounds
+   toward the bottom) softens, both from nothing at the top, with no edge. A
+   lyric line above the stack lies in this zone, not cut by its top. */
 .present-switcher-band {
+  --fade-zone: 5.5rem;
   position: absolute;
   z-index: -1;
   inset: auto 0 0;
   height: var(--band-height, 0);
+  background: var(--output-ground);
+  pointer-events: none;
+}
+
+.present-switcher-fade {
+  position: absolute;
+  inset: auto 0 100%;
+  height: var(--fade-zone);
   background: linear-gradient(
     to top,
     var(--output-ground) var(--output-edge-fade-solid),
     transparent
   );
-  pointer-events: none;
-}
-
-.present-switcher-band[data-ready] {
-  transition: height var(--motion-medium) var(--motion-emphasized);
 }
 
 .present-switcher-blur:nth-child(1) {
@@ -5737,9 +5744,59 @@ fieldset.book-main {
   mask-image: linear-gradient(to top, #000, transparent var(--reach));
 }
 
+/* Rows come and go: one that is new expands and fades in, one that is no
+   longer a result collapses and fades out, and the stack's height (and the
+   backdrop with it) moves as they do. The field is the Finder's last child
+   and stays where it is: the list grows upward from it. The wrapper's grid
+   row is what animates (0fr to 1fr); the clip hides the row only while it
+   moves, as the list itself keeps its hover layer's bleed (below). */
+.present-switcher .finder-row {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows var(--motion-medium) var(--motion-emphasized),
+    opacity var(--motion-medium) var(--motion-standard);
+}
+
+.present-switcher .finder-row-clip {
+  min-height: 0;
+}
+
+.present-switcher .finder-row[data-entering] {
+  animation: finder-row-in var(--motion-medium) var(--motion-emphasized) both;
+}
+
+.present-switcher .finder-row:is([data-entering], [data-leaving]) > .finder-row-clip {
+  overflow: hidden;
+}
+
+.present-switcher .finder-row[data-leaving] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+@keyframes finder-row-in {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .present-switcher-band[data-ready] {
+  /* Fades only: no height moves. A new row fades in; one that is no longer a
+     result is gone at once, so the stack never holds both for a moment. */
+  .present-switcher .finder-row {
     transition: none;
+  }
+
+  .present-switcher .finder-row[data-leaving] {
+    display: none;
+  }
+
+  @keyframes finder-row-in {
+    from {
+      opacity: 0;
+    }
   }
 }
 
