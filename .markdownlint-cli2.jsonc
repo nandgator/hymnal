@@ -29,6 +29,8 @@
     "imports/**",
     "content-local/**",
     ".claude/worktrees/**",
+    "test-results/**",
+    "playwright-report/**",
     ".svelte-kit/**",
     "**/CHANGELOG.md"
   ]
