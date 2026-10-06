@@ -28,9 +28,10 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 
 ## Now
 
-**Beta track** (Board #43–52): #44–#49, #51 and #52 are done. #43 next: the
-sample, now decided. The beta's origin is live (hymnal.sagaveracity.com). #50
-waits on a real device; the beta may go before it, iOS marked untested.
+**Beta track** (Board #43–52): all done but #50, which waits on a real device;
+the beta may go before it, iOS marked untested. The sample (#43) is released as
+`sample-1` and offered once the deploy runs from a push. The origin is live
+(hymnal.sagaveracity.com, ADR-0030).
 
 **Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
 **Board #28 is done**: ADR-0026/0027, SDD-0004, all six parts. The songs have
@@ -84,7 +85,6 @@ Ordered. Top unblocked item is next.
 | #   | Task                                                                                                                                                                                                      | Blocked by          |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                          | —                   |
-| 43  | The sample: 28 Otterbein hymns (English) and 2 Malayalam songs, two books built locally, a release asset pinned by SHA-256 in the deploy, offered in the Library; a rights page beside them               | —                   |
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | maintainer: devices |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                                               | —                   |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                             | —                   |
@@ -145,6 +145,12 @@ only, here:
 
 ## Log
 
+- 2026-10-07 — #43 done: two sample books (28 Otterbein hymns, 2 Malayalam
+  songs) written by `scripts/sample-sources.ts`, packed, and published as the
+  `sample-1` release; the deploy fetches them by `sample/SHA256SUMS`, and the
+  empty Library offers Try the Sample (SDD-0004 §16). Rights:
+  `docs/sample/RIGHTS.md`. A server's Content-Encoding on the `.gz` is undone in
+  the app
 - 2026-10-07 — Fixed, found by WebKit's first local e2e run (podman, the
   Playwright image): a Safari private window answers `getDirectory()` with
   `UnknownError` and showed the error screen; it is now a refusal and books are
