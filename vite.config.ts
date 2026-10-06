@@ -42,6 +42,18 @@ function publishSchemas(): Plugin {
   };
 }
 
+// The sample (Board #43): the containers the deploy fetched into public/sample/,
+// checked against sample/SHA256SUMS. None in a build without them.
+function sampleFiles(): string[] {
+  try {
+    return readdirSync(new URL("./public/sample/", import.meta.url))
+      .filter((name) => name.endsWith(".hymnbook.json.gz"))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
 // What the error screen reports (SDD-0001 §16.9): the short commit and the day
 // of the build; "unknown" where git is not there (a build), "dev" on serve.
 function buildId(): string {
@@ -56,7 +68,10 @@ function buildId(): string {
 }
 
 export default defineConfig(({ command, isPreview }) => ({
-  define: { __APP_BUILD__: JSON.stringify(command === "build" ? buildId() : "dev") },
+  define: {
+    __APP_BUILD__: JSON.stringify(command === "build" ? buildId() : "dev"),
+    __SAMPLE_FILES__: JSON.stringify(sampleFiles()),
+  },
   // isPreview, not just command === "build" — `vite preview` also reports
   // command "serve", but it serves the already-built dist/, whose URLs are
   // already baked in at BASE.

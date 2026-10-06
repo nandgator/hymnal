@@ -62,6 +62,8 @@ interface Setup {
   mode?: StorageMode;
   /** The names of the picked files whose content is a backup. */
   backups?: string[];
+  /** The sample files this build offers; the default is the build's (none in tests). */
+  sample?: readonly string[];
 }
 
 function setup(options: Setup = {}) {
@@ -132,6 +134,7 @@ function setup(options: Setup = {}) {
           admin={admin}
           userState={userState}
           persist={persist}
+          sample={options.sample}
         />
       );
     });
@@ -1438,5 +1441,64 @@ describe("Library: a backup picked in Load Books (SDD-0006 §5)", () => {
     expect(await screen.findByText("Restore a backup on its own.")).toBeInTheDocument();
     expect(s.onRestore).not.toHaveBeenCalled();
     expect(s.admin.review).not.toHaveBeenCalled();
+  });
+});
+
+describe("Library: the sample (Board #43)", () => {
+  const SAMPLE = "otterbein-hymnal-sample.hymnbook.json.gz";
+
+  it("offers no sample where the build has none", async () => {
+    setup({ rows: [] }).view();
+    await screen.findByRole("heading", { name: "Bring a songbook" });
+    expect(screen.queryByRole("button", { name: "Try the Sample" })).not.toBeInTheDocument();
+  });
+
+  it("fetches the sample from this site and loads it like a picked file", async () => {
+    const fetch = vi.fn(async () => new Response(new Uint8Array([0x1f, 0x8b, 8, 0])));
+    vi.stubGlobal("fetch", fetch);
+    try {
+      const s = setup({ rows: [], sample: [SAMPLE] });
+      s.view();
+      fireEvent.click(await screen.findByRole("button", { name: "Try the Sample" }));
+      await waitFor(() => expect(s.admin.review).toHaveBeenCalled());
+      expect(fetch).toHaveBeenCalledWith(`/sample/${SAMPLE}`);
+      expect(s.admin.review.mock.calls[0]?.[0].name).toBe(SAMPLE);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("hands on a gzip file where the server already undid the gzip (Content-Encoding)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response('{"format":1}')),
+    );
+    try {
+      const s = setup({ rows: [], sample: [SAMPLE] });
+      s.view();
+      fireEvent.click(await screen.findByRole("button", { name: "Try the Sample" }));
+      await waitFor(() => expect(s.admin.review).toHaveBeenCalled());
+      const file = s.admin.review.mock.calls[0]?.[0] as File;
+      const head = new Uint8Array(await file.arrayBuffer()).slice(0, 2);
+      expect([...head]).toEqual([0x1f, 0x8b]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("says so when the sample cannot be fetched, and loads nothing", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 404 })),
+    );
+    try {
+      const s = setup({ rows: [], sample: [SAMPLE] });
+      s.view();
+      fireEvent.click(await screen.findByRole("button", { name: "Try the Sample" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent(/couldn’t be fetched/);
+      expect(s.admin.review).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

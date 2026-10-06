@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [solid()],
-  define: { __APP_BUILD__: JSON.stringify("test") },
+  define: { __APP_BUILD__: JSON.stringify("test"), __SAMPLE_FILES__: "[]" },
   resolve: {
     conditions: ["development", "browser"],
     alias: {

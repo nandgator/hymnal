@@ -883,3 +883,29 @@ there.
 function of what the probe found, unit-tested for each case. The memory pool
 runs the worker's load, review, commit, open and remove tests against it in
 Node. A Firefox private window is a hand check.
+
+## 16. The sample
+
+The public-domain sample (Board #43,
+[ADR-0026](../decisions/0026-songs-leave-the-repository.md)) is two containers:
+28 hymns from _The Otterbein Hymnal_ (1890) and two Malayalam songs.
+`scripts/sample-sources.ts` writes their source directories from the research
+files, and the rights page, `docs/sample/RIGHTS.md`, beside them; a song's
+record is not a field in the book, so format 1 stands. `bun run pack` builds
+each on the maintainer's machine, and the containers are published as assets of
+the release named in `sample/RELEASE`.
+
+The deploy fetches only the files named in `sample/SHA256SUMS` into
+`public/sample/`, and a file whose bytes differ stops it. The build lists what
+is there (`SAMPLE_FILES`); a build without them offers and claims nothing.
+
+Where the build has a sample, the empty Library offers **Try the Sample**. It
+fetches the containers from this site and hands them to the same review a picked
+file gets: nothing is installed on its own, and a sample book is a loaded book,
+removable like any other. A fetch that fails, offline before the first visit for
+one, says so and loads nothing. The containers are not precached: the sample is
+fetched once and then held like any book. About says the sample is in the public
+domain and links the rights page.
+
+To change the sample: rerun the script, build, upload the containers to a new
+release, and commit the new `sample/RELEASE` and `sample/SHA256SUMS` together.

@@ -65,7 +65,7 @@ describe("About (SDD-0001 §16.10)", () => {
     expect(screen.getByText("test")).toBeInTheDocument();
     expect(screen.getByText(/no tracking and no cookies/)).toBeInTheDocument();
     expect(screen.getByText(/you answer for having the right to use them/)).toBeInTheDocument();
-    // No sample ships yet (SHIPPED_BOOK_IDS is empty), so none is claimed.
+    // This build has no sample (SAMPLE_FILES is empty), so none is claimed.
     expect(screen.queryByText(/sample books/)).not.toBeInTheDocument();
     for (const name of [
       "SQLite",

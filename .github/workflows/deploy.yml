@@ -41,6 +41,20 @@ jobs:
           --ignore=GHSA-jp82-f5mq-hwhp
           --ignore=GHSA-vfj7-8cjw-p6xm
       - run: bun run check
+      # Board #43 (ADR-0026): the public-domain sample, built locally and
+      # published as release assets. Only the files named in sample/SHA256SUMS
+      # are fetched, and bytes that differ from the committed hash stop the
+      # deploy: a replaced asset can't ship without a commit.
+      - name: Fetch the sample
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p public/sample
+          awk '{print $2}' sample/SHA256SUMS | while read -r name; do
+            gh release download "$(cat sample/RELEASE)" --repo "$GITHUB_REPOSITORY" \
+              --pattern "$name" --dir public/sample
+          done
+          (cd public/sample && sha256sum --strict --check ../../sample/SHA256SUMS)
       - run: bun run build
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5

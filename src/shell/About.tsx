@@ -1,5 +1,5 @@
-import { createSignal, For, onCleanup } from "solid-js";
-import { REPORT_URL, SHIPPED_BOOK_IDS } from "../config.ts";
+import { createSignal, For, onCleanup, Show } from "solid-js";
+import { REPORT_URL, SAMPLE_FILES, SAMPLE_RIGHTS_URL } from "../config.ts";
 import { type ContentAdmin, getContentAdmin } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserStateHandle } from "../persistence/user-state.ts";
 
@@ -8,9 +8,9 @@ const PRIVACY =
 
 const YOUR_BOOKS =
   "The books you load are yours to load: you answer for having the right to use them.";
-// Said only once a sample ships (Board #43): until then it would not be true.
+// Said only where this build offers the sample (Board #43): elsewhere it would not be true.
 const SAMPLE_BOOKS =
-  "The sample books that ship with the app are in the public domain, and each song says why.";
+  "The sample books offered in the Library are in the public domain, and each song’s record says why.";
 
 /** What the app is built from, each with the licence it carries (ADR-0016). */
 const CREDITS: { name: string; licence: string }[] = [
@@ -130,7 +130,14 @@ export function About(props: Partial<DiagnosticsSources> = {}) {
           Your books
         </h2>
         <p class="settings-note">
-          {SHIPPED_BOOK_IDS.length > 0 ? `${YOUR_BOOKS} ${SAMPLE_BOOKS}` : YOUR_BOOKS}
+          {YOUR_BOOKS}
+          <Show when={SAMPLE_FILES.length > 0}>
+            {" "}
+            {SAMPLE_BOOKS}{" "}
+            <a href={SAMPLE_RIGHTS_URL} target="_blank" rel="noopener noreferrer">
+              The sample’s rights
+            </a>
+          </Show>
         </p>
       </section>
 

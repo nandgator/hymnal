@@ -9,7 +9,9 @@ import {
   Show,
   Switch,
 } from "solid-js";
+import { SAMPLE_FILES } from "../config.ts";
 import type { LoadProgress } from "../domain/progress.ts";
+import { gzipContainer } from "../import/container.ts";
 import type { TextError } from "../import/songtext.ts";
 import { commitAndPersist, removeBookAndRecents } from "../persistence/books.ts";
 import {
@@ -40,6 +42,8 @@ import { buildTextBook, type FieldProblems, type SourceState } from "./textbook.
 
 /** Said in the Library when the books are held in memory (SDD-0004 §15). */
 const MEMORY_NOTE = "This window doesn’t keep books. They go when it closes, so keep the file.";
+const SAMPLE_FAILED =
+  "The sample couldn’t be fetched. It comes from this site, so check the connection and try again.";
 const KEPT_NOTE =
   "Books stay on this device. A loaded book has no copy anywhere else, so keep its file.";
 
@@ -78,6 +82,8 @@ export interface LibraryProps {
   userState?: Pick<UserState, "getRecents" | "dropRecents">;
   /** Asks for persistent storage at the first load; overridable for tests. */
   persist?: Parameters<typeof commitAndPersist>[3];
+  /** The sample files this build offers (Board #43); defaults to {@link SAMPLE_FILES}. */
+  sample?: readonly string[];
 }
 
 /** What the picker started, until its review is shown or thrown away. */
@@ -228,6 +234,8 @@ export function Library(props: LibraryProps) {
   const [sheetReading, setSheetReading] = createSignal<string>();
   // Files that could not be read, each said in words.
   const [readErrors, setReadErrors] = createSignal<string[]>([]);
+  const sample = () => props.sample ?? SAMPLE_FILES;
+  const [fetchingSample, setFetchingSample] = createSignal(false);
   // Books whose file turned out to be gone when they were chosen (evicted).
   const [missing, setMissing] = createSignal<ReadonlySet<string>>(new Set());
   const [justAdded, setJustAdded] = createSignal<string>();
@@ -633,6 +641,49 @@ export function Library(props: LibraryProps) {
     </button>
   );
 
+  // The sample comes from this site, then goes the way a picked file does (Board #43).
+  const loadSample = async () => {
+    setReadErrors([]);
+    setFetchingSample(true);
+    let files: File[];
+    try {
+      files = await Promise.all(
+        sample().map(async (name) => {
+          const response = await fetch(`${import.meta.env.BASE_URL}sample/${name}`);
+          if (!response.ok) throw new Error(`${name}: ${response.status}`);
+          const bytes = new Uint8Array(await response.arrayBuffer());
+          // A server may send the .gz with Content-Encoding: gzip, and fetch
+          // then hands over the JSON: gzipped again, it is the file as packed.
+          const gzipped =
+            bytes[0] === 0x1f && bytes[1] === 0x8b
+              ? bytes
+              : gzipContainer(new TextDecoder().decode(bytes));
+          return new File([gzipped as BlobPart], name);
+        }),
+      );
+    } catch {
+      setReadErrors([SAMPLE_FAILED]);
+      return;
+    } finally {
+      setFetchingSample(false);
+    }
+    await onPicked(files);
+  };
+
+  const sampleButton = () => (
+    <Show when={sample().length > 0}>
+      <button
+        type="button"
+        class="btn-text"
+        disabled={!!reading() || busy() || fetchingSample()}
+        onClick={() => void loadSample()}
+      >
+        <span class="icon icon-library" aria-hidden="true" />
+        Try the Sample
+      </button>
+    </Show>
+  );
+
   const textButton = (variant: "btn-text" | "btn-tonal") => (
     <button type="button" class={variant} disabled={!!reading() || busy()} onClick={openText}>
       <span class="icon icon-edit-note" aria-hidden="true" />
@@ -878,6 +929,7 @@ export function Library(props: LibraryProps) {
                 <div class="lib-empty-actions">
                   {loadButton("btn-filled")}
                   {textButton("btn-tonal")}
+                  {sampleButton()}
                 </div>
               </>
             }

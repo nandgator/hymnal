@@ -61,3 +61,5 @@ screenshots/
 # Playwright
 test-results/
 playwright-report/
+# The sample, fetched by the deploy from a release (Board #43).
+public/sample/
