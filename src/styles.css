@@ -5396,7 +5396,7 @@ fieldset.book-main {
 .book-new {
   box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
 }
-.review-file {
+.review-book .review-file {
   font-family: var(--font-family);
   font-size: 1rem;
   font-weight: 500;
@@ -5420,6 +5420,12 @@ fieldset.book-main {
 }
 .sheet.sheet-tall {
   max-height: 88dvh;
+}
+/* The review holds one height from checking to reviewed, so the card (and a
+   bottom sheet's top edge) does not jump as the queue steps; the cap still wins
+   on a short screen. Content stays at the top. */
+.sheet.sheet-steady {
+  min-height: min(34rem, 88dvh);
 }
 .skeleton-title-sm {
   width: 8rem;

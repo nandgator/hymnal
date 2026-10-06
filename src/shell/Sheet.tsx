@@ -27,6 +27,8 @@ export interface SheetProps {
   closeLabel?: string;
   /** Room for a long review: up to 88% of the height, not 75% (the Library's sheets). */
   tall?: boolean;
+  /** One height across the states of its content, so the card does not jump between them (the review). */
+  steady?: boolean;
   /** The page showing over the root, if any. The caller owns the state. */
   page?: SheetPage | undefined;
   /** Back from a pushed page: its header button, and Escape. */
@@ -186,7 +188,7 @@ export function Sheet(props: SheetProps) {
     // biome-ignore lint/a11y/useKeyWithClickEvents: scrim click; Escape is native
     <dialog
       ref={dialog}
-      class={`sheet sheet-${props.placement ?? "bottom"}${props.tall ? " sheet-tall" : ""}`}
+      class={`sheet sheet-${props.placement ?? "bottom"}${props.tall ? " sheet-tall" : ""}${props.steady ? " sheet-steady" : ""}`}
       aria-label={props.page?.title ?? props.title}
       onClose={() => props.onClose()}
       onCancel={(event) => {

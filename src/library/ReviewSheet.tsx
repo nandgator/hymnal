@@ -242,6 +242,7 @@ export function ReviewSheet(props: ReviewSheetProps) {
       }
       placement={props.placement}
       tall
+      steady
     >
       <Show when={props.review}>
         {(review) => (
@@ -266,7 +267,10 @@ export function ReviewSheet(props: ReviewSheetProps) {
                     <Show when={at().loaded}>
                       <span class="review-position-loaded">Loaded</span>
                     </Show>
-                    <span class="review-position-file">{props.reading ?? props.fileName}</span>
+                    {/* While it is read the body names the file; once, not twice. */}
+                    <Show when={!props.reading}>
+                      <span class="review-position-file">{props.fileName}</span>
+                    </Show>
                   </p>
                   <button
                     type="button"
