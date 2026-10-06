@@ -28,9 +28,9 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 
 ## Now
 
-**Beta track** (Board #43–52): #44, #45 and #46 are done; #47 next, then #49,
-#51, #52. #43 waits on the maintainer's Malayalam list, #50 on a real device,
-and the beta on an origin of its own (ADR-0030).
+**Beta track** (Board #43–52): #44–#47 are done; #49 next, then #49, #51, #52.
+#43 waits on the maintainer's Malayalam list, #50 on a real device, and the beta
+on an origin of its own (ADR-0030).
 
 **Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
 **Board #28 is done**: ADR-0026/0027, SDD-0004, all six parts. The songs have
@@ -85,10 +85,9 @@ Ordered. Top unblocked item is next.
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                          | —                     |
 | 43  | A shipped sample (ADR-0026 § What "shipped" means): public-domain songs, each with a rights record (SDD-0001 §8); how it ships decided then; About says users answer for what they load                   | maintainer: the songs |
-| 47  | Security (ADR-0030): CSP meta; defensive SQLite flags on every connection; `bun audit` in CI                                                                                                              | —                     |
 | 48  | Privacy: the Invariant is in (ADR-0030); the privacy statement goes in About (#49)                                                                                                                        | —                     |
 | 49  | Beta kit (SDD-0001 §16.10): About with build, privacy, your books, Copy Diagnostics and Report a Problem, credits                                                                                         | —                     |
-| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | 47–49, 52             |
+| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | 48, 49, 52            |
 | 51  | Flaky tests: channel.test theme replay, Presenter "repeats in place", App timer tests                                                                                                                     | —                     |
 | 52  | End-to-end smoke suite: Playwright against the build on Chromium, Firefox and WebKit, phone and desktop sizes; load, search, present, Output, then private window and backup                              | —                     |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                                               | —                     |
@@ -150,6 +149,10 @@ only, here:
 
 ## Log
 
+- 2026-10-06 — #47 done: a CSP in the built page with no inline script or style
+  (four static styles moved to CSS); every SQLite connection defensive, schema
+  untrusted; `bun audit` in CI, ignoring only seroval (Solid's server
+  serializer, not shipped, tested) and braces (lint tooling)
 - 2026-10-06 — #46 done: Back Up and Restore… in Settings; Load Books knows a
   backup by its content and refuses one picked with books or for Load Again; the
   restore sheet gives each book its verdict, Keep this device's by default in a

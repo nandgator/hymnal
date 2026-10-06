@@ -70,3 +70,5 @@ encrypts nothing at rest. Copyright in what a user loads is theirs (PLAN Log,
 - The CSP is tested: the built `index.html` carries it, and the app runs under
   it in the browser, Output and worker included.
 - A second origin (a custom domain) is needed before the beta.
+- An advisory is ignored in CI only for a package that is not in the built app,
+  with the reason beside it; a test fails if that package ever reaches `dist/`.

@@ -28,6 +28,18 @@ jobs:
         with:
           node-version-file: .node-version
       - run: bun install --frozen-lockfile
+      # ADR-0030: a high or critical advisory in the tree stops the deploy.
+      # Ignored, each by GHSA, none of it shipped in dist/:
+      # - seroval (GHSA-p6vx-979v-rg4c, GHSA-jp82-f5mq-hwhp) is Solid's server
+      #   serializer and is not in the client bundle; drop when solid-js moves
+      #   to seroval >=1.6.3. scripts/csp.test.ts asserts it stays out of dist/.
+      # - braces (GHSA-vfj7-8cjw-p6xm), via markdownlint-cli2 > globby >
+      #   fast-glob > micromatch: dev-only, not shipped; no published fix.
+      - run: >-
+          bun audit --audit-level=high
+          --ignore=GHSA-p6vx-979v-rg4c
+          --ignore=GHSA-jp82-f5mq-hwhp
+          --ignore=GHSA-vfj7-8cjw-p6xm
       - run: bun run check
       - run: bun run build
       - uses: actions/configure-pages@v6

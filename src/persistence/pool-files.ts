@@ -1,4 +1,5 @@
 import type { Database, Sqlite3Static, SqlValue } from "@sqlite.org/sqlite-wasm";
+import { hardened } from "./harden.ts";
 import type { Sql, Value } from "./package-io.ts";
 import { type PackageFiles, REGISTRY_FILE } from "./registry.ts";
 
@@ -70,7 +71,7 @@ export class PoolFiles implements PackageFiles {
   conn(file: string): Database {
     let db = this.#conns.get(file);
     if (!db) {
-      db = new this.pool.OpfsSAHPoolDb(file);
+      db = hardened(this.sqlite3, new this.pool.OpfsSAHPoolDb(file));
       this.#conns.set(file, db);
     }
     return db;
@@ -100,7 +101,7 @@ export class PoolFiles implements PackageFiles {
   write(file: string, fn: (sql: Sql) => void): void {
     const { pool, sqlite3 } = this;
     if (pool.getFileNames().includes(file)) throw new Error(`${file} already exists`);
-    const scratch = new sqlite3.oo1.DB(":memory:");
+    const scratch = hardened(sqlite3, new sqlite3.oo1.DB(":memory:"));
     try {
       fn(sqlOf(scratch));
       const bytes = sqlite3.capi.sqlite3_js_db_export(scratch.pointer as number);

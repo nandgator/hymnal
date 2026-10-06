@@ -1,4 +1,5 @@
 import type { Database, Sqlite3Static } from "@sqlite.org/sqlite-wasm";
+import { harden } from "./harden.ts";
 import type { PackagePool } from "./pool-files.ts";
 
 /**
@@ -28,6 +29,10 @@ export function createMemoryPool(sqlite3: Sqlite3Static): PackagePool {
     constructor(file: string) {
       super(":memory:");
       this.#file = file;
+      if (!harden(sqlite3, this)) {
+        super.close();
+        throw new Error(`${file}: SQLite would not be set to run safely`);
+      }
       if (open.has(file)) {
         super.close();
         throw new Error(`${file} is already open`);

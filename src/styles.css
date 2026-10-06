@@ -1635,6 +1635,8 @@ input[type="checkbox"].switch:disabled {
 /* Not clipped: only an area's body scrolls, and its header's menu may
    reach past the panel's edge. */
 .area {
+  /* Not an inline style: the Content Security Policy refuses those (ADR-0030). */
+  view-transition-class: area;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -2029,6 +2031,10 @@ input[type="checkbox"].switch:disabled {
    clipped, so bringing the current part's key into view can't scroll Live
    away. Short of height, Live shrinks first (to 6rem), keeping one row of
    the keypad, which then scrolls inside itself. */
+.area.stage:not(.skeleton-panel) {
+  view-transition-name: stage;
+}
+
 .stage {
   container: stage / inline-size;
   flex: 0 0 min(440px, 40%);

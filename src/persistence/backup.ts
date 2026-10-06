@@ -27,6 +27,7 @@ import { sha256Hex } from "../domain/hash.ts";
 import { type OnLoadProgress, throttled } from "../domain/progress.ts";
 import type { HymnbookSource, HymnSource } from "../domain/types.ts";
 import { CONTENT_FORMAT, hymnFileName, validateCorpus } from "../domain/validate.ts";
+import { harden, hardened } from "./harden.ts";
 import {
   isUnreadableDatabase,
   migratePackage,
@@ -244,7 +245,7 @@ function schemaFamilies(sqlite3: Sqlite3Static): Family[] {
   let made = families.get(sqlite3);
   if (!made) {
     const build = (ddl: string, migrate: boolean, version: number): Family => {
-      const db = new sqlite3.oo1.DB(":memory:");
+      const db = hardened(sqlite3, new sqlite3.oo1.DB(":memory:"));
       try {
         db.exec(ddl);
         const sql = sqlOf(db);
@@ -332,16 +333,13 @@ export async function rebuildPackage(
     db = new oo1.DB(":memory:");
     const pointer = db.pointer as number;
     // Before the file is read: nothing in it is trusted to run, or to be written to.
-    for (const op of [
-      capi.SQLITE_DBCONFIG_DEFENSIVE,
-      capi.SQLITE_DBCONFIG_TRUSTED_SCHEMA,
-      capi.SQLITE_DBCONFIG_ENABLE_TRIGGER,
-      capi.SQLITE_DBCONFIG_ENABLE_VIEW,
-    ]) {
-      const on = op === capi.SQLITE_DBCONFIG_DEFENSIVE ? 1 : 0;
-      if (capi.sqlite3_db_config(pointer, op, on, 0) !== 0) {
-        return fail("unsafe", "SQLite would not be set to read it safely");
-      }
+    if (
+      !harden(sqlite3, db) ||
+      [capi.SQLITE_DBCONFIG_ENABLE_TRIGGER, capi.SQLITE_DBCONFIG_ENABLE_VIEW].some(
+        (op) => capi.sqlite3_db_config(pointer, op, 0, 0) !== 0,
+      )
+    ) {
+      return fail("unsafe", "SQLite would not be set to read it safely");
     }
     // The database takes the copy and frees it on close.
     const copy = wasm.allocFromTypedArray(bytes);
@@ -355,7 +353,6 @@ export async function rebuildPackage(
     );
     if (rc !== 0) return fail("damaged", `SQLite could not open it (code ${rc})`);
     const sql = sqlOf(db);
-    sql.exec("PRAGMA trusted_schema = OFF");
 
     const family = matchSchema(sql, schemaFamilies(sqlite3));
     if (!family) {

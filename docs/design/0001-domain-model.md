@@ -1422,10 +1422,11 @@ page, not a deeper indent. Every setting's words are one short plain sentence
 saying what you will see (`SETTING_COPY` and `OUTPUT_CUES` in `Settings.tsx`).
 
 **Presentation settings travel with the content.** The Output theme (Dark,
-Light, Contrast, Warm) and the cue switches are Operator preferences, sent as
-`{ type: "presentation", theme, cues, pinChorus, wholeSong, highlight, bandSize }`
-whenever they change and held and replayed on late join like `blank`, so an
-Output window follows Settings live without reading storage itself.
+Light, Contrast, Warm) and the cue switches are Operator preferences, sent as a
+`presentation` message,
+`{ theme, cues, pinChorus, wholeSong, highlight, bandSize }`, whenever they
+change and held and replayed on late join like `blank`, so an Output window
+follows Settings live without reading storage itself.
 
 Cursor: shown while the mouse moves, hidden after 2s idle.
 

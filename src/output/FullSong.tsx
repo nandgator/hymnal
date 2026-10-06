@@ -532,7 +532,14 @@ export function FullSong(props: FullSongProps) {
       <div ref={sheet} class="full-sheet">
         <div ref={stage} class="full-stage">
           <div ref={tint} class="full-tint" aria-hidden="true" />
-          <div ref={ghost} class="full-tint" style={{ display: "none" }} aria-hidden="true" />
+          <div
+            ref={(el) => {
+              ghost = el;
+              el.style.display = "none"; // not a style attribute: the CSP refuses those (ADR-0030)
+            }}
+            class="full-tint"
+            aria-hidden="true"
+          />
           <For each={mounted()}>
             {(pageIndex) => {
               const columns = () => layout()?.pages[pageIndex]?.columns ?? [];

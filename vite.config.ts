@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { defineConfig, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import solid from "vite-plugin-solid";
+import { contentSecurityPolicy } from "./scripts/csp.ts";
 
 // The site defaults to the root of its domain. A deploy under a subpath, such
 // as a GitHub Pages project URL, sets BASE_PATH=/<repo>/ for the build. Only
@@ -63,6 +64,7 @@ export default defineConfig(({ command, isPreview }) => ({
   plugins: [
     solid(),
     publishSchemas(),
+    contentSecurityPolicy(),
     VitePWA({
       // "prompt", not "autoUpdate": a new version downloads and waits; the
       // shell offers Restart, never while the Output is live (SDD-0001 §15,

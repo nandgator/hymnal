@@ -14,7 +14,13 @@ progresses.
 The existing model cannot express any of that:
 
 ```jsonc
-{ "id": 1, "starts": "chorus", "chorus": [...], "bridge": [], "verses": [[...]] }
+{
+  "id": 1,
+  "starts": "chorus",
+  "chorus": [...],
+  "bridge": [],
+  "verses": [[...]]
+}
 ```
 
 `starts` records only the entry point. **Nothing encodes repetition.** The four

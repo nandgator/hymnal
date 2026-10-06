@@ -731,9 +731,12 @@ export function OutputView(props: OutputViewProps) {
 
   return (
     <div
-      ref={view}
+      ref={(el) => {
+        view = el;
+        // Set here, not as a style attribute, which the Content Security Policy refuses (ADR-0030).
+        el.style.setProperty("--safe-bottom", `${BAND * 100}cqh`);
+      }}
       class={`output-view output-view-${props.variant}`}
-      style={{ "--safe-bottom": `${BAND * 100}cqh` }}
       classList={{
         ...props.classList,
         "output-blanked": !!props.blanked,

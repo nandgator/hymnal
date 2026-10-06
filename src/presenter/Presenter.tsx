@@ -1145,10 +1145,7 @@ export function Presenter(props: PresenterProps) {
       <section
         class="area"
         classList={{ "area-main": group().main }}
-        style={{
-          "view-transition-name": `area-${group().index}`,
-          "view-transition-class": "area",
-        }}
+        style={{ "view-transition-name": `area-${group().index}` }}
         aria-label={tabName(activeOf(group()))}
       >
         <div class="area-header">
@@ -1346,11 +1343,7 @@ export function Presenter(props: PresenterProps) {
                   which never moves. */}
               <div class="operator-areas">
                 <Index each={groups()}>{(group) => tabGroup(group, loaded)}</Index>
-                <aside
-                  class="area stage"
-                  style={{ "view-transition-name": "stage", "view-transition-class": "area" }}
-                  aria-label="What they see"
-                >
+                <aside class="area stage" aria-label="What they see">
                   <Show when={shown("live")}>
                     {/* The strip names itself; only the full preview gets
                         the header. */}
