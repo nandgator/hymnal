@@ -711,7 +711,7 @@ describe("Library: the review sheet (ADR-0027)", () => {
     fireEvent.click(dialog.getByRole("button", { name: "Load Book" }));
     await waitFor(() => expect(s.onChoose).toHaveBeenCalledWith("k1"));
     expect(s.persist).toHaveBeenCalled();
-    expect(s.onStorageRefused).toHaveBeenCalled();
+    await waitFor(() => expect(s.onStorageRefused).toHaveBeenCalled());
   });
 
   it("new: no note when storage was granted", async () => {
@@ -722,6 +722,38 @@ describe("Library: the review sheet (ADR-0027)", () => {
     s.persist.mockResolvedValue("granted" as never);
     fireEvent.click(dialog.getByRole("button", { name: "Load Book" }));
     await waitFor(() => expect(s.onChoose).toHaveBeenCalledWith("k1"));
+    expect(s.onStorageRefused).not.toHaveBeenCalled();
+  });
+
+  it("new: an unanswered storage prompt does not hold the load; the note comes when it is refused", async () => {
+    const { s, dialog } = await open(
+      { commit: { ok: true, action: "loaded", key: "k1", firstLoad: true } },
+      null,
+    );
+    let answer: (r: "refused") => void = () => {};
+    s.persist.mockImplementation(() => new Promise((resolve) => (answer = resolve)) as never);
+    fireEvent.click(dialog.getByRole("button", { name: "Load Book" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Load Books" })).not.toBeInTheDocument(),
+    );
+    expect(s.onChoose).toHaveBeenCalledWith("k1");
+    expect(screen.getByRole("button", { name: "Load Books" })).toBeEnabled();
+    expect(s.persist).toHaveBeenCalled();
+    expect(s.onStorageRefused).not.toHaveBeenCalled();
+    answer("refused");
+    await waitFor(() => expect(s.onStorageRefused).toHaveBeenCalled());
+  });
+
+  it("new: a storage request that throws is not an unhandled rejection, and says nothing", async () => {
+    const { s, dialog } = await open(
+      { commit: { ok: true, action: "loaded", key: "k1", firstLoad: true } },
+      null,
+    );
+    s.persist.mockRejectedValue(new Error("no"));
+    fireEvent.click(dialog.getByRole("button", { name: "Load Book" }));
+    await waitFor(() => expect(s.onChoose).toHaveBeenCalledWith("k1"));
+    await waitFor(() => expect(s.persist).toHaveBeenCalled());
+    await Promise.resolve();
     expect(s.onStorageRefused).not.toHaveBeenCalled();
   });
 

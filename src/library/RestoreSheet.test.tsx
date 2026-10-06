@@ -296,7 +296,43 @@ describe("RestoreSheet: closing and committing", () => {
     await screen.findByRole("list", { name: "Books in the backup" });
     fireEvent.click(restoreButton());
     await screen.findByText("Restored 1 book.");
-    expect(refused.onStorageRefused).toHaveBeenCalled();
+    await waitFor(() => expect(refused.onStorageRefused).toHaveBeenCalled());
+  });
+
+  it("shows the done state without waiting for the storage prompt, and says to keep the file when it is refused", async () => {
+    let answer: (r: "refused") => void = () => {};
+    const s = setup(
+      ok({ books: [book()] }),
+      committed({
+        books: [{ key: "k1", title: "T", outcome: "restored" }],
+        held: ["k1"],
+        firstLoad: true,
+      }),
+      { persist: () => new Promise((resolve) => (answer = resolve)) },
+    );
+    await screen.findByRole("list", { name: "Books in the backup" });
+    fireEvent.click(restoreButton());
+    expect(await screen.findByText("Restored 1 book.")).toBeInTheDocument();
+    expect(s.onRestored).toHaveBeenCalledTimes(1);
+    expect(s.onStorageRefused).not.toHaveBeenCalled();
+    answer("refused");
+    await waitFor(() => expect(s.onStorageRefused).toHaveBeenCalled());
+  });
+
+  it("a storage request that throws changes nothing", async () => {
+    const s = setup(
+      ok({ books: [book()] }),
+      committed({
+        books: [{ key: "k1", title: "T", outcome: "restored" }],
+        held: ["k1"],
+        firstLoad: true,
+      }),
+      { persist: () => Promise.reject(new Error("no")) },
+    );
+    await screen.findByRole("list", { name: "Books in the backup" });
+    fireEvent.click(restoreButton());
+    expect(await screen.findByText("Restored 1 book.")).toBeInTheDocument();
+    expect(s.onStorageRefused).not.toHaveBeenCalled();
   });
 
   it("does not ask to keep storage where the books are held in memory", async () => {

@@ -34,7 +34,7 @@ describe("askPersist", () => {
 describe("commitAndPersist", () => {
   const admin = (result: CommitResult) => ({ commit: vi.fn(async () => result) });
 
-  it("asks once after a first load and returns the answer beside the result", async () => {
+  it("asks once after a first load and hands back the answer to wait for, apart from the result", async () => {
     const persist = vi.fn(async () => "refused" as const);
     const result = await commitAndPersist(
       admin({ ok: true, action: "loaded", key: "k", firstLoad: true }),
@@ -42,8 +42,26 @@ describe("commitAndPersist", () => {
       undefined,
       persist,
     );
-    expect(result).toMatchObject({ ok: true, key: "k", persist: "refused" });
+    expect(result).toMatchObject({ ok: true, key: "k" });
     expect(persist).toHaveBeenCalledTimes(1);
+    expect(await result.persisted).toBe("refused");
+  });
+
+  it("returns at once while the browser has not answered, and never rejects", async () => {
+    const hung = await commitAndPersist(
+      admin({ ok: true, action: "loaded", key: "k", firstLoad: true }),
+      "t",
+      undefined,
+      () => new Promise(() => {}),
+    );
+    expect(hung).toMatchObject({ ok: true, key: "k" });
+    const thrown = await commitAndPersist(
+      admin({ ok: true, action: "loaded", key: "k", firstLoad: true }),
+      "t",
+      undefined,
+      () => Promise.reject(new Error("no")),
+    );
+    expect(await thrown.persisted).toBe("unsupported");
   });
 
   it("does not ask for any other commit, or a failed one", async () => {
@@ -54,7 +72,7 @@ describe("commitAndPersist", () => {
       { ok: false, reason: "failed", message: "x" },
     ] as CommitResult[]) {
       expect(await commitAndPersist(admin(result), "t", undefined, persist)).not.toHaveProperty(
-        "persist",
+        "persisted",
       );
     }
     expect(persist).not.toHaveBeenCalled();
