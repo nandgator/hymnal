@@ -3,9 +3,10 @@ import { defineConfig, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import solid from "vite-plugin-solid";
 
-// GitHub Pages serves a project page from /<repo>/, never the domain root —
-// only the production build needs that; dev and preview stay at "/".
-const BASE = "/hymnal/";
+// The site defaults to the root of its domain. A deploy under a subpath, such
+// as a GitHub Pages project URL, sets BASE_PATH=/<repo>/ for the build. Only
+// the production build and preview use it; dev stays at "/".
+const BASE = `/${(process.env.BASE_PATH ?? "").replace(/^\/+|\/+$/g, "")}/`.replace("//", "/");
 
 // The JSON Schemas' source of truth is src/schema/1/ (code imports them; Vite
 // forbids importing from public/). The published URLs stay /schema/1/<file>:

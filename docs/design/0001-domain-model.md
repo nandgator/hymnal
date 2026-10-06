@@ -1044,13 +1044,16 @@ Pages workflow wasn't carried over. `.github/workflows/deploy.yml` adds one:
 place to skip that), `bun run build:content` (superseded by SDD-0004 (ADR-0026):
 dropped from the deploy), `bun run build`, then the standard
 `actions/{configure-pages,upload-pages-artifact, deploy-pages}` sequence.
-`vite.config.ts` sets `base: "/hymnal/"` for the production build — GitHub Pages
-serves a project page from that subpath, not the domain root, which is exactly
-what the `BASE_URL` fix in §10.2 already anticipated for the content fetch. One
-thing this caught: `vite preview` reports `command: "serve"`, same as dev, even
-though it serves the already-built `dist/` output whose URLs are baked in at
-that base — the config keys off `isPreview`, not `command`, or preview requests
-404 on every asset.
+`vite.config.ts` first set `base: "/hymnal/"` for the production build — GitHub
+Pages serves a project page from that subpath, not the domain root, which is
+exactly what the `BASE_URL` fix in §10.2 already anticipated for the content
+fetch. The site has since moved to a custom domain, which serves from the root,
+so `BASE` now comes from the `BASE_PATH` env var and defaults to `"/"`
+(`BASE_PATH=/hymnal/` restores the subpath build). One thing this caught:
+`vite preview` reports `command: "serve"`, same as dev, even though it serves
+the already-built `dist/` output whose URLs are baked in at that base — the
+config keys off `isPreview`, not `command`, or preview requests 404 on every
+asset.
 
 **Service worker and manifest via `vite-plugin-pwa`** (Workbox-based), matching
 this project's habit of leaning on a maintained library over hand-rolled
