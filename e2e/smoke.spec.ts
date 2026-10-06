@@ -1,7 +1,6 @@
+import { expect, test } from "@playwright/test";
 import { BOOK_TITLE, bookFile } from "./book.ts";
-import { expect, test } from "./fixtures.ts";
 import {
-  answerPersist,
   books,
   loadBook,
   noSavePicker,
@@ -27,7 +26,10 @@ test("first load: the shell renders, with no console errors or CSP violations", 
 
 test("load a book, find songs, open one", async ({ page }) => {
   await page.goto("/");
+  // Firefox puts the storage request to the user as a prompt nothing here answers: the
+  // load completes anyway, and Load Books is usable again.
   await loadBook(page);
+  await expect(page.getByRole("button", { name: "Load Books" })).toBeEnabled();
   await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
   await expect(
     books(page).getByRole("button", { name: new RegExp(`^${BOOK_TITLE}`) }),
@@ -89,7 +91,6 @@ test("backup round trip: Back Up, then Restore in a fresh profile", async ({
 
   const fresh = await browser.newContext({ baseURL, viewport, userAgent });
   try {
-    await answerPersist(fresh);
     const other = await fresh.newPage();
     await other.goto("/");
     await expect(other.getByRole("heading", { name: "Bring a songbook" })).toBeVisible();

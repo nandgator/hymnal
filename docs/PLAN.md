@@ -146,6 +146,9 @@ only, here:
 
 ## Log
 
+- 2026-10-06 — Fixed, found by #52: a first load or restore no longer waits on
+  `persist()`, which Firefox answers with a prompt; the ask runs alongside and
+  the keep-the-file note comes when it is refused (SDD-0004 §9)
 - 2026-10-06 — #52 done: Playwright against the built app, Chromium, Firefox and
   WebKit at 390x844 and 1280x800 (first load with no CSP violation, load and
   search, Output, a private window, a backup round trip); CI's deploy needs it.

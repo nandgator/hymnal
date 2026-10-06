@@ -26,14 +26,20 @@ export async function askPersist(
 }
 
 export type CommittedBook = CommitResult & {
-  /** The browser's answer to the request made at a first load; absent when none was made. */
-  persist?: PersistResult;
+  /**
+   * The browser's answer to the request made at a first load; absent when none was
+   * made. It settles whenever the browser does (Firefox asks the user), never
+   * rejects, and nothing about the book waits for it.
+   */
+  persisted?: Promise<PersistResult>;
 };
 
 /**
  * Commits a review and, if that was the first load, asks for persistent
- * storage once the book is written: a refusal changes nothing about the book,
- * and the one-time note that says to keep the file is the Library's.
+ * storage once the book is written. The ask runs alongside: a refusal changes
+ * nothing about the book, so the commit does not wait for an answer a prompt
+ * may hold open. The one-time note that says to keep the file is the caller's,
+ * when `persisted` settles.
  */
 export async function commitAndPersist(
   admin: {
@@ -45,7 +51,14 @@ export async function commitAndPersist(
   onProgress?: OnLoadProgress,
 ): Promise<CommittedBook> {
   const result = await admin.commit(token, choice, onProgress);
-  if (result.ok && result.firstLoad) return { ...result, persist: await persist() };
+  if (result.ok && result.firstLoad) {
+    return {
+      ...result,
+      persisted: Promise.resolve()
+        .then(persist)
+        .catch(() => "unsupported"),
+    };
+  }
   return result;
 }
 

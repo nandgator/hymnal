@@ -263,20 +263,19 @@ export function RestoreSheet(props: RestoreSheetProps) {
         }
       }
       for (const book of result.books) forgetBook(book.key);
-      try {
+      // Asking is a courtesy, and not waited for: Firefox holds the answer until the user
+      // gives it, and the books are written.
+      void (async () => {
         // A window that keeps nothing is not asked to keep storage.
+        if (!result.firstLoad) return;
         if (
-          result.firstLoad &&
           (await admin()
             .storageMode()
-            .catch(() => "opfs")) !== "memory" &&
-          (await (props.persist ?? askPersist)()) === "refused"
-        ) {
-          props.onStorageRefused?.();
-        }
-      } catch {
-        // Asking is a courtesy; the books are written.
-      }
+            .catch(() => "opfs")) === "memory"
+        )
+          return;
+        if ((await (props.persist ?? askPersist)()) === "refused") props.onStorageRefused?.();
+      })().catch(() => {});
       try {
         await props.onRestored();
       } catch (e) {

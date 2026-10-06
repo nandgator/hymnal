@@ -1,4 +1,4 @@
-import { type BrowserContext, expect, type Locator, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { bookFile } from "./book.ts";
 
 /** What the page itself reports as broken: console errors and thrown errors. */
@@ -24,19 +24,6 @@ export async function watchCsp(page: Page): Promise<void> {
 
 export const violations = (page: Page) =>
   page.evaluate(() => (window as unknown as { __csp?: string[] }).__csp ?? []);
-
-/**
- * The first load asks the browser to keep storage (`navigator.storage.persist()`)
- * and waits for the answer before the Load Books sheet moves on. Firefox puts
- * that to the user as a prompt that nothing in a test answers, so the sheet
- * sits on "Indexing for search…" for good. A finding, reported on Board #52;
- * until it is fixed the suite answers "no" itself.
- */
-export async function answerPersist(context: BrowserContext): Promise<void> {
-  await context.addInitScript(() => {
-    StorageManager.prototype.persist = async () => false;
-  });
-}
 
 /** Chromium's save-file picker would open a real dialog; the app then falls
  * back to an ordinary download, as Firefox and Safari do. */

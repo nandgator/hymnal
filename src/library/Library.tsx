@@ -516,7 +516,10 @@ export function Library(props: LibraryProps) {
     // there is none (the first load); Open Book is the user choosing it.
     if (opened || props.currentKey === undefined) props.onChoose(result.key);
     if (!opened) scrollTo(result.key);
-    if (result.persist === "refused") props.onStorageRefused?.();
+    // Not waited for: Firefox holds the answer until the user gives it.
+    void result.persisted?.then((answer) => {
+      if (answer === "refused") props.onStorageRefused?.();
+    });
     if (now && here) decided(now, here, current);
     else setReviewOpen(false);
   };
