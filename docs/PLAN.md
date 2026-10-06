@@ -145,6 +145,10 @@ only, here:
 
 ## Log
 
+- 2026-10-07 — Fixed, found by WebKit's first local e2e run (podman, the
+  Playwright image): a Safari private window answers `getDirectory()` with
+  `UnknownError` and showed the error screen; it is now a refusal and books are
+  held in memory (SDD-0004 §15). All 30 e2e pass on the three engines
 - 2026-10-07 — Decided by the maintainer: the sample is the 28 English hymns and
   only the 2 Malayalam songs with a full rights record (the other 18 wait on a
   first-publication date). Built locally, uploaded as a GitHub Release asset,
