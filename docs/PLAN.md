@@ -77,33 +77,33 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                                                                                                                                                      | Blocked by |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                          | —          |
-| 43  | Books handed out: only those whose rights are clear or public domain; testers load their own; About says users answer for what they load                                                                  | maintainer |
-| 44  | Damage handled (SDD-0001 §11.1, §16.9): user state checked and defaulted, memory when refused; error screen; Output blanks                                                                                | —          |
-| 45  | Private windows (was #39): say the books go when the window closes; an in-memory store where OPFS is refused                                                                                              | 44         |
-| 46  | Backup and restore: one versioned file, user state and books; restore validated like a load (SDD-0004 §8)                                                                                                 | 44         |
-| 47  | Security: threat-model ADR; untrusted packages opened defensively with limits; meta CSP; `bun audit` in CI                                                                                                | —          |
-| 48  | Privacy: an Invariant that nothing leaves the device unasked; a privacy statement                                                                                                                         | —          |
-| 49  | Beta kit: version and build shown, Copy diagnostics (no recents, no lyrics), a report link, About (#16, #17 in part)                                                                                      | 48         |
-| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | 44–49      |
-| 51  | Flaky tests: channel.test theme replay, Presenter "repeats in place", App timer tests                                                                                                                     | —          |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                                               | —          |
-| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                             | —          |
-| 16  | Feedback and corrections from users — where collected: TBD                                                                                                                                                | —          |
-| 17  | About: acknowledgements, copyright, credits                                                                                                                                                               | —          |
-| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                                                                               | —          |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                                                                                                                           | —          |
-| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                                                                            | —          |
-| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                                                                                   | —          |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                                                                                | Phase 2    |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                                                                             | content    |
-| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                                                                             | —          |
-| 38  | Search across books: one query over every loaded book (SDD-0001 §16)                                                                                                                                      | —          |
-| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                                                                                    | —          |
-| 41  | One-screen presenting: built (SDD-0001 §16.7); waits for the maintainer's check on GNOME Wayland and the keys' feel                                                                                       | —          |
-| 42  | Test suite speed (note): split App.test.tsx by area and use fake timers for its real waits; then isolate:false only for the DOM-free files, never globally (module-level state in channel.ts and friends) | —          |
+| #   | Task                                                                                                                                                                                                      | Blocked by            |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                          | —                     |
+| 43  | A shipped sample (ADR-0026 § What "shipped" means): public-domain songs, each with a rights record (SDD-0001 §8); how it ships decided then; About says users answer for what they load                   | maintainer: the songs |
+| 44  | Damage handled (SDD-0001 §11.1, §16.9): user state checked and defaulted, memory when refused; error screen; Output blanks                                                                                | —                     |
+| 45  | Private windows (was #39): say the books go when the window closes; an in-memory store where OPFS is refused                                                                                              | 44                    |
+| 46  | Backup and restore: one versioned file, user state and books; restore validated like a load (SDD-0004 §8)                                                                                                 | 44                    |
+| 47  | Security: threat-model ADR; untrusted packages opened defensively with limits; meta CSP; `bun audit` in CI                                                                                                | —                     |
+| 48  | Privacy: an Invariant that nothing leaves the device unasked; a privacy statement                                                                                                                         | —                     |
+| 49  | Beta kit: version and build shown, Copy diagnostics (no recents, no lyrics), a report link, About (#16, #17 in part)                                                                                      | 48                    |
+| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | 44–49                 |
+| 51  | Flaky tests: channel.test theme replay, Presenter "repeats in place", App timer tests                                                                                                                     | —                     |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                                               | —                     |
+| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                             | —                     |
+| 16  | Feedback and corrections from users — where collected: TBD                                                                                                                                                | —                     |
+| 17  | About: acknowledgements, copyright, credits                                                                                                                                                               | —                     |
+| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                                                                               | —                     |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                                                                                                                           | —                     |
+| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                                                                            | —                     |
+| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                                                                                   | —                     |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                                                                                | Phase 2               |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                                                                             | content               |
+| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                                                                             | —                     |
+| 38  | Search across books: one query over every loaded book (SDD-0001 §16)                                                                                                                                      | —                     |
+| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                                                                                    | —                     |
+| 41  | One-screen presenting: built (SDD-0001 §16.7); waits for the maintainer's check on GNOME Wayland and the keys' feel                                                                                       | —                     |
+| 42  | Test suite speed (note): split App.test.tsx by area and use fake timers for its real waits; then isolate:false only for the DOM-free files, never globally (module-level state in channel.ts and friends) | —                     |
 
 Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. The
 songs have left the repo (#28 done): nothing is bundled, and every book comes in
@@ -142,15 +142,15 @@ only, here:
 
 | Question                          | Blocks                                |
 | --------------------------------- | ------------------------------------- |
-| Lyrics copyright / redistribution | Handing out a book (#43), not the app |
+| Lyrics copyright / redistribution | The shipped sample (#43), not the app |
 
 ## Log
 
 - 2026-10-06 — Decided by the maintainer: the app does not police what users
-  load (a tool; ADR-0020); copyright gates only the books the maintainer hands
-  out (#43). #46 backup: every loaded book plus user state in one `.hymnal` file
-  (a zip); Restore merges through the duplicate review (SDD-0004 §8); Back Up
-  and Restore in Settings, and Load Books recognises a backup
+  load (a tool; ADR-0020); copyright gates only the public-domain sample the app
+  ships (#43). #46 backup: every loaded book plus user state in one `.hymnal`
+  file (a zip); Restore merges through the duplicate review (SDD-0004 §8); Back
+  Up and Restore in Settings, and Load Books recognises a backup
 - 2026-10-05 — Loading a large book: the write is about three times faster
   (prepared statements, a song at a time), and the review sheet and the Library
   row show a determinate bar with the phase and count after 300 ms; a save has
