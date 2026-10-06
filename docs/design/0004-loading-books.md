@@ -851,10 +851,11 @@ memory for the window's life, and the Library says so.
 
 **Refused, not busy.** Only a refusal falls back: `navigator.storage` or
 `getDirectory()` missing, `getDirectory()` rejecting (`SecurityError`,
-`NotAllowedError`), or no `createSyncAccessHandle` on a file handle. A pool held
-by another tab (`PoolUnavailableError`, SDD-0001 §10.4) is not a refusal: the
-books are there, and holding a second copy in memory would split them. That
-stays the error it is.
+`NotAllowedError`, or `UnknownError`, which is WebKit's answer in a private
+window), or no `createSyncAccessHandle` on a file handle. A pool held by another
+tab (`PoolUnavailableError`, SDD-0001 §10.4) is not a refusal: the books are
+there, and holding a second copy in memory would split them. That stays the
+error it is.
 
 **A pool in memory.** The worker talks to the pool through a small surface
 (`getFileNames`, `getFileCount`, `reserveMinimumCapacity`, `importDb`,

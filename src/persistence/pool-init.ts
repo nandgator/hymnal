@@ -188,8 +188,12 @@ export type PoolChoice =
   /** The probe failed for a reason that is not a refusal: the store is unavailable, not in memory. */
   | { mode: "error"; message: string };
 
-/** The errors of `getDirectory()` that mean this window refuses OPFS (private windows, blocked site data). */
-const REFUSALS: readonly string[] = ["SecurityError", "NotAllowedError"];
+/**
+ * The errors of `getDirectory()` that mean this window refuses OPFS (private
+ * windows, blocked site data). WebKit says `UnknownError` in a private window:
+ * its ephemeral session has no storage, while a persistent one opens.
+ */
+const REFUSALS: readonly string[] = ["SecurityError", "NotAllowedError", "UnknownError"];
 
 /**
  * OPFS, memory or an error, from what was found (SDD-0004 §15). Only a
