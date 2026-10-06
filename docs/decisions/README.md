@@ -39,6 +39,7 @@ record, never edited.
 | [0027](0027-review-a-book-without-editing-it.md)                    | Review a book without editing it                        | Accepted                                                                             |
 | [0028](0028-put-the-output-on-the-projector-screen.md)              | Put the Output on the projector screen                  | Accepted                                                                             |
 | [0029](0029-others-build-their-books-the-format-is-the-contract.md) | Others build their books: the format is the contract    | Accepted                                                                             |
+| [0030](0030-security-a-local-first-threat-model.md)                 | Security: a local-first threat model                    | Accepted                                                                             |
 
 ## Open questions
 

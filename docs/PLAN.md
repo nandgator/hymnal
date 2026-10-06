@@ -63,7 +63,7 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 | Area    | Status                                                                   |
 | ------- | ------------------------------------------------------------------------ |
-| Docs    | arc42 + 29 ADRs + SDD-0001–0006; design principles noted                 |
+| Docs    | arc42 + 30 ADRs + SDD-0001–0006; design principles noted                 |
 | Tooling | bun, biome, prettier, markdownlint — `bun run check` green               |
 | App     | Vite + SolidJS + TS scaffolded; vitest chosen as test runner             |
 | Domain  | Types, Sequence Engine, validation (`src/domain/`) — pure, tested        |
@@ -84,8 +84,8 @@ Ordered. Top unblocked item is next.
 | 44  | Damage handled (SDD-0001 §11.1, §16.9): user state checked and defaulted, memory when refused; error screen; Output blanks                                                                                | —                     |
 | 45  | Private windows (was #39, SDD-0004 §15): an in-memory store where OPFS is refused; the Library says so                                                                                                    | 44                    |
 | 46  | Backup and restore (SDD-0006): one `.hymnal` file, books and user state; restore rebuilds and merges                                                                                                      | 44                    |
-| 47  | Security: threat-model ADR; untrusted packages opened defensively with limits; meta CSP; `bun audit` in CI                                                                                                | —                     |
-| 48  | Privacy: an Invariant that nothing leaves the device unasked; a privacy statement                                                                                                                         | —                     |
+| 47  | Security (ADR-0030): CSP meta; defensive SQLite flags on every connection; `bun audit` in CI                                                                                                              | —                     |
+| 48  | Privacy: the Invariant is in (ADR-0030); the privacy statement goes in About (#49)                                                                                                                        | —                     |
 | 49  | Beta kit: version and build shown, Copy diagnostics (no recents, no lyrics), a report link, About (#16, #17 in part)                                                                                      | 48                    |
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | 44–49                 |
 | 51  | Flaky tests: channel.test theme replay, Presenter "repeats in place", App timer tests                                                                                                                     | —                     |
@@ -125,6 +125,8 @@ Breaking these breaks the design. Check before deviating.
 - Stored sequence never mutated; a jump moves, only a repeat inserts —
   [SDD-0001 §5.1](design/0001-domain-model.md)
 - A new hymnbook is data, not code — [arc42 §2.3](architecture/arc42.md)
+- Nothing leaves the device unless the user sends it —
+  [ADR-0030](decisions/0030-security-a-local-first-threat-model.md)
 - Audio, sync, projector, native wrapper deferred — ADR-0006, 0010, 0011
 
 ## Scope guard
