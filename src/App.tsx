@@ -415,6 +415,14 @@ function Operator(props: Shared) {
     const timer = setTimeout(() => setLibraryNote(undefined), HINT_MS);
     onCleanup(() => clearTimeout(timer));
   });
+  // User state fell back to memory (SDD-0001 §11.1): said once.
+  onMount(() =>
+    onCleanup(
+      userState.onMemoryFallback(() =>
+        setLibraryNote("Settings and recents won’t be kept this time."),
+      ),
+    ),
+  );
   // Each hint is shown once, ever: marked when it first appears.
   const showHintOnce = (id: "drag") => {
     const prefs = preferences.preferences();

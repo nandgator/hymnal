@@ -1,13 +1,30 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it } from "vitest";
+import { openDB } from "idb";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Position } from "../domain/types.ts";
 import {
+  BLOCKED_MS,
   bandSizeOf,
+  cleanUserDoc,
   DEFAULT_PREFERENCES,
   goLiveOf,
   openUserState,
-  type UserState,
+  type UserStateHandle,
 } from "./user-state.ts";
+
+// A test can replace `openDB` to make the open fail or hang.
+type OpenDBStub = (name: string, version: number, callbacks: object) => Promise<unknown>;
+const stub = vi.hoisted(() => ({ openDB: undefined as undefined | OpenDBStub }));
+vi.mock("idb", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("idb")>();
+  return {
+    ...actual,
+    openDB: (...args: Parameters<typeof actual.openDB>) =>
+      stub.openDB
+        ? stub.openDB(...(args as unknown as Parameters<OpenDBStub>))
+        : actual.openDB(...args),
+  };
+});
 
 const position = (hymnNumber: number): Position => ({
   hymnbookId: "mal-ymef-athmeeya-geethangal-16",
@@ -16,11 +33,14 @@ const position = (hymnNumber: number): Position => ({
   lineIndex: null,
 });
 
-let state: UserState;
+let state: UserStateHandle;
+let dbName: string;
 let dbCounter = 0;
 
 beforeEach(() => {
-  state = openUserState(`test-${++dbCounter}`);
+  stub.openDB = undefined;
+  dbName = `test-${++dbCounter}`;
+  state = openUserState(dbName);
 });
 
 describe("last position", () => {
@@ -191,5 +211,264 @@ describe("dropRecents", () => {
     await state.addRecent("b", 2);
     await state.dropRecents("a");
     expect(await state.getRecents()).toHaveLength(1);
+  });
+});
+
+/** Stores `record` as the document, as an app of another version might have. */
+async function seed(record: unknown) {
+  const db = await openDB(dbName, 1, { upgrade: (d) => void d.createObjectStore("state") });
+  await db.put("state", record, "root");
+  db.close();
+}
+async function stored() {
+  const db = await openDB(dbName, 1);
+  const record = await db.get("state", "root");
+  db.close();
+  return record;
+}
+
+const recent = (hymnNumber: number) => ({ hymnbookId: "book", hymnNumber, viewedAt: hymnNumber });
+
+describe("damage: fields read one by one (SDD-0001 §11.1)", () => {
+  it("reads a document without a version as version 1, and writes nothing on a read", async () => {
+    const record = { recents: [recent(1)], preferences: { theme: "dark" } };
+    await seed(record);
+    expect((await state.getPreferences()).theme).toBe("dark");
+    expect(await state.getRecents()).toEqual([recent(1)]);
+    expect(await stored()).toEqual(record);
+    expect(cleanUserDoc(record).version).toBe(1);
+  });
+
+  it("drops a lastPosition that is not a Position, keeping the rest", async () => {
+    await seed({ version: 1, lastPosition: { hymnbookId: "b" }, recents: [recent(1)] });
+    expect(await state.getLastPosition()).toBeUndefined();
+    expect(await state.getRecents()).toEqual([recent(1)]);
+    await seed({ version: 1, lastPosition: position(3), recents: [] });
+    expect(await openUserState(dbName).getLastPosition()).toEqual(position(3));
+  });
+
+  it("keeps the valid recents and drops the rest, still capped at 20", async () => {
+    const good = Array.from({ length: 30 }, (_, i) => recent(i + 1));
+    await seed({ recents: [null, { hymnbookId: 1 }, ...good.slice(0, 2), "x", ...good.slice(2)] });
+    expect((await state.getRecents()).map((r) => r.hymnNumber)).toEqual(
+      Array.from({ length: 20 }, (_, i) => i + 1),
+    );
+    await seed({ recents: "nope" });
+    expect(await openUserState(dbName).getRecents()).toEqual([]);
+  });
+
+  it("drops each wrong preference on its own, so its default applies", async () => {
+    await seed({
+      preferences: {
+        theme: "purple",
+        fontScale: "big",
+        scrollSync: false,
+        outputTheme: "neon",
+        bandSize: 3,
+        highlight: "song",
+        goLive: "projector",
+        pinChorus: "yes",
+        outputScreen: { label: "x" },
+        panes: { a: true, b: 1 },
+        outputCues: { number: true, title: "no", bogus: true },
+      },
+    });
+    expect(await state.getPreferences()).toEqual({
+      ...DEFAULT_PREFERENCES,
+      scrollSync: false,
+      highlight: "song",
+      panes: { a: true },
+      outputCues: { number: true, part: true },
+    });
+  });
+
+  it("reads a record that is not an object as the empty document", async () => {
+    for (const record of ["text", 7, null, [1, 2]]) {
+      await seed(record);
+      const fresh = openUserState(dbName);
+      expect(await fresh.getPreferences()).toEqual(DEFAULT_PREFERENCES);
+      expect(await fresh.getRecents()).toEqual([]);
+      expect(await fresh.getLastPosition()).toBeUndefined();
+    }
+    expect(cleanUserDoc("text")).toEqual({ version: 1, recents: [] });
+  });
+
+  it("stores the cleaned fields on the next ordinary write", async () => {
+    await seed({ recents: [null, recent(1)], lastPosition: 5 });
+    await state.addRecent("book", 2);
+    const record = await stored();
+    expect(record.recents.map((r: { hymnNumber: number }) => r.hymnNumber)).toEqual([2, 1]);
+    expect(record).not.toHaveProperty("lastPosition");
+  });
+});
+
+describe("damage: a newer app's fields survive (SDD-0001 §11.1)", () => {
+  it("keeps unknown fields and a higher version on write", async () => {
+    await seed({
+      version: 3,
+      recents: [],
+      installed: ["a"],
+      preferences: { theme: "dark", futurePref: { x: 1 } },
+    });
+    await state.addRecent("book", 1);
+    await state.setPreferences({ ...(await state.getPreferences()), fontScale: 2 });
+    expect(await stored()).toMatchObject({
+      version: 3,
+      installed: ["a"],
+      recents: [recent(1)].map((r) => ({ ...r, viewedAt: expect.any(Number) })),
+      preferences: { theme: "dark", fontScale: 2, futurePref: { x: 1 } },
+    });
+  });
+
+  it("keeps an unknown preference even when the app writes preferences without it", async () => {
+    await seed({ preferences: { futurePref: 1 } });
+    await state.setPreferences({ theme: "light", fontScale: 1 });
+    expect((await stored()).preferences).toEqual({ theme: "light", fontScale: 1, futurePref: 1 });
+  });
+
+  it("keeps a fractional stored version as it is", async () => {
+    await seed({ version: 2.5, recents: [] });
+    await state.addRecent("book", 1);
+    expect((await stored()).version).toBe(2.5);
+  });
+
+  it("drops a stored preference named like an inherited property, and an own __proto__", async () => {
+    await seed(
+      JSON.parse(
+        '{"preferences":{"theme":"dark","constructor":"x","toString":1,"__proto__":{"evil":true}}}',
+      ),
+    );
+    const prefs = await state.getPreferences();
+    expect(prefs).toEqual({ ...DEFAULT_PREFERENCES, theme: "dark" });
+    expect(Object.hasOwn(prefs, "constructor")).toBe(false);
+    expect(Object.hasOwn(prefs, "__proto__")).toBe(false);
+    expect(({} as Record<string, unknown>).evil).toBeUndefined();
+  });
+
+  it("writes version 1 for a fresh install", async () => {
+    await state.addRecent("book", 1);
+    expect((await stored()).version).toBe(1);
+  });
+});
+
+describe("refused or blocked: memory for the session (SDD-0001 §11.1)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("carries on in memory when the open fails, and says so once", async () => {
+    stub.openDB = () => Promise.reject(new DOMException("refused", "InvalidStateError"));
+    const heard = vi.fn();
+    state.onMemoryFallback(heard);
+    expect(await state.getPreferences()).toEqual(DEFAULT_PREFERENCES);
+    await state.addRecent("book", 1);
+    await state.addRecent("book", 2);
+    await state.setPreferences({ theme: "dark", fontScale: 1 });
+    await state.setLastPosition(position(4));
+    expect((await state.getRecents()).map((r) => r.hymnNumber)).toEqual([2, 1]);
+    expect((await state.getPreferences()).theme).toBe("dark");
+    expect(await state.getLastPosition()).toEqual(position(4));
+    expect(heard).toHaveBeenCalledTimes(1);
+  });
+
+  it("tells a listener that subscribes late, once", async () => {
+    stub.openDB = () => Promise.reject(new Error("refused"));
+    await state.getRecents();
+    const heard = vi.fn();
+    state.onMemoryFallback(heard);
+    expect(heard).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls to memory when an open never settles within 5 s, not before", async () => {
+    vi.useFakeTimers();
+    stub.openDB = () => new Promise(() => {});
+    const heard = vi.fn();
+    state.onMemoryFallback(heard);
+    const read = state.getRecents();
+    await vi.advanceTimersByTimeAsync(BLOCKED_MS - 1);
+    expect(heard).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await read).toEqual([]);
+    expect(heard).toHaveBeenCalledTimes(1);
+    await state.addRecent("book", 1);
+    expect(await state.getRecents()).toHaveLength(1);
+  });
+
+  it("keeps the database when a slow open settles within 5 s", async () => {
+    vi.useFakeTimers();
+    stub.openDB = () =>
+      new Promise((resolve) => setTimeout(resolve, 1000, { get: async () => undefined }));
+    const heard = vi.fn();
+    state.onMemoryFallback(heard);
+    const read = state.getRecents();
+    await vi.advanceTimersByTimeAsync(BLOCKED_MS + 1000);
+    expect(await read).toEqual([]);
+    expect(heard).not.toHaveBeenCalled();
+  });
+
+  it("falls to memory on the next op after a newer tab's upgrade closes the connection", async () => {
+    await state.addRecent("book", 1);
+    const heard = vi.fn();
+    state.onMemoryFallback(heard);
+    (await openDB(dbName, 2)).close();
+    expect((await state.getRecents()).map((r) => r.hymnNumber)).toEqual([1]);
+    expect(heard).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not lose overlapping writes, in the database or across the fall to memory", async () => {
+    await Promise.all([
+      state.addRecent("book", 1),
+      state.addRecent("book", 2),
+      state.setPreferences({ theme: "dark", fontScale: 1 }),
+      state.setLastPosition(position(9)),
+    ]);
+    expect((await state.getRecents()).map((r) => r.hymnNumber)).toEqual([2, 1]);
+    expect((await state.getPreferences()).theme).toBe("dark");
+    expect(await state.getLastPosition()).toEqual(position(9));
+
+    const refused = openUserState(`${dbName}-refused`);
+    stub.openDB = () => Promise.reject(new Error("refused"));
+    await Promise.all([
+      refused.addRecent("book", 1),
+      refused.addRecent("book", 2),
+      refused.setPreferences({ theme: "light", fontScale: 1 }),
+    ]);
+    expect((await refused.getRecents()).map((r) => r.hymnNumber)).toEqual([2, 1]);
+    expect((await refused.getPreferences()).theme).toBe("light");
+  });
+
+  it("falls to memory when a write fails, keeping what was read and the write itself", async () => {
+    await state.addRecent("book", 1);
+    const real = IDBObjectStore.prototype.put;
+    const put = vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(() => {
+      throw new DOMException("full", "QuotaExceededError");
+    });
+    const heard = vi.fn();
+    state.onMemoryFallback(heard);
+    await state.addRecent("book", 2);
+    put.mockRestore();
+    expect(IDBObjectStore.prototype.put).toBe(real);
+    expect((await state.getRecents()).map((r) => r.hymnNumber)).toEqual([2, 1]);
+    await state.addRecent("book", 3);
+    expect(heard).toHaveBeenCalledTimes(1);
+    expect((await stored()).recents).toHaveLength(1);
+  });
+
+  it("closes its connection on versionchange, so a newer tab is not blocked", async () => {
+    await state.addRecent("book", 1);
+    const upgraded = await openDB(dbName, 2, { blocked: () => expect.fail("blocked") });
+    upgraded.close();
+  });
+});
+
+describe("reset", () => {
+  it("deletes the database, books untouched, and a fresh open finds nothing", async () => {
+    await state.addRecent("book", 1);
+    await state.setPreferences({ theme: "dark", fontScale: 2 });
+    await state.reset();
+    expect((await indexedDB.databases()).map((d) => d.name)).not.toContain(dbName);
+    const fresh = openUserState(dbName);
+    expect(await fresh.getRecents()).toEqual([]);
+    expect(await fresh.getPreferences()).toEqual(DEFAULT_PREFERENCES);
   });
 });

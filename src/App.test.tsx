@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-lib
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.tsx";
 import type { BookRow, ContentAdmin, ContentStore } from "./persistence/content-store.ts";
-import type { UserState } from "./persistence/user-state.ts";
+import type { UserStateHandle } from "./persistence/user-state.ts";
 
 const mocks = vi.hoisted(() => ({
   rows: [] as import("./persistence/content-store.ts").BookRow[],
@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   admin: {} as Record<string, unknown>,
   /** Stored preferences a test sets before it renders. */
   prefs: {} as Record<string, unknown>,
+  /** The shell's listener for user state going to memory (SDD-0001 §11.1). */
+  fallback: (() => {}) as () => void,
 }));
 
 vi.mock("./persistence/content-store.ts", () => {
@@ -87,7 +89,7 @@ vi.mock("./persistence/content-store.ts", () => {
 });
 
 vi.mock("./persistence/user-state.ts", async (importOriginal) => {
-  const userState: UserState = {
+  const userState: UserStateHandle = {
     getLastPosition: async () => undefined,
     setLastPosition: async () => {},
     getRecents: async () => mocks.recents,
@@ -95,6 +97,11 @@ vi.mock("./persistence/user-state.ts", async (importOriginal) => {
     dropRecents: async () => {},
     getPreferences: async () => ({ theme: "system", fontScale: 1, ...mocks.prefs }),
     setPreferences: async () => {},
+    onMemoryFallback: (listener) => {
+      mocks.fallback = listener;
+      return () => {};
+    },
+    reset: async () => {},
   };
   return { ...(await importOriginal<typeof import("./persistence/user-state.ts")>()), userState };
 });
@@ -427,6 +434,17 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     expect((await screen.findAllByText("3 books not loaded")).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Got It" }));
     await waitFor(() => expect(screen.queryByText("3 books not loaded")).not.toBeInTheDocument());
+  });
+
+  it("says once that settings and recents won’t be kept when user state falls to memory, and Got It puts it away", async () => {
+    render(() => <App />);
+    await booksReady();
+    const text = "Settings and recents won’t be kept this time.";
+    expect(screen.queryByText(text)).not.toBeInTheDocument();
+    mocks.fallback();
+    expect((await screen.findAllByText(text)).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Got It" }));
+    await waitFor(() => expect(screen.queryByText(text)).not.toBeInTheDocument());
   });
 });
 
