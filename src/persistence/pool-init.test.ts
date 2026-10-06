@@ -180,7 +180,8 @@ describe("choosePool (SDD-0004 §15)", () => {
   });
 
   it("falls back to memory when getDirectory() is refused", () => {
-    for (const name of ["SecurityError", "NotAllowedError"]) {
+    // UnknownError: WebKit's answer in a private window (an ephemeral session).
+    for (const name of ["SecurityError", "NotAllowedError", "UnknownError"]) {
       expect(choosePool({ found: "rejected", name, message: "denied" })).toMatchObject({
         mode: "memory",
       });
@@ -188,9 +189,9 @@ describe("choosePool (SDD-0004 §15)", () => {
   });
 
   it("is an error, not memory, when getDirectory() fails for any other reason", () => {
-    expect(choosePool({ found: "rejected", name: "UnknownError", message: "boom" })).toEqual({
+    expect(choosePool({ found: "rejected", name: "InvalidStateError", message: "boom" })).toEqual({
       mode: "error",
-      message: "origin storage failed: UnknownError: boom",
+      message: "origin storage failed: InvalidStateError: boom",
     });
   });
 });
