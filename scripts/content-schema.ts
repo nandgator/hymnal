@@ -29,7 +29,16 @@ export const PACKAGE_MIGRATIONS: Readonly<Record<number, readonly string[]>> = {
  */
 export const FTS_TOKENCHARS = "ാിീുൂൃൄെേൈൊോൌ്‌‍";
 
-/** Mirrors SDD-0001 §6. Keep the two in step. */
+/**
+ * Mirrors SDD-0001 §6. Keep the two in step.
+ *
+ * Do not edit this text, even a comment, without freezing it: a backup's book
+ * is matched against it exactly (SDD-0006 §3.4), so any change, or a bump of
+ * SCHEMA_VERSION, makes every older backup "unsafe". Freeze the current DDL as
+ * a `SCHEMA_V<n>_SQL` constant, add it as an accepted family in the backup
+ * schema match (and its migrated form), then update the pin in
+ * scripts/backup.test.ts.
+ */
 export const SCHEMA_SQL = `
 CREATE TABLE hymnbook (
   id             TEXT PRIMARY KEY,    -- the key

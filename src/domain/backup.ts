@@ -144,12 +144,8 @@ const EOCD = 0x06054b50;
 const CENTRAL = 0x02014b50;
 const LOCAL = 0x04034b50;
 
-/**
- * The entries a zip declares, in one scan of its central directory, none
- * inflated; null when it is not a zip (or is zip64, which no backup needs:
- * nothing in one reaches 4 GB).
- */
-export function listEntries(bytes: Uint8Array): ZipEntry[] | null {
+/** The central directory as the end record declares it, checked to lie before that record. */
+function findDirectory(bytes: Uint8Array): { count: number; size: number; start: number } | null {
   if (bytes.length < 22) return null;
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let end = -1;
@@ -166,6 +162,19 @@ export function listEntries(bytes: Uint8Array): ZipEntry[] | null {
   if (count === 0xffff || size === 0xffffffff || start === 0xffffffff || start + size > end) {
     return null;
   }
+  return { count, size, start };
+}
+
+/**
+ * The entries a zip declares, in one scan of its central directory, none
+ * inflated; null when it is not a zip (or is zip64, which no backup needs:
+ * nothing in one reaches 4 GB).
+ */
+export function listEntries(bytes: Uint8Array): ZipEntry[] | null {
+  const dir = findDirectory(bytes);
+  if (!dir) return null;
+  const { count, size, start } = dir;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const entries: ZipEntry[] = [];
   let at = start;
   for (let i = 0; i < count; i++) {
@@ -186,6 +195,39 @@ export function listEntries(bytes: Uint8Array): ZipEntry[] | null {
   }
   return entries;
 }
+
+/**
+ * True when the entries' stored ranges, each from its local header to the end
+ * of its bytes, run past the file, overlap one another or reach the central
+ * directory. A zip that does is not one `zipSync` writes, and a size or an
+ * offset in it cannot be trusted.
+ */
+export function entriesOverlap(bytes: Uint8Array, entries: readonly ZipEntry[]): boolean {
+  const dir = findDirectory(bytes);
+  if (!dir) return true;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const ranges: [number, number][] = [];
+  for (const entry of entries) {
+    const at = entry.offset;
+    if (at + 30 > dir.start || view.getUint32(at, true) !== LOCAL) return true;
+    const to =
+      at + 30 + view.getUint16(at + 26, true) + view.getUint16(at + 28, true) + entry.packed;
+    if (to > dir.start) return true;
+    ranges.push([at, to]);
+  }
+  ranges.sort((a, b) => a[0] - b[0]);
+  return ranges.some(([, to], i) => i + 1 < ranges.length && to > (ranges[i + 1]?.[0] ?? Infinity));
+}
+
+/**
+ * Deflate never grows its input by more than a few bytes in a block and a
+ * handful in a stream; stored bytes are the data itself. Anything else is not
+ * a size to act on.
+ */
+const packedFits = (entry: ZipEntry): boolean =>
+  entry.method === 0
+    ? entry.packed === entry.size
+    : entry.packed <= entry.size + Math.ceil(entry.size / 1000) + 1024;
 
 export type ReadEntry = { ok: true; data: Uint8Array } | { ok: false; message: string };
 
@@ -209,6 +251,7 @@ export async function readEntry(
   if (entry.encrypted || (entry.method !== 0 && entry.method !== 8)) {
     return no(`${entry.name} is stored in a way a backup is not`);
   }
+  if (!packedFits(entry)) return no(`${entry.name} is not the length it declares`);
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const header = entry.offset;
   if (header + 30 > bytes.length || view.getUint32(header, true) !== LOCAL) {
@@ -253,6 +296,9 @@ export async function openBackup(bytes: Uint8Array): Promise<OpenedBackup> {
   if (!listed) return no(refuse("not-a-backup", "this is not a Hymnal backup (not a zip file)"));
   const manifestEntry = listed.find((e) => e.name === MANIFEST_ENTRY);
   if (!manifestEntry) return no(refuse("not-a-backup", "this is not a Hymnal backup"));
+  if (entriesOverlap(bytes, listed)) {
+    return no(refuse("damaged", "the backup's entries overlap or run past the file"));
+  }
   const read = await readEntry(bytes, manifestEntry, MAX_MANIFEST_BYTES);
   if (!read.ok) return no(refuse("damaged", read.message));
   let raw: unknown;

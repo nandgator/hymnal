@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import type { Sqlite3Static } from "@sqlite.org/sqlite-wasm";
-import { strToU8, unzipSync, zipSync } from "fflate";
+import { strToU8, unzipSync, Zip, ZipDeflate, zipSync } from "fflate";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   BACKUP_FORMAT,
@@ -273,6 +273,223 @@ describe("the entry rules and the ceilings (§3.1, §3.3)", () => {
   });
 });
 
+describe("malformed zips are refused cleanly (§3.1, §3.3)", () => {
+  const good = () =>
+    zipSync({
+      "manifest.json": json(manifestOf([{ key: "a" }])),
+      "books/a.sqlite3": new Uint8Array(2000).map((_, i) => (i * 31) % 251),
+    });
+  const stored = () =>
+    zipSync({
+      "manifest.json": json(manifestOf([{ key: "a" }])),
+      "books/a.sqlite3": [new Uint8Array(300).map((_, i) => i % 5), { level: 0 }],
+    });
+
+  const viewOf = (bytes: Uint8Array) => new DataView(bytes.buffer, bytes.byteOffset);
+  const find = (bytes: Uint8Array, signature: number, from = 0) => {
+    const view = viewOf(bytes);
+    for (let at = from; at <= bytes.length - 4; at++) {
+      if (view.getUint32(at, true) === signature) return at;
+    }
+    throw new Error("signature not found");
+  };
+  const eocd = (bytes: Uint8Array) => {
+    let at = -1;
+    for (let i = 0; i <= bytes.length - 4; i++) {
+      if (viewOf(bytes).getUint32(i, true) === 0x06054b50) at = i;
+    }
+    return at;
+  };
+  /** The central header of the named entry. */
+  const central = (bytes: Uint8Array, name: string) => {
+    for (let at = find(bytes, 0x02014b50); ; at = find(bytes, 0x02014b50, at + 4)) {
+      const view = viewOf(bytes);
+      const found = new TextDecoder().decode(
+        bytes.subarray(at + 46, at + 46 + view.getUint16(at + 28, true)),
+      );
+      if (found === name) return at;
+    }
+  };
+  /** A copy with `edit` applied to its view. */
+  const patched = (bytes: Uint8Array, edit: (view: DataView, bytes: Uint8Array) => void) => {
+    const copy = bytes.slice();
+    edit(viewOf(copy), copy);
+    return copy;
+  };
+  const withComment = (bytes: Uint8Array, comment: Uint8Array) => {
+    const out = new Uint8Array(bytes.length + comment.length);
+    out.set(bytes);
+    out.set(comment, bytes.length);
+    viewOf(out).setUint16(eocd(bytes) + 20, comment.length, true);
+    return out;
+  };
+
+  /** Resolves to the opened result, so a throw fails the test; the file must be refused. */
+  const refused = async (bytes: Uint8Array) => {
+    const opened = await openBackup(bytes);
+    expect(opened.ok).toBe(false);
+    return opened;
+  };
+
+  it("refuses a central directory that starts past the end of the file", async () => {
+    const bytes = patched(good(), (v, b) => v.setUint32(eocd(b) + 16, b.length + 100, true));
+    expect(listEntries(bytes)).toBeNull();
+    await refused(bytes);
+  });
+
+  it("refuses an entry whose local header is past the end of the file", async () => {
+    const bytes = patched(good(), (v, b) =>
+      v.setUint32(central(b, "books/a.sqlite3") + 42, b.length + 10, true),
+    );
+    const [, entry] = listEntries(bytes) ?? [];
+    expect(entry?.offset).toBeGreaterThan(bytes.length);
+    expect(await readEntry(bytes, entry as never, 1 << 20)).toMatchObject({ ok: false });
+    expect(await refused(bytes)).toMatchObject({ refusal: { reason: "damaged" } });
+  });
+
+  it("refuses an encrypted entry", async () => {
+    const bytes = patched(good(), (v, b) => {
+      const at = central(b, "books/a.sqlite3");
+      v.setUint16(at + 8, v.getUint16(at + 8, true) | 1, true);
+    });
+    const entry = listEntries(bytes)?.find((e) => e.name === "books/a.sqlite3");
+    expect(entry?.encrypted).toBe(true);
+    expect(await readEntry(bytes, entry as never, 1 << 20)).toMatchObject({ ok: false });
+  });
+
+  it("refuses a method that is neither stored nor deflated", async () => {
+    const bytes = patched(good(), (v, b) =>
+      v.setUint16(central(b, "books/a.sqlite3") + 10, 12, true),
+    );
+    const entry = listEntries(bytes)?.find((e) => e.name === "books/a.sqlite3");
+    expect(entry?.method).toBe(12);
+    expect(await readEntry(bytes, entry as never, 1 << 20)).toMatchObject({ ok: false });
+  });
+
+  it.each([
+    ["the entry count", 10, 0xffff, 2],
+    ["the directory size", 12, 0xffffffff, 4],
+    ["the directory offset", 16, 0xffffffff, 4],
+  ])("refuses zip64 sentinels in %s", async (_name, field, value, width) => {
+    const bytes = patched(good(), (v, b) =>
+      width === 2
+        ? v.setUint16(eocd(b) + field, value, true)
+        : v.setUint32(eocd(b) + field, value, true),
+    );
+    expect(listEntries(bytes)).toBeNull();
+    await refused(bytes);
+  });
+
+  it.each([
+    ["size", 24],
+    ["packed size", 20],
+    ["local header offset", 42],
+  ])("refuses a zip64 sentinel in an entry's %s", async (_name, field) => {
+    const bytes = patched(good(), (v, b) =>
+      v.setUint32(central(b, "books/a.sqlite3") + field, 0xffffffff, true),
+    );
+    const entry = listEntries(bytes)?.find((e) => e.name === "books/a.sqlite3");
+    expect(entry && (await readEntry(bytes, entry, 512 * 1024 * 1024))).toMatchObject({
+      ok: false,
+    });
+    await refused(bytes);
+  });
+
+  it("reads a zip whose end record carries a comment", async () => {
+    const bytes = withComment(good(), strToU8("made by a test, with a comment"));
+    expect(listEntries(bytes)?.map((e) => e.name)).toEqual(["manifest.json", "books/a.sqlite3"]);
+    expect((await openBackup(bytes)).ok).toBe(true);
+    expect(await isBackup(bytes)).toBe(true);
+  });
+
+  it("refuses a fake end record inside the comment, without throwing", async () => {
+    const fake = new Uint8Array(22);
+    viewOf(fake).setUint32(0, 0x06054b50, true);
+    viewOf(fake).setUint16(10, 3, true);
+    viewOf(fake).setUint32(12, 100, true);
+    viewOf(fake).setUint32(16, 50, true);
+    const bytes = withComment(good(), fake);
+    await refused(bytes);
+    expect(await isBackup(bytes)).toBe(false);
+  });
+
+  it("refuses a deflated entry whose packed size is far above its size", async () => {
+    const bytes = patched(good(), (v, b) => {
+      const at = central(b, "books/a.sqlite3");
+      v.setUint32(at + 20, 100 * 1024 * 1024, true);
+    });
+    const entry = listEntries(bytes)?.find((e) => e.name === "books/a.sqlite3");
+    expect(await readEntry(bytes, entry as never, 1 << 20)).toMatchObject({
+      ok: false,
+      message: expect.stringMatching(/length/),
+    });
+    await refused(bytes);
+  });
+
+  it("refuses a stored entry whose packed size is not its size, before any copy", async () => {
+    for (const packed of [10, 299, 301, 0x7fffffff]) {
+      const bytes = patched(stored(), (v, b) =>
+        v.setUint32(central(b, "books/a.sqlite3") + 20, packed, true),
+      );
+      const entry = listEntries(bytes)?.find((e) => e.name === "books/a.sqlite3");
+      expect(entry).toMatchObject({ method: 0, size: 300, packed });
+      expect(await readEntry(bytes, entry as never, 1 << 20), `packed ${packed}`).toMatchObject({
+        ok: false,
+        message: expect.stringMatching(/length/),
+      });
+    }
+  });
+
+  it("refuses entries whose stored ranges overlap", async () => {
+    const bytes = patched(good(), (v, b) => {
+      // The book now starts where the manifest does.
+      v.setUint32(central(b, "books/a.sqlite3") + 42, 0, true);
+    });
+    expect(await refused(bytes)).toMatchObject({ refusal: { reason: "damaged" } });
+  });
+
+  it("refuses an entry whose bytes reach into the central directory", async () => {
+    const bytes = patched(good(), (v, b) => {
+      const at = central(b, "books/a.sqlite3");
+      v.setUint32(at + 20, v.getUint32(at + 20, true) + 5, true);
+    });
+    expect(await refused(bytes)).toMatchObject({ refusal: { reason: "damaged" } });
+  });
+
+  it("lists an entry written by a streaming zip, whose sizes follow its data", async () => {
+    const data = new Uint8Array(5000).map((_, i) => (i * 7) % 253);
+    const chunks: Uint8Array[] = [];
+    const zip = new Zip((err, chunk) => {
+      if (err) throw err;
+      chunks.push(chunk);
+    });
+    const file = new ZipDeflate("books/a.sqlite3");
+    zip.add(file);
+    file.push(data, true);
+    zip.end();
+    const bytes = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+    let at = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, at);
+      at += chunk.length;
+    }
+    // Bit 3: the local header's sizes are zero, the descriptor after the data has them.
+    expect(viewOf(bytes).getUint16(6, true) & 8).toBe(8);
+    const entries = listEntries(bytes);
+    expect(entries).toHaveLength(1);
+    expect(entries?.[0]).toMatchObject({
+      name: "books/a.sqlite3",
+      size: data.length,
+      method: 8,
+      encrypted: false,
+    });
+    expect(await readEntry(bytes, entries?.[0] as never, 1 << 20, await sha256Hex(data))).toEqual({
+      ok: true,
+      data,
+    });
+  });
+});
+
 describe("the verdict (§4)", () => {
   const held = (over: Partial<HeldBook> & { key: string }): HeldBook => ({
     title: `Held ${over.key}`,
@@ -511,6 +728,25 @@ function packageV2(): Uint8Array {
 }
 
 const rebuilt = (bytes: Uint8Array) => rebuildPackage(wasm, bytes);
+
+describe("the schema is pinned", () => {
+  it("keeps SCHEMA_SQL and SCHEMA_V2_SQL byte for byte", async () => {
+    const pins = {
+      SCHEMA_SQL: "d4014c7ff6c520bb2b976301c0a35682b49df71eb385034dd4412f1021562668",
+      SCHEMA_V2_SQL: "6ce9e75062cb904ae124e8cbc781561f030e2ce6af6da0afc0198c6265dc8da2",
+    };
+    const found = {
+      SCHEMA_SQL: await sha256Hex(strToU8(SCHEMA_SQL)),
+      SCHEMA_V2_SQL: await sha256Hex(strToU8(SCHEMA_V2_SQL)),
+    };
+    // A backup's book is matched against this text exactly, so an edit, even to
+    // a comment, makes every older backup "unsafe".
+    expect(
+      found,
+      "The package schema changed. Freeze the current DDL as a SCHEMA_V<n>_SQL constant, add it as an accepted family in the backup schema match (and its migrated form), then update the pin.",
+    ).toEqual(pins);
+  });
+});
 
 describe("rebuilding a package (§3.4)", () => {
   it("reads a good package back whole, with its sources and content hash kept", async () => {
