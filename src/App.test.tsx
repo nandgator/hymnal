@@ -103,6 +103,8 @@ vi.mock("./persistence/user-state.ts", async (importOriginal) => {
       return () => {};
     },
     reset: async () => {},
+    backupDoc: async () => ({ version: 1, recents: [] }),
+    restore: async () => {},
   };
   return { ...(await importOriginal<typeof import("./persistence/user-state.ts")>()), userState };
 });

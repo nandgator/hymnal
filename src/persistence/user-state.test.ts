@@ -472,3 +472,34 @@ describe("reset", () => {
     expect(await fresh.getPreferences()).toEqual(DEFAULT_PREFERENCES);
   });
 });
+
+describe("restoring from a backup (SDD-0006 §4)", () => {
+  it("merges the backup's document into the stored one and reads back clean", async () => {
+    await state.setPreferences({ theme: "dark", fontScale: 2 });
+    await state.addRecent("held", 1);
+    const backup = {
+      version: 1,
+      lastPosition: { hymnbookId: "held", hymnNumber: 4, occurrenceIndex: 0, lineIndex: null },
+      recents: [
+        { hymnbookId: "held", hymnNumber: 2, viewedAt: 5 },
+        { hymnbookId: "gone", hymnNumber: 9, viewedAt: 6 },
+        "garbage",
+      ],
+      preferences: { theme: "light", fontScale: 1.5 },
+    };
+    await state.restore(backup, new Set(["held"]));
+    expect((await state.getRecents()).map((r) => [r.hymnbookId, r.hymnNumber])).toEqual([
+      ["held", 1],
+      ["held", 2],
+    ]);
+    expect(await state.getLastPosition()).toMatchObject({ hymnNumber: 4 });
+    expect(await state.getPreferences()).toMatchObject({ theme: "light", fontScale: 1.5 });
+    expect((await state.backupDoc()).recents).toHaveLength(2);
+  });
+
+  it("restores nothing from a document that is not one", async () => {
+    await state.addRecent("held", 1);
+    await state.restore("not a document", new Set(["held"]));
+    expect(await state.getRecents()).toHaveLength(1);
+  });
+});

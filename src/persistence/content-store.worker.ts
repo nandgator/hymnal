@@ -3,6 +3,7 @@ import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
 import * as Comlink from "comlink";
 import { SCHEMA_VERSION } from "../../scripts/content-schema.ts";
 import { SHIPPED_BOOK_IDS } from "../config.ts";
+import { isBackup, MAX_BACKUP_BYTES } from "../domain/backup.ts";
 import type { OnLoadProgress } from "../domain/progress.ts";
 import type {
   Hymnbook,
@@ -12,6 +13,15 @@ import type {
   PartKind,
   SequenceEntry,
 } from "../domain/types.ts";
+import {
+  type BackupCommit,
+  type BackupFile,
+  type BackupReview,
+  BackupSession,
+  type BackupTooLarge,
+  type RestoreChoices,
+  writeBackup,
+} from "./backup.ts";
 import type { InstallProgress } from "./download.ts";
 import { type Choice, type CommitResult, type LoadReview, LoadSession } from "./load.ts";
 import { createMemoryPool } from "./memory-pool.ts";
@@ -105,6 +115,28 @@ export interface ContentAdmin {
   commit(token: string, choice?: Choice, onProgress?: OnLoadProgress): Promise<CommitResult>;
   /** Throws the parsed book away. */
   cancel(token: string): Promise<boolean>;
+  /**
+   * Builds the backup: every held book that can be opened, and the user-state
+   * document the page passes (`backupDoc`). Shipped books and books that cannot
+   * be opened are left out and named in `skipped` (SDD-0006 §1, §2). The page
+   * saves the bytes. `onProgress` hears each book packed.
+   */
+  backUp(userState: unknown, onProgress?: OnLoadProgress): Promise<BackupFile | BackupTooLarge>;
+  /** True when the file is a backup, by its manifest and not its name (SDD-0006 §5). */
+  isBackup(file: File): Promise<boolean>;
+  /** Reads a backup and says what restoring each book would do; nothing is written (§3, §4). */
+  reviewBackup(file: File, onProgress?: OnLoadProgress): Promise<BackupReview>;
+  /**
+   * Writes the books of a reviewed backup; a failure in one is reported and the
+   * rest go on. The user state is the page's to merge afterwards: pass the
+   * result's `userState` and `held` to `UserStateHandle.restore`.
+   */
+  commitBackup(
+    token: string,
+    choices?: RestoreChoices,
+    onProgress?: OnLoadProgress,
+  ): Promise<BackupCommit>;
+  cancelBackup(token: string): Promise<boolean>;
   /** A loaded book only; a shipped one is refused. Its recents go with it: see `removeBookAndRecents`. */
   removeBook(key: string): Promise<boolean>;
   /** Where the books are held: OPFS, or memory for a window that refuses it (SDD-0004 §15). */
@@ -149,6 +181,10 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
   /** Writes in flight, so the store is not let go mid-write (SDD-0001 §10.4). */
   #writes = new Set<Promise<unknown>>();
   #session = new LoadSession(() => this.#registry());
+  #backups = new BackupSession(
+    () => this.#registry(),
+    async () => (await this.#poolReady).sqlite3,
+  );
   dev: DevAdmin | undefined = import.meta.env.DEV ? this.#makeDev() : undefined;
 
   constructor() {
@@ -301,6 +337,70 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     return this.#session.cancel(token);
   }
 
+  backUp(userState: unknown, onProgress?: OnLoadProgress): Promise<BackupFile | BackupTooLarge> {
+    return this.#track(
+      (async () => {
+        const ctx = await this.#registry();
+        const files = await this.#poolReady;
+        const backup = await writeBackup(ctx, files, userState, {
+          build: __APP_BUILD__,
+          onProgress: quiet(onProgress),
+        });
+        // The bytes move to the page, not copy: a backup can be a hundred megabytes.
+        return backup.ok ? Comlink.transfer(backup, [backup.bytes.buffer]) : backup;
+      })(),
+    );
+  }
+
+  async isBackup(file: File): Promise<boolean> {
+    // A file past the cap is not read at all: it cannot be a backup.
+    if (file.size > MAX_BACKUP_BYTES) return false;
+    try {
+      return await isBackup(new Uint8Array(await file.arrayBuffer()));
+    } catch {
+      return false;
+    }
+  }
+
+  async reviewBackup(file: File, onProgress?: OnLoadProgress): Promise<BackupReview> {
+    const report = quiet(onProgress);
+    report?.({ phase: "reading", done: 0, total: 0 });
+    if (file.size > MAX_BACKUP_BYTES) {
+      return {
+        ok: false,
+        refusal: {
+          reason: "not-a-backup",
+          message: "this file is larger than a backup can be (2 GB)",
+        },
+      };
+    }
+    let bytes: Uint8Array;
+    try {
+      bytes = new Uint8Array(await file.arrayBuffer());
+    } catch (error) {
+      return {
+        ok: false,
+        refusal: {
+          reason: "unavailable",
+          message: `the file could not be read: ${error instanceof Error ? error.message : String(error)}`,
+        },
+      };
+    }
+    return this.#backups.review(bytes, report);
+  }
+
+  commitBackup(
+    token: string,
+    choices?: RestoreChoices,
+    onProgress?: OnLoadProgress,
+  ): Promise<BackupCommit> {
+    return this.#track(this.#backups.commit(token, choices, quiet(onProgress)));
+  }
+
+  async cancelBackup(token: string): Promise<boolean> {
+    return this.#backups.cancel(token);
+  }
+
   async removeBook(key: string): Promise<boolean> {
     return this.#track((async () => removeBook(await this.#registry(), key))());
   }
@@ -308,6 +408,7 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
   async close(): Promise<void> {
     // A review not yet committed is thrown away: nothing was written.
     this.#session.discard();
+    this.#backups.discard();
     await Promise.allSettled([...this.#writes]);
     await this.#ready;
     try {

@@ -151,6 +151,10 @@ only, here:
 
 ## Log
 
+- 2026-10-06 — #46 part A, the backup engine: one `.hymnal` zip written and read
+  in the worker; each book's schema matched exactly against the app's own and
+  rebuilt by `packageRows`; sizes capped per entry and in all; recents merged.
+  Part B is the Settings section and the restore sheet
 - 2026-10-06 — #45 done: where OPFS is refused, books are held in memory for the
   window, and the Library says so; a pool held by another tab stays an error.
   Decided by the recommendation, for the maintainer to review: a tab whose books

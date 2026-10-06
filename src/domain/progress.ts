@@ -8,10 +8,13 @@
  * - `saving`: each song written to the package;
  * - `indexing`: the search index and the registry rows (no count).
  *
+ * - `packing`: a backup's books, each exported and added to the file, counted
+ *   in books and not in songs (SDD-0006 §2).
+ *
  * The first three belong to the review, which can be cancelled; the last two
  * to the commit, which cannot.
  */
-export type LoadPhase = "reading" | "checking" | "hashing" | "saving" | "indexing";
+export type LoadPhase = "reading" | "checking" | "hashing" | "saving" | "indexing" | "packing";
 
 export interface LoadProgress {
   phase: LoadPhase;
@@ -39,6 +42,8 @@ export function phaseLine({ phase, done, total }: LoadProgress): string {
       return total > 0 ? `Saving${of}` : "Saving…";
     case "indexing":
       return "Indexing for search…";
+    case "packing":
+      return total > 0 ? `Packing ${count(done)} of ${count(total)} books` : "Packing…";
   }
 }
 

@@ -60,6 +60,14 @@ export function getContentAdmin(): ContentAdmin {
       commit: (token, choice, onProgress) =>
         remote.commit(token, choice, onProgress && Comlink.proxy(onProgress)),
       cancel: (token) => remote.cancel(token),
+      backUp: (userState, onProgress) =>
+        remote.backUp(userState, onProgress && Comlink.proxy(onProgress)),
+      isBackup: (file) => remote.isBackup(file),
+      reviewBackup: (file, onProgress) =>
+        remote.reviewBackup(file, onProgress && Comlink.proxy(onProgress)),
+      commitBackup: (token, choices, onProgress) =>
+        remote.commitBackup(token, choices, onProgress && Comlink.proxy(onProgress)),
+      cancelBackup: (token) => remote.cancelBackup(token),
       removeBook: (key) => remote.removeBook(key),
       storageMode: () => remote.storageMode(),
       busy: () => remote.busy(),
@@ -111,6 +119,17 @@ export async function releaseContent(): Promise<void> {
   }
 }
 
+export type {
+  BackupBookResult,
+  BackupCommit,
+  BackupFile,
+  BackupProblem,
+  BackupReview,
+  BackupReviewBook,
+  BackupTooLarge,
+  RestoreChoices,
+  SkippedBook,
+} from "./backup.ts";
 export type {
   ContentAdmin,
   ContentStatus,

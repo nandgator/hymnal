@@ -142,6 +142,14 @@ export interface UserStateHandle extends UserState {
   /** Closes the connection and deletes the database; the caller reloads
    * (SDD-0001 §11.1 "Reset settings and history"). Never touches the books. */
   reset(): Promise<void>;
+  /** The document as `cleanUserDoc` makes it: what a backup holds (SDD-0006 §1). */
+  backupDoc(): Promise<UserStateDoc>;
+  /**
+   * Writes what a restore merges into the document (SDD-0006 §4): `raw` is the
+   * backup's document, cleaned here, and `held` the keys of the books now on
+   * the device. See {@link mergeRestoredDoc}.
+   */
+  restore(raw: unknown, held: ReadonlySet<string>): Promise<void>;
 }
 
 const STORE = "state";
@@ -153,7 +161,7 @@ const DOC_VERSION = 1;
 export const BLOCKED_MS = 5000;
 
 /** The stored document. Fields this app does not know ride along unread. */
-interface StateDoc {
+export interface UserStateDoc {
   version: number;
   lastPosition?: Position;
   recents: RecentEntry[];
@@ -162,7 +170,7 @@ interface StateDoc {
 }
 
 interface UserStateSchema extends DBSchema {
-  [STORE]: { key: string; value: StateDoc };
+  [STORE]: { key: string; value: UserStateDoc };
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -263,7 +271,7 @@ function cleanPreferences(raw: unknown): Record<string, unknown> {
  * missing version read as 1, a record that is not an object the empty
  * document. Pure; nothing is written. Fields it does not know are kept.
  */
-export function cleanUserDoc(raw: unknown): StateDoc {
+export function cleanUserDoc(raw: unknown): UserStateDoc {
   if (!isRecord(raw)) return { version: DOC_VERSION, recents: [] };
   const { version, lastPosition, recents, preferences, ...unknown } = raw;
   return {
@@ -277,15 +285,57 @@ export function cleanUserDoc(raw: unknown): StateDoc {
   };
 }
 
+/**
+ * What a restore leaves in the document (SDD-0006 §4). Restoring adds and never
+ * takes away: settings come from the backup; recents are both lists with one
+ * entry per song, newest first, capped, and only for books now held; the
+ * position is the backup's if its book is held, else the device's stays. A
+ * field this app does not know stays as the device has it. Pure.
+ */
+export function mergeRestoredDoc(
+  device: UserStateDoc,
+  backup: UserStateDoc,
+  held: ReadonlySet<string>,
+): UserStateDoc {
+  const newest = new Map<string, RecentEntry>();
+  for (const entry of [...device.recents, ...backup.recents]) {
+    if (!held.has(entry.hymnbookId)) continue;
+    const id = JSON.stringify([entry.hymnbookId, entry.hymnNumber]);
+    const seen = newest.get(id);
+    if (!seen || entry.viewedAt > seen.viewedAt) newest.set(id, entry);
+  }
+  const recents = [...newest.values()]
+    .sort((a, b) => b.viewedAt - a.viewedAt)
+    .slice(0, MAX_RECENTS);
+  const { lastPosition: ours, preferences: _ours, ...rest } = device;
+  const lastPosition =
+    backup.lastPosition && held.has(backup.lastPosition.hymnbookId) ? backup.lastPosition : ours;
+  // Preferences a newer app stored under names this one does not know stay, as `setPreferences` keeps them.
+  const foreign = Object.fromEntries(
+    Object.entries(device.preferences ?? {}).filter(([key]) => !KNOWN_PREFERENCES.has(key)),
+  );
+  const preferences = backup.preferences
+    ? { ...foreign, ...backup.preferences }
+    : device.preferences;
+  return {
+    ...rest,
+    // Never the backup's: a document from elsewhere does not raise the version.
+    version: Math.max(device.version, DOC_VERSION),
+    ...(lastPosition ? { lastPosition } : {}),
+    recents,
+    ...(preferences ? { preferences: preferences as Preferences } : {}),
+  };
+}
+
 /** Exposed for tests, which need an isolated database per run — app code uses {@link userState}. */
 export function openUserState(dbName: string): UserStateHandle {
   let dbPromise: Promise<IDBPDatabase<UserStateSchema>> | undefined;
   /** Set once the database is given up on: the document lives here instead. */
-  let memory: StateDoc | undefined;
-  let lastRead: StateDoc = cleanUserDoc(undefined);
+  let memory: UserStateDoc | undefined;
+  let lastRead: UserStateDoc = cleanUserDoc(undefined);
   const listeners = new Set<() => void>();
 
-  const toMemory = (seed: StateDoc) => {
+  const toMemory = (seed: UserStateDoc) => {
     if (memory) return;
     memory = seed;
     const heard = [...listeners];
@@ -329,7 +379,7 @@ export function openUserState(dbName: string): UserStateHandle {
     return dbPromise;
   };
 
-  const readDoc = async (): Promise<StateDoc> => {
+  const readDoc = async (): Promise<UserStateDoc> => {
     if (memory) return memory;
     try {
       lastRead = cleanUserDoc(await (await getDB()).get(STORE, KEY));
@@ -340,7 +390,7 @@ export function openUserState(dbName: string): UserStateHandle {
     }
   };
   /** Never lowers the stored version; keeps every field it does not know. */
-  const writeDoc = async (doc: StateDoc): Promise<void> => {
+  const writeDoc = async (doc: UserStateDoc): Promise<void> => {
     const next = { ...doc, version: Math.max(doc.version, DOC_VERSION) };
     if (memory) {
       memory = next;
@@ -445,6 +495,14 @@ export function openUserState(dbName: string): UserStateHandle {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
+
+    backupDoc: () => serial(readDoc),
+
+    restore: (raw, held) =>
+      serial(async () => {
+        const doc = await readDoc();
+        await writeDoc(mergeRestoredDoc(doc, cleanUserDoc(raw), held));
+      }),
 
     async reset() {
       const closing = dbPromise;

@@ -232,6 +232,9 @@ function insertBook(
 
 interface ContainerRead {
   sourceHash: string;
+  /** A restored book keeps what it had: the container hashes it matched, and its content hash. */
+  sources?: readonly string[];
+  contentHash?: string;
   book: ContainerBook;
   songHashes: ReadonlyMap<number, string>;
 }
@@ -252,8 +255,8 @@ async function writeNewPackage(
   const rows = packageRows(hymnbook, hymns, {
     key,
     origin: hymnbook.id,
-    sources: [read.sourceHash],
-    contentHash: read.sourceHash,
+    sources: read.sources ?? [read.sourceHash],
+    contentHash: read.contentHash ?? read.sourceHash,
     schemaVersion: SCHEMA_VERSION,
   });
   // Atomic: a failure, or a kill, leaves nothing under `file`, so there is nothing to remove.
@@ -295,7 +298,7 @@ function rowOf(
 /** Registers a written package; if that fails the file goes too, since nothing holds it. */
 function commitRow(ctx: RegistryContext, row: BookRow, read: ContainerRead, over?: string) {
   try {
-    insertBook(ctx, row, [read.sourceHash], read.songHashes, over);
+    insertBook(ctx, row, read.sources ?? [read.sourceHash], read.songHashes, over);
   } catch (error) {
     // Not committed: the book is not held, so its file must not linger to be adopted.
     try {
@@ -305,6 +308,19 @@ function commitRow(ctx: RegistryContext, row: BookRow, read: ContainerRead, over
     }
     throw error;
   }
+}
+
+/** The `<n>` for a package of `key` that no file in the pool has: past every generation of it. */
+export function freeGeneration(ctx: RegistryContext, key: string): number {
+  return (
+    Math.max(
+      0,
+      ...ctx.files
+        .list()
+        .filter((f) => isPackageFile(f) && keyOfFile(f) === key)
+        .map(generationOf),
+    ) + 1
+  );
 }
 
 /**

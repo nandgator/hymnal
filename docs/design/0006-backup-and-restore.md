@@ -65,18 +65,20 @@ The file is untrusted, whoever made it. The worker reads it:
    higher `version` is "this backup needs a newer app", naming both, as a book
    format is (ADR-0019).
 3. **Inflating.** Each entry is inflated with a ceiling of its declared size,
-   itself capped at 512 MB, and its SHA-256 checked against the manifest. A
-   mismatch refuses that book as damaged and lets the rest restore.
+   itself capped at 512 MB, the declared sizes together at 2 GB, and its SHA-256
+   checked against the manifest. A mismatch refuses that book as damaged and
+   lets the rest restore.
 4. **Each book, rebuilt.** A package is never copied into the pool as it is. It
    is opened from its bytes in a scratch in-memory database with
    `trusted_schema` off and SQLite's defensive flag on; its schema must hold
-   only a package's own tables and indexes (and `hymn_fts`'s), and any trigger
-   or view refuses it; `PRAGMA integrity_check` must pass. A version the app can
-   migrate is migrated in the scratch (SDD-0004 §7). Its rows are read back into
-   a book and its hymns, `validateCorpus` runs as for a load, and the package is
-   written fresh by `packageRows`, the one builder, under the backup's key with
-   its origin, `sources` and `content_hash`. So a restored book is exactly as
-   safe as a loaded one.
+   only a package's own tables, columns and indexes (and `hymn_fts`'s), checked
+   against the schema the app writes rather than by `sqlite_master`'s `type`,
+   and any trigger, view or other row refuses it; `PRAGMA integrity_check` must
+   pass. A version the app can migrate is migrated in the scratch (SDD-0004 §7).
+   Its rows are read back into a book and its hymns, `validateCorpus` runs as
+   for a load, and the package is written fresh by `packageRows`, the one
+   builder, under the backup's key with its origin, `sources` and
+   `content_hash`. So a restored book is exactly as safe as a loaded one.
 5. **User state** goes through `cleanUserDoc` (SDD-0001 §11.1).
 
 ## 4. The review
@@ -92,6 +94,7 @@ and its song hashes:
 | The same key, different songs                | **Keep this device's** (default), or **Replace** from it |
 | Another book with the same songs or a source | Nothing: "already here as _title_"                       |
 | Nothing                                      | **Restore**, under the backup's key                      |
+| The same key, but it cannot be opened here   | **Restore** over it, as Load Again does (SDD-0004 §9)    |
 
 **Decided by the recommendation:** a conflict keeps the device's copy by
 default, since it may be the newer edit, and Merge loses nothing. A restored
