@@ -841,3 +841,35 @@ Close, the bar sweeping at Indexing); closing during a write (the row shows the
 bar, nothing is cancelled, the buttons are off until it lands); a failure after
 the close in the snackbar; a book read in the open sheet. The worker's own
 wiring (Comlink, OPFS) is checked by hand in a browser, as §12 says.
+
+## 15. Private windows
+
+Board #45 (was #39). Some windows refuse OPFS outright: Firefox's private
+windows, Tor Browser, a browser with site storage blocked. Today the store does
+not start there and every book fails to load. Instead the books are held in
+memory for the window's life, and the Library says so.
+
+**Refused, not busy.** Only a refusal falls back: `navigator.storage` or
+`getDirectory()` missing, `getDirectory()` rejecting (`SecurityError`,
+`NotAllowedError`), or no `createSyncAccessHandle` on a file handle. A pool held
+by another tab (`PoolUnavailableError`, SDD-0001 §10.4) is not a refusal: the
+books are there, and holding a second copy in memory would split them. That
+stays the error it is.
+
+**A pool in memory.** The worker talks to the pool through a small surface
+(`getFileNames`, `getFileCount`, `reserveMinimumCapacity`, `importDb`,
+`exportFile`, `unlink`, `OpfsSAHPoolDb`). A memory pool gives the same surface
+over SQLite's in-memory databases, so the registry, the review, the duplicate
+checks (§8) and every query run unchanged. Nothing is written anywhere; the
+window closing ends it.
+
+**Said once, where it matters.** The Library carries a line while the store is
+in memory: _This window doesn’t keep books. They go when it closes, so keep the
+file._ No `persist()` is asked for in memory. Windows that keep OPFS but clear
+it on close (Chrome's incognito) cannot be told apart; the refused-persist note
+(§9) already says to keep the file there.
+
+**Testing.** The choice between OPFS, memory and the busy error is a pure
+function of what the probe found, unit-tested for each case. The memory pool
+runs the worker's load, review, commit, open and remove tests against it in
+Node. A Firefox private window is a hand check.
