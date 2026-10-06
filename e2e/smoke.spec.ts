@@ -101,10 +101,16 @@ test("backup round trip: Back Up, then Restore in a fresh profile", async ({
     await expect(dialog.getByText(/Restored/)).toBeVisible();
     await dialog.getByRole("button", { name: "Close" }).last().click();
     await expect(dialog).toBeHidden();
-    await other.goto("/");
-    await expect(
-      books(other).getByRole("button", { name: new RegExp(`^${BOOK_TITLE}`) }),
-    ).toBeVisible();
+    const restored = () => books(other).getByRole("button", { name: new RegExp(`^${BOOK_TITLE}`) });
+    await expect(restored()).toBeVisible();
+    // Kept across a reload where the window keeps books. WebKit's fresh
+    // context is a private window (SDD-0004 §15): its books go with it.
+    const note = other.getByText(/doesn’t keep books|Books stay on this device/);
+    await expect(note).toBeVisible();
+    if (!(await note.textContent())?.includes("doesn’t keep books")) {
+      await other.goto("/");
+      await expect(restored()).toBeVisible();
+    }
 
     // The same backup again: everything in it is already here.
     await other.getByTestId("book-file").setInputFiles(backup);
