@@ -65,6 +65,7 @@ import {
   wholeSongOf,
 } from "./persistence/user-state.ts";
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
+import { About } from "./shell/About.tsx";
 import { autoHover } from "./shell/autoHover.ts";
 import { titleCase } from "./shell/case.ts";
 import { RootBoundary } from "./shell/ErrorScreen.tsx";
@@ -98,13 +99,14 @@ import {
 } from "./shell/updates.ts";
 import { workspaceOf } from "./shell/workspace.ts";
 
-/** The app's top-level sections (DESIGN.md § Structure, layer 1). Feedback,
- * About and Updates are reserved here, not built (PLAN Board #16–18). */
-type Section = "present" | "library";
+/** The app's top-level sections (DESIGN.md § Structure, layer 1). Feedback
+ * and Updates are reserved here, not built (PLAN Board #16, #18). */
+type Section = "present" | "library" | "about";
 
 const SECTIONS: { id: Section; label: string; icon: string }[] = [
   { id: "present", label: "Present", icon: "icon-queue-music" },
   { id: "library", label: "Library", icon: "icon-library" },
+  { id: "about", label: "About", icon: "icon-info" },
 ];
 
 /** The same page, loaded in a second window, is the Output — SDD-0001 §16.1. */
@@ -1082,6 +1084,7 @@ function Operator(props: Shared) {
       },
       { label: "Switch hymnbook", run: run(() => openSheet(setBookPickerOpen)) },
       { label: "Library", run: run(() => go("library")) },
+      { label: "About", run: run(() => go("about")) },
       { label: "Settings", hint: keyHint("settings"), run: run(() => openSheet(setSettingsOpen)) },
       ...(canAdjustScale(prefs, 1)
         ? [
@@ -1405,6 +1408,9 @@ function Operator(props: Shared) {
                   onNotice={setLibraryNote}
                   onRestore={restoreFile}
                 />
+              </Match>
+              <Match when={section() === "about"}>
+                <About />
               </Match>
               <Match when={section() === "present" && !hymnNumber()}>
                 {hymnbook() && (

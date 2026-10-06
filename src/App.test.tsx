@@ -204,6 +204,15 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     expect(await crumbs.findByText("Mocked Hymnbook")).toBeInTheDocument();
   });
 
+  it("reaches About from the sections", async () => {
+    mocks.rows = [first()];
+    render(() => <App />);
+    const sections = within(await screen.findByRole("navigation", { name: "Sections" }));
+    fireEvent.click(sections.getByRole("button", { name: "About" }));
+    expect(await screen.findByRole("heading", { name: "About" })).toBeInTheDocument();
+    expect(sections.getByRole("button", { name: "About" })).toHaveAttribute("aria-current", "page");
+  });
+
   it("lists every readable book in the hymnbook picker, and chooses one", async () => {
     mocks.rows = [
       first(),

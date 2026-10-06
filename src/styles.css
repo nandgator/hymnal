@@ -6061,3 +6061,13 @@ fieldset.book-main {
 .error-body {
   text-wrap: pretty;
 }
+
+/* About (SDD-0001 §16.10): the build is picked up whole, for pasting. */
+.about-build {
+  user-select: all;
+}
+.about-credits {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
