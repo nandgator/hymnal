@@ -80,7 +80,7 @@ Ordered. Top unblocked item is next.
 | #   | Task                                                                                                                                                                                                      | Blocked by |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                          | —          |
-| 43  | Beta gate, copyright: which books testers get and on what terms (Open questions)                                                                                                                          | maintainer |
+| 43  | Books handed out: only those whose rights are clear or public domain; testers load their own; About says users answer for what they load                                                                  | maintainer |
 | 44  | Damage handled (SDD-0001 §11.1, §16.9): user state checked and defaulted, memory when refused; error screen; Output blanks                                                                                | —          |
 | 45  | Private windows (was #39): say the books go when the window closes; an in-memory store where OPFS is refused                                                                                              | 44         |
 | 46  | Backup and restore: one versioned file, user state and books; restore validated like a load (SDD-0004 §8)                                                                                                 | 44         |
@@ -140,12 +140,17 @@ doesn't. Re-read the deferral ADR before acting.
 Full list in [`docs/decisions/README.md`](decisions/README.md). Blocking ones
 only, here:
 
-| Question                          | Blocks      |
-| --------------------------------- | ----------- |
-| Lyrics copyright / redistribution | Any release |
+| Question                          | Blocks                                |
+| --------------------------------- | ------------------------------------- |
+| Lyrics copyright / redistribution | Handing out a book (#43), not the app |
 
 ## Log
 
+- 2026-10-06 — Decided by the maintainer: the app does not police what users
+  load (a tool; ADR-0020); copyright gates only the books the maintainer hands
+  out (#43). #46 backup: every loaded book plus user state in one `.hymnal` file
+  (a zip); Restore merges through the duplicate review (SDD-0004 §8); Back Up
+  and Restore in Settings, and Load Books recognises a backup
 - 2026-10-05 — Loading a large book: the write is about three times faster
   (prepared statements, a song at a time), and the review sheet and the Library
   row show a determinate bar with the phase and count after 300 ms; a save has
