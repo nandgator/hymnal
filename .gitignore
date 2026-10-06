@@ -57,3 +57,7 @@ imports/
 CLAUDE.md
 .claude
 screenshots/
+
+# Playwright
+test-results/
+playwright-report/

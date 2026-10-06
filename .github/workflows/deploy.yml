@@ -47,8 +47,31 @@ jobs:
         with:
           path: dist
 
+  # Board #52: the built app on three engines (Chromium, Firefox, WebKit) at a
+  # phone and a desktop size. A broken engine stops the deploy. The webServer in
+  # playwright.config.ts builds the app and serves it with `vite preview`.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps
+      - run: bun run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
   deploy:
-    needs: build
+    needs: [build, e2e]
     runs-on: ubuntu-latest
     environment:
       name: github-pages

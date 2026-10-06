@@ -28,9 +28,9 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 
 ## Now
 
-**Beta track** (Board #43–52): #44–#49 are done; #52 next, then #51. #43 waits
-on the maintainer's Malayalam list, #50 on a real device, and the beta on an
-origin of its own (ADR-0030).
+**Beta track** (Board #43–52): #44–#49 and #52 are done; the Firefox persist
+stall next, then #51. #43 waits on the maintainer's Malayalam list, #50 on a
+real device, and the beta on an origin of its own (ADR-0030).
 
 **Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
 **Board #28 is done**: ADR-0026/0027, SDD-0004, all six parts. The songs have
@@ -85,9 +85,8 @@ Ordered. Top unblocked item is next.
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                          | —                     |
 | 43  | A shipped sample (ADR-0026 § What "shipped" means): public-domain songs, each with a rights record (SDD-0001 §8); how it ships decided then; About says users answer for what they load                   | maintainer: the songs |
-| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | 52                    |
+| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | —                     |
 | 51  | Flaky tests: channel.test theme replay, Presenter "repeats in place", App timer tests                                                                                                                     | —                     |
-| 52  | End-to-end smoke suite: Playwright against the build on Chromium, Firefox and WebKit, phone and desktop sizes; load, search, present, Output, then private window and backup                              | —                     |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                                               | —                     |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                             | —                     |
 | 16  | Feedback and corrections from users — where collected: TBD                                                                                                                                                | —                     |
@@ -147,6 +146,12 @@ only, here:
 
 ## Log
 
+- 2026-10-06 — #52 done: Playwright against the built app, Chromium, Firefox and
+  WebKit at 390x844 and 1280x800 (first load with no CSP violation, load and
+  search, Output, a private window, a backup round trip); CI's deploy needs it.
+  Chromium and Firefox pass here; WebKit lacks system libraries on this machine
+  and runs first in CI. Found: Firefox's `persist()` prompt stalls the first
+  load until it is answered
 - 2026-10-06 — #48 and #49 done: About, after Library, with the build, the
   privacy statement, Your books, Copy Diagnostics (counts only, no titles or
   lyrics) and Report a Problem (`REPORT_URL`: the repo's issues, the

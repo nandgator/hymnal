@@ -26,6 +26,7 @@
     "typecheck": "bun run tsc -b",
     "check:md": "prettier --check \"**/*.md\" && markdownlint-cli2",
     "check:ts": "biome check --error-on-warnings .",
+    "test:e2e": "playwright test",
     "check": "bun run check:md && bun run check:ts && tsc -b && vitest run",
     "cqa:fix": "bun run format && bun run lint && bun run typecheck"
   },
@@ -40,7 +41,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
-    "@playwright/test": "^1.43.1",
+    "@playwright/test": "^1.63.0",
     "@solidjs/testing-library": "^0.8.10",
     "@testing-library/jest-dom": "^7.0.1",
     "@types/node": "^26.6.2",
