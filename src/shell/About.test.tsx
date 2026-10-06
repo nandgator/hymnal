@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { REPORT_URL } from "../config.ts";
 import type { BookRow } from "../persistence/content-store.ts";
-import { About, diagnostics, userStateMode } from "./About.tsx";
+import { About, diagnostics } from "./About.tsx";
 
 const book = (over: Partial<BookRow>): BookRow => ({
   key: "k1",
@@ -29,10 +29,7 @@ const admin = {
 };
 const recentLyrics = "Amazing grace how sweet the sound";
 const state = (memory: boolean) => ({
-  onMemoryFallback: (listener: () => void) => {
-    if (memory) listener();
-    return () => {};
-  },
+  mode: () => (memory ? ("memory" as const) : ("idb" as const)),
   getRecents: async () => [{ hymnbookId: "k1", hymnNumber: 7, title: recentLyrics, viewedAt: 1 }],
 });
 
@@ -68,6 +65,8 @@ describe("About (SDD-0001 §16.10)", () => {
     expect(screen.getByText("test")).toBeInTheDocument();
     expect(screen.getByText(/no tracking and no cookies/)).toBeInTheDocument();
     expect(screen.getByText(/you answer for having the right to use them/)).toBeInTheDocument();
+    // No sample ships yet (SHIPPED_BOOK_IDS is empty), so none is claimed.
+    expect(screen.queryByText(/sample books/)).not.toBeInTheDocument();
     for (const name of [
       "SQLite",
       "SolidJS",
@@ -95,9 +94,9 @@ describe("About (SDD-0001 §16.10)", () => {
     expect(text).not.toMatch(/Fellowship|Secret|Newer Book|Amazing|grace/);
   });
 
-  it("says memory when user state carries on in memory", () => {
-    expect(userStateMode(state(true))).toBe("memory");
-    expect(userStateMode(state(false))).toBe("idb");
+  it("says memory when user state carries on in memory", async () => {
+    const text = await diagnostics({ admin, state: state(true) });
+    expect(text).toContain("User state mode: memory");
   });
 
   it("copies the diagnostics, says so, and says nothing again after 3 seconds", async () => {

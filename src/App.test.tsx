@@ -102,6 +102,7 @@ vi.mock("./persistence/user-state.ts", async (importOriginal) => {
       mocks.fallback = listener;
       return () => {};
     },
+    mode: () => "idb",
     reset: async () => {},
     backupDoc: async () => ({ version: 1, recents: [] }),
     restore: async () => {},

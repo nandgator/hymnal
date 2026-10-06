@@ -1949,7 +1949,8 @@ Library. It holds, in this order:
    visitors' IP addresses under GitHub's own privacy statement._ (ADR-0030.)
 3. **Your books.** _The books you load are yours to load: you answer for having
    the right to use them. The sample books that ship with the app are in the
-   public domain, and each song says why._ (PLAN Log, 2026-10-06; #43.)
+   public domain, and each song says why._ (PLAN Log, 2026-10-06; #43.) The
+   second sentence shows only once a sample ships.
 4. **Report a problem.** **Copy Diagnostics**, then **Report a Problem**, which
    opens `REPORT_URL` (`src/config.ts`) in a new tab with nothing attached: the
    user pastes what they copied, if they choose. Diagnostics are the build, the

@@ -139,6 +139,8 @@ export interface UserStateHandle extends UserState {
   /** Calls `listener` once, when user state first carries on in memory
    * (SDD-0001 §11.1) — at once if it already has. Returns an unsubscribe. */
   onMemoryFallback(listener: () => void): () => void;
+  /** Where user state is kept now: IndexedDB, or memory for the session. */
+  mode(): "memory" | "idb";
   /** Closes the connection and deletes the database; the caller reloads
    * (SDD-0001 §11.1 "Reset settings and history"). Never touches the books. */
   reset(): Promise<void>;
@@ -486,6 +488,8 @@ export function openUserState(dbName: string): UserStateHandle {
         );
         await writeDoc({ ...doc, preferences: { ...foreign, ...preferences } });
       }),
+
+    mode: () => (memory ? "memory" : "idb"),
 
     onMemoryFallback(listener) {
       if (memory) {

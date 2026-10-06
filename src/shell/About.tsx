@@ -1,5 +1,5 @@
 import { createSignal, For, onCleanup } from "solid-js";
-import { REPORT_URL } from "../config.ts";
+import { REPORT_URL, SHIPPED_BOOK_IDS } from "../config.ts";
 import { type ContentAdmin, getContentAdmin } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserStateHandle } from "../persistence/user-state.ts";
 
@@ -7,7 +7,10 @@ const PRIVACY =
   "The hymnal keeps everything on this device: your books, your settings and the hymns you have sung. Nothing is sent anywhere, and there is no tracking and no cookies. The site is hosted on GitHub Pages, which logs visitors’ IP addresses under GitHub’s own privacy statement.";
 
 const YOUR_BOOKS =
-  "The books you load are yours to load: you answer for having the right to use them. The sample books that ship with the app are in the public domain, and each song says why.";
+  "The books you load are yours to load: you answer for having the right to use them.";
+// Said only once a sample ships (Board #43): until then it would not be true.
+const SAMPLE_BOOKS =
+  "The sample books that ship with the app are in the public domain, and each song says why.";
 
 /** What the app is built from, each with the licence it carries (ADR-0016). */
 const CREDITS: { name: string; licence: string }[] = [
@@ -28,22 +31,9 @@ const CREDITS: { name: string; licence: string }[] = [
 const MB = 1024 * 1024;
 const megabytes = (bytes: number) => `${(bytes / MB).toFixed(1)} MB`;
 
-/**
- * Whether user state is in memory or in IndexedDB. The handle exposes only a
- * listener that fires at once when it already carries on in memory (SDD-0001
- * §11.1), so it is read by listening and letting go.
- */
-export function userStateMode(state: Pick<UserStateHandle, "onMemoryFallback">): "memory" | "idb" {
-  let memory = false;
-  state.onMemoryFallback(() => {
-    memory = true;
-  })();
-  return memory ? "memory" : "idb";
-}
-
 export interface DiagnosticsSources {
   admin: Pick<ContentAdmin, "listBooks" | "storageMode">;
-  state: Pick<UserStateHandle, "onMemoryFallback">;
+  state: Pick<UserStateHandle, "mode">;
 }
 
 /**
@@ -74,7 +64,7 @@ export async function diagnostics({ admin, state }: DiagnosticsSources): Promise
         : `${megabytes(estimate.usage)} of ${megabytes(estimate.quota)}`
     }`,
     `Store mode: ${mode}`,
-    `User state mode: ${userStateMode(state)}`,
+    `User state mode: ${state.mode()}`,
     `Books: ${books}`,
   ].join("\n");
 }
@@ -139,7 +129,9 @@ export function About(props: Partial<DiagnosticsSources> = {}) {
         <h2 id="about-books" class="settings-heading">
           Your books
         </h2>
-        <p class="settings-note">{YOUR_BOOKS}</p>
+        <p class="settings-note">
+          {SHIPPED_BOOK_IDS.length > 0 ? `${YOUR_BOOKS} ${SAMPLE_BOOKS}` : YOUR_BOOKS}
+        </p>
       </section>
 
       <section class="settings-section" aria-labelledby="about-report">
