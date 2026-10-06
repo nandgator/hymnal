@@ -3,7 +3,7 @@ import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
 import * as Comlink from "comlink";
 import { SCHEMA_VERSION } from "../../scripts/content-schema.ts";
 import { SHIPPED_BOOK_IDS } from "../config.ts";
-import { isBackup, MAX_BACKUP_BYTES } from "../domain/backup.ts";
+import { hasZipMagic, isBackup, MAX_BACKUP_BYTES } from "../domain/backup.ts";
 import type { OnLoadProgress } from "../domain/progress.ts";
 import type {
   Hymnbook,
@@ -353,9 +353,11 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
   }
 
   async isBackup(file: File): Promise<boolean> {
-    // A file past the cap is not read at all: it cannot be a backup.
-    if (file.size > MAX_BACKUP_BYTES) return false;
     try {
+      // Four bytes first: a book (gzip) is never read in full. Then a file past the cap is not
+      // read at all: it cannot be a backup.
+      if (!hasZipMagic(new Uint8Array(await file.slice(0, 4).arrayBuffer()))) return false;
+      if (file.size > MAX_BACKUP_BYTES) return false;
       return await isBackup(new Uint8Array(await file.arrayBuffer()));
     } catch {
       return false;

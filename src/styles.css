@@ -829,6 +829,20 @@ button:disabled {
   font-size: 0.875rem;
 }
 
+/* What Back Up says once it is done, under its row. */
+.settings-note {
+  padding: var(--space-xs) var(--space-md);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+.settings-note:empty {
+  padding: 0;
+}
+.settings-note-bad {
+  color: var(--md-sys-color-error);
+}
+
 .settings-stepper {
   display: flex;
   align-items: center;
@@ -5185,6 +5199,9 @@ fieldset.book-main {
   margin-top: 1px;
   color: var(--md-sys-color-on-surface-variant);
 }
+.callout:focus {
+  outline: none;
+}
 .callout h4 {
   margin: 0 0 2px;
   font-size: 1rem;
@@ -5304,6 +5321,61 @@ fieldset.book-main {
   cursor: default;
   background: none;
   box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant);
+}
+
+/* The restore sheet: the books of a backup, each with what restoring does. */
+.restore-books {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--shape-md);
+  background-color: var(--md-sys-color-surface-container);
+}
+.restore-book {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  padding: var(--space-sm) var(--space-md);
+}
+.restore-book + .restore-book {
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+.restore-book-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 var(--space-md);
+}
+.restore-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.restore-songs,
+.restore-what,
+.restore-build,
+.restore-quiet {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.875rem;
+}
+.restore-choice {
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-top: var(--space-xs);
+}
+.restore-choice.options .option {
+  flex: 1 1 10rem;
+  padding-block: var(--space-xs);
+}
+.restore-head {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .review-actions {

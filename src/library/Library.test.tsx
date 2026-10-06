@@ -60,6 +60,8 @@ interface Setup {
   openBook?: ContentStatus;
   /** Where the books are held; the default is OPFS. */
   mode?: StorageMode;
+  /** The names of the picked files whose content is a backup. */
+  backups?: string[];
 }
 
 function setup(options: Setup = {}) {
@@ -85,6 +87,7 @@ function setup(options: Setup = {}) {
     }),
     openBook: vi.fn(async (): Promise<ContentStatus> => options.openBook ?? { state: "ready" }),
     storageMode: vi.fn(async (): Promise<StorageMode> => options.mode ?? "opfs"),
+    isBackup: vi.fn(async (file: File) => (options.backups ?? []).includes(file.name)),
   } satisfies LibraryAdmin;
   const store = {
     ensureInstalled: vi.fn(async (): Promise<ContentStatus> => ({ state: "ready" })),
@@ -102,6 +105,7 @@ function setup(options: Setup = {}) {
   const onStorageRefused = vi.fn();
   const onNotice = vi.fn();
   const persist = vi.fn(async () => "refused" as const);
+  const onRestore = vi.fn();
   const view = (
     props: {
       currentKey?: string;
@@ -124,6 +128,7 @@ function setup(options: Setup = {}) {
           onOpen={onOpen}
           onStorageRefused={onStorageRefused}
           onNotice={onNotice}
+          onRestore={onRestore}
           admin={admin}
           userState={userState}
           persist={persist}
@@ -138,6 +143,7 @@ function setup(options: Setup = {}) {
     onOpen,
     onStorageRefused,
     onNotice,
+    onRestore,
     persist,
     view,
     setRows: (r: BookRow[]) => (rows = r),
@@ -587,6 +593,7 @@ describe("Library: the review sheet (ADR-0027)", () => {
     s.view({ currentKey: "mal" });
     await screen.findByRole("list", { name: "Books" });
     pickFile();
+    await waitFor(() => expect(s.admin.review).toHaveBeenCalled());
     report({ phase: "checking", done: 812, total: 1631 });
     // A fast read shows nothing at all.
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
@@ -1316,5 +1323,88 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     expect(only.queryByText(/Book 1 of 1/)).not.toBeInTheDocument();
     expect(only.queryByRole("button", { name: "Next book" })).not.toBeInTheDocument();
     expect(only.queryByRole("button", { name: "Skip" })).not.toBeInTheDocument();
+  });
+});
+
+describe("Library: a backup picked in Load Books (SDD-0006 §5)", () => {
+  it("accepts .hymnal files in the picker", async () => {
+    const s = setup();
+    s.view();
+    await screen.findByRole("list", { name: "Books" });
+    expect(screen.getByTestId("book-file")).toHaveAttribute(
+      "accept",
+      expect.stringContaining(".hymnal"),
+    );
+  });
+
+  it("opens the restore sheet for one file that is a backup, whatever it is called", async () => {
+    const s = setup({ backups: ["notes.gz"] });
+    s.view({ currentKey: "mal" });
+    await screen.findByRole("list", { name: "Books" });
+    pickFile("notes.gz");
+    await waitFor(() => expect(s.onRestore).toHaveBeenCalledTimes(1));
+    expect(s.onRestore.mock.calls[0]?.[0]).toMatchObject({ name: "notes.gz" });
+    expect(s.admin.review).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog", { name: "Load Books" })).not.toBeInTheDocument();
+  });
+
+  it("reviews a file called .hymnal as a book when its content is not a backup", async () => {
+    const s = setup();
+    s.view({ currentKey: "mal" });
+    await screen.findByRole("list", { name: "Books" });
+    pickFile("odd.hymnal");
+    expect(await screen.findByRole("dialog", { name: "Load Books" })).toBeInTheDocument();
+    expect(s.onRestore).not.toHaveBeenCalled();
+  });
+
+  it("refuses a backup picked with books, and goes on with the books", async () => {
+    const s = setup({ backups: ["all.hymnal"] });
+    s.view({ currentKey: "mal" });
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles("all.hymnal", "1.hymnbook.json.gz");
+    const sheet = await screen.findByRole("dialog", { name: "Load Books" });
+    expect(within(sheet).getByText("Restore a backup on its own.")).toBeInTheDocument();
+    expect(s.onRestore).not.toHaveBeenCalled();
+    expect(s.admin.review).toHaveBeenCalledTimes(1);
+    expect(s.admin.review.mock.calls[0]?.[0]).toMatchObject({ name: "1.hymnbook.json.gz" });
+  });
+
+  it("does not route a backup picked for Load Again; it says where to restore it", async () => {
+    const s = setup({
+      rows: [row(), loaded({ key: "a", title: "Hymns of Praise", state: "needs-reloading" })],
+      backups: ["all.hymnal"],
+    });
+    s.view({ currentKey: "mal" });
+    fireEvent.click(await screen.findByRole("button", { name: "Load Again" }));
+    pickFile("all.hymnal");
+    expect(
+      await screen.findByText("That’s a backup. Restore it from Settings or Load Books."),
+    ).toBeInTheDocument();
+    expect(s.onRestore).not.toHaveBeenCalled();
+    expect(s.admin.review).not.toHaveBeenCalled();
+  });
+
+  it("ignores a second pick while the first is being looked at", async () => {
+    const s = setup({ backups: ["a.hymnal"] });
+    let answer: (is: boolean) => void = () => {};
+    s.admin.isBackup.mockImplementationOnce(() => new Promise<boolean>((r) => (answer = r)));
+    s.view({ currentKey: "mal" });
+    await screen.findByRole("list", { name: "Books" });
+    pickFile("a.hymnal");
+    pickFile("1.hymnbook.json.gz");
+    answer(true);
+    await waitFor(() => expect(s.onRestore).toHaveBeenCalledTimes(1));
+    expect(s.admin.isBackup).toHaveBeenCalledTimes(1);
+    expect(s.admin.review).not.toHaveBeenCalled();
+  });
+
+  it("says only that line when every file picked is a backup", async () => {
+    const s = setup({ backups: ["a.hymnal", "b.hymnal"] });
+    s.view({ currentKey: "mal" });
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles("a.hymnal", "b.hymnal");
+    expect(await screen.findByText("Restore a backup on its own.")).toBeInTheDocument();
+    expect(s.onRestore).not.toHaveBeenCalled();
+    expect(s.admin.review).not.toHaveBeenCalled();
   });
 });

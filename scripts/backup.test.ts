@@ -8,6 +8,7 @@ import {
   type BackupBookFacts,
   backupVerdict,
   checkManifest,
+  hasZipMagic,
   isBackup,
   listEntries,
   openBackup,
@@ -259,6 +260,12 @@ describe("the entry rules and the ceilings (§3.1, §3.3)", () => {
     });
     for (const k of names) bytes = declare(bytes, 500 * 1024 * 1024, `books/${k}.sqlite3`);
     expect(await openBackup(bytes)).toMatchObject({ ok: false, refusal: { reason: "damaged" } });
+  });
+
+  it("rules a gzip book out from its first four bytes", () => {
+    expect(hasZipMagic(good().subarray(0, 4))).toBe(true);
+    expect(hasZipMagic(new Uint8Array([0x1f, 0x8b, 8, 0]))).toBe(false);
+    expect(hasZipMagic(new Uint8Array([0x50, 0x4b]))).toBe(false);
   });
 
   it("recognises a backup by its manifest, not its name", async () => {

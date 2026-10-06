@@ -25,6 +25,8 @@ export interface SheetProps {
   /** The header button's label when closing leaves for good ("Cancel" in the
    * Library's sheets). Defaults to "Close". */
   closeLabel?: string;
+  /** The header button is dimmed and does nothing: a write that cannot be taken back is under way. */
+  closeDisabled?: boolean;
   /** Room for a long review: up to 88% of the height, not 75% (the Library's sheets). */
   tall?: boolean;
   /** One height across the states of its content, so the card does not jump between them (the review). */
@@ -227,6 +229,7 @@ export function Sheet(props: SheetProps) {
               type="button"
               class="btn-text"
               ref={(el) => onCleanup(hoverButton(el))}
+              disabled={props.closeDisabled}
               onClick={back}
             >
               {nested() ? "Back" : (props.closeLabel ?? "Close")}

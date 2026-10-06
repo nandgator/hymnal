@@ -43,6 +43,11 @@ const MEMORY_NOTE = "This window doesn’t keep books. They go when it closes, s
 const KEPT_NOTE =
   "Books stay on this device. A loaded book has no copy anywhere else, so keep its file.";
 
+/** Said when a backup is picked together with books: it is restored on its own. */
+const BACKUP_ALONE = "Restore a backup on its own.";
+/** Said when a backup is picked to bring one book back (Load Again). */
+const BACKUP_NOT_HERE = "That’s a backup. Restore it from Settings or Load Books.";
+
 const megabytes = (bytes: number) => (bytes / 1_000_000).toFixed(1);
 
 export interface LibraryProps {
@@ -64,6 +69,9 @@ export interface LibraryProps {
   onStorageRefused?: () => void;
   /** A word for the snackbar: books left unloaded when the review is closed. */
   onNotice?: (message: string) => void;
+  /** A single picked file is a backup (decided by its content): the restore sheet takes it
+   * (SDD-0006 §5). Without it, the file is reviewed as a book, and refused. */
+  onRestore?: (file: File) => void;
   /** Defaults to {@link getContentAdmin}; overridable for tests. */
   admin?: LibraryAdmin;
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
@@ -183,6 +191,8 @@ export function Library(props: LibraryProps) {
   let input: HTMLInputElement | undefined;
   let pickTarget: string | undefined;
   let nextId = 0;
+  // The picked files are being looked at (is one a backup?): no other pick begins meanwhile.
+  let checking = false;
   // The files picked together. Closing the review sheet drops it; nothing is written for what
   // was not loaded.
   let queue: Queue | undefined;
@@ -227,8 +237,9 @@ export function Library(props: LibraryProps) {
     book.state === "ok" && missing().has(book.key) ? "missing" : book.state;
 
   const pick = (target?: string) => {
-    // Not while a book is being written: a new queue must not begin under it.
-    if (busy()) return;
+    // Not while a book is being written, or a pick is being looked at: a new queue must not
+    // begin under it.
+    if (busy() || checking) return;
     pickTarget = target;
     if (input) {
       // Several at once, except to bring one book back.
@@ -387,9 +398,41 @@ export function Library(props: LibraryProps) {
     if (to !== undefined) void show(now, to, step);
   };
 
-  const onPicked = (files: File[]) => {
-    if (files.length === 0 || busy()) return;
+  const onPicked = async (picked: File[]) => {
+    if (picked.length === 0 || busy() || checking) return;
     setReadErrors([]);
+    let files = picked;
+    // A backup is known by its content, not its name (SDD-0006 §5).
+    if (props.onRestore) {
+      checking = true;
+      let flags: boolean[];
+      try {
+        flags = await Promise.all(
+          picked.map((file) =>
+            Promise.resolve(admin().isBackup?.(file)).then(
+              (is) => !!is,
+              () => false,
+            ),
+          ),
+        );
+      } finally {
+        checking = false;
+      }
+      // A write began while the files were looked at.
+      if (busy()) return;
+      const backups = picked.filter((_, i) => flags[i]);
+      if (backups.length > 0) {
+        if (picked.length === 1 && backups[0]) {
+          // Load Again brings one book back: a backup is not that.
+          if (pickTarget !== undefined) setReadErrors([BACKUP_NOT_HERE]);
+          else props.onRestore(backups[0]);
+          return;
+        }
+        files = picked.filter((_, i) => !flags[i]);
+        setReadErrors([BACKUP_ALONE]);
+        if (files.length === 0) return;
+      }
+    }
     const now: Queue = {
       entries: files.map((file): QueueEntry => ({ file, state: "open" })),
       at: 0,
@@ -883,12 +926,12 @@ export function Library(props: LibraryProps) {
         ref={input}
         type="file"
         class="visually-hidden"
-        accept=".gz,application/gzip,application/x-gzip"
+        accept=".gz,.hymnal,application/gzip,application/x-gzip"
         tabIndex={-1}
         aria-hidden="true"
         multiple
         data-testid="book-file"
-        onChange={(event) => onPicked([...(event.currentTarget.files ?? [])])}
+        onChange={(event) => void onPicked([...(event.currentTarget.files ?? [])])}
       />
       <Switch
         fallback={

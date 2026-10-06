@@ -12,7 +12,9 @@ import type { InstallProgress } from "../persistence/download.ts";
 export type LibraryAdmin = Pick<
   ContentAdmin,
   "listBooks" | "review" | "commit" | "cancel" | "removeBook" | "openBook" | "storageMode"
->;
+> &
+  /** Tells a backup from a book (SDD-0006 §5); a Library without it reviews every file as a book. */
+  Partial<Pick<ContentAdmin, "isBackup">>;
 
 /** What a row can say beyond the registry's own state: its file went missing (evicted). */
 export type RowState = BookRow["state"] | "missing";

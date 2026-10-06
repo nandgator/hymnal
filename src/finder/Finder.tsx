@@ -50,6 +50,8 @@ export interface FinderProps {
   onSelect: (number: HymnNumber) => void;
   /** The hymn up now, marked in Recents. */
   current?: HymnNumber;
+  /** Changes when the stored recents were restored from a backup: Recents is read again. */
+  recentsVersion?: number;
   /** Called when the user wants to go back to hymnbook selection. */
   onBack?: () => void;
   /** Actions listed ahead of the hymns — this makes the Finder the command
@@ -467,6 +469,7 @@ export function Finder(props: FinderProps) {
           <RecentsList
             hymnbookId={id()}
             current={props.current}
+            refresh={props.recentsVersion}
             store={props.store}
             userState={props.userState}
             onSelect={props.onSelect}

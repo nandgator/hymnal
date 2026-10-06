@@ -103,7 +103,8 @@ book keeps its key, so the backup's recents and position point at it.
 One button, **Restore**, writes the books, then the user state. Settings come
 from the backup. Recents are merged: both lists, one entry per song, the newest
 first, capped at 20, keeping only those whose book is now held. The position
-comes from the backup if its book is held. A failure in one book is reported and
+comes from the backup if its book is held, and applies at the next start: a
+restore never moves the user mid-session. A failure in one book is reported and
 the rest go on; the user state is written once the books are done.
 
 ## 5. From Load Books
@@ -111,7 +112,8 @@ the rest go on; the user state is written once the books are done.
 The Library's picker also accepts `.hymnal`. A picked file that is a zip with a
 `manifest.json` of `format: "hymnal-backup"` opens the restore review of §4
 instead of a book's; the file's name does not decide it. Picked together with
-books, it is refused with a line asking for it on its own.
+books, it is refused with a line asking for it on its own. Picked for Load
+Again, it is refused too: a backup never stands in for one book.
 
 ## 6. Testing
 

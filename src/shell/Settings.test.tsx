@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, within } from "@solidjs/testing-library";
+import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ContentAdmin, SkippedBook } from "../persistence/content-store.ts";
 import { DEFAULT_PREFERENCES, type UserState } from "../persistence/user-state.ts";
-import { createPreferences, Settings } from "./Settings.tsx";
+import { backedUpNote, createPreferences, Settings } from "./Settings.tsx";
 
 function fakeUserState(overrides: Partial<UserState> = {}): UserState {
   return {
@@ -655,5 +656,190 @@ describe("Settings: Output screen (ADR-0028)", () => {
     } finally {
       Reflect.deleteProperty(navigator, "platform");
     }
+  });
+});
+
+describe("Settings: Backup (SDD-0006 §2)", () => {
+  const bytes = new Uint8Array([80, 75, 3, 4]);
+  const file = (skipped: SkippedBook[] = []) => ({
+    ok: true as const,
+    bytes,
+    filename: "Hymnal backup 2026-10-06.hymnal",
+    skipped,
+    books: 3,
+  });
+  const setup = (over: { backUp?: ContentAdmin["backUp"] } = {}) => {
+    const backUp = vi.fn<ContentAdmin["backUp"]>(over.backUp ?? (async () => file()));
+    const admin = { backUp };
+    const backupDoc = vi.fn(async () => ({ version: 1, recents: [] }));
+    const onRestoreFile = vi.fn();
+    render(() => (
+      <Settings
+        userState={fakeUserState()}
+        admin={admin}
+        backupState={{ backupDoc }}
+        onRestoreFile={onRestoreFile}
+      />
+    ));
+    return { backUp, backupDoc, onRestoreFile };
+  };
+  const backupSection = () => within(screen.getByRole("region", { name: "Backup" }));
+  const press = () => fireEvent.click(backupSection().getByRole("button", { name: "Back Up" }));
+
+  afterEach(() => {
+    delete (window as { showSaveFilePicker?: unknown }).showSaveFilePicker;
+    vi.restoreAllMocks();
+  });
+
+  it("says what the file holds, with Back Up and Restore…", () => {
+    setup();
+    const section = backupSection();
+    expect(section.getByRole("button", { name: "Back Up" })).toBeInTheDocument();
+    expect(section.getByRole("button", { name: "Restore…" })).toBeInTheDocument();
+    expect(
+      section.getByText(
+        "The file holds your books, your settings and recent hymns. It stays wherever you save it.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("saves through the save dialog where there is one, named for the file", async () => {
+    const write = vi.fn(async () => {});
+    const close = vi.fn(async () => {});
+    const picker = vi.fn(async () => ({ createWritable: async () => ({ write, close }) }));
+    (window as { showSaveFilePicker?: unknown }).showSaveFilePicker = picker;
+    const s = setup();
+    press();
+    expect(await screen.findByText("Backed up 3 books.")).toBeInTheDocument();
+    expect(s.backupDoc).toHaveBeenCalled();
+    expect(s.backUp.mock.calls[0]?.[0]).toEqual({ version: 1, recents: [] });
+    expect(picker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        suggestedName: "Hymnal backup 2026-10-06.hymnal",
+        types: [expect.objectContaining({ accept: { "application/octet-stream": [".hymnal"] } })],
+      }),
+    );
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(close).toHaveBeenCalled();
+  });
+
+  it("downloads a link where there is no save dialog", async () => {
+    const create = vi.fn(() => "blob:backup");
+    const revoke = vi.fn();
+    Object.assign(URL, { createObjectURL: create, revokeObjectURL: revoke });
+    let link: HTMLAnchorElement | undefined;
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      link = this;
+    });
+    setup();
+    press();
+    expect(await screen.findByText("Backed up 3 books.")).toBeInTheDocument();
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(link?.download).toBe("Hymnal backup 2026-10-06.hymnal");
+    expect(link?.getAttribute("href")).toBe("blob:backup");
+  });
+
+  it("says nothing when the person cancels the save dialog", async () => {
+    const picker = vi.fn(async () => {
+      throw new DOMException("cancelled", "AbortError");
+    });
+    (window as { showSaveFilePicker?: unknown }).showSaveFilePicker = picker;
+    setup();
+    press();
+    await waitFor(() => expect(picker).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(backupSection().getByRole("button", { name: "Back Up" })).toHaveAttribute(
+        "aria-busy",
+        "false",
+      ),
+    );
+    expect(screen.queryByText(/Backed up/)).not.toBeInTheDocument();
+    expect(backupSection().getByRole("status")).toBeEmptyDOMElement();
+  });
+
+  it("names the books left out and why, and not the shipped one", async () => {
+    (window as { showSaveFilePicker?: unknown }).showSaveFilePicker = async () => ({
+      createWritable: async () => ({ write: async () => {}, close: async () => {} }),
+    });
+    setup({
+      backUp: async () => ({
+        ...file([
+          { key: "mal", title: "Athmeeya Geethangal", reason: "shipped" },
+          { key: "a", title: "Old Book", reason: "needs-reloading" },
+          { key: "b", title: "Newer Book", reason: "needs-newer-app" },
+        ]),
+        books: 1,
+      }),
+    });
+    press();
+    expect(await screen.findByText("Backed up 1 book.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Left out: Old Book (can’t be opened here), Newer Book (needs a newer app).",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Athmeeya/)).not.toBeInTheDocument();
+  });
+
+  it("shows a save dialog failure that is not a cancel", async () => {
+    (window as { showSaveFilePicker?: unknown }).showSaveFilePicker = async () => {
+      throw new DOMException("not allowed here", "SecurityError");
+    };
+    setup();
+    press();
+    expect(await screen.findByText(/Couldn’t back up: .*not allowed here/)).toBeInTheDocument();
+  });
+
+  it("stays enabled while it works, and a second press does nothing", async () => {
+    let finish: (value: ReturnType<typeof file>) => void = () => {};
+    const s = setup({ backUp: () => new Promise((resolve) => (finish = resolve)) });
+    (window as { showSaveFilePicker?: unknown }).showSaveFilePicker = async () => ({
+      createWritable: async () => ({ write: async () => {}, close: async () => {} }),
+    });
+    press();
+    const button = backupSection().getByRole("button", { name: "Back Up" });
+    await waitFor(() => expect(button).toHaveAttribute("aria-busy", "true"));
+    expect(button).toBeEnabled();
+    press();
+    await Promise.resolve();
+    expect(s.backUp).toHaveBeenCalledTimes(1);
+    finish(file());
+    expect(await screen.findByText("Backed up 3 books.")).toBeInTheDocument();
+  });
+
+  it("shows the message when the books are too large, and saves nothing", async () => {
+    const picker = vi.fn();
+    (window as { showSaveFilePicker?: unknown }).showSaveFilePicker = picker;
+    setup({
+      backUp: async () => ({
+        ok: false,
+        reason: "too-large",
+        message: "the books held are more than a backup can carry (2 GB)",
+      }),
+    });
+    press();
+    expect(
+      await screen.findByText("the books held are more than a backup can carry (2 GB)"),
+    ).toBeInTheDocument();
+    expect(picker).not.toHaveBeenCalled();
+  });
+
+  it("hands the picked file to the restore sheet", () => {
+    const s = setup();
+    const picked = new File(["x"], "b.hymnal");
+    const input = screen.getByTestId("restore-file");
+    expect(input).toHaveAttribute("accept", ".hymnal");
+    fireEvent.change(input, { target: { files: [picked] } });
+    expect(s.onRestoreFile).toHaveBeenCalledWith(picked);
+  });
+
+  it("words the line for none, one and several left out", () => {
+    expect(backedUpNote(0, [])).toEqual(["Backed up 0 books."]);
+    expect(backedUpNote(1, [{ key: "a", title: "A", reason: "too-large" }])).toEqual([
+      "Backed up 1 book.",
+      "Left out: A (too large).",
+    ]);
   });
 });

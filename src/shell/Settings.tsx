@@ -8,6 +8,8 @@ import {
   onCleanup,
   Show,
 } from "solid-js";
+import type { LoadProgress } from "../domain/progress.ts";
+import { count } from "../library/books.ts";
 import { mirroredNote } from "../output/displayChange.ts";
 import {
   describeScreen,
@@ -16,6 +18,11 @@ import {
   type ScreenKey,
   sameKey,
 } from "../output/screens.ts";
+import {
+  type ContentAdmin,
+  getContentAdmin,
+  type SkippedBook,
+} from "../persistence/content-store.ts";
 import {
   type BandSize,
   bandSizeOf,
@@ -32,16 +39,19 @@ import {
   type Preferences,
   pinChorusOf,
   type UserState,
+  type UserStateHandle,
   wholeSongOf,
 } from "../persistence/user-state.ts";
 import { glideList } from "./glideList.ts";
 import { hoverGroup } from "./hoverGlide.ts";
 import { KeyCombo } from "./KeyCombo.tsx";
 import { ariaKeys, keyHint, withKey } from "./keymap.ts";
+import { createDelayed, LoadStatus } from "./Loading.tsx";
 import { Menu } from "./Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "./media.ts";
 import { createOutputScreens, type OutputScreens } from "./outputScreens.ts";
 import { isPaneShown, PANES, type PaneId } from "./panes.ts";
+import { saveFile } from "./saveFile.ts";
 import { selectGlide } from "./selectGlide.ts";
 import { easeThemeChange, revealWithin, shownTheme } from "./theme.ts";
 import { setSplit, workspaceOf } from "./workspace.ts";
@@ -180,6 +190,8 @@ export interface PreferencesController {
   setPane: (id: PaneId, shown: boolean) => void;
   /** Turns one of the Output's cues on or off (SDD-0001 §16.1). */
   setCue: (id: keyof OutputCues, on: boolean) => void;
+  /** Reads the stored preferences again and applies them: after a restore wrote them (SDD-0006 §4). */
+  reload: () => Promise<void>;
 }
 
 export const canAdjustScale = (preferences: Preferences, direction: 1 | -1) =>
@@ -245,6 +257,9 @@ export function createPreferences(state: UserState = defaultUserState): Preferen
   return {
     preferences,
     loaded: () => loaded.state === "ready",
+    reload: async () => {
+      mutate(await state.getPreferences());
+    },
     update,
     adjustScale: (direction) => {
       const current = preferences();
@@ -285,6 +300,32 @@ export interface SettingsProps {
   screens?: OutputScreens;
   /** Opens the shortcut sheet; without it, the Keyboard section is left out. */
   onShowShortcuts?: () => void;
+  /** A backup file was picked to restore: the restore sheet takes it from here (SDD-0006 §2). */
+  onRestoreFile?: (file: File) => void;
+  /** The books' side of Back Up. Defaults to {@link getContentAdmin}; overridable for tests. */
+  admin?: Pick<ContentAdmin, "backUp">;
+  /** The settings and recents a backup holds. Defaults to the {@link defaultUserState} singleton. */
+  backupState?: Pick<UserStateHandle, "backupDoc">;
+}
+
+/** Why Back Up left a book out, as the line after "Left out:" says it. */
+const LEFT_OUT: Record<SkippedBook["reason"], string> = {
+  shipped: "shipped with the app",
+  "needs-reloading": "can’t be opened here",
+  unreadable: "can’t be opened here",
+  "needs-newer-app": "needs a newer app",
+  "too-large": "too large",
+};
+
+/** What Back Up says once the file is saved: the books in it, and any left out (shipped ones are not). */
+export function backedUpNote(books: number, skipped: readonly SkippedBook[]): string[] {
+  const lines = [`Backed up ${count(books)} ${books === 1 ? "book" : "books"}.`];
+  const left = skipped.filter((book) => book.reason !== "shipped");
+  if (left.length > 0)
+    lines.push(
+      `Left out: ${left.map((book) => `${book.title} (${LEFT_OUT[book.reason]})`).join(", ")}.`,
+    );
+  return lines;
 }
 
 /**
@@ -391,6 +432,41 @@ export function Settings(props: SettingsProps) {
     if (screens.screens().length === 0) return SETTING_COPY.screen.none;
     if (screens.screens().length === 1) return mirroredNote();
     return SETTING_COPY.screen.several;
+  };
+
+  // Backup (SDD-0006 §2): Back Up builds the file in the worker and saves it where the person
+  // chooses; Restore… picks a file and hands it to the restore sheet.
+  const [backingUp, setBackingUp] = createSignal(false);
+  const [backupProgress, setBackupProgress] = createSignal<LoadProgress>();
+  const [backupNote, setBackupNote] = createSignal<{ lines: string[]; bad?: boolean }>();
+  const backupShown = createDelayed(backingUp);
+  let restoreInput: HTMLInputElement | undefined;
+  const backUp = async () => {
+    if (backingUp()) return;
+    setBackingUp(true);
+    setBackupNote(undefined);
+    setBackupProgress(undefined);
+    try {
+      const admin = props.admin ?? getContentAdmin();
+      const doc = await (props.backupState ?? defaultUserState).backupDoc();
+      const result = await admin.backUp(doc, setBackupProgress);
+      if (!result.ok) {
+        setBackupNote({ lines: [result.message], bad: true });
+        return;
+      }
+      if ((await saveFile(result.bytes, result.filename)) === "cancelled") return;
+      setBackupNote({
+        lines: backedUpNote(result.books, result.skipped),
+      });
+    } catch (error) {
+      setBackupNote({
+        lines: [`Couldn’t back up: ${error instanceof Error ? error.message : String(error)}`],
+        bad: true,
+      });
+    } finally {
+      setBackingUp(false);
+      setBackupProgress(undefined);
+    }
   };
 
   // Search (a Settings sheet grows): rows whose text holds every word typed
@@ -760,6 +836,61 @@ export function Settings(props: SettingsProps) {
               />
             </label>
           </Disclosure>
+        </div>
+      </section>
+
+      <section class="settings-section" aria-labelledby={`${id}-backup`}>
+        <h3 id={`${id}-backup`} class="settings-heading">
+          Backup
+        </h3>
+        <div class="settings-row">
+          <span class="settings-label">
+            Back up and restore
+            <span class="settings-supporting">
+              The file holds your books, your settings and recent hymns. It stays wherever you save
+              it.
+            </span>
+          </span>
+          <div class="settings-screen-control">
+            <button
+              type="button"
+              class="btn-tonal"
+              aria-busy={backingUp()}
+              onClick={() => void backUp()}
+            >
+              Back Up
+            </button>
+            <button type="button" class="btn-text" onClick={() => restoreInput?.click()}>
+              Restore…
+            </button>
+          </div>
+          <input
+            ref={restoreInput}
+            type="file"
+            class="visually-hidden"
+            accept=".hymnal"
+            tabIndex={-1}
+            aria-hidden="true"
+            data-testid="restore-file"
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = "";
+              if (file) props.onRestoreFile?.(file);
+            }}
+          />
+        </div>
+        <Show when={backingUp() && backupShown()}>
+          <div class="settings-note">
+            <LoadStatus progress={backupProgress()} idle="Packing…" />
+          </div>
+        </Show>
+        {/* Always there, so a screen reader hears what is put in it. */}
+        <div
+          class="settings-note"
+          classList={{ "settings-note-bad": backupNote()?.bad }}
+          role="status"
+        >
+          <For each={backupNote()?.lines}>{(line) => <p>{line}</p>}</For>
         </div>
       </section>
 

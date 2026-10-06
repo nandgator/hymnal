@@ -15,6 +15,7 @@ import type { Hymn, HymnbookId, HymnNumber } from "./domain/types.ts";
 import { type Command, Finder } from "./finder/Finder.tsx";
 import { createBooks } from "./library/books.ts";
 import { Library } from "./library/Library.tsx";
+import { type RestoreRequest, RestoreSheet } from "./library/RestoreSheet.tsx";
 import {
   closeOutput,
   type HeldView,
@@ -750,6 +751,15 @@ function Operator(props: Shared) {
 
   // Only one sheet at a time: a command opening another sheet, or Ctrl/⌘+K
   // from inside one, replaces it rather than stacking modals.
+  // A backup to restore (SDD-0006): picked in Settings or in Load Books, reviewed in its own sheet.
+  const [restoreRequest, setRestoreRequest] = createSignal<RestoreRequest>();
+  let restoreIds = 0;
+  // Bumped when a restore wrote recents: the lists that show them read again.
+  const [recentsVersion, setRecentsVersion] = createSignal(0);
+  const restoreFile = (file: File) => {
+    closeSheets();
+    setRestoreRequest({ id: ++restoreIds, file });
+  };
   const closeSheets = () => {
     setMenuOpen(false);
     setSettingsOpen(false);
@@ -1393,11 +1403,13 @@ function Operator(props: Shared) {
                   onOpen={chooseHymnbook}
                   onStorageRefused={() => setKeepFile(true)}
                   onNotice={setLibraryNote}
+                  onRestore={restoreFile}
                 />
               </Match>
               <Match when={section() === "present" && !hymnNumber()}>
                 {hymnbook() && (
                   <Finder
+                    recentsVersion={recentsVersion()}
                     hymnbookId={currentKey() as string}
                     bookTitle={hymnbook()?.title}
                     onSelect={chooseHymn}
@@ -1447,6 +1459,7 @@ function Operator(props: Shared) {
         >
           <Show when={hymnbook()}>
             <Finder
+              recentsVersion={recentsVersion()}
               hymnbookId={currentKey() as string}
               bookTitle={hymnbook()?.title}
               current={hymnNumber()}
@@ -1462,6 +1475,7 @@ function Operator(props: Shared) {
           placement={expanded() ? "center" : "bottom"}
         >
           <Finder
+            recentsVersion={recentsVersion()}
             hymnbookId={currentKey() as string}
             bookTitle={hymnbook()?.title}
             current={hymnNumber()}
@@ -1557,6 +1571,7 @@ function Operator(props: Shared) {
             controller={preferences}
             screens={screens}
             onShowShortcuts={() => showShortcuts("menu")}
+            onRestoreFile={restoreFile}
           />
         </Sheet>
 
@@ -1572,8 +1587,20 @@ function Operator(props: Shared) {
             controller={preferences}
             screens={screens}
             onShowShortcuts={() => showShortcuts("settings")}
+            onRestoreFile={restoreFile}
           />
         </Sheet>
+        <RestoreSheet
+          request={restoreRequest()}
+          placement={expanded() ? "center" : "bottom"}
+          onClose={() => setRestoreRequest(undefined)}
+          onRestored={async () => {
+            await books.refresh();
+            setRecentsVersion((n) => n + 1);
+            await preferences.reload();
+          }}
+          onStorageRefused={() => setKeepFile(true)}
+        />
       </div>
       <Show when={presentingHere()}>
         <PresentHere

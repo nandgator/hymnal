@@ -67,6 +67,8 @@ export interface BackupFile {
   /** `Hymnal backup 2026-10-06.hymnal`, the local date. */
   filename: string;
   skipped: SkippedBook[];
+  /** The books the file holds (the manifest's length). */
+  books: number;
 }
 
 /** Held books that together pass what a restore will read (2 GB inflated): no file is made. */
@@ -209,7 +211,7 @@ export async function writeBackup(
   }
   // The pieces are let go now: the file is the one copy that is left.
   chunks.length = 0;
-  return { ok: true, bytes, filename: backupFilename(now), skipped };
+  return { ok: true, bytes, filename: backupFilename(now), skipped, books: manifestBooks.length };
 }
 
 // ---- rebuilding one book (§3.4) ----

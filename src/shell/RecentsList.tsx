@@ -26,6 +26,8 @@ export interface RecentsListProps {
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
   userState?: UserState;
   onSelect: (number: HymnNumber) => void;
+  /** Changes when the stored recents were written from outside (a restore): the list is read again. */
+  refresh?: number;
   /** Say nothing when there are none, instead of "No recent songs yet": the
    * Finder shows the book's songs in that place. */
   quietWhenEmpty?: boolean;
@@ -152,7 +154,7 @@ export function RecentsList(props: RecentsListProps) {
   let latest = 0;
   createEffect(
     on(
-      () => ({ id: props.hymnbookId, current: props.current }),
+      () => ({ id: props.hymnbookId, current: props.current, refresh: props.refresh }),
       async ({ id }) => {
         const read = ++latest;
         const [entries, titles] = await Promise.all([state().getRecents(), store().listHymns(id)]);

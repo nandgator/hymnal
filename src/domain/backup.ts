@@ -345,6 +345,10 @@ export async function openBackup(bytes: Uint8Array): Promise<OpenedBackup> {
  * newer version is one too, so it is refused with that reason and not as a
  * book. Never throws.
  */
+/** A zip begins `PK\x03\x04`: all a file's first four bytes need say to rule a book (gzip) out. */
+export const hasZipMagic = (head: Uint8Array) =>
+  head.length >= 4 && head[0] === 0x50 && head[1] === 0x4b && head[2] === 3 && head[3] === 4;
+
 export async function isBackup(bytes: Uint8Array): Promise<boolean> {
   if (bytes.length > MAX_BACKUP_BYTES) return false;
   const manifest = listEntries(bytes)?.find((e) => e.name === MANIFEST_ENTRY);
