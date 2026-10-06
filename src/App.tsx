@@ -19,6 +19,7 @@ import {
   closeOutput,
   type HeldView,
   type OutputMessage,
+  reportOutputFailed,
   revealCues,
   setOutputBlanked,
   setOutputHeld,
@@ -26,12 +27,14 @@ import {
   subscribeHold,
   subscribeKeys,
   subscribeLocalOutput,
+  subscribeOutputFailed,
   subscribeOutputShape,
   subscribeOutputState,
   subscribePlacement,
 } from "./output/channel.ts";
 import { mirroredNote, reviewScreens, type ScreensSnapshot } from "./output/displayChange.ts";
 import { Output } from "./output/Output.tsx";
+import { OutputBoundary } from "./output/OutputBoundary.tsx";
 import { PresentHere } from "./output/PresentHere.tsx";
 import {
   moveGuidance,
@@ -63,6 +66,7 @@ import {
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { autoHover } from "./shell/autoHover.ts";
 import { titleCase } from "./shell/case.ts";
+import { RootBoundary } from "./shell/ErrorScreen.tsx";
 import { glideList } from "./shell/glideList.ts";
 import { hoverButton, hoverGroup } from "./shell/hoverGlide.ts";
 import { KeyCombo } from "./shell/KeyCombo.tsx";
@@ -107,6 +111,9 @@ const OUTPUT_URL = `${import.meta.env.BASE_URL}?output=1`;
 // A named target: clicking again focuses the already-open Output window
 // instead of stacking a second one the operator would have to reposition.
 const OUTPUT_WINDOW_NAME = "hymnal-output";
+
+/** Said when an Output's view threw and went blank (SDD-0001 §16.9). */
+const OUTPUT_FAILED = "The Output stopped working";
 
 /** How long a placed Output may go fullscreen on its own before the hint says how. */
 const FULLSCREEN_GRACE_MS = 1200;
@@ -154,7 +161,19 @@ function isOutputWindow(): boolean {
 /** Signal-based view state, not a router — SDD-0001 §12. */
 function App() {
   // The Output is not an app tab: it never opens the store, so never takes the lock.
-  return isOutputWindow() ? <Output /> : <TabGate>{(shared) => <Operator {...shared} />}</TabGate>;
+  return isOutputWindow() ? (
+    <OutputBoundary onFailed={reportOutputFailed}>
+      <Output />
+    </OutputBoundary>
+  ) : (
+    <TabGate>
+      {(shared) => (
+        <RootBoundary>
+          <Operator {...shared} />
+        </RootBoundary>
+      )}
+    </TabGate>
+  );
 }
 
 /**
@@ -408,6 +427,12 @@ function Operator(props: Shared) {
       setScreenNotice(undefined);
     }),
   );
+  // A failure of the window is stale once no Output is open (not only on its bye).
+  let reopening = false;
+  createEffect(() => {
+    if (outputFailed() === "window" && !presentingOutput() && !reopening)
+      setOutputFailed(undefined);
+  });
   // A word from the Library (books left unloaded), put away by itself or by Got It.
   const [libraryNote, setLibraryNote] = createSignal<string>();
   createEffect(() => {
@@ -415,6 +440,9 @@ function Operator(props: Shared) {
     const timer = setTimeout(() => setLibraryNote(undefined), HINT_MS);
     onCleanup(() => clearTimeout(timer));
   });
+  // An Output went blank (SDD-0001 §16.9): the window, or this tab presenting.
+  const [outputFailed, setOutputFailed] = createSignal<"window" | "here">();
+  onMount(() => onCleanup(subscribeOutputFailed(() => setOutputFailed("window"))));
   // User state fell back to memory (SDD-0001 §11.1): said once.
   onMount(() =>
     onCleanup(
@@ -437,9 +465,9 @@ function Operator(props: Shared) {
   // Opening once, then bringing it forward: an empty URL targets the named
   // window without reloading it. Opening is never blocked on the screens:
   // anything unavailable is today's plain popup, with a hint (ADR-0028).
-  const openOutput = async () => {
+  const openOutput = async (force = false) => {
     if (!canGoLive() || presentingHere()) return;
-    if (presentingOutput()) {
+    if (presentingOutput() && !force) {
       window.open("", OUTPUT_WINDOW_NAME)?.focus();
       return;
     }
@@ -473,6 +501,29 @@ function Operator(props: Shared) {
       // (the browser sees one screen), which only the OS can change.
       extendHintShown = true;
       setScreenNotice("extend");
+    }
+  };
+  // Reopen (SDD-0001 §16.9): the window closes, and opens again by the usual
+  // path, so it lands on the same screen. It is given a moment to go.
+  const reopenOutput = async () => {
+    if (reopening) return;
+    reopening = true;
+    try {
+      endLive();
+      for (let waited = 0; presentingOutput() && waited < 1500; waited += 50)
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      if (presentingOutput()) {
+        // It never said bye: close it by the handle, and treat it as gone. With
+        // no handle (a reloaded Operator) there is nothing to do: the notice stays.
+        if (!outputWin) return;
+        outputWin.close?.();
+      }
+      outputWin = null;
+      await openOutput(true);
+      // Cleared once the new window has opened; a blocked one says so itself.
+      setOutputFailed(undefined);
+    } finally {
+      reopening = false;
     }
   };
   let extendHintShown = false;
@@ -634,6 +685,14 @@ function Operator(props: Shared) {
   const snackbar = (): SnackbarProps | undefined => {
     // The audience sees this tab: notices queue until it is left (§16.7).
     if (presentingHere()) return undefined;
+    const failed = outputFailed();
+    if (failed)
+      return {
+        message: OUTPUT_FAILED,
+        action: failed === "window" ? "Reopen" : "Got It",
+        onAction:
+          failed === "window" ? () => void reopenOutput() : () => setOutputFailed(undefined),
+      };
     const shown = screenNotice();
     if (shown === "connected")
       return {
@@ -744,6 +803,7 @@ function Operator(props: Shared) {
     if (!canPresentHere()) return;
     closeSheets();
     setScreenNotice(undefined);
+    setOutputFailed(undefined);
     presence.setHere(true);
     document.addEventListener("fullscreenchange", onHereFullscreen);
     const root = document.documentElement;
@@ -1463,9 +1523,11 @@ function Operator(props: Shared) {
         <div class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
           {presentingHere()
             ? ""
-            : !screenNotice() && libraryNote()
-              ? libraryNote()
-              : noticeMessage()}
+            : outputFailed()
+              ? OUTPUT_FAILED
+              : !screenNotice() && libraryNote()
+                ? libraryNote()
+                : noticeMessage()}
         </div>
         <SnackbarHost notice={snackbar()} />
 
@@ -1527,6 +1589,7 @@ function Operator(props: Shared) {
           hymnbookId={(presentedKey() ?? currentKey()) as string}
           onSelect={(number) => chooseHymn(number, presentedKey() ?? currentKey())}
           onLeave={leavePresentingHere}
+          onFailed={() => setOutputFailed("here")}
           startWithSwitcher={!hymnNumber()}
         />
       </Show>

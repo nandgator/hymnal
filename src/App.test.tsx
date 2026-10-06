@@ -121,6 +121,19 @@ vi.mock("./shell/updates.ts", async (importOriginal) => {
   };
 });
 
+// Present Here's view throws when a test says so (SDD-0001 §16.9).
+const view = vi.hoisted(() => ({ throws: false }));
+vi.mock("./output/OutputView.tsx", async (importOriginal) => {
+  const real = await importOriginal<typeof import("./output/OutputView.tsx")>();
+  return {
+    ...real,
+    OutputView: (props: Parameters<typeof real.OutputView>[0]) => {
+      if (view.throws) throw new Error("view broke");
+      return real.OutputView(props);
+    },
+  };
+});
+
 /** The Library has listed the books: the first run's wait is over. */
 const booksReady = () => screen.findByRole("heading", { name: "Library" });
 
@@ -1279,6 +1292,48 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     output.close();
   });
 
+  it("says the Output stopped working, and Reopen closes the window and opens it again on the same screen (§16.9)", async () => {
+    const { output } = await goLive();
+    const seen: unknown[] = [];
+    closesOnCommand(output, seen);
+    const opened = vi.mocked(window.open).mock.calls.length;
+
+    output.postMessage({ type: "failed" });
+    const reopen = await screen.findByRole("button", { name: "Reopen" });
+    expect(noticeText(/The Output stopped working/)).toBeGreaterThan(0);
+    fireEvent.click(reopen);
+    await waitFor(() => expect(seen).toContainEqual({ type: "close" }));
+    await waitFor(() => expect(vi.mocked(window.open).mock.calls.length).toBe(opened + 1));
+    const [url, , features] = vi.mocked(window.open).mock.calls[opened];
+    expect(String(url)).toContain("placed=1");
+    expect(String(features)).toContain(`left=${projector.left}`);
+    await waitFor(() => expect(noticeText(/The Output stopped working/)).toBe(0));
+    output.close();
+  });
+
+  it("Reopen, when the window never says bye, closes it by its handle and opens a new one; the notice stays until then", async () => {
+    const { output, win } = await goLive();
+    (win as unknown as { close: () => void }).close = vi.fn();
+    const opened = vi.mocked(window.open).mock.calls.length;
+    output.postMessage({ type: "failed" });
+    const reopen = await screen.findByRole("button", { name: "Reopen" });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      fireEvent.click(reopen);
+      await vi.advanceTimersByTimeAsync(1000);
+      // Still waiting on a window that has not answered: the notice stays.
+      expect(noticeText(/The Output stopped working/)).toBeGreaterThan(0);
+      expect(vi.mocked(window.open).mock.calls.length).toBe(opened);
+      await vi.advanceTimersByTimeAsync(700);
+    } finally {
+      vi.useRealTimers();
+    }
+    await waitFor(() => expect(vi.mocked(window.open).mock.calls.length).toBe(opened + 1));
+    expect((win as unknown as { close: ReturnType<typeof vi.fn> }).close).toHaveBeenCalled();
+    await waitFor(() => expect(noticeText(/The Output stopped working/)).toBe(0));
+    output.close();
+  });
+
   it("holds the update prompt while live, and shows it once End Live has closed the window (#32)", async () => {
     const { output } = await goLive();
     const seen: unknown[] = [];
@@ -1676,6 +1731,27 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     await screen.findByRole("region", { name: "Presenting on this screen" });
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
     expect(open).not.toHaveBeenCalled();
+  });
+
+  it("queues the failure snackbar while presenting here, blank, and shows it, without Reopen, once left (§16.9)", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const noticeText = (pattern: RegExp) =>
+      screen.queryAllByText(pattern).filter((el) => !el.closest(".snackbar-leaving")).length;
+    try {
+      await songUp();
+      view.throws = true;
+      fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
+      const here = await screen.findByRole("region", { name: "Presenting on this screen" });
+      await waitFor(() => expect(here.textContent).toBe(""));
+      expect(noticeText(/The Output stopped working/)).toBe(0);
+      fireEvent.keyDown(window, { key: "f" });
+      await waitFor(() => expect(region()).toBeNull());
+      await waitFor(() => expect(noticeText(/The Output stopped working/)).toBeGreaterThan(0));
+      expect(screen.queryByRole("button", { name: "Reopen" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Got It" })).toBeInTheDocument();
+    } finally {
+      view.throws = false;
+    }
   });
 
   it("Go Live opens the Output window when Window Management shows a second screen", async () => {

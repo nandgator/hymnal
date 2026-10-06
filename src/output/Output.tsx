@@ -5,11 +5,13 @@ import {
   forwardKey,
   type OutputMessage,
   type PresentationMessage,
+  reportOutputFailed,
   reportOutputPlacement,
   requestSeek,
   subscribeOutput,
 } from "./channel.ts";
 import { createIdleCursor } from "./idleCursor.ts";
+import { OutputBoundary } from "./OutputBoundary.tsx";
 import { OutputView } from "./OutputView.tsx";
 import {
   type DetailedScreen,
@@ -347,33 +349,35 @@ export function Output() {
           );
         }}
       </Show>
-      <Show
-        when={content()}
-        fallback={<div class="output-idle" classList={{ "output-cursor": cursorVisible() }} />}
-      >
-        {(current) => (
-          <OutputView
-            message={current()}
-            variant="full"
-            blanked={blanked() || !stated()}
-            cues={cues()}
-            reveal={reveal()}
-            pinChorus={pinChorus()}
-            wholeSong={wholeSong()}
-            highlight={highlight()}
-            bandSize={bandSize()}
-            onSeek={(line, whole) =>
-              requestSeek({
-                hymnbookId: current().hymnbookId,
-                number: current().number,
-                line,
-                whole,
-              })
-            }
-            classList={{ "output-cursor": cursorVisible() }}
-          />
-        )}
-      </Show>
+      <OutputBoundary onFailed={reportOutputFailed}>
+        <Show
+          when={content()}
+          fallback={<div class="output-idle" classList={{ "output-cursor": cursorVisible() }} />}
+        >
+          {(current) => (
+            <OutputView
+              message={current()}
+              variant="full"
+              blanked={blanked() || !stated()}
+              cues={cues()}
+              reveal={reveal()}
+              pinChorus={pinChorus()}
+              wholeSong={wholeSong()}
+              highlight={highlight()}
+              bandSize={bandSize()}
+              onSeek={(line, whole) =>
+                requestSeek({
+                  hymnbookId: current().hymnbookId,
+                  number: current().number,
+                  line,
+                  whole,
+                })
+              }
+              classList={{ "output-cursor": cursorVisible() }}
+            />
+          )}
+        </Show>
+      </OutputBoundary>
     </>
   );
 }

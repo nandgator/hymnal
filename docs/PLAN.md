@@ -28,6 +28,10 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 
 ## Now
 
+**Beta track** (Board #43–52): #44 is done; #45 next, then #46, #47, #49, #51,
+#52. #43 waits on the maintainer's Malayalam list, #50 on a real device, and the
+beta on an origin of its own (ADR-0030).
+
 **Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
 **Board #28 is done**: ADR-0026/0027, SDD-0004, all six parts. The songs have
 left the repository; every book, the Malayalam one included, is loaded as a
@@ -81,14 +85,14 @@ Ordered. Top unblocked item is next.
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                          | —                     |
 | 43  | A shipped sample (ADR-0026 § What "shipped" means): public-domain songs, each with a rights record (SDD-0001 §8); how it ships decided then; About says users answer for what they load                   | maintainer: the songs |
-| 44  | Damage handled (SDD-0001 §11.1, §16.9): user state checked and defaulted, memory when refused; error screen; Output blanks                                                                                | —                     |
-| 45  | Private windows (was #39, SDD-0004 §15): an in-memory store where OPFS is refused; the Library says so                                                                                                    | 44                    |
-| 46  | Backup and restore (SDD-0006): one `.hymnal` file, books and user state; restore rebuilds and merges                                                                                                      | 44                    |
+| 45  | Private windows (was #39, SDD-0004 §15): an in-memory store where OPFS is refused; the Library says so                                                                                                    | —                     |
+| 46  | Backup and restore (SDD-0006): one `.hymnal` file, books and user state; restore rebuilds and merges                                                                                                      | —                     |
 | 47  | Security (ADR-0030): CSP meta; defensive SQLite flags on every connection; `bun audit` in CI                                                                                                              | —                     |
 | 48  | Privacy: the Invariant is in (ADR-0030); the privacy statement goes in About (#49)                                                                                                                        | —                     |
 | 49  | Beta kit (SDD-0001 §16.10): About with build, privacy, your books, Copy Diagnostics and Report a Problem, credits                                                                                         | —                     |
-| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | 44–49                 |
+| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | 45–49, 52             |
 | 51  | Flaky tests: channel.test theme replay, Presenter "repeats in place", App timer tests                                                                                                                     | —                     |
+| 52  | End-to-end smoke suite: Playwright against the build on Chromium, Firefox and WebKit, phone and desktop sizes; load, search, present, Output, then private window and backup                              | —                     |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                                               | —                     |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                             | —                     |
 | 16  | Feedback and corrections from users — where collected: TBD                                                                                                                                                | —                     |
@@ -148,6 +152,11 @@ only, here:
 
 ## Log
 
+- 2026-10-06 — #44 done: user state checked field by field and kept in memory
+  when refused; a root error screen (Reload, Copy error details with no lyrics,
+  Reset); a failed Output goes blank and the Operator offers Reopen. #52 added:
+  plain Playwright on three engines, not an LLM-driven runner (lyrics stay on
+  the device; the flows are few and specified)
 - 2026-10-06 — #43 sample, decided by the maintainer: about 25 well-known
   English hymns from the Otterbein Hymnal (1890, Project Gutenberg #16455), and
   Malayalam songs from the corpus whose writers died before 1956, each with a

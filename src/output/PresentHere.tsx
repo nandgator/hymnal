@@ -5,6 +5,7 @@ import type { BandSize, Highlight, OutputCues, OutputTheme } from "../persistenc
 import { isTyping } from "../shell/keymap.ts";
 import type { OutputMessage } from "./channel.ts";
 import { createIdleCursor } from "./idleCursor.ts";
+import { OutputBoundary } from "./OutputBoundary.tsx";
 import { OutputView } from "./OutputView.tsx";
 
 /** What the audience screen is told, as the Operator's Presentation settings. */
@@ -25,6 +26,8 @@ export interface PresentHereProps {
   onSelect: (number: HymnNumber) => void;
   /** Esc (with no switcher open) or F. */
   onLeave: () => void;
+  /** The view threw and went blank (SDD-0001 §16.9). */
+  onFailed: () => void;
   /** The switcher opens at once, e.g. with nothing yet to show. */
   startWithSwitcher?: boolean;
 }
@@ -115,22 +118,24 @@ export function PresentHere(props: PresentHereProps) {
       data-output-theme={props.theme}
       classList={{ "output-cursor": cursorVisible(), "present-here-switching": !!switcher() }}
     >
-      <Show when={props.message.type === "content" && props.message}>
-        {(message) => (
-          <OutputView
-            message={message() as Extract<OutputMessage, { type: "content" }>}
-            variant="full"
-            blanked={props.blanked}
-            cues={props.cues}
-            reveal={props.reveal}
-            pinChorus={props.pinChorus}
-            wholeSong={props.wholeSong}
-            highlight={props.highlight}
-            bandSize={props.bandSize}
-            classList={{ "output-cursor": cursorVisible() }}
-          />
-        )}
-      </Show>
+      <OutputBoundary onFailed={props.onFailed} fallback={null}>
+        <Show when={props.message.type === "content" && props.message}>
+          {(message) => (
+            <OutputView
+              message={message() as Extract<OutputMessage, { type: "content" }>}
+              variant="full"
+              blanked={props.blanked}
+              cues={props.cues}
+              reveal={props.reveal}
+              pinChorus={props.pinChorus}
+              wholeSong={props.wholeSong}
+              highlight={props.highlight}
+              bandSize={props.bandSize}
+              classList={{ "output-cursor": cursorVisible() }}
+            />
+          )}
+        </Show>
+      </OutputBoundary>
       <Show when={switcher()}>
         {(open) => (
           // biome-ignore lint/a11y/useSemanticElements: <search> is not in JSX typings or jsdom yet

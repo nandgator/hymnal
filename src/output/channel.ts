@@ -122,8 +122,12 @@ export type KeyMessage = {
   repeat?: boolean;
 };
 
+/** Output → Operator: the Output's view threw and went blank (SDD-0001 §16.9). */
+type FailedMessage = { type: "failed" };
+
 type ChannelMessage =
   | OutputMessage
+  | FailedMessage
   | HelloMessage
   | ShapeMessage
   | PlacementMessage
@@ -465,5 +469,20 @@ export function subscribeOutputShape(
   };
   target.addEventListener("message", listener);
   target.postMessage({ type: "ping" } satisfies PingMessage);
+  return () => target.removeEventListener("message", listener);
+}
+
+/** Output calls this when its view failed and went blank (SDD-0001 §16.9). */
+export function reportOutputFailed(): void {
+  getChannel().postMessage({ type: "failed" } satisfies FailedMessage);
+}
+
+/** The Operator hears that an Output went blank; returns an unsubscribe function. */
+export function subscribeOutputFailed(handler: () => void): () => void {
+  const target = getChannel();
+  const listener = (event: MessageEvent<ChannelMessage>) => {
+    if (event.data.type === "failed") handler();
+  };
+  target.addEventListener("message", listener);
   return () => target.removeEventListener("message", listener);
 }

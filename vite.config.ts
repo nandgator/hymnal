@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { defineConfig, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
@@ -40,7 +41,21 @@ function publishSchemas(): Plugin {
   };
 }
 
+// What the error screen reports (SDD-0001 §16.9): the short commit and the day
+// of the build; "unknown" where git is not there (a build), "dev" on serve.
+function buildId(): string {
+  try {
+    const sha = execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim();
+    return sha ? `${sha} ${new Date().toISOString().slice(0, 10)}` : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 export default defineConfig(({ command, isPreview }) => ({
+  define: { __APP_BUILD__: JSON.stringify(command === "build" ? buildId() : "dev") },
   // isPreview, not just command === "build" — `vite preview` also reports
   // command "serve", but it serves the already-built dist/, whose URLs are
   // already baked in at BASE.

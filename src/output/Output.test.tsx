@@ -13,6 +13,7 @@ const channel = vi.hoisted(() => ({
   requestSeek: vi.fn(),
   forwardKey: vi.fn(),
   reportOutputPlacement: vi.fn(),
+  reportOutputFailed: vi.fn(),
 }));
 vi.mock("./channel.ts", () => ({
   subscribeOutput: (
@@ -26,6 +27,7 @@ vi.mock("./channel.ts", () => ({
   requestSeek: channel.requestSeek,
   forwardKey: channel.forwardKey,
   reportOutputPlacement: channel.reportOutputPlacement,
+  reportOutputFailed: vi.fn(),
 }));
 
 const LINES: FlatLine[] = [
