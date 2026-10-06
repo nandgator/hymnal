@@ -842,6 +842,41 @@ parameter precisely so tests can open an isolated instance per test rather than
 sharing state through a module-level singleton; app code uses the `userState`
 singleton export.
 
+### 11.1 Damage and refusal
+
+Board #44. User state is small and irreplaceable, and the browser may refuse it,
+lose it or hand back something an older or newer app wrote. None of that stops
+the hymnal: a song can always be presented on the defaults.
+
+**A version, and fields read one by one.** The document carries `version: 1`; a
+document without one is read as version 1 (every install so far). Reading checks
+each field on its own and drops only what is wrong: a `lastPosition` that is not
+a `Position`, a recent that is not a `RecentEntry` (the rest are kept, still
+capped at 20), a preference whose value is not one of its own (the accessor's
+default then applies, as `bandSizeOf` and `highlightOf` already do). A record
+that is not an object at all reads as the empty document. Nothing is written on
+a read; the next ordinary write stores the cleaned fields.
+
+**A newer app's fields survive.** A document from a newer version (after a
+rollback, say) is read the same way. A write keeps every field it does not know,
+and never lowers `version`, so going back to the newer app finds its fields.
+
+**Refused or blocked: memory for the session.** If opening the database fails
+(refused, as some private windows do; an `InvalidStateError`; an upgrade blocked
+by another tab for more than 5 seconds), or a later write fails (quota, a closed
+connection), user state carries on in memory for the rest of the session: the
+same interface, the same defaults, what was already read kept. The shell says so
+once, as a snackbar: _Settings and recents won’t be kept this time._ The next
+start tries the database again. The connection closes itself on `versionchange`,
+so this app never blocks a newer tab's upgrade.
+
+**Reset settings and history** deletes the database and reloads. It is offered
+only on the error screen (§16.9), behind a confirm, and never touches the books.
+
+**Testing.** `fake-indexeddb` covers it: a document with each field broken in
+turn, a non-object record, a newer version with unknown fields kept on write, a
+failed open, a blocked upgrade, a failed write, and the notice shown once.
+
 ## 12. Library
 
 Board #7. arc42 §5.1 defines Library as "list, install, remove hymnbooks; know
@@ -1870,3 +1905,31 @@ the OPFS/Worker/PWA layer (§10.5, §15) — verify by hand in a real browser:
 Operator and Output in separate windows, state flowing between them, Output
 surviving a hymn change. The `repeatOrdinal` computation itself is pure domain
 logic and fully unit-testable like the rest of `sequence-engine.ts`.
+
+### 16.9 When something fails
+
+Board #44. A fault the app cannot handle shows a calm screen in the Operator,
+never a blank page, and never anything on the Output.
+
+**The error screen.** An error boundary wraps the Operator under `TabGate`. Its
+fallback depends on no store and no context below it: the title _Something went
+wrong_, the line _The hymnal hit an error it couldn’t recover from. Your books
+are safe._, then **Reload** (filled, focused), **Copy error details** (the
+message, the stack, the build and the user agent; no lyrics, no recents) and
+**Reset settings and history…**, which confirms and then does what §11.1 says.
+It follows the theme and works at 390 px. An unhandled rejection or a stray
+`error` event is logged, not shown: most are a single failed action, which its
+own caller reports.
+
+**The Output goes blank.** The Output window has its own boundary; its fallback
+is the blank Output, the background and nothing on it. It tells the Operator
+over the channel, and the Operator shows a snackbar, _The Output stopped
+working_, with **Reopen**, which closes the window and opens it again on the
+same screen. Present Here (§16.7) wraps its view the same way: blank, the same
+snackbar without Reopen, and F or Esc still leaves.
+
+**Testing.** A component that throws, under each boundary: the error screen and
+its three actions (reload and clipboard stubbed, Reset deleting a
+`fake-indexeddb` database); the Output's blank fallback and its message; the
+Operator's snackbar and Reopen; Present Here blank and still leavable. The look
+at 390×844 and dark is a hand check.

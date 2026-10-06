@@ -80,6 +80,15 @@ Ordered. Top unblocked item is next.
 | #   | Task                                                                                                                                                                                                      | Blocked by |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                          | —          |
+| 43  | Beta gate, copyright: which books testers get and on what terms (Open questions)                                                                                                                          | maintainer |
+| 44  | Damage handled (SDD-0001 §11.1, §16.9): user state checked and defaulted, memory when refused; error screen; Output blanks                                                                                | —          |
+| 45  | Private windows (was #39): say the books go when the window closes; an in-memory store where OPFS is refused                                                                                              | 44         |
+| 46  | Backup and restore: one versioned file, user state and books; restore validated like a load (SDD-0004 §8)                                                                                                 | 44         |
+| 47  | Security: threat-model ADR; untrusted packages opened defensively with limits; meta CSP; `bun audit` in CI                                                                                                | —          |
+| 48  | Privacy: an Invariant that nothing leaves the device unasked; a privacy statement                                                                                                                         | —          |
+| 49  | Beta kit: version and build shown, Copy diagnostics (no recents, no lyrics), a report link, About (#16, #17 in part)                                                                                      | 48         |
+| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | 44–49      |
+| 51  | Flaky tests: channel.test theme replay, Presenter "repeats in place", App timer tests                                                                                                                     | —          |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                                               | —          |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                             | —          |
 | 16  | Feedback and corrections from users — where collected: TBD                                                                                                                                                | —          |
@@ -92,7 +101,6 @@ Ordered. Top unblocked item is next.
 | 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                                                                             | content    |
 | 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                                                                             | —          |
 | 38  | Search across books: one query over every loaded book (SDD-0001 §16)                                                                                                                                      | —          |
-| 39  | Private windows: say the books go when the window closes; an in-memory store where OPFS is refused (Firefox private, Tor)                                                                                 | —          |
 | 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                                                                                    | —          |
 | 41  | One-screen presenting: built (SDD-0001 §16.7); waits for the maintainer's check on GNOME Wayland and the keys' feel                                                                                       | —          |
 | 42  | Test suite speed (note): split App.test.tsx by area and use fake timers for its real waits; then isolate:false only for the DOM-free files, never globally (module-level state in channel.ts and friends) | —          |
@@ -101,7 +109,8 @@ Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. The
 songs have left the repo (#28 done): nothing is bundled, and every book comes in
 through the Library (ADR-0026). 14–15 sit past the scope guard below. 16–25 are
 notes, not scheduled: the shell reserves room for them (DESIGN.md § Structure).
-37–42 were added from the maintainer's feedback and are not yet scheduled.
+37–42 were added from the maintainer's feedback and are not yet scheduled. 43–51
+come before the beta, in order; 47–49 may run beside 44–46.
 
 ## Invariants
 
