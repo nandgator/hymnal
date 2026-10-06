@@ -146,6 +146,10 @@ only, here:
 
 ## Log
 
+- 2026-10-06 — #43 sample, decided by the maintainer: about 25 well-known
+  English hymns from the Otterbein Hymnal (1890, Project Gutenberg #16455), and
+  Malayalam songs from the corpus whose writers died before 1956, each with a
+  rights record; free in India, the EU and the US
 - 2026-10-06 — Decided by the maintainer: the app does not police what users
   load (a tool; ADR-0020); copyright gates only the public-domain sample the app
   ships (#43). #46 backup: every loaded book plus user state in one `.hymnal`
