@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.tsx";
+import { subscribePlacement } from "./output/channel.ts";
 import type { BookRow, ContentAdmin, ContentStore } from "./persistence/content-store.ts";
 import type { UserStateHandle } from "./persistence/user-state.ts";
 
@@ -315,8 +316,9 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       });
       fireEvent.submit(picker.getByRole("combobox").closest("form") as HTMLFormElement);
       await screen.findByRole("button", { name: /#2\s*Mocked Hymn 2/ });
-      await new Promise((r) => setTimeout(r, 50));
-      expect(mocks.addRecent.mock.calls).toEqual([["mal-ymef-athmeeya-geethangal-16", 2]]);
+      await waitFor(() =>
+        expect(mocks.addRecent.mock.calls).toEqual([["mal-ymef-athmeeya-geethangal-16", 2]]),
+      );
     });
 
     it("a Finder closed without a pick leaves the search where the song is", async () => {
@@ -943,11 +945,14 @@ describe("App", () => {
       return { output, seen };
     }
     // A hello from a new window is answered with a replay: a fence for what
-    // came before it, and what a late window is shown.
-    async function replay(output: BroadcastChannel, seen: unknown[], id: string) {
+    // came before it, and what a late window is shown. Its content arriving
+    // proves everything posted before it has arrived too (one channel keeps
+    // order), however long delivery takes; the short settle after it gives
+    // anything that would wrongly trail the content a chance to show.
+    async function replay(output: BroadcastChannel, seen: { type: string }[], id: string) {
       seen.length = 0;
       output.postMessage({ type: "hello", id });
-      await waitFor(() => expect(seen.length).toBeGreaterThan(0));
+      await waitFor(() => expect(contents(seen).length).toBeGreaterThan(0));
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
     const contents = <T extends { type: string }>(seen: T[]) =>
@@ -1098,6 +1103,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
   }
 
   afterEach(() => {
+    vi.useRealTimers();
     Reflect.deleteProperty(window, "getScreenDetails");
     Reflect.deleteProperty(window.screen, "isExtended");
     vi.restoreAllMocks();
@@ -1143,12 +1149,13 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
   });
 
   it("tells the Operator how to move the Output when the system cannot place windows", async () => {
-    const { output } = await goLive();
-    output.postMessage({ type: "placement", onTarget: false, fullscreen: false, refused: true });
+    const { output } = await goLiveHoldingGrace();
+    await reportPlacement(output, { onTarget: false, fullscreen: false, refused: true });
     await screen.findAllByText(/Move this window to EPSON PJ, 1280×800, then press F\./);
     expect(sessionStorage.getItem("placementRefused")).toBe("1");
     // The grace timer must not replace it with the click hint.
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await vi.advanceTimersByTimeAsync(GRACE_MS);
+    vi.useRealTimers();
     expect(noticeText(/press F there/)).toBe(0);
     output.postMessage({ type: "placement", onTarget: true, fullscreen: true, refused: true });
     await screen.findAllByText(/The Output is on the projector screen\./);
@@ -1177,9 +1184,10 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
   });
 
   it("stays quiet when the Output verified the placement before the grace ran out", async () => {
-    const { output } = await goLive();
-    output.postMessage({ type: "placement", onTarget: true, fullscreen: true });
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const { output } = await goLiveHoldingGrace();
+    await reportPlacement(output, { onTarget: true, fullscreen: true });
+    await vi.advanceTimersByTimeAsync(GRACE_MS);
+    vi.useRealTimers();
     expect(noticeText(/press F there/)).toBe(0);
     expect(noticeText(/The Output is on the projector screen/)).toBe(0);
     output.close();
@@ -1274,6 +1282,30 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
   // A notice sliding away (aria-hidden, .snackbar-leaving) is already put away.
   const noticeText = (pattern: RegExp) =>
     screen.queryAllByText(pattern).filter((el) => !el.closest(".snackbar-leaving")).length;
+
+  /**
+   * Has the Output report where it is, and resolves once the App has handled
+   * it: a subscriber on the App's own channel hears the same message after the
+   * App's. Nothing waits a fixed time for it (delivery depends on load).
+   */
+  const reportPlacement = (output: BroadcastChannel, report: object) =>
+    new Promise<void>((resolve) => {
+      const unsubscribe = subscribePlacement(() => {
+        unsubscribe();
+        resolve();
+      });
+      output.postMessage({ type: "placement", ...report });
+    });
+
+  /**
+   * Goes live with the placement grace held still, so a loaded machine can't
+   * run it out before the test's report arrives; the test then steps past it.
+   */
+  async function goLiveHoldingGrace() {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    return goLive();
+  }
+  const GRACE_MS = 1200;
 
   /** The Output window obeying End Live: it closes, and its bye follows. */
   const closesOnCommand = (output: BroadcastChannel, seen: unknown[]) => {
