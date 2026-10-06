@@ -1933,3 +1933,35 @@ its three actions (reload and clipboard stubbed, Reset deleting a
 `fake-indexeddb` database); the Output's blank fallback and its message; the
 Operator's snackbar and Reopen; Present Here blank and still leavable. The look
 at 390×844 and dark is a hand check.
+
+### 16.10 About, and what a beta tester needs
+
+Board #49, with #17 and #16 in part. **About** joins the sections (DESIGN.md §
+Structure: the rail from 840px, the menu on a phone), at the small width, after
+Library. It holds, in this order:
+
+1. **The app.** Its name, a line on what it is, and the build (`__APP_BUILD__`,
+   SDD-0001 §16.9), selectable.
+2. **Privacy.** _The hymnal keeps everything on this device: your books, your
+   settings and the hymns you have sung. Nothing is sent anywhere, and there is
+   no tracking and no cookies. The site is hosted on GitHub Pages, which logs
+   visitors' IP addresses under GitHub's own privacy statement._ (ADR-0030.)
+3. **Your books.** _The books you load are yours to load: you answer for having
+   the right to use them. The sample books that ship with the app are in the
+   public domain, and each song says why._ (PLAN Log, 2026-10-06; #43.)
+4. **Report a problem.** **Copy Diagnostics**, then **Report a Problem**, which
+   opens `REPORT_URL` (`src/config.ts`) in a new tab with nothing attached: the
+   user pastes what they copied, if they choose. Diagnostics are the build, the
+   user agent, the screen size, whether storage is persisted and its estimate,
+   the store's mode (OPFS or memory, SDD-0004 §15), the user state's mode
+   (SDD-0001 §11.1), and the books by state as counts. No titles, no recents, no
+   lyrics.
+5. **Credits.** Hymnal Sans (Google Sans, SIL OFL 1.1, renamed as its trademark
+   note asks), SQLite (public domain), SolidJS, idb, Comlink, fflate, pdf.js and
+   fast-xml-parser with their licences, and the app's own (Apache 2.0,
+   ADR-0016).
+
+**Testing.** The section renders each part; the diagnostics text holds every
+field and no title, recent or lyric line from a store that has them; Report a
+Problem opens `REPORT_URL` with no query. The look at 390×844 and 1280×800,
+light and dark, by hand.
