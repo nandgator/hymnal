@@ -1,6 +1,7 @@
 import { createEffect, createSignal, type JSX, onCleanup, Show } from "solid-js";
 import { subscribePresence } from "../output/channel.ts";
 import { contentBusy, releaseContent } from "../persistence/content-store.ts";
+import { choosePool, type OpfsProbe, probeOpfs } from "../persistence/pool-init.ts";
 import { browserTabLock, type TabLock, type TabState } from "./tabLock.ts";
 import { type AppUpdates, createAppUpdates, createPresence, type Presence } from "./updates.ts";
 
@@ -16,6 +17,18 @@ const MESSAGES: Partial<Record<TabState, string>> = {
   saving: "The other tab is saving a book. Try again in a moment.",
   silent: "The other tab didn't answer. Close it, or try again.",
 };
+
+// A tab's books in memory live only in that tab, so Use Here would lose them (SDD-0004 §15).
+const MEMORY_OTHER =
+  "The other tab holds this window’s books, in memory. Use them here, and they go.";
+
+// A page cannot see `createSyncAccessHandle` (workers only): the page asks of the root alone,
+// and the worker's own probe has the last word.
+const pageProbe = () =>
+  probeOpfs({
+    storage: typeof navigator === "undefined" ? undefined : navigator.storage,
+    hasSyncHandle: true,
+  });
 
 const defaultLock = (isLive: () => boolean) =>
   browserTabLock(
@@ -35,6 +48,8 @@ export function TabGate(props: {
   children: (shared: Shared) => JSX.Element;
   /** The lock, made from the live check; tests pass fakes. */
   makeLock?: (isLive: () => boolean) => TabLock | undefined;
+  /** What this window's OPFS is, without starting a worker; tests pass fakes. */
+  probe?: () => Promise<OpfsProbe>;
 }) {
   const presence = createPresence(subscribePresence);
   const appUpdates = createAppUpdates(presence.live);
@@ -50,6 +65,11 @@ export function TabGate(props: {
   }
 
   const [state, setState] = createSignal<TabState>(lock.state());
+  const [inMemory, setInMemory] = createSignal(false);
+  (props.probe ?? pageProbe)().then(
+    (found) => setInMemory(choosePool(found).mode === "memory"),
+    () => {},
+  );
   lock.onChange(setState);
   lock.start();
   onCleanup(() => lock.dispose());
@@ -67,7 +87,9 @@ export function TabGate(props: {
             <div class="card-elevated library lib-empty">
               <h1 class="display-small">Hymnal is open in another tab</h1>
               <p class="body-large on-surface-variant" role="status">
-                {MESSAGES[state()] ?? MESSAGES.other}
+                {state() === "other" && inMemory()
+                  ? MEMORY_OTHER
+                  : (MESSAGES[state()] ?? MESSAGES.other)}
               </p>
               <button
                 type="button"

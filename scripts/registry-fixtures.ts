@@ -1,8 +1,11 @@
 import { DatabaseSync } from "node:sqlite";
+import sqlite3InitModule, { type Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 import { songHash } from "../src/domain/hash.ts";
 import { insertRows, packageRows } from "../src/domain/package-rows.ts";
 import type { HymnbookSource, HymnSource } from "../src/domain/types.ts";
+import { createMemoryPool } from "../src/persistence/memory-pool.ts";
 import type { Sql } from "../src/persistence/package-io.ts";
+import { PoolFiles, sqlOf as wasmSqlOf } from "../src/persistence/pool-files.ts";
 import {
   openRegistry,
   type PackageFiles,
@@ -142,20 +145,61 @@ export class FakeFiles implements PackageFiles {
   async reserve() {}
   /** A v3 package of a book, as the worker would write it. */
   put(file: string, id: string, h = hymns, sources: string[] = []) {
-    this.open(file, (sql) => {
-      sql.exec(SCHEMA_SQL);
-      insertRows(
-        (s, b) => sql.run(s, b),
-        packageRows(book(id, h.length), h, {
-          key: id,
-          origin: id,
-          sources,
-          contentHash: "c",
-          schemaVersion: SCHEMA_VERSION,
-        }),
-      );
-    });
+    this.open(file, (sql) => fillPackage(sql, id, h, sources));
   }
+}
+
+function fillPackage(sql: Sql, id: string, h: HymnSource[], sources: string[]) {
+  sql.exec(SCHEMA_SQL);
+  insertRows(
+    (s, b) => sql.run(s, b),
+    packageRows(book(id, h.length), h, {
+      key: id,
+      origin: id,
+      sources,
+      contentHash: "c",
+      schemaVersion: SCHEMA_VERSION,
+    }),
+  );
+}
+
+/** The worker's files over a pool in memory (SDD-0004 §15): SQLite in wasm, the same code as in the browser. */
+export class MemoryFiles extends PoolFiles {
+  /** The next import into the pool throws this, once: a full or failing store. */
+  failImport?: Error;
+  put(file: string, id: string, h = hymns, sources: string[] = []) {
+    this.open(file, (sql) => fillPackage(sql, id, h, sources));
+  }
+}
+
+let wasm: Sqlite3Static | undefined;
+/** Loads SQLite in wasm, once; call before {@link setupOn} with the memory backend. */
+export async function loadWasm(): Promise<Sqlite3Static> {
+  wasm ??= await sqlite3InitModule();
+  return wasm;
+}
+
+export type Backend = "fake" | "memory";
+export const BACKENDS: readonly Backend[] = ["fake", "memory"];
+
+/** {@link setup} on either backend: the fake's files, or the memory pool's (needs {@link loadWasm}). */
+export function setupOn(backend: Backend, shipped: string[] = []) {
+  if (backend === "fake") return setup(shipped);
+  if (!wasm) throw new Error("loadWasm() first");
+  const pool = createMemoryPool(wasm);
+  const files = new MemoryFiles(pool, wasm);
+  const importDb = pool.importDb;
+  pool.importDb = (file, bytes) => {
+    const fail = files.failImport;
+    files.failImport = undefined;
+    if (fail) throw fail;
+    return importDb(file, bytes);
+  };
+  const sql = wasmSqlOf(new wasm.oo1.DB(":memory:"));
+  openRegistry(sql);
+  let t = 0;
+  const ctx: RegistryContext = { registry: sql, files, shipped, now: () => ++t };
+  return { files, ctx, sql };
 }
 
 export function setup(shipped: string[] = []) {

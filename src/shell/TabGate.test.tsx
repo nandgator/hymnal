@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { describe, expect, it, vi } from "vitest";
+import type { OpfsProbe } from "../persistence/pool-init.ts";
 import { TabGate } from "./TabGate.tsx";
 import type { TabLock, TabState } from "./tabLock.ts";
 
@@ -37,8 +38,12 @@ function fakeLock(initial: TabState = "checking") {
   return lock;
 }
 
-const mount = (lock?: TabLock) =>
-  render(() => <TabGate makeLock={() => lock}>{() => <p>the app</p>}</TabGate>);
+const mount = (lock?: TabLock, probe: OpfsProbe = { found: "usable" }) =>
+  render(() => (
+    <TabGate makeLock={() => lock} probe={async () => probe}>
+      {() => <p>the app</p>}
+    </TabGate>
+  ));
 
 describe("TabGate", () => {
   it("shows the app at once where there is no lock", () => {
@@ -93,5 +98,32 @@ describe("TabGate", () => {
     lock.go("other");
     expect(screen.queryByText("the app")).toBeNull();
     expect(screen.getByRole("button", { name: "Use Here" })).toBeInTheDocument();
+  });
+
+  it("tells a tab in a private window that the other tab's books go with Use Here (SDD-0004 §15)", async () => {
+    const lock = fakeLock();
+    mount(lock, { found: "rejected", name: "SecurityError", message: "denied" });
+    await Promise.resolve();
+    lock.go("other");
+    expect(
+      screen.getByText(
+        "The other tab holds this window’s books, in memory. Use them here, and they go.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Use Here" })).toBeEnabled();
+    // Only that message changes: the others keep theirs.
+    lock.go("presenting");
+    expect(screen.getByText(/The other tab is presenting/)).toBeInTheDocument();
+    lock.go("silent");
+    expect(screen.getByText(/didn't answer/)).toBeInTheDocument();
+  });
+
+  it("keeps the usual note where the books are kept", async () => {
+    const lock = fakeLock();
+    mount(lock);
+    await Promise.resolve();
+    lock.go("other");
+    expect(screen.getByText(/Only one tab can hold your books at a time/)).toBeInTheDocument();
+    expect(screen.queryByText(/in memory/)).toBeNull();
   });
 });

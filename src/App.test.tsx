@@ -59,6 +59,7 @@ vi.mock("./persistence/content-store.ts", () => {
   const admin: Partial<ContentAdmin> = {
     listBooks: async () => mocks.rows,
     openBook: async () => ({ state: "ready" }),
+    storageMode: async () => "opfs",
     review: async () => ({
       token: "t",
       sourceHash: "a".repeat(64),

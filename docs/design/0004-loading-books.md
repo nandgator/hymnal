@@ -858,16 +858,25 @@ stays the error it is.
 
 **A pool in memory.** The worker talks to the pool through a small surface
 (`getFileNames`, `getFileCount`, `reserveMinimumCapacity`, `importDb`,
-`exportFile`, `unlink`, `OpfsSAHPoolDb`). A memory pool gives the same surface
-over SQLite's in-memory databases, so the registry, the review, the duplicate
-checks (§8) and every query run unchanged. Nothing is written anywhere; the
-window closing ends it.
+`exportFile`, `unlink`, `pauseVfs`, `OpfsSAHPoolDb`). A memory pool gives the
+same surface over SQLite's in-memory databases, so the registry, the review, the
+duplicate checks (§8) and every query run unchanged. Nothing is written
+anywhere; the window closing ends it.
+
+**Another tab.** The tab lock (SDD-0001 §10.4) still holds in memory: one tab at
+a time. But a tab's books in memory live only in that tab, so Use Here would
+lose them. A tab whose own probe finds memory says so on the gate instead: _The
+other tab holds this window’s books, in memory. Use them here, and they go._ Use
+Here stays offered. Decided by the recommendation while the maintainer was away
+(PLAN Log); refusing to let go is the alternative.
 
 **Said once, where it matters.** The Library carries a line while the store is
 in memory: _This window doesn’t keep books. They go when it closes, so keep the
-file._ No `persist()` is asked for in memory. Windows that keep OPFS but clear
-it on close (Chrome's incognito) cannot be told apart; the refused-persist note
-(§9) already says to keep the file there.
+file._ The count above it says _in this window_, not _on this device_, and
+neither note shows until the mode is known. No `persist()` is asked for in
+memory. Windows that keep OPFS but clear it on close (Chrome's incognito) cannot
+be told apart; the refused-persist note (§9) already says to keep the file
+there.
 
 **Testing.** The choice between OPFS, memory and the busy error is a pure
 function of what the probe found, unit-tested for each case. The memory pool

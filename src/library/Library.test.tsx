@@ -7,6 +7,7 @@ import type {
   ContentStatus,
   LoadReview,
   OnLoadProgress,
+  StorageMode,
 } from "../persistence/content-store.ts";
 import { createBooks, type LibraryAdmin } from "./books.ts";
 import { Library } from "./Library.tsx";
@@ -57,6 +58,8 @@ interface Setup {
   review?: LoadReview | Error;
   commit?: CommitResult;
   openBook?: ContentStatus;
+  /** Where the books are held; the default is OPFS. */
+  mode?: StorageMode;
 }
 
 function setup(options: Setup = {}) {
@@ -81,6 +84,7 @@ function setup(options: Setup = {}) {
       return true;
     }),
     openBook: vi.fn(async (): Promise<ContentStatus> => options.openBook ?? { state: "ready" }),
+    storageMode: vi.fn(async (): Promise<StorageMode> => options.mode ?? "opfs"),
   } satisfies LibraryAdmin;
   const store = {
     ensureInstalled: vi.fn(async (): Promise<ContentStatus> => ({ state: "ready" })),
@@ -879,6 +883,67 @@ describe("Library: the review sheet (ADR-0027)", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Couldn’t read hof.hymnbook.json.gz: boom",
     );
+  });
+});
+
+describe("Library: a window that does not keep books (SDD-0004 §15)", () => {
+  const LINE = "This window doesn’t keep books. They go when it closes, so keep the file.";
+
+  it("says so under the list, and not that the books stay", async () => {
+    const s = setup({ mode: "memory" });
+    s.view();
+    expect(await screen.findByText(LINE)).toBeInTheDocument();
+    expect(screen.queryByText(/Books stay on this device/)).not.toBeInTheDocument();
+  });
+
+  it("counts the books in this window, not on this device", async () => {
+    const s = setup({ mode: "memory" });
+    s.view();
+    expect(await screen.findByText("1 book in this window")).toBeInTheDocument();
+    expect(screen.queryByText(/on this device/)).not.toBeInTheDocument();
+  });
+
+  it("says nothing of keeping, either way, until the mode is known", async () => {
+    const s = setup();
+    let answer: (mode: StorageMode) => void = () => {};
+    s.admin.storageMode.mockImplementation(() => new Promise((resolve) => (answer = resolve)));
+    s.view();
+    await screen.findByRole("list", { name: "Books" });
+    expect(screen.getByText("1 book")).toBeInTheDocument();
+    expect(screen.queryByText(/Books stay on this device/)).not.toBeInTheDocument();
+    expect(screen.queryByText(LINE)).not.toBeInTheDocument();
+    answer("memory");
+    expect(await screen.findByText(LINE)).toBeInTheDocument();
+  });
+
+  it("says so in the first-run card, in place of the books staying", async () => {
+    const s = setup({ rows: [], mode: "memory" });
+    s.view();
+    await screen.findByRole("heading", { name: "Bring a songbook" });
+    expect(await screen.findByText(new RegExp(LINE))).toBeInTheDocument();
+    expect(screen.queryByText(/It stays on this device/)).not.toBeInTheDocument();
+  });
+
+  it("says nothing of it where books are kept", async () => {
+    const s = setup();
+    s.view();
+    expect(await screen.findByText(/Books stay on this device/)).toBeInTheDocument();
+    expect(screen.queryByText(LINE)).not.toBeInTheDocument();
+  });
+
+  it("does not ask for persistent storage at the first load, nor say the request was refused", async () => {
+    const s = setup({
+      mode: "memory",
+      commit: { ok: true, action: "loaded", key: "k1", firstLoad: true },
+    });
+    s.view();
+    await screen.findByText(LINE);
+    pickFile();
+    const dialog = within(await screen.findByRole("dialog", { name: "Load Books" }));
+    fireEvent.click(await dialog.findByRole("button", { name: "Load Book" }));
+    await waitFor(() => expect(s.onChoose).toHaveBeenCalledWith("k1"));
+    expect(s.persist).not.toHaveBeenCalled();
+    expect(s.onStorageRefused).not.toHaveBeenCalled();
   });
 });
 

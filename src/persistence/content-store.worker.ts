@@ -1,5 +1,5 @@
-import type { Database, OpfsSAHPoolDatabase, SAHPoolUtil, SqlValue } from "@sqlite.org/sqlite-wasm";
-import sqlite3InitModule, { type Sqlite3Static } from "@sqlite.org/sqlite-wasm";
+import type { Database, SqlValue } from "@sqlite.org/sqlite-wasm";
+import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
 import * as Comlink from "comlink";
 import { SCHEMA_VERSION } from "../../scripts/content-schema.ts";
 import { SHIPPED_BOOK_IDS } from "../config.ts";
@@ -14,13 +14,21 @@ import type {
 } from "../domain/types.ts";
 import type { InstallProgress } from "./download.ts";
 import { type Choice, type CommitResult, type LoadReview, LoadSession } from "./load.ts";
-import type { Sql, Value } from "./package-io.ts";
-import { guardPoolDirectories, poolHandlesFree, startPool } from "./pool-init.ts";
+import { createMemoryPool } from "./memory-pool.ts";
+import type { Value } from "./package-io.ts";
+import { type PackagePool, PoolFiles, sqlOf } from "./pool-files.ts";
+import {
+  choosePool,
+  guardPoolDirectories,
+  poolHandlesFree,
+  probeOpfs,
+  type StorageMode,
+  startPool,
+} from "./pool-init.ts";
 import {
   type BookRow,
   indexPackage,
   listBooks,
-  type PackageFiles,
   REGISTRY_FILE,
   type RegistryContext,
   reconcile,
@@ -99,6 +107,8 @@ export interface ContentAdmin {
   cancel(token: string): Promise<boolean>;
   /** A loaded book only; a shipped one is refused. Its recents go with it: see `removeBookAndRecents`. */
   removeBook(key: string): Promise<boolean>;
+  /** Where the books are held: OPFS, or memory for a window that refuses it (SDD-0004 §15). */
+  storageMode(): Promise<StorageMode>;
   /** A write is under way (a commit, a removal, an install): the store is not let go. */
   busy(): Promise<boolean>;
   /** Closes every connection and lets the pool go, so another tab can take
@@ -124,21 +134,18 @@ export interface DevAdmin {
 
 /** The pool has a fixed number of file slots (a package, the registry and any journal each take one). */
 const START_SPARE_SLOTS = 8; // beyond the files present, at start
-const ADD_BOOK_SPARE_SLOTS = 8; // beyond the files present, before writing a book
 const INSTALL_SPARE_SLOTS = 2; // beyond the files present, before importing a package
 
 class ContentStoreWorker implements ContentStore, ContentAdmin {
-  #poolReady: Promise<SAHPoolUtil>;
-  #sqlite3: Sqlite3Static | undefined;
+  #poolReady: Promise<PoolFiles>;
+  #mode: StorageMode = "opfs";
   /** Why the store could not start this session, for the error callers see. */
   #unavailable: string | undefined;
-  /** Open connections by file name; a file is opened once and shared. */
-  #conns = new Map<string, OpfsSAHPoolDatabase>();
   /** The registry, or null if it could not be made: the books still open without it. */
   #ready: Promise<RegistryContext | null>;
   /** The registry and the pool once they are up, for the queries, which are not async. */
   #liveCtx: RegistryContext | null = null;
-  #livePool: SAHPoolUtil | null = null;
+  #livePool: PoolFiles | null = null;
   /** Writes in flight, so the store is not let go mid-write (SDD-0001 §10.4). */
   #writes = new Set<Promise<unknown>>();
   #session = new LoadSession(() => this.#registry());
@@ -172,18 +179,29 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
    * Starts the pool without risking the books (SDD-0001 §10.2): sqlite-wasm
    * deletes the whole pool directory when its init fails, so the directories
    * are made undeletable here, one worker at a time holds the store lock, and
-   * the pool's handles must be free before the install is tried.
+   * the pool's handles must be free before the install is tried. A window
+   * that refuses OPFS gets a pool in memory instead (SDD-0004 §15); a pool
+   * another tab holds does not, and stays the error it is.
    */
-  async #initPool(): Promise<SAHPoolUtil> {
-    guardPoolDirectories(FileSystemDirectoryHandle.prototype);
+  async #initPool(): Promise<PoolFiles> {
     const loading = sqlite3InitModule();
+    loading.catch(() => {}); // reported where it is awaited
+    const choice = choosePool(await probeOpfs());
+    if (choice.mode === "error") throw new Error(choice.message);
+    this.#mode = choice.mode;
+    if (choice.mode === "memory") {
+      console.warn(`the books are held in memory: ${choice.why}`);
+      const sqlite3 = await loading;
+      return new PoolFiles(createMemoryPool(sqlite3), sqlite3);
+    }
+    guardPoolDirectories(FileSystemDirectoryHandle.prototype);
     return startPool({
       locks: navigator.locks,
       free: async () => poolHandlesFree(await navigator.storage.getDirectory()),
       install: async () => {
         const sqlite3 = await loading;
-        this.#sqlite3 = sqlite3;
-        return sqlite3.installOpfsSAHPoolVfs({ name: "hymnal" });
+        const pool: PackagePool = await sqlite3.installOpfsSAHPoolVfs({ name: "hymnal" });
+        return new PoolFiles(pool, sqlite3);
       },
     });
   }
@@ -192,12 +210,13 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
    * registry file is discarded and made again; a reconcile that fails leaves the
    * registry as far as it got. */
   async #start(): Promise<RegistryContext> {
-    const pool = await this.#poolReady;
+    const files = await this.#poolReady;
+    const pool = files.pool;
     await pool.reserveMinimumCapacity(pool.getFileCount() + START_SPARE_SLOTS);
     const registry = startRegistry(
-      () => this.#sql(this.#conn(pool, REGISTRY_FILE)),
+      () => sqlOf(files.conn(REGISTRY_FILE)),
       () => {
-        this.#close(REGISTRY_FILE);
+        files.close(REGISTRY_FILE);
         try {
           pool.unlink(REGISTRY_FILE);
         } catch {
@@ -207,7 +226,7 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     );
     const ctx: RegistryContext = {
       registry,
-      files: this.#files(pool),
+      files,
       shipped: SHIPPED_BOOK_IDS,
       now: Date.now,
     };
@@ -231,97 +250,6 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     return ctx;
   }
 
-  #conn(pool: SAHPoolUtil, file: string): OpfsSAHPoolDatabase {
-    let db = this.#conns.get(file);
-    if (!db) {
-      db = new pool.OpfsSAHPoolDb(file);
-      this.#conns.set(file, db);
-    }
-    return db;
-  }
-
-  #sql(db: Database): Sql {
-    return {
-      all: (sql, bind) => this.#rows(db, sql, bind) as Record<string, Value>[],
-      run: (sql, bind) => {
-        db.exec({ sql, bind });
-      },
-      exec: (sql) => {
-        db.exec(sql);
-      },
-      prepare: (sql) => {
-        const stmt = db.prepare(sql);
-        return {
-          run: (bind) => {
-            stmt.bind(bind).stepReset();
-          },
-          finalize: () => {
-            stmt.finalize();
-          },
-        };
-      },
-    };
-  }
-
-  #files(pool: SAHPoolUtil): PackageFiles {
-    return {
-      list: () => pool.getFileNames(),
-      open: (file, fn) => {
-        const wasOpen = this.#conns.has(file);
-        const db = this.#conn(pool, file);
-        try {
-          return fn(this.#sql(db));
-        } finally {
-          if (!wasOpen) this.#close(file);
-        }
-      },
-      write: (file, fn) => {
-        const sqlite3 = this.#sqlite3;
-        if (!sqlite3) throw new Error("sqlite is not loaded");
-        if (pool.getFileNames().includes(file)) throw new Error(`${file} already exists`);
-        const scratch = new sqlite3.oo1.DB(":memory:");
-        try {
-          fn(this.#sql(scratch));
-          const bytes = sqlite3.capi.sqlite3_js_db_export(scratch.pointer as number);
-          // The pool writes the bytes into a spare slot and takes the name last.
-          try {
-            void pool.importDb(file, bytes);
-          } catch (error) {
-            console.warn(`${file}: not stored:`, error);
-            throw new Error(
-              `could not store the book (${error instanceof Error ? error.message : String(error)})`,
-            );
-          }
-        } finally {
-          scratch.close();
-        }
-      },
-      read: (file) => {
-        try {
-          // exportFile is synchronous (the typings say Promise); a journal is a few KB.
-          return pool.getFileNames().includes(file)
-            ? (pool.exportFile(file) as unknown as Uint8Array)
-            : null;
-        } catch {
-          return null;
-        }
-      },
-      remove: (file) => {
-        if (file === REGISTRY_FILE) throw new Error("the registry is not removed as a package");
-        this.#close(file);
-        pool.unlink(file);
-      },
-      reserve: async () => {
-        await pool.reserveMinimumCapacity(pool.getFileCount() + ADD_BOOK_SPARE_SLOTS);
-      },
-    };
-  }
-
-  #close(file: string) {
-    this.#conns.get(file)?.close();
-    this.#conns.delete(file);
-  }
-
   async listBooks(): Promise<BookRow[]> {
     return listBooks(await this.#registry());
   }
@@ -339,10 +267,10 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     const row = listBooks(ctx).find((book) => book.key === key);
     if (!row) return { state: "missing-asset" };
     if (row.state !== "ok") return { state: "unreadable", reason: row.state };
-    const pool = await this.#poolReady;
-    if (!pool.getFileNames().includes(row.file)) return { state: "missing-asset" };
+    const files = await this.#poolReady;
+    if (!files.list().includes(row.file)) return { state: "missing-asset" };
     try {
-      this.#conn(pool, row.file);
+      files.conn(row.file);
     } catch {
       return { state: "corrupt" };
     }
@@ -354,6 +282,11 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     const done = () => this.#writes.delete(write);
     write.then(done, done);
     return write;
+  }
+
+  async storageMode(): Promise<StorageMode> {
+    await this.#poolReady;
+    return this.#mode;
   }
 
   async busy(): Promise<boolean> {
@@ -377,11 +310,15 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     this.#session.discard();
     await Promise.allSettled([...this.#writes]);
     await this.#ready;
-    for (const file of [...this.#conns.keys()]) this.#close(file);
+    try {
+      (await this.#poolReady).closeAll();
+    } catch {
+      // A pool that never started holds nothing.
+    }
     this.#livePool = null;
     this.#liveCtx = null;
     try {
-      await (await this.#poolReady).pauseVfs();
+      await (await this.#poolReady).pool.pauseVfs();
     } catch {
       // A pool that never started holds nothing.
     }
@@ -389,10 +326,10 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
 
   #makeDev(): DevAdmin {
     const put = async (file: string, bytes: Uint8Array) => {
-      const pool = await this.#poolReady;
-      await pool.reserveMinimumCapacity(pool.getFileCount() + INSTALL_SPARE_SLOTS);
-      this.#close(file);
-      await pool.importDb(file, bytes);
+      const files = await this.#poolReady;
+      await files.pool.reserveMinimumCapacity(files.pool.getFileCount() + INSTALL_SPARE_SLOTS);
+      files.close(file);
+      await files.pool.importDb(file, bytes);
     };
     return {
       reconcile: async () => {
@@ -400,18 +337,18 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
         await reconcile(ctx);
         return listBooks(ctx);
       },
-      files: async () => (await this.#poolReady).getFileNames(),
+      files: async () => (await this.#poolReady).list(),
       sql: async (file, sql, bind) => {
         await this.#ready;
-        return this.#files(await this.#poolReady).open(file, (s) => s.all(sql, bind));
+        return (await this.#poolReady).open(file, (s) => s.all(sql, bind));
       },
       put,
       copy: async (from, to) => {
-        const pool = await this.#poolReady;
-        this.#close(from);
-        await put(to, await pool.exportFile(from));
+        const files = await this.#poolReady;
+        files.close(from);
+        await put(to, await files.pool.exportFile(from));
       },
-      delete: async (file) => this.#files(await this.#poolReady).remove(file),
+      delete: async (file) => (await this.#poolReady).remove(file),
     };
   }
 
@@ -423,15 +360,15 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
   }
 
   async #install(id: HymnbookId): Promise<ContentStatus> {
-    const pool = await this.#poolReady;
+    const files = await this.#poolReady;
     const ctx = await this.#ready; // null if the registry is unavailable: the book opens regardless
     const filename = filenameFor(id);
 
     // Nothing ships (ADR-0026, SDD-0004 §13 part 6): a book is on the device
     // already, or it is not held. There is no bundle to fetch it from.
-    if (!pool.getFileNames().includes(filename)) return { state: "missing-asset" };
+    if (!files.list().includes(filename)) return { state: "missing-asset" };
 
-    const db = this.#conn(pool, filename);
+    const db = files.conn(filename);
 
     let found: number | undefined;
     try {
@@ -574,15 +511,15 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
 
   /** The book's file is the registry's current row for the key, so a Replace
    * (a new file under the same key) is followed with nothing to invalidate. */
-  #open(id: HymnbookId): OpfsSAHPoolDatabase {
+  #open(id: HymnbookId): Database {
     const file = this.#liveCtx
       ? (listBooks(this.#liveCtx).find((book) => book.key === id)?.file ?? filenameFor(id))
       : filenameFor(id);
-    const pool = this.#livePool;
-    if (!pool?.getFileNames().includes(file)) {
+    const files = this.#livePool;
+    if (!files?.list().includes(file)) {
       throw new Error(`${id}: the book is not held (openBook() says why)`);
     }
-    return this.#conn(pool, file);
+    return files.conn(file);
   }
 
   #rows(db: Database, sql: string, bind?: SqlValue[]): Record<string, SqlValue>[] {

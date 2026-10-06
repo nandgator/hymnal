@@ -11,7 +11,7 @@ import type { InstallProgress } from "../persistence/download.ts";
 /** What the Library asks of the worker (SDD-0004 §10): a subset of {@link ContentAdmin}. */
 export type LibraryAdmin = Pick<
   ContentAdmin,
-  "listBooks" | "review" | "commit" | "cancel" | "removeBook" | "openBook"
+  "listBooks" | "review" | "commit" | "cancel" | "removeBook" | "openBook" | "storageMode"
 >;
 
 /** What a row can say beyond the registry's own state: its file went missing (evicted). */

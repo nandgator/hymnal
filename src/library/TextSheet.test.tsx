@@ -98,6 +98,7 @@ function setup() {
     cancel: vi.fn(async () => true),
     removeBook: vi.fn(async () => true),
     openBook: vi.fn(async () => ({ state: "ready" as const })),
+    storageMode: vi.fn(async () => "opfs" as const),
   } satisfies LibraryAdmin;
   const store = { ensureInstalled: vi.fn(async () => ({ state: "ready" as const })) };
   const persist = vi.fn(async () => "granted" as const);

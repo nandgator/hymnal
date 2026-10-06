@@ -38,6 +38,11 @@ import { ReviewSheet } from "./ReviewSheet.tsx";
 import { createTextDraft, TextSheet } from "./TextSheet.tsx";
 import { buildTextBook, type FieldProblems, type SourceState } from "./textbook.ts";
 
+/** Said in the Library when the books are held in memory (SDD-0004 §15). */
+const MEMORY_NOTE = "This window doesn’t keep books. They go when it closes, so keep the file.";
+const KEPT_NOTE =
+  "Books stay on this device. A loaded book has no copy anywhere else, so keep its file.";
+
 const megabytes = (bytes: number) => (bytes / 1_000_000).toFixed(1);
 
 export interface LibraryProps {
@@ -156,6 +161,23 @@ export function Library(props: LibraryProps) {
   const expanded = createMediaQuery(EXPANDED_QUERY);
   const admin = () => props.admin ?? getContentAdmin();
   const user = () => props.userState ?? defaultUserState;
+  // Whether the books are held in memory only (SDD-0004 §15). Until it is known nothing is said
+  // of it either way, and the first load waits for the answer before it asks to keep storage.
+  const [inMemory, setInMemory] = createSignal(false);
+  const [modeKnown, setModeKnown] = createSignal(false);
+  const storageMode = admin()
+    .storageMode()
+    .then(
+      (mode) => {
+        setInMemory(mode === "memory");
+        setModeKnown(true);
+        return mode;
+      },
+      () => {
+        setModeKnown(true);
+        return "opfs" as const;
+      },
+    );
   const placement = () => (expanded() ? "center" : "bottom");
 
   let input: HTMLInputElement | undefined;
@@ -403,11 +425,14 @@ export function Library(props: LibraryProps) {
     setCommitting(true);
     setProgress(undefined);
     setReviewError(undefined);
+    // A window that keeps nothing is not asked to keep storage.
+    const persist =
+      (await storageMode) === "memory" ? async () => "unsupported" as const : props.persist;
     const result = await commitAndPersist(
       admin(),
       current.token,
       choice,
-      props.persist,
+      persist,
       setProgress,
     ).catch((error: unknown) => ({
       ok: false as const,
@@ -716,7 +741,8 @@ export function Library(props: LibraryProps) {
         <div class="lib-head-text">
           <h1 class="title-large">Library</h1>
           <p>
-            {rows().length} {rows().length === 1 ? "book" : "books"} on this device
+            {rows().length} {rows().length === 1 ? "book" : "books"}
+            <Show when={modeKnown()}>{inMemory() ? " in this window" : " on this device"}</Show>
           </p>
         </div>
         <div class="lib-head-actions">
@@ -768,9 +794,13 @@ export function Library(props: LibraryProps) {
         <Show when={savingShown()}>{savingRow()}</Show>
         <For each={rows()}>{bookRow}</For>
       </ul>
-      <p class="lib-foot">
-        Books stay on this device. A loaded book has no copy anywhere else, so keep its file.
-      </p>
+      <Show when={modeKnown()}>
+        <p class="lib-foot">
+          <Show when={inMemory()} fallback={KEPT_NOTE}>
+            {MEMORY_NOTE}
+          </Show>
+        </p>
+      </Show>
     </div>
   );
 
@@ -785,7 +815,12 @@ export function Library(props: LibraryProps) {
               <>
                 <h1 class="display-small">Bring a songbook</h1>
                 <p class="body-large on-surface-variant">
-                  Load a songbook file, or type one in. It stays on this device.
+                  Load a songbook file, or type one in.{" "}
+                  <Show when={modeKnown()}>
+                    <Show when={inMemory()} fallback="It stays on this device.">
+                      {MEMORY_NOTE}
+                    </Show>
+                  </Show>
                 </p>
                 <For each={readErrors()}>
                   {(message) => (

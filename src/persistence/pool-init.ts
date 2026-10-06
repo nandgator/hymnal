@@ -169,3 +169,74 @@ export async function startPool<T>(start: PoolStart<T>): Promise<T> {
   }
   return start.install();
 }
+
+/** What the window's OPFS turned out to be, before any pool is started (SDD-0004 §15). */
+export type OpfsProbe =
+  | { found: "usable" }
+  /** `navigator.storage` or `getDirectory()` is not there. */
+  | { found: "absent" }
+  /** `getDirectory()` rejected; `name` is the error's. */
+  | { found: "rejected"; name: string; message: string }
+  /** The root opens, but a file handle has no `createSyncAccessHandle`. */
+  | { found: "no-sync-handle" };
+
+/** Where the books are held this session. */
+export type StorageMode = "opfs" | "memory";
+
+export type PoolChoice =
+  | { mode: StorageMode; why?: string }
+  /** The probe failed for a reason that is not a refusal: the store is unavailable, not in memory. */
+  | { mode: "error"; message: string };
+
+/** The errors of `getDirectory()` that mean this window refuses OPFS (private windows, blocked site data). */
+const REFUSALS: readonly string[] = ["SecurityError", "NotAllowedError"];
+
+/**
+ * OPFS, memory or an error, from what was found (SDD-0004 §15). Only a
+ * refusal falls back to memory; any other failure stays an error, as does a
+ * pool held by another tab ({@link PoolUnavailableError}, which the probe
+ * cannot see): the books are there, and a second copy in memory would split them.
+ */
+export function choosePool(probe: OpfsProbe): PoolChoice {
+  switch (probe.found) {
+    case "usable":
+      return { mode: "opfs" };
+    case "absent":
+      return { mode: "memory", why: "this window has no origin storage" };
+    case "no-sync-handle":
+      return { mode: "memory", why: "this window cannot open files for sync access" };
+    case "rejected":
+      return REFUSALS.includes(probe.name)
+        ? { mode: "memory", why: `this window refuses origin storage (${probe.name})` }
+        : { mode: "error", message: `origin storage failed: ${probe.name}: ${probe.message}` };
+  }
+}
+
+/** The parts of the worker's scope the probe looks at; overridable for tests. */
+export interface OpfsScope {
+  storage?: { getDirectory?: () => Promise<unknown> };
+  hasSyncHandle: boolean;
+}
+
+/** Looks at this worker's OPFS: asks for the root, writes nothing. */
+export async function probeOpfs(
+  scope: OpfsScope = {
+    storage: typeof navigator === "undefined" ? undefined : navigator.storage,
+    hasSyncHandle:
+      typeof FileSystemFileHandle !== "undefined" &&
+      "createSyncAccessHandle" in FileSystemFileHandle.prototype,
+  },
+): Promise<OpfsProbe> {
+  if (typeof scope.storage?.getDirectory !== "function") return { found: "absent" };
+  try {
+    // Called as a method of the manager: it throws on any other `this`.
+    await scope.storage.getDirectory();
+  } catch (error) {
+    return {
+      found: "rejected",
+      name: error instanceof Error ? error.name : "Error",
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+  return scope.hasSyncHandle ? { found: "usable" } : { found: "no-sync-handle" };
+}

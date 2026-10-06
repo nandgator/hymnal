@@ -2,11 +2,13 @@
 
 import { describe, expect, it, vi } from "vitest";
 import {
+  choosePool,
   guardPoolDirectories,
   holdPoolLock,
   POOL_LOCK,
   PoolUnavailableError,
   poolHandlesFree,
+  probeOpfs,
   startPool,
   waitUntilHandlesFree,
 } from "./pool-init.ts";
@@ -164,5 +166,86 @@ describe("waitUntilHandlesFree", () => {
       },
     });
     expect(ok).toBe(false);
+  });
+});
+
+describe("choosePool (SDD-0004 §15)", () => {
+  it("keeps OPFS where it is usable", () => {
+    expect(choosePool({ found: "usable" })).toEqual({ mode: "opfs" });
+  });
+
+  it("falls back to memory when there is no origin storage, or no sync access handle", () => {
+    expect(choosePool({ found: "absent" })).toMatchObject({ mode: "memory" });
+    expect(choosePool({ found: "no-sync-handle" })).toMatchObject({ mode: "memory" });
+  });
+
+  it("falls back to memory when getDirectory() is refused", () => {
+    for (const name of ["SecurityError", "NotAllowedError"]) {
+      expect(choosePool({ found: "rejected", name, message: "denied" })).toMatchObject({
+        mode: "memory",
+      });
+    }
+  });
+
+  it("is an error, not memory, when getDirectory() fails for any other reason", () => {
+    expect(choosePool({ found: "rejected", name: "UnknownError", message: "boom" })).toEqual({
+      mode: "error",
+      message: "origin storage failed: UnknownError: boom",
+    });
+  });
+});
+
+describe("probeOpfs", () => {
+  const fail = (name: string) => {
+    const error = new Error("no");
+    error.name = name;
+    return vi.fn(async () => {
+      throw error;
+    });
+  };
+
+  it("finds OPFS usable when the root opens and file handles can be synchronous", async () => {
+    const getDirectory = vi.fn(async () => ({}));
+    expect(await probeOpfs({ storage: { getDirectory }, hasSyncHandle: true })).toEqual({
+      found: "usable",
+    });
+    expect(getDirectory).toHaveBeenCalledTimes(1);
+  });
+
+  it("finds it absent without a storage manager or a getDirectory", async () => {
+    expect(await probeOpfs({ storage: undefined, hasSyncHandle: true })).toEqual({
+      found: "absent",
+    });
+    expect(await probeOpfs({ storage: {}, hasSyncHandle: true })).toEqual({ found: "absent" });
+  });
+
+  it("reports the error getDirectory() rejects with", async () => {
+    expect(
+      await probeOpfs({ storage: { getDirectory: fail("SecurityError") }, hasSyncHandle: true }),
+    ).toEqual({ found: "rejected", name: "SecurityError", message: "no" });
+  });
+
+  it("finds a missing createSyncAccessHandle", async () => {
+    expect(
+      await probeOpfs({ storage: { getDirectory: async () => ({}) }, hasSyncHandle: false }),
+    ).toEqual({ found: "no-sync-handle" });
+  });
+
+  it("decides memory for a private window and the error for a pool held elsewhere", async () => {
+    const refused = await probeOpfs({
+      storage: { getDirectory: fail("SecurityError") },
+      hasSyncHandle: true,
+    });
+    expect(choosePool(refused).mode).toBe("memory");
+    // A pool another tab holds is found by startPool, after the probe says OPFS is fine.
+    expect(choosePool({ found: "usable" }).mode).toBe("opfs");
+    await expect(
+      startPool({
+        locks: undefined,
+        free: async () => false,
+        freeTimeoutMs: 0,
+        install: async () => "never",
+      }),
+    ).rejects.toBeInstanceOf(PoolUnavailableError);
   });
 });

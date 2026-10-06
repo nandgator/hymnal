@@ -61,6 +61,7 @@ export function getContentAdmin(): ContentAdmin {
         remote.commit(token, choice, onProgress && Comlink.proxy(onProgress)),
       cancel: (token) => remote.cancel(token),
       removeBook: (key) => remote.removeBook(key),
+      storageMode: () => remote.storageMode(),
       busy: () => remote.busy(),
       close: () => remote.close(),
       // Comlink proxies a nested object's methods; the typings do not know.
@@ -120,4 +121,5 @@ export type {
   SearchResult,
 } from "./content-store.worker.ts";
 export type { Choice, CommitResult, LoadReview } from "./load.ts";
+export type { StorageMode } from "./pool-init.ts";
 export type { BookRow } from "./registry.ts";

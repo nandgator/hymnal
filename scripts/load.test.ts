@@ -2,7 +2,7 @@
 
 import { DatabaseSync } from "node:sqlite";
 import { type GzipOptions, gzipSync } from "fflate";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { songHash } from "../src/domain/hash.ts";
 import { insertRows, packageRows } from "../src/domain/package-rows.ts";
 import type { HymnSource } from "../src/domain/types.ts";
@@ -20,7 +20,22 @@ import {
   replaceBook,
 } from "../src/persistence/registry.ts";
 import { SCHEMA_VERSION } from "./content-schema.ts";
-import { book, container, hymn, hymns, setup, sqlOf } from "./registry-fixtures.ts";
+import {
+  BACKENDS,
+  book,
+  container,
+  FakeFiles,
+  hymn,
+  hymns,
+  loadWasm,
+  setup,
+  setupOn,
+  sqlOf,
+} from "./registry-fixtures.ts";
+
+// The loader runs over the fake pool and over the memory pool, which holds the books of a
+// window that refuses OPFS (SDD-0004 §15).
+beforeAll(loadWasm);
 
 const bytesOf = (id: string, h: HymnSource[] = hymns, level: GzipOptions["level"] = 9) =>
   gzipSync(new TextEncoder().encode(JSON.stringify({ hymnbook: book(id, h.length), hymns: h })), {
@@ -55,7 +70,9 @@ async function load(
   return s.commit(review.token, choice);
 }
 
-describe("review", () => {
+describe.each(BACKENDS)("review (%s)", (backend) => {
+  const setup = (shipped?: string[]) => setupOn(backend, shipped);
+
   it("shows the summary and the verdict and writes nothing", async () => {
     const { ctx, files } = setup();
     const review = await session(ctx).review(bytesOf("b"));
@@ -121,7 +138,9 @@ describe("review", () => {
   });
 });
 
-describe("commit, by the verdict", () => {
+describe.each(BACKENDS)("commit, by the verdict (%s)", (backend) => {
+  const setup = (shipped?: string[]) => setupOn(backend, shipped);
+
   it("row 4: a new book, a package and its rows", async () => {
     const { ctx, files } = setup();
     const result = await load(session(ctx), bytesOf("a"));
@@ -262,20 +281,27 @@ describe("commit, by the verdict", () => {
     const { ctx, files } = setup();
     const s = session(ctx);
     const review = await s.review(bytesOf("a"));
-    files.failQuery.set("/key-1.1.sqlite3", new Error("disk full"));
+    // Each pool fails its own way: a query by name, or the one import into the store.
+    if (files instanceof FakeFiles) {
+      files.failQuery.set("/key-1.1.sqlite3", new Error("disk full"));
+    } else {
+      files.failImport = new Error("disk full");
+    }
     expect(await s.commit(review.token)).toMatchObject({
       ok: false,
       reason: "failed",
-      message: "disk full",
+      message: expect.stringContaining("disk full"),
     });
-    files.failQuery.clear();
+    if (files instanceof FakeFiles) files.failQuery.clear();
     expect(files.list()).toEqual([]);
     expect(listBooks(ctx)).toEqual([]);
     expect(await s.commit(review.token)).toMatchObject({ ok: true, action: "loaded" });
   });
 });
 
-describe("the first load", () => {
+describe.each(BACKENDS)("the first load (%s)", (backend) => {
+  const setup = (shipped?: string[]) => setupOn(backend, shipped);
+
   it("is flagged once, so the caller asks for persistent storage", async () => {
     const { ctx } = setup();
     const s = session(ctx);
@@ -313,7 +339,9 @@ describe("the first load", () => {
   });
 });
 
-describe("remove", () => {
+describe.each(BACKENDS)("remove (%s)", (backend) => {
+  const setup = (shipped?: string[]) => setupOn(backend, shipped);
+
   it("leaves no file and no row, and drops the book's recents", async () => {
     const { ctx, files, sql } = setup();
     const s = session(ctx);
