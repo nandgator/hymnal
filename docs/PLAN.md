@@ -63,7 +63,7 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 | Area    | Status                                                                   |
 | ------- | ------------------------------------------------------------------------ |
-| Docs    | arc42 + 27 ADRs + SDD-0001–0004; design principles noted                 |
+| Docs    | arc42 + 29 ADRs + SDD-0001–0006; design principles noted                 |
 | Tooling | bun, biome, prettier, markdownlint — `bun run check` green               |
 | App     | Vite + SolidJS + TS scaffolded; vitest chosen as test runner             |
 | Domain  | Types, Sequence Engine, validation (`src/domain/`) — pure, tested        |
@@ -83,7 +83,7 @@ Ordered. Top unblocked item is next.
 | 43  | A shipped sample (ADR-0026 § What "shipped" means): public-domain songs, each with a rights record (SDD-0001 §8); how it ships decided then; About says users answer for what they load                   | maintainer: the songs |
 | 44  | Damage handled (SDD-0001 §11.1, §16.9): user state checked and defaulted, memory when refused; error screen; Output blanks                                                                                | —                     |
 | 45  | Private windows (was #39, SDD-0004 §15): an in-memory store where OPFS is refused; the Library says so                                                                                                    | 44                    |
-| 46  | Backup and restore: one versioned file, user state and books; restore validated like a load (SDD-0004 §8)                                                                                                 | 44                    |
+| 46  | Backup and restore (SDD-0006): one `.hymnal` file, books and user state; restore rebuilds and merges                                                                                                      | 44                    |
 | 47  | Security: threat-model ADR; untrusted packages opened defensively with limits; meta CSP; `bun audit` in CI                                                                                                | —                     |
 | 48  | Privacy: an Invariant that nothing leaves the device unasked; a privacy statement                                                                                                                         | —                     |
 | 49  | Beta kit: version and build shown, Copy diagnostics (no recents, no lyrics), a report link, About (#16, #17 in part)                                                                                      | 48                    |
