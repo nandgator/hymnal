@@ -28,9 +28,9 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 
 ## Now
 
-**Beta track** (Board #43–52): #44–#49, #51 and #52 are done. #43 waits on the
-maintainer's Malayalam list, #50 on a real device, and the beta on an origin of
-its own (ADR-0030).
+**Beta track** (Board #43–52): #44–#49, #51 and #52 are done. #43 next: the
+sample, now decided. The beta's origin is live (hymnal.sagaveracity.com). #50
+waits on a real device; the beta may go before it, iOS marked untested.
 
 **Phase 1's app is done**: #20, the keymap, was its last item (SDD-0001 §16.5).
 **Board #28 is done**: ADR-0026/0027, SDD-0004, all six parts. The songs have
@@ -81,26 +81,26 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                                                                                                                                                      | Blocked by            |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                          | —                     |
-| 43  | A shipped sample (ADR-0026 § What "shipped" means): public-domain songs, each with a rights record (SDD-0001 §8); how it ships decided then; About says users answer for what they load                   | maintainer: the songs |
-| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | —                     |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                                               | —                     |
-| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                             | —                     |
-| 16  | Feedback and corrections from users — where collected: TBD                                                                                                                                                | —                     |
-| 17  | About: acknowledgements, copyright, credits                                                                                                                                                               | —                     |
-| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                                                                               | —                     |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                                                                                                                           | —                     |
-| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                                                                            | —                     |
-| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                                                                                   | —                     |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                                                                                | Phase 2               |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                                                                             | content               |
-| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                                                                             | —                     |
-| 38  | Search across books: one query over every loaded book (SDD-0001 §16)                                                                                                                                      | —                     |
-| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                                                                                    | —                     |
-| 41  | One-screen presenting: built (SDD-0001 §16.7); waits for the maintainer's check on GNOME Wayland and the keys' feel                                                                                       | —                     |
-| 42  | Test suite speed (note): split App.test.tsx by area and use fake timers for its real waits; then isolate:false only for the DOM-free files, never globally (module-level state in channel.ts and friends) | —                     |
+| #   | Task                                                                                                                                                                                                      | Blocked by          |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                          | —                   |
+| 43  | The sample: 28 Otterbein hymns (English) and 2 Malayalam songs, two books built locally, a release asset pinned by SHA-256 in the deploy, offered in the Library; a rights page beside them               | —                   |
+| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | maintainer: devices |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                                               | —                   |
+| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                             | —                   |
+| 16  | Feedback and corrections from users — where collected: TBD                                                                                                                                                | —                   |
+| 17  | About: acknowledgements, copyright, credits                                                                                                                                                               | —                   |
+| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                                                                               | —                   |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                                                                                                                           | —                   |
+| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                                                                            | —                   |
+| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                                                                                   | —                   |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                                                                                | Phase 2             |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                                                                             | content             |
+| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                                                                             | —                   |
+| 38  | Search across books: one query over every loaded book (SDD-0001 §16)                                                                                                                                      | —                   |
+| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                                                                                    | —                   |
+| 41  | One-screen presenting: built (SDD-0001 §16.7); waits for the maintainer's check on GNOME Wayland and the keys' feel                                                                                       | —                   |
+| 42  | Test suite speed (note): split App.test.tsx by area and use fake timers for its real waits; then isolate:false only for the DOM-free files, never globally (module-level state in channel.ts and friends) | —                   |
 
 Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. The
 songs have left the repo (#28 done): nothing is bundled, and every book comes in
@@ -145,6 +145,13 @@ only, here:
 
 ## Log
 
+- 2026-10-07 — Decided by the maintainer: the sample is the 28 English hymns and
+  only the 2 Malayalam songs with a full rights record (the other 18 wait on a
+  first-publication date). Built locally, uploaded as a GitHub Release asset,
+  fetched by the deploy and checked against a SHA-256 in the repo; offered in
+  the Library and loaded like any file (ADR-0026). Rights live on a page beside
+  the books, so format 1 stands. The beta's origin is hymnal.sagaveracity.com on
+  GitHub Pages (ADR-0030). #50 waits for devices. The fork is detached
 - 2026-10-07 — #51 done: App's placement-grace tests hold the grace timer and
   fence on the App having handled the report; the recents check and the Hold
   replay wait for the outcome, not 50 ms. channel.test was already fenced

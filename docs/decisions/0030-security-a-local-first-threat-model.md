@@ -69,6 +69,7 @@ encrypts nothing at rest. Copyright in what a user loads is theirs (PLAN Log,
 - A PLAN Invariant: **nothing leaves the device unless the user sends it.**
 - The CSP is tested: the built `index.html` carries it, and the app runs under
   it in the browser, Output and worker included.
-- A second origin (a custom domain) is needed before the beta.
+- A second origin (a custom domain) is needed before the beta: it is
+  `hymnal.sagaveracity.com`, on GitHub Pages (2026-10-07).
 - An advisory is ignored in CI only for a package that is not in the built app,
   with the reason beside it; a test fails if that package ever reaches `dist/`.

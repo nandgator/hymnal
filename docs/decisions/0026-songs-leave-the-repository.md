@@ -85,8 +85,12 @@ Chosen, by the maintainer: **nothing ships until a sample exists, and how it
 reaches the device is decided then.** The candidates are a prebuilt package from
 a committed source directory (today's machinery) or a committed container
 offered in the Library and loaded like any file; the second is the leaning, for
-having one path. Until then no code is kept for shipped books beyond what
-SDD-0004 names.
+having one path. Chosen, by the maintainer (2026-10-07): **a container built
+locally, published as a GitHub Release asset, fetched by the deploy and checked
+against a SHA-256 committed in the repository**, then offered in the Library and
+loaded like any file. Each song's rights record is a page beside the books, not
+a field in them, so format 1 stands (SDD-0002 §5). Until then no code is kept
+for shipped books beyond what SDD-0004 names.
 
 ### The first run on a device with nothing bundled
 
