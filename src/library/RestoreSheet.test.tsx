@@ -91,6 +91,13 @@ describe("RestoreSheet: the review", () => {
     expect(dialog.getByText("Build abc1234")).toBeInTheDocument();
   });
 
+  it("hugs its content once the backup is read: no minimum height held (#53)", async () => {
+    setup(ok({ books: [book()] }));
+    const card = await sheet();
+    await within(card).findByRole("heading", { name: /^Backup from / });
+    expect(card).not.toHaveClass("sheet-steady");
+  });
+
   it("words the date as Recents does", () => {
     const now = Date.parse("2026-10-06T12:00:00");
     expect(madeLabel("2026-10-06T09:41:00", now)).toMatch(/^Backup from today, /);
