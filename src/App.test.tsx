@@ -889,6 +889,26 @@ describe("App", () => {
     expect(opened).not.toContain(false);
   });
 
+  it("opens Keyboard Shortcuts from the search as a page of its sheet; Back keeps the query", async () => {
+    render(() => <App />);
+    await booksReady();
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const search = await screen.findByRole("dialog", { name: "Search" });
+    const box = within(search).getByRole("combobox");
+    fireEvent.input(box, { target: { value: "keyboard" } });
+    fireEvent.mouseDown(await within(search).findByRole("option", { name: /Keyboard Shortcuts/ }));
+
+    // The one dialog stays open and slides: no second card, no closed backdrop.
+    expect(search).toHaveAttribute("aria-label", "Keyboard Shortcuts");
+    expect(search).toHaveAttribute("open");
+    expect(document.querySelectorAll("dialog[open]")).toHaveLength(1);
+    fireEvent.click(within(search).getByRole("button", { name: "Back" }));
+    expect(search).toHaveAttribute("aria-label", "Search");
+    expect(search).toHaveAttribute("open");
+    expect(within(search).getByRole("combobox")).toHaveValue("keyboard");
+  });
+
   it("hides Live with L, remembered in preferences, and shows it again (SDD-0001 §16.4)", async () => {
     render(() => <App />);
     await openFinder();
