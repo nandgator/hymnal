@@ -71,7 +71,7 @@ export interface LibraryProps {
   onEndLive?: () => void;
   /** The first load's request to keep storage was refused: say to keep the file. */
   onStorageRefused?: () => void;
-  /** A word for the snackbar: books left unloaded when the review is closed. */
+  /** A word for the snackbar: a book that loaded but could not be put to use. */
   onNotice?: (message: string) => void;
   /** A single picked file is a backup (decided by its content): the restore sheet takes it
    * (SDD-0006 §5). Without it, the file is reviewed as a book, and refused. */
@@ -123,9 +123,6 @@ export interface QueuePosition {
 
 /** The queue's entries that can be looked at: a file that could not be read is passed over. */
 const readable = (queue: Queue) => queue.entries.filter((entry) => entry.state !== "failed");
-
-/** What closing leaves unloaded: the books not decided, and the files that could not be read. */
-const unloaded = (queue: Queue) => queue.entries.filter((entry) => entry.state !== "loaded").length;
 
 const positionOf = (queue: Queue): QueuePosition => {
   const shown = readable(queue);
@@ -264,8 +261,9 @@ export function Library(props: LibraryProps) {
     setSheetReading(undefined);
   };
 
-  /** Closes the review sheet. Of several books, those not decided stay unloaded, and it says so. */
-  const closeReview = (quiet = false) => {
+  /** Closes the review sheet. Of several books, those not decided stay unloaded; closing is the
+   * person's choice, so it says nothing. */
+  const closeReview = () => {
     // A save in flight is not taken back by closing the sheet: it finishes, and the Library's
     // row shows it. Anything else that is busy (a removal) is not interrupted.
     const saving = committing();
@@ -277,10 +275,7 @@ export function Library(props: LibraryProps) {
     setReading(undefined);
     setReviewOpen(false);
     setReviewError(undefined);
-    // The book being saved is not left unloaded.
-    const left = queue && queue.entries.length > 1 ? unloaded(queue) - (saving ? 1 : 0) : 0;
     endQueue();
-    if (left > 0 && !quiet) props.onNotice?.(`${left} ${left === 1 ? "book" : "books"} not loaded`);
     // A review of song text goes back to the text, which is kept to fix; not while that book
     // is being saved, which clears the text when it lands.
     if (reviewSource() && !saving) setTextOpen(true);
@@ -334,7 +329,7 @@ export function Library(props: LibraryProps) {
   };
 
   const closeQueue = () => {
-    if (reviewOpen()) closeReview(true);
+    if (reviewOpen()) closeReview();
     else endQueue();
   };
 
@@ -556,7 +551,7 @@ export function Library(props: LibraryProps) {
   const chooseAnother = () => {
     const target = review()?.restore?.key;
     const fromText = !!reviewSource();
-    closeReview(true);
+    closeReview();
     // A refused book from text goes back to the text; closeReview has reopened it.
     if (!fromText) pick(target);
   };
