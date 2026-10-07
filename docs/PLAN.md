@@ -84,11 +84,9 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                                                                                                                                                                                                                                                   | Blocked by          |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| 53  | Sheets and notices: no empty space below Load Book (review) or Restore; no "N books not loaded" when the person cancels; the source check is withdrawn from From Text and the CLI (ADR-0029 amended)                                                                                   | —                   |
 | 54  | Settings: About becomes its last section, out of the sidebar; Keyboard Shortcuts from search or / slides in as from Settings, with Back to search and no blur blink; Settings opens on itself, not the last sheet page; Copy Diagnostics keeps its width (MD3: a snackbar says Copied) | —                   |
 | 55  | Presenter motion: the tonal card glides on a wrap (last part to first and back); no jerk when the lyrics scroll one way and the card moves the other                                                                                                                                   | —                   |
 | 56  | Shell motion: Recents glide to the top with the crossfade they had, no blink; no flicker expanding or collapsing tabs                                                                                                                                                                  | —                   |
-| 57  | Output keys: the Output forwards presentation keys only (N, Next tab, is not one); Hold's disabled tooltip says to Go Live first; Blank arms before live                                                                                                                               | —                   |
 | 58  | Assorted Hymns: a book the person owns for single songs; favourites and queues are lists of songs, not books (with #22). Shape when it starts                                                                                                                                          | —                   |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                                                                                                       | —                   |
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                                                                                                    | maintainer: devices |
@@ -151,6 +149,11 @@ only, here:
 
 ## Log
 
+- 2026-10-07 — #53 and #57 done: review and Restore sheets hug their content
+  once read; no notice when a review is cancelled; the source check is withdrawn
+  (ADR-0029); keymap entries carry a scope, the Output forwards only
+  presentation keys, and Present Here swallows the Operator's own (N moved the
+  workspace over the audience's view); Hold says to Go Live first
 - 2026-10-07 — #53 built: the review and Restore sheets hug their content once a
   file is read (they held 34rem, bd5da0c; now only while it is read); closing a
   review of several books says nothing; the source check is withdrawn from the
