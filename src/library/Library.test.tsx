@@ -1250,6 +1250,14 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     expect(s.onNotice).not.toHaveBeenCalled();
   });
 
+  it("a reviewed book's sheet hugs its content: no minimum height held once it is read (#53)", async () => {
+    queueSetup();
+    await screen.findByRole("list", { name: "Books" });
+    pickFiles("1.hymnbook.json.gz");
+    const load = await screen.findByRole("button", { name: "Load Book" });
+    expect(load.closest("dialog")).not.toHaveClass("sheet-steady");
+  });
+
   it("closing a single book's review says nothing", async () => {
     const s = queueSetup();
     await screen.findByRole("list", { name: "Books" });
