@@ -416,6 +416,39 @@ describe("Presenter", () => {
     expect(screen.queryByRole("radio")).not.toBeInTheDocument();
   });
 
+  it("expanding a group is not a View Transition: its snapshots cross-faded the old and new wrapping", async () => {
+    // A View Transition snapshots each area and cross-fades the two, so the
+    // wide and the narrow lyrics showed doubled (and a half-ready snapshot
+    // tore). The areas' own sizes glide instead, in the page.
+    const start = vi.fn((apply: () => void) => {
+      apply();
+      return {};
+    });
+    Object.defineProperty(document, "startViewTransition", { value: start, configurable: true });
+    try {
+      const onWorkspaceChange = vi.fn();
+      render(() => (
+        <Presenter
+          hymnbookId="book"
+          hymnNumber={7}
+          store={fakeStore()}
+          userState={fakeUserState()}
+          onWorkspaceChange={onWorkspaceChange}
+        />
+      ));
+      await screen.findByText("Test Hymn");
+      fireEvent.click(
+        within(screen.getByRole("region", { name: "Recents" })).getByRole("button", {
+          name: "Expand to main",
+        }),
+      );
+      expect(onWorkspaceChange).toHaveBeenCalled();
+      expect(start).not.toHaveBeenCalled();
+    } finally {
+      Reflect.deleteProperty(document, "startViewTransition");
+    }
+  });
+
   it("expands, collapses, closes and splits from the group headings", async () => {
     const onWorkspaceChange = vi.fn();
     render(() => (
