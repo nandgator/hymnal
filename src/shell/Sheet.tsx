@@ -29,7 +29,8 @@ export interface SheetProps {
   closeDisabled?: boolean;
   /** Room for a long review: up to 88% of the height, not 75% (the Library's sheets). */
   tall?: boolean;
-  /** One height across the states of its content, so the card does not jump between them (the review). */
+  /** Hold the height the card last settled at while this is true (a file being read), so it
+   * does not jump when the content lands; once false the card hugs its content again. */
   steady?: boolean;
   /** The page showing over the root, if any. The caller owns the state. */
   page?: SheetPage | undefined;
@@ -50,6 +51,8 @@ export interface SheetProps {
  */
 export function Sheet(props: SheetProps) {
   let dialog: HTMLDialogElement | undefined;
+  // The height the card last settled at, held while `steady`.
+  const [settled, setSettled] = createSignal<number>();
   // The content stays until the exit has played, not just while `open`.
   const [shown, setShown] = createSignal(false);
   let closing = 0;
@@ -184,6 +187,18 @@ export function Sheet(props: SheetProps) {
     }
   });
 
+  createEffect(() => {
+    if (props.steady || !dialog || typeof ResizeObserver === "undefined") return;
+    const el = dialog;
+    const watch = new ResizeObserver(() => {
+      if (el.open && el.dataset.closing === undefined && el.offsetHeight > 0) {
+        setSettled(el.offsetHeight);
+      }
+    });
+    watch.observe(el);
+    onCleanup(() => watch.disconnect());
+  });
+
   // The dialog's own onClick is the scrim; its keyboard equivalent is
   // Escape, which <dialog> handles natively.
   return (
@@ -191,6 +206,7 @@ export function Sheet(props: SheetProps) {
     <dialog
       ref={dialog}
       class={`sheet sheet-${props.placement ?? "bottom"}${props.tall ? " sheet-tall" : ""}${props.steady ? " sheet-steady" : ""}`}
+      style={props.steady && settled() ? { "--sheet-hold": `${settled()}px` } : undefined}
       aria-label={props.page?.title ?? props.title}
       onClose={() => props.onClose()}
       onCancel={(event) => {

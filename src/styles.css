@@ -5499,11 +5499,12 @@ fieldset.book-main {
 .sheet.sheet-tall {
   max-height: 88dvh;
 }
-/* The review holds one height from checking to reviewed, so the card (and a
-   bottom sheet's top edge) does not jump as the queue steps; the cap still wins
-   on a short screen. Content stays at the top. */
+/* While a file is read the card holds the height it last settled at (34rem the
+   first time), so it does not jump when the review lands; a settled review hugs
+   its content, with no empty space below its button. The cap still wins on a
+   short screen. Content stays at the top. */
 .sheet.sheet-steady {
-  min-height: min(34rem, 88dvh);
+  min-height: min(var(--sheet-hold, 34rem), 88dvh);
 }
 .skeleton-title-sm {
   width: 8rem;

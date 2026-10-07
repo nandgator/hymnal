@@ -242,7 +242,7 @@ export function ReviewSheet(props: ReviewSheetProps) {
       }
       placement={props.placement}
       tall
-      steady
+      steady={!!props.reading}
     >
       <Show when={props.review}>
         {(review) => (
