@@ -69,6 +69,15 @@ describe("planCrossings", () => {
     expect(plans.get("b")?.fade).toBeUndefined();
   });
 
+  it("a riser with its own fill (the song that's up) passes over the rows: they stay in view", () => {
+    // The tonal fill hides what is under it, so no glyph is half covered and
+    // the rows need not vanish; they glide down in view, as they used to.
+    const list = items(["a", "b", "c", "d"], ["d", "a", "b", "c"]);
+    const plans = planCrossings(list.map((item) => ({ ...item, opaque: item.key === "d" })));
+    expect(plans.get("d")?.lift).toBe(true);
+    for (const key of ["a", "b", "c"]) expect(plans.get(key)?.fade).toBeUndefined();
+  });
+
   it("a 20-row rise: every offset within [0, 1], in order, every row crossed", () => {
     const was = Array.from({ length: 20 }, (_, i) => `r${i}`);
     const order = [was[19] ?? "", ...was.slice(0, 19)];
