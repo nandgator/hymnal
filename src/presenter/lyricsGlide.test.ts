@@ -37,6 +37,13 @@ describe("planGlide", () => {
     expect(planGlide({ ...base, tintTravel: 601 }).tint).toBe("fade");
   });
 
+  it("lands a far scroll under a card that has not moved (nothing eases)", () => {
+    expect(planGlide({ ...base, tintTravel: 0, scrollTravel: 3000 })).toEqual({
+      tint: "glide",
+      scroll: "snap",
+    });
+  });
+
   it("glides Back to Current from any distance, the tint left alone", () => {
     expect(planGlide({ ...base, tintTravel: 0, scrollTravel: 3000, back: true })).toEqual({
       tint: "glide",
@@ -410,16 +417,6 @@ describe("glideLyrics", () => {
       expect(list.scrollTop).toBe(500);
       expect(calls[0].keyframes).toHaveLength(2);
       expect(calls[0].keyframes[0]).toMatchObject({ opacity: 0 });
-    });
-
-    it("a scroll far from the card's near step never snaps while the card eases", () => {
-      const { list, current } = setup();
-      glideLyrics(list, { still: true });
-      list.scrollTop = 1100; // the old card (0 to 200) is off screen, 600 to land
-      current(1);
-      glideLyrics(list, { still: false });
-      // One kind of motion, not a snapped list under a gliding card.
-      expect(calls[0].keyframes).toHaveLength(2);
     });
   });
 

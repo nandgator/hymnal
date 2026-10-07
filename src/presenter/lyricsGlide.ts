@@ -6,8 +6,9 @@
 // old), landing together with the scroll as ONE motion: a single Web
 // Animation is the clock, and the scroll reads its eased progress each
 // frame, so the two can never drift apart (and a paused, seeked animation
-// moves both). A step far from where the tint is doesn't travel through the
-// song: the tint fades instead and the scroll lands at once. A list shown
+// moves both). A step far from where the tint is (a wrap), or with a far scroll,
+// doesn't travel through the song: the tint fades out where it was, the
+// scroll lands unseen in the middle, and the tint fades in at the new part. A list shown
 // anew, and reduced motion, show the end state. The text's colour change
 // keeps to the tint: it eases with the glide and the fade-in (styles.css),
 // and goes at once when the tint snaps (`data-tint` on the list).
@@ -25,7 +26,9 @@ import {
 } from "./glideGeometry.ts";
 
 export type TintMode = "snap" | "glide" | "fade";
-export type ScrollMode = "snap" | "glide";
+// "land": the list holds while the card fades out where it was, lands unseen
+// at the middle of the fade, and the card fades in at its new part.
+export type ScrollMode = "snap" | "glide" | "land";
 
 export interface GlidePlan {
   tint: TintMode;
@@ -50,12 +53,16 @@ export interface GlideInput {
 export function planGlide(input: GlideInput): GlidePlan {
   if (input.still || input.reduced) return { tint: "snap", scroll: "snap" };
   const far = (travel: number) => travel > input.viewport;
-  const scroll: ScrollMode = far(input.scrollTravel) && !input.back ? "snap" : "glide";
-  if (input.tintTravel === null) return { tint: "snap", scroll };
-  // Only the tint travelling far fades. Far scroll with a near (or still)
-  // tint, like Back to Current, just lands: the tint has nothing to flash.
-  if (far(input.tintTravel)) return { tint: "fade", scroll: "snap" };
-  return { tint: "glide", scroll };
+  const farScroll = far(input.scrollTravel) && !input.back;
+  if (input.tintTravel === null) return { tint: "snap", scroll: farScroll ? "snap" : "glide" };
+  // A card that has not moved has nothing to ease: a far scroll just lands
+  // (Back to Current glides it instead).
+  if (input.tintTravel === 0 && farScroll) return { tint: "glide", scroll: "snap" };
+  // A far card jump (a wrap) or a far scroll never travels through the song,
+  // and never snaps the list under a card that is still easing (that read as
+  // a jerk): the card leaves where it was, the list lands, the card arrives.
+  if (far(input.tintTravel) || farScroll) return { tint: "fade", scroll: "land" };
+  return { tint: "glide", scroll: "glide" };
 }
 
 /** How long Back to Current takes: the app's duration for a screen or less;
@@ -151,6 +158,12 @@ export function parseEase(css: string): ((t: number) => number) | null {
  * keyframes. The trailing edge follows that progress; the leading edge (the
  * bottom moving down, the top moving up) takes the same curve over the first
  * LEAD of the time, so it has reached the new part before the old is let go.
+ * The edges lead and trail as the eye sees them: the list scrolls under the
+ * card in the same motion (`scroll`, the list's scrollTop at the two ends,
+ * moving with the progress), and an edge eased in the list's own frame would
+ * lunge against that scroll and fall back, a jerk before the card settled. So
+ * each edge is eased in screen space, from where it is drawn to where it will
+ * be, and the scroll is added back to give its place in the list.
  * Pure, for tests.
  */
 export function edgeBoxes(
@@ -158,14 +171,22 @@ export function edgeBoxes(
   to: Box,
   ease: (t: number) => number,
   steps = EDGE_STEPS,
+  scroll: { from: number; to: number } = { from: 0, to: 0 },
 ): Box[] {
-  const down = to.y >= from.y;
   const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
+  const top0 = from.y - scroll.from;
+  const top1 = to.y - scroll.to;
+  const bottom0 = from.y + from.h - scroll.from;
+  const bottom1 = to.y + to.h - scroll.to;
+  // Which way the card travels, as seen: the leading edge goes that way.
+  const seenDown = top1 + bottom1 - (top0 + bottom0);
+  const down = seenDown === 0 ? to.y >= from.y : seenDown > 0;
   return Array.from({ length: steps + 1 }, (_, i) => {
     const p = i / steps;
     const lead = i === steps ? 1 : ease(Math.min(1, invert(ease, p) / LEAD));
-    const top = lerp(from.y, to.y, down ? p : lead);
-    const bottom = lerp(from.y + from.h, to.y + to.h, down ? lead : p);
+    const at = lerp(scroll.from, scroll.to, p);
+    const top = lerp(top0, top1, down ? p : lead) + at;
+    const bottom = lerp(bottom0, bottom1, down ? lead : p) + at;
     return {
       x: lerp(from.x, to.x, p),
       y: top,
@@ -245,7 +266,15 @@ const TAKEOVER = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
 
 // The scroll rides the tint's animation: its eased progress, each frame. A
 // hand on the list (wheel, touch, a press on the scrollbar, a key) lets go.
-function rideScroll(list: HTMLElement, state: ListState, anim: Animation, to: number) {
+// With `land`, the list holds until the middle of the animation and lands
+// there, while the card is faded out.
+function rideScroll(
+  list: HTMLElement,
+  state: ListState,
+  anim: Animation,
+  to: number,
+  land = false,
+) {
   const from = list.scrollTop;
   let frameId = 0;
   const release = () => {
@@ -262,7 +291,8 @@ function rideScroll(list: HTMLElement, state: ListState, anim: Animation, to: nu
     // Past the end (no fill) reads as null: that is the end, not the start.
     const done = timing?.progress == null && Number(timing?.localTime) > 0;
     const progress = finished || done ? 1 : (timing?.progress ?? 0);
-    list.scrollTop = from + (to - from) * Number(progress);
+    const at = land ? (Number(progress) >= 0.5 ? 1 : 0) : Number(progress);
+    list.scrollTop = from + (to - from) * at;
     if (finished) release();
     else frameId = requestAnimationFrame(tick);
   };
@@ -314,9 +344,13 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean; back?:
   state.box = to;
   state.scrollTo = scrollTo;
   if (tint) paint(tint, to);
-  if (plan.scroll === "snap") list.scrollTop = scrollTo;
+  const start = from ?? to;
+  // The old card is on screen, to fade out there (before the list moves).
+  const seen = start.y + start.h > scrolledFrom && start.y < scrolledFrom + list.clientHeight;
+  const lands = plan.scroll === "land" && seen;
+  if (plan.scroll === "snap" || (plan.scroll === "land" && !seen)) list.scrollTop = scrollTo;
   if (!tint || typeof tint.animate !== "function") {
-    if (plan.scroll === "glide") list.scrollTop = scrollTo;
+    if (plan.scroll !== "snap") list.scrollTop = scrollTo;
     snapColour(list);
     return;
   }
@@ -330,14 +364,12 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean; back?:
   const duration = options.back
     ? backDuration(timing.duration, Math.abs(scrollTo - scrolledFrom), list.clientHeight)
     : timing.duration;
-  const start = from ?? to;
   let anim: Animation;
   if (plan.tint === "fade") {
     // Out where it was, in where it is: the offsets hold the move while it
-    // is unseen. A tint that was already off screen has nothing to fade
-    // out, so the new one fades straight in.
-    const top = list.scrollTop;
-    const seen = start.y + start.h > top && start.y < top + list.clientHeight;
+    // is unseen, and the list lands in the middle of them. A tint that was
+    // already off screen has nothing to fade out, so the new one fades
+    // straight in.
     anim = seen
       ? tint.animate(
           [
@@ -354,7 +386,10 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean; back?:
     // still (start equals end). The effect's easing stays the clock the
     // scroll reads; the edges' own timing is in the keyframes.
     const ease = parseEase(easing);
-    const boxes = ease && !sameBox(start, to) ? edgeBoxes(start, to, ease) : [start, to];
+    const boxes =
+      ease && !sameBox(start, to)
+        ? edgeBoxes(start, to, ease, EDGE_STEPS, { from: scrolledFrom, to: scrollTo })
+        : [start, to];
     anim = tint.animate(
       boxes.map((b, i) => ({ ...frame(b), offset: i / (boxes.length - 1) })),
       { duration, easing },
@@ -367,6 +402,7 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean; back?:
   onSettle(anim, settle);
   if (plan.tint === "snap") snapColour(list);
   if (plan.scroll === "glide") rideScroll(list, state, anim, scrollTo);
+  else if (lands) rideScroll(list, state, anim, scrollTo, true);
 }
 
 /** Back to Current: scroll to the current part, gliding if it is near. */
