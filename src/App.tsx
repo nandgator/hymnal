@@ -686,9 +686,20 @@ function Operator(props: Shared) {
   };
   // The one notice on screen: a screen notice (about the Output, shown even
   // live) wins; the rest are the picked one (DESIGN.md § Snackbar).
+  // What an action answers in a line (Copy Diagnostics): shown for a few seconds.
+  const [toast, setToast] = createSignal<string>();
+  let toastTimer: ReturnType<typeof setTimeout> | undefined;
+  const say = (message: string) => {
+    clearTimeout(toastTimer);
+    setToast(message);
+    toastTimer = setTimeout(() => setToast(undefined), 4000);
+  };
+  onCleanup(() => clearTimeout(toastTimer));
   const snackbar = (): SnackbarProps | undefined => {
     // The audience sees this tab: notices queue until it is left (§16.7).
     if (presentingHere()) return undefined;
+    const said = toast();
+    if (said) return { message: said, action: "Got It", onAction: () => setToast(undefined) };
     const failed = outputFailed();
     if (failed)
       return {
@@ -1426,7 +1437,7 @@ function Operator(props: Shared) {
                 />
               </Match>
               <Match when={section() === "about"}>
-                <About />
+                <About onNotice={say} />
               </Match>
               <Match when={section() === "present" && !hymnNumber()}>
                 {hymnbook() && (

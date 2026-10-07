@@ -4737,6 +4737,15 @@ html[data-scrolling],
    around the card. It rises in from below and sinks back. */
 .snackbar-region {
   position: fixed;
+  /* In the top layer (a popover): none of the popover's own box. */
+  top: auto;
+  width: auto;
+  height: auto;
+  margin: 0;
+  border: 0;
+  overflow: visible;
+  background: transparent;
+  color: inherit;
   right: 0;
   bottom: calc(var(--dock-height, 0px) + max(var(--space-md), env(safe-area-inset-bottom, 0px)));
   left: 0;

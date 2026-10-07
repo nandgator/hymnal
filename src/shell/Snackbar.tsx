@@ -40,6 +40,12 @@ export function SnackbarHost(props: { notice: SnackbarProps | undefined }) {
           class="snackbar-region"
           classList={{ "snackbar-leaving": leaving() }}
           aria-hidden={leaving() ? "true" : undefined}
+          ref={(el) => {
+            // In the top layer, so a notice shows over an open sheet too.
+            if (typeof el.showPopover !== "function") return;
+            el.setAttribute("popover", "manual");
+            queueMicrotask(() => el.isConnected && el.showPopover());
+          }}
           onAnimationEnd={(event) => {
             if (leaving() && event.target === event.currentTarget) setShown(undefined);
           }}

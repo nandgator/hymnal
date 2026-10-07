@@ -1,4 +1,4 @@
-import { createSignal, For, onCleanup, Show } from "solid-js";
+import { For, Show } from "solid-js";
 import { REPORT_URL, SAMPLE_FILES, SAMPLE_RIGHTS_URL } from "../config.ts";
 import { type ContentAdmin, getContentAdmin } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserStateHandle } from "../persistence/user-state.ts";
@@ -70,10 +70,7 @@ export async function diagnostics({ admin, state }: DiagnosticsSources): Promise
 }
 
 /** About (SDD-0001 §16.10): the app, privacy, the books, a problem, credits. */
-export function About(props: Partial<DiagnosticsSources> = {}) {
-  const [copied, setCopied] = createSignal<"copied" | "failed">();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  onCleanup(() => clearTimeout(timer));
+export function About(props: Partial<DiagnosticsSources> & { onNotice?: (message: string) => void }) {
 
   const copy = async () => {
     try {
@@ -82,12 +79,10 @@ export function About(props: Partial<DiagnosticsSources> = {}) {
         state: props.state ?? defaultUserState,
       });
       await navigator.clipboard.writeText(text);
-      setCopied("copied");
+      props.onNotice?.("Diagnostics copied");
     } catch {
-      setCopied("failed");
+      props.onNotice?.("Couldn’t copy the diagnostics");
     }
-    clearTimeout(timer);
-    timer = setTimeout(() => setCopied(undefined), 3000);
   };
 
   return (
@@ -153,11 +148,7 @@ export function About(props: Partial<DiagnosticsSources> = {}) {
         <div class="settings-row">
           <div class="settings-screen-control">
             <button type="button" class="btn-tonal" onClick={() => void copy()}>
-              {copied() === "copied"
-                ? "Copied"
-                : copied() === "failed"
-                  ? "Couldn’t copy"
-                  : "Copy Diagnostics"}
+              Copy Diagnostics
             </button>
             <a class="btn-text" href={REPORT_URL} target="_blank" rel="noopener noreferrer">
               Report a Problem
