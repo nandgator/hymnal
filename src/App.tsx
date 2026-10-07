@@ -101,6 +101,7 @@ import { workspaceOf } from "./shell/workspace.ts";
 
 /** The app's top-level sections (DESIGN.md § Structure, layer 1). Feedback
  * and Updates are reserved here, not built (PLAN Board #16, #18). */
+type ShortcutsHost = "settings" | "menu" | "search";
 type Section = "present" | "library" | "about";
 
 const SECTIONS: { id: Section; label: string; icon: string }[] = [
@@ -249,10 +250,10 @@ function Operator(props: Shared) {
   const [bookPickerOpen, setBookPickerOpen] = createSignal(false);
   const [hymnPickerOpen, setHymnPickerOpen] = createSignal(false);
   const [commandMenuOpen, setCommandMenuOpen] = createSignal(false);
-  // Keyboard Shortcuts is a page inside the Settings or Menu sheet, not a
+  // Keyboard Shortcuts is a page inside the Settings, Menu or Search sheet, not a
   // sheet of its own: pushed from its row (Back returns), or `direct` when
   // the sheet was opened on it (? and the command), where it says Close.
-  const [shortcuts, setShortcuts] = createSignal<{ host: "settings" | "menu"; direct: boolean }>();
+  const [shortcuts, setShortcuts] = createSignal<{ host: ShortcutsHost; direct: boolean }>();
 
   // H: light the whole song, or only the current part, live.
   const toggleHighlight = () => {
@@ -902,16 +903,24 @@ function Operator(props: Shared) {
     openSheet(setCommandMenuOpen);
   };
 
-  const showShortcuts = (from?: "settings" | "menu") => {
-    // From the row, or with Settings or the Menu already open: push the page.
-    const host = from ?? (menuOpen() ? "menu" : settingsOpen() ? "settings" : undefined);
+  const showShortcuts = (from?: ShortcutsHost) => {
+    // From the row, or with Settings, the Menu or the Search already open: push the page.
+    const host =
+      from ??
+      (commandMenuOpen()
+        ? "search"
+        : menuOpen()
+          ? "menu"
+          : settingsOpen()
+            ? "settings"
+            : undefined);
     if (host) return setShortcuts({ host, direct: false });
     batch(() => {
       openSheet(setSettingsOpen);
       setShortcuts({ host: "settings", direct: true });
     });
   };
-  const shortcutsPage = (host: "settings" | "menu"): SheetPage | undefined => {
+  const shortcutsPage = (host: ShortcutsHost): SheetPage | undefined => {
     const open = shortcuts();
     if (open?.host !== host) return undefined;
     return {
@@ -1107,7 +1116,8 @@ function Operator(props: Shared) {
       {
         label: "Keyboard shortcuts",
         hint: keyHint("shortcuts"),
-        run: run(() => showShortcuts()),
+        // Not `run`: the search stays open, and the page slides over it.
+        run: () => showShortcuts("search"),
       },
     ];
   };
@@ -1479,6 +1489,8 @@ function Operator(props: Shared) {
           onClose={() => setCommandMenuOpen(false)}
           title="Search"
           placement={expanded() ? "center" : "bottom"}
+          page={shortcutsPage("search")}
+          onBack={() => setShortcuts(undefined)}
         >
           <Finder
             recentsVersion={recentsVersion()}
