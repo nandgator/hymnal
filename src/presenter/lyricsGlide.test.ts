@@ -28,20 +28,13 @@ describe("planGlide", () => {
     expect(planGlide({ ...base, reduced: true })).toEqual({ tint: "snap", scroll: "snap" });
   });
 
-  it("fades a far tint jump and lands the scroll at once", () => {
-    expect(planGlide({ ...base, tintTravel: 2400 })).toEqual({ tint: "fade", scroll: "snap" });
+  it("fades a far tint jump (a wrap): the card leaves, the list lands, the card arrives", () => {
+    expect(planGlide({ ...base, tintTravel: 2400 })).toEqual({ tint: "fade", scroll: "land" });
   });
 
   it("treats exactly a screen as near, more than a screen as far", () => {
     expect(planGlide({ ...base, tintTravel: 600 }).tint).toBe("glide");
     expect(planGlide({ ...base, tintTravel: 601 }).tint).toBe("fade");
-  });
-
-  it("leaves the tint alone when only the scroll is far (Back to Current)", () => {
-    expect(planGlide({ ...base, tintTravel: 0, scrollTravel: 3000 })).toEqual({
-      tint: "glide",
-      scroll: "snap",
-    });
   });
 
   it("glides Back to Current from any distance, the tint left alone", () => {
@@ -64,8 +57,11 @@ describe("planGlide", () => {
     expect(at(60000)).toBeLessThanOrEqual(700);
   });
 
-  it("snaps the scroll of a step whose tint is near but the scroll far", () => {
-    expect(planGlide({ ...base, tintTravel: 100, scrollTravel: 3000 }).scroll).toBe("snap");
+  it("never snaps the scroll under a card that eases: a far scroll fades like a far tint", () => {
+    expect(planGlide({ ...base, tintTravel: 100, scrollTravel: 3000 })).toEqual({
+      tint: "fade",
+      scroll: "land",
+    });
   });
 
   it("is still when both still and reduced", () => {
@@ -78,17 +74,17 @@ describe("planGlide", () => {
   it("fades a far tint that comes with no scroll to travel", () => {
     expect(planGlide({ ...base, tintTravel: 2400, scrollTravel: 0 })).toEqual({
       tint: "fade",
-      scroll: "snap",
+      scroll: "land",
     });
   });
 
   it("treats a scroll of exactly a screen as near", () => {
     expect(planGlide({ ...base, scrollTravel: 600 }).scroll).toBe("glide");
-    expect(planGlide({ ...base, scrollTravel: 601 }).scroll).toBe("snap");
+    expect(planGlide({ ...base, scrollTravel: 601 }).tint).toBe("fade");
   });
 
   it("with no viewport, any travel is far", () => {
-    expect(planGlide({ ...base, viewport: 0 })).toEqual({ tint: "fade", scroll: "snap" });
+    expect(planGlide({ ...base, viewport: 0 })).toEqual({ tint: "fade", scroll: "land" });
     expect(planGlide({ ...base, viewport: 0, tintTravel: 0, scrollTravel: 0 })).toEqual({
       tint: "glide",
       scroll: "glide",
@@ -199,6 +195,29 @@ describe("edgeBoxes", () => {
     const early = boxes[Math.floor(boxes.length * 0.9)];
     expect(Math.abs(early.y + early.h - (to.y + to.h))).toBeLessThan(2);
     expect(to.y - early.y).toBeGreaterThan(2);
+  });
+
+  it("never reverses on screen when the list scrolls under it", () => {
+    // The list scrolls 300 as the card moves 300 (a centred step): the card's
+    // edges, as the eye sees them, only ever move toward where they end, and
+    // the leading edge does not lunge ahead of the scroll and fall back.
+    for (const [a, b, s] of [
+      [from, to, { from: 0, to: 300 }],
+      [to, from, { from: 300, to: 0 }],
+      [from, to, { from: 300, to: 0 }],
+    ] as const) {
+      const boxes = edgeBoxes(a, b, ease, 24, s);
+      const seen = boxes.map((box, i) => {
+        const at = s.from + (s.to - s.from) * (i / 24);
+        return { top: box.y - at, bottom: box.y + box.h - at };
+      });
+      for (const edge of ["top", "bottom"] as const) {
+        const deltas = seen.slice(1).map((v, i) => v[edge] - seen[i][edge]);
+        const sign = Math.sign((seen.at(-1)?.[edge] ?? 0) - seen[0][edge]);
+        for (const d of deltas) expect(d * sign).toBeGreaterThanOrEqual(-1e-6);
+        if (sign === 0) for (const d of deltas) expect(Math.abs(d)).toBeLessThan(1e-6);
+      }
+    }
   });
 
   it("never has a negative height", () => {
@@ -355,6 +374,53 @@ describe("glideLyrics", () => {
     anims[0].progress = 0.75;
     flush();
     expect(list.scrollTop).toBe(375);
+  });
+
+  describe("a far step (a wrap, or a list scrolled far away)", () => {
+    // A 300-tall list: the blocks are 800 apart, a far tint jump.
+    it("holds the list while the old card leaves, lands it unseen, then the card arrives", () => {
+      const { list, current } = setup(300);
+      glideLyrics(list, { still: true });
+      current(1);
+      glideLyrics(list, { still: false });
+      expect(anims).toHaveLength(1);
+      // Not snapped: the card is fading out where it was, the list under it.
+      expect(list.scrollTop).toBe(0);
+      const { keyframes } = calls[0];
+      expect(keyframes[0]).toMatchObject({ opacity: 1, offset: 0 });
+      expect(keyframes[1]).toMatchObject({ opacity: 0, offset: 0.4 });
+      anims[0].progress = 0.3;
+      flush();
+      expect(list.scrollTop).toBe(0);
+      // Between the card's exit and its entrance (offsets 0.4 to 0.6).
+      anims[0].progress = 0.5;
+      flush();
+      expect(list.scrollTop).toBe(750);
+      anims[0].finish();
+      flush();
+      expect(list.scrollTop).toBe(750);
+    });
+
+    it("a card that was out of view just fades in, the list landing at once", () => {
+      const { list, current } = setup();
+      glideLyrics(list, { still: true });
+      list.scrollTop = 1400; // browsed far away
+      current(1);
+      glideLyrics(list, { still: false });
+      expect(list.scrollTop).toBe(500);
+      expect(calls[0].keyframes).toHaveLength(2);
+      expect(calls[0].keyframes[0]).toMatchObject({ opacity: 0 });
+    });
+
+    it("a scroll far from the card's near step never snaps while the card eases", () => {
+      const { list, current } = setup();
+      glideLyrics(list, { still: true });
+      list.scrollTop = 1100; // the old card (0 to 200) is off screen, 600 to land
+      current(1);
+      glideLyrics(list, { still: false });
+      // One kind of motion, not a snapped list under a gliding card.
+      expect(calls[0].keyframes).toHaveLength(2);
+    });
   });
 
   describe("the text's colour goes with the tint", () => {
