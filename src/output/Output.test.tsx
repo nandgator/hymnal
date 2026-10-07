@@ -1172,6 +1172,38 @@ describe("Output", () => {
     ]);
   });
 
+  it("forwards only keys that act on the presentation (Board #57)", () => {
+    render(() => <Output />);
+    show(0);
+
+    // Operator-only keys stay here: Next tab, Live pane, Output, Present
+    // here, search, shortcuts sheet, text size.
+    for (const key of ["n", "N", "l", "o", "/", "?", "+", "-", "="]) {
+      fireEvent.keyDown(window, { key });
+    }
+    fireEvent.keyDown(window, { key: "P", shiftKey: true });
+    expect(channel.forwardKey).not.toHaveBeenCalled();
+
+    // The presentation's own keys go.
+    for (const key of ["c", "5", ".", "h", "Home", "End", "PageDown", "ArrowDown"]) {
+      fireEvent.keyDown(window, { key });
+    }
+    fireEvent.keyDown(window, { key: "H", shiftKey: true });
+    fireEvent.keyDown(window, { key: "E", shiftKey: true });
+    expect(channel.forwardKey.mock.calls.map(([sent]) => sent.key)).toEqual([
+      "c",
+      "5",
+      ".",
+      "h",
+      "Home",
+      "End",
+      "PageDown",
+      "ArrowDown",
+      "H",
+      "E",
+    ]);
+  });
+
   it("sets each part after the first apart with a gap", () => {
     render(() => <Output />);
     show(0);
