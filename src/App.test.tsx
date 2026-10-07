@@ -1969,6 +1969,25 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     }
   });
 
+  it("keeps the Operator's own keys off the audience's screen: N, L and text size do nothing", async () => {
+    await songUp();
+    const selected = () =>
+      [...document.querySelectorAll('[role="tab"][aria-selected="true"]')].map(
+        (t) => t.textContent,
+      );
+    const scale = () => document.documentElement.getAttribute("style");
+    await presentHere();
+    const tabs = selected();
+    const previews = screen.queryAllByRole("img", { name: "Live output preview" }).length;
+    const before = scale();
+    for (const key of ["n", "N", "l", "+", "=", "-"]) fireEvent.keyDown(window, { key });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(selected()).toEqual(tabs);
+    expect(screen.queryAllByRole("img", { name: "Live output preview" })).toHaveLength(previews);
+    expect(scale()).toBe(before);
+    expect(region()).not.toBeNull();
+  });
+
   it("says nothing over the audience's screen unasked: no hint where the switcher is", async () => {
     await songUp();
     await presentHere();
