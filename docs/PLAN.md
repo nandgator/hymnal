@@ -84,7 +84,7 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                                                                                                                                                                                                                                                   | Blocked by          |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| 53  | Sheets and notices: no empty space below Load Book (review) or Restore; no "N books not loaded" when the person cancels; From Text loses the source box (the check stays in the CLI importer)                                                                                          | —                   |
+| 53  | Sheets and notices: no empty space below Load Book (review) or Restore; no "N books not loaded" when the person cancels; the source check is withdrawn from From Text and the CLI (ADR-0029 amended)                                                                                   | —                   |
 | 54  | Settings: About becomes its last section, out of the sidebar; Keyboard Shortcuts from search or / slides in as from Settings, with Back to search and no blur blink; Settings opens on itself, not the last sheet page; Copy Diagnostics keeps its width (MD3: a snackbar says Copied) | —                   |
 | 55  | Presenter motion: the tonal card glides on a wrap (last part to first and back); no jerk when the lyrics scroll one way and the card moves the other                                                                                                                                   | —                   |
 | 56  | Shell motion: Recents glide to the top with the crossfade they had, no blink; no flicker expanding or collapsing tabs                                                                                                                                                                  | —                   |
@@ -153,9 +153,11 @@ only, here:
 
 - 2026-10-07 — Decided by the maintainer: About is the last section of Settings;
   the sample button stays Try the Sample; Blank arms before live, Hold waits for
-  it; From Text drops the source check (it reassures for pasted-twice text and
-  cries wolf for several songs or a repeated chorus). Sample titles: "The
-  Otterbein Hymnal — A Sample", സാമ്പിൾ ഗാനങ്ങൾ; released as sample-2
+  it; the source check (ADR-0029 point 4) is withdrawn from the app and the CLI:
+  it reassures falsely for text pasted twice, and cries wolf for several songs
+  or a repeated chorus; whoever used an AI reads the result against the
+  original. Sample titles: "The Otterbein Hymnal — A Sample", സാമ്പിൾ ഗാനങ്ങൾ;
+  released as sample-2
 - 2026-10-07 — #43 done: two sample books (28 Otterbein hymns, 2 Malayalam
   songs) written by `scripts/sample-sources.ts`, packed, and published as the
   `sample-1` release; the deploy fetches them by `sample/SHA256SUMS`, and the
