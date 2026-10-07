@@ -99,16 +99,27 @@ describe("About (SDD-0001 §16.10)", () => {
     expect(text).toContain("User state mode: memory");
   });
 
-  it("copies the diagnostics, says so, and says nothing again after 3 seconds", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    render(() => <About admin={admin} state={state(false)} />);
-    fireEvent.click(screen.getByRole("button", { name: "Copy Diagnostics" }));
-    await screen.findByRole("button", { name: "Copied" });
+  it("copies the diagnostics and says so in a notice; the button keeps its label", async () => {
+    const notices: string[] = [];
+    render(() => (
+      <About admin={admin} state={state(false)} onNotice={(message) => notices.push(message)} />
+    ));
+    const button = screen.getByRole("button", { name: "Copy Diagnostics" });
+    fireEvent.click(button);
+    await waitFor(() => expect(notices).toEqual(["Diagnostics copied"]));
     expect(writeText.mock.calls[0]?.[0]).toContain("Build: test");
-    vi.advanceTimersByTime(3100);
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Copy Diagnostics" })).toBeInTheDocument(),
-    );
+    expect(screen.getByRole("button", { name: "Copy Diagnostics" })).toBe(button);
+  });
+
+  it("says in a notice when the diagnostics could not be copied", async () => {
+    writeText.mockRejectedValueOnce(new Error("denied"));
+    const notices: string[] = [];
+    render(() => (
+      <About admin={admin} state={state(false)} onNotice={(message) => notices.push(message)} />
+    ));
+    fireEvent.click(screen.getByRole("button", { name: "Copy Diagnostics" }));
+    await waitFor(() => expect(notices).toEqual(["Couldn’t copy the diagnostics"]));
+    expect(screen.getByRole("button", { name: "Copy Diagnostics" })).toBeInTheDocument();
   });
 
   it("opens Report a Problem in a new tab, with no query", () => {
