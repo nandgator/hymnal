@@ -10,7 +10,15 @@ export interface Shortcut {
   /** Each entry is one key or chord, as shown to the user. */
   keys: string[];
   label: string;
+  /**
+   * Whether the key acts on what the audience sees ("presentation") or on
+   * the Operator's own screen ("operator"). Only presentation keys are
+   * forwarded from the Output window (SDD-0001 §16.5).
+   */
+  scope: ShortcutScope;
 }
+
+export type ShortcutScope = "presentation" | "operator";
 
 export type ShortcutId =
   | "next-part"
@@ -37,28 +45,73 @@ export type ShortcutId =
   | "close";
 
 export const SHORTCUTS: Shortcut[] = [
-  { id: "next-part", keys: ["→", "Page Down", "Space"], label: "Next part" },
-  { id: "previous-part", keys: ["←", "Page Up", "Shift+Space"], label: "Previous part" },
-  { id: "lines", keys: ["↓", "↑"], label: "Next / previous line" },
-  { id: "first-last", keys: ["Home", "End"], label: "First / last part" },
-  { id: "stanza", keys: ["1–9"], label: "Stanza n (two digits: type both quickly)" },
-  { id: "chorus", keys: ["C"], label: "Chorus" },
-  { id: "repeat", keys: ["R"], label: "Repeat this part" },
-  { id: "undo-repeat", keys: ["U"], label: "Undo the last repeat" },
-  { id: "blank", keys: ["B", "."], label: "Blank the Output / restore" },
-  { id: "hold", keys: ["Shift+H"], label: "Hold the Output on what it shows / release" },
-  { id: "output", keys: ["O"], label: "Open the Output window, or bring it forward" },
-  { id: "end-live", keys: ["Shift+E"], label: "End Live: close the Output window" },
-  { id: "present-here", keys: ["Shift+P"], label: "Present on this screen, full screen" },
-  { id: "leave-present", keys: ["F", "Esc"], label: "Leave presenting on this screen" },
-  { id: "tab", keys: ["N"], label: "Next tab" },
-  { id: "live", keys: ["L"], label: "Show or hide the Live preview" },
-  { id: "highlight", keys: ["H"], label: "Light the whole song / only the current part" },
-  { id: "command-menu", keys: ["/", "Ctrl+K"], label: "Search songs and actions" },
-  { id: "text-size", keys: ["+", "−"], label: "Text size" },
-  { id: "shortcuts", keys: ["?"], label: "Keyboard shortcuts" },
-  { id: "settings", keys: ["Ctrl+,"], label: "Settings" },
-  { id: "close", keys: ["Esc"], label: "Close a sheet or menu" },
+  { id: "next-part", keys: ["→", "Page Down", "Space"], label: "Next part", scope: "presentation" },
+  {
+    id: "previous-part",
+    keys: ["←", "Page Up", "Shift+Space"],
+    label: "Previous part",
+    scope: "presentation",
+  },
+  { id: "lines", keys: ["↓", "↑"], label: "Next / previous line", scope: "presentation" },
+  { id: "first-last", keys: ["Home", "End"], label: "First / last part", scope: "presentation" },
+  {
+    id: "stanza",
+    keys: ["1–9"],
+    label: "Stanza n (two digits: type both quickly)",
+    scope: "presentation",
+  },
+  { id: "chorus", keys: ["C"], label: "Chorus", scope: "presentation" },
+  { id: "repeat", keys: ["R"], label: "Repeat this part", scope: "presentation" },
+  { id: "undo-repeat", keys: ["U"], label: "Undo the last repeat", scope: "presentation" },
+  { id: "blank", keys: ["B", "."], label: "Blank the Output / restore", scope: "presentation" },
+  {
+    id: "hold",
+    keys: ["Shift+H"],
+    label: "Hold the Output on what it shows / release",
+    scope: "presentation",
+  },
+  {
+    id: "output",
+    keys: ["O"],
+    label: "Open the Output window, or bring it forward",
+    scope: "operator",
+  },
+  {
+    id: "end-live",
+    keys: ["Shift+E"],
+    label: "End Live: close the Output window",
+    scope: "presentation",
+  },
+  {
+    id: "present-here",
+    keys: ["Shift+P"],
+    label: "Present on this screen, full screen",
+    scope: "operator",
+  },
+  {
+    id: "leave-present",
+    keys: ["F", "Esc"],
+    label: "Leave presenting on this screen",
+    scope: "presentation",
+  },
+  { id: "tab", keys: ["N"], label: "Next tab", scope: "operator" },
+  { id: "live", keys: ["L"], label: "Show or hide the Live preview", scope: "operator" },
+  {
+    id: "highlight",
+    keys: ["H"],
+    label: "Light the whole song / only the current part",
+    scope: "presentation",
+  },
+  {
+    id: "command-menu",
+    keys: ["/", "Ctrl+K"],
+    label: "Search songs and actions",
+    scope: "operator",
+  },
+  { id: "text-size", keys: ["+", "−"], label: "Text size", scope: "operator" },
+  { id: "shortcuts", keys: ["?"], label: "Keyboard shortcuts", scope: "operator" },
+  { id: "settings", keys: ["Ctrl+,"], label: "Settings", scope: "operator" },
+  { id: "close", keys: ["Esc"], label: "Close a sheet or menu", scope: "operator" },
 ];
 
 /**
@@ -124,6 +177,30 @@ export function isTyping(event: KeyboardEvent): boolean {
       target.closest("textarea, select") !== null ||
       (target instanceof HTMLInputElement &&
         !["radio", "checkbox", "button", "submit", "range"].includes(target.type)))
+  );
+}
+
+/**
+ * Whether a key pressed in the Output window acts on the presentation, and
+ * so is forwarded to the Operator: it is some presentation shortcut's key.
+ * Esc is left to the browser there (it leaves fullscreen). Shift counts only
+ * where a shortcut names it (Shift+H, Shift+E); elsewhere it just changes
+ * the case or direction.
+ */
+export function isPresentationKey(key: string, shiftKey: boolean): boolean {
+  const lower = key.toLowerCase();
+  return SHORTCUTS.some(
+    (shortcut) =>
+      shortcut.scope === "presentation" &&
+      shortcut.keys.some((spec) => {
+        const caps = keyCaps(spec);
+        const base = caps[caps.length - 1] ?? "";
+        if (base === "Esc") return false;
+        if (caps.includes("Shift") && !shiftKey) return false;
+        if (base === "1–9") return /^[1-9]$/.test(key);
+        const name = base === "Space" ? " " : (ARIA_NAMES[base] ?? base);
+        return name.toLowerCase() === lower;
+      }),
   );
 }
 

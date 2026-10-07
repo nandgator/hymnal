@@ -1016,6 +1016,28 @@ describe("App", () => {
       output.close();
     });
 
+    it("says why it is off before Go Live, while Blank arms (Board #57)", async () => {
+      render(() => <App />);
+      await openHymn();
+      const hold = screen.getByRole("button", { name: "Hold" });
+      expect(hold).toBeDisabled();
+      expect(hold).toHaveAttribute("title", "Go Live to hold what the Output shows");
+      expect(hold).toHaveAccessibleDescription("Go Live to hold what the Output shows");
+
+      // Blank is usable before live: it arms, and the Output opens blank.
+      const blank = screen.getByRole("button", { name: "Blank" });
+      expect(blank).toBeEnabled();
+      fireEvent.click(blank);
+      expect(await screen.findByRole("button", { name: "Restore" })).toBeInTheDocument();
+      const output = new BroadcastChannel("hymnal-output");
+      output.postMessage({ type: "hello", id: "test-output" });
+      expect(await screen.findByRole("button", { name: "Blanked" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Hold" })).toBeEnabled();
+      fireEvent.keyDown(window, { key: "b" });
+      await screen.findByRole("button", { name: "On Air" });
+      output.close();
+    });
+
     it("keeps H the highlight toggle, and Blank works on top of Hold", async () => {
       const { output } = await liveOutput();
       fireEvent.keyDown(window, { key: "H", shiftKey: true });

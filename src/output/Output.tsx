@@ -1,5 +1,6 @@
 import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
 import type { BandSize, Highlight, OutputCues } from "../persistence/user-state.ts";
+import { isPresentationKey } from "../shell/keymap.ts";
 import { easeThemeChange } from "../shell/theme.ts";
 import {
   forwardKey,
@@ -30,18 +31,6 @@ interface ScreenDetailsLike extends EventTarget {
   currentScreen: DetailedScreen;
 }
 type WindowWithScreens = Window & { getScreenDetails?: () => Promise<ScreenDetailsLike> };
-
-/** Named keys forwarded to the Operator, besides every printable one. */
-const FORWARDED_KEYS = new Set([
-  "ArrowLeft",
-  "ArrowRight",
-  "ArrowUp",
-  "ArrowDown",
-  "PageUp",
-  "PageDown",
-  "Home",
-  "End",
-]);
 
 /**
  * Board #11 — the chrome-less, audience-facing screen (SDD-0001 §16.1).
@@ -271,9 +260,10 @@ export function Output() {
 
   // Keys pressed here act as in the Operator (SDD-0001 §16.1): with the
   // Output fullscreen on the projector, a clicker's keys often land in this
-  // window. Every plain key is forwarded, with whether it is auto-repeating (R and
-  // U ignore a held key), rather than scrolling the view;
-  // chords stay the browser's.
+  // window. Only the keys that act on the presentation are forwarded (the keymap's
+  // "presentation" scope), with whether it is auto-repeating (R and U ignore a
+  // held key), rather than scrolling the view; the Operator's own keys (N, L, O)
+  // and chords stay here.
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     const isF = event.key === "f" || event.key === "F";
@@ -288,7 +278,7 @@ export function Output() {
       void goFullscreen();
       return;
     }
-    if (event.key.length !== 1 && !FORWARDED_KEYS.has(event.key)) return;
+    if (!isPresentationKey(event.key, event.shiftKey)) return;
     event.preventDefault();
     forwardKey({ key: event.key, shiftKey: event.shiftKey, repeat: event.repeat });
   };

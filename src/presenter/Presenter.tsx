@@ -768,9 +768,12 @@ export function Presenter(props: PresenterProps) {
       aria-pressed={!!props.held}
       aria-keyshortcuts={ariaKeys("hold")}
       disabled={!props.held && !props.presenting}
+      aria-description={
+        !props.held && !props.presenting ? "Go Live to hold what the Output shows" : undefined
+      }
       title={
         !props.held && !props.presenting
-          ? "Open the Output first"
+          ? "Go Live to hold what the Output shows"
           : withKey(
               props.held ? "Release the Output" : "Hold the Output on what it shows",
               "hold",

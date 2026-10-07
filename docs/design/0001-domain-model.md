@@ -1395,9 +1395,15 @@ decides.
   closed, the audience comes back to what's live.
 - **Keys in the Output act as in the Operator.** With the Output fullscreen on
   the projector, a clicker's keys often land in its window. The Output forwards
-  every plain key (no Ctrl, ⌘ or Alt) as `{ type: "key", key, shiftKey }`
-  instead of scrolling itself, and the Operator replays it through its own
-  keymap (§16.5), so arrows, Space, digits, R and B do exactly what they do
+  the keys that act on the presentation (no Ctrl, ⌘ or Alt) as
+  `{ type: "key", key, shiftKey }` instead of scrolling itself, and the Operator
+  replays them through its own keymap (§16.5), so arrows, Space, digits, C, R,
+  U, B, H, Shift+H and Shift+E do exactly what they do there. Each keymap entry
+  has a scope, `presentation` or `operator`, and only the presentation ones are
+  forwarded. The Operator's own keys stay in the Output: N (next tab), L (Live
+  pane), O (Output window), Shift+P (Present here), `/` (search), `?`, Ctrl+K,
+  Ctrl+, and the text size are the Operator's screen, not the audience's, and
+  Esc is the browser's (it leaves fullscreen). F leaves or enters fullscreen
   there.
 - **Live never seeks.** The Operator's Live pane stays a picture that takes no
   input, so a stray swipe over the Operator can't move the audience screen;
@@ -1718,16 +1724,17 @@ work too.
   tooltips carry no key hint, though `aria-keyshortcuts` stays. A command-menu
   item with a key shows it as a hint, on a phone too.
 - **N** moves through the main group's tabs, or the phone's tabs (This Song,
-  Recents, Parts) on a phone: the `?` sheet says so.
+  Recents, Parts) on a phone: the `?` sheet says so. The Output window does not
+  forward it.
 - **R and U** are the Repeat and Undo repeat buttons (§16.4), enabled exactly
   when they are: Undo does nothing, silently, with no repeat to take back. Reset
   repeat has no key: a button from ×3, and a command-menu item. Both keys are
   off in text fields and sheets like all the others, and work from the Output
-  window, which forwards every plain key.
+  window, which forwards the presentation keys.
 - **Shift+E is End Live**, a chord so a stray key cannot end the show. Shift+Esc
   was the natural one, and is the browser's task manager in Chrome. It does
   nothing while Live is not on, and works from the Output window, which forwards
-  every plain key.
+  it.
 - **No key, by choice**: Show the details now and the Output's band size (§16.1)
   are command-menu items only, occasional enough that a letter would be wasted.
 - **Space is Next part**, even on a focused button: a clicker or a thumb on the
@@ -1817,7 +1824,9 @@ press of Freeze) moves on.
 - **Controls.** The button; **Shift+H** (a chord, like Shift+E: plain H stays
   the highlight toggle, §16.5), which the Output window forwards; and the
   command menu's Hold the Output / Release the Output, listed while an Output is
-  open or held.
+  open or held. The button is disabled before Go Live and says why, in its
+  tooltip and description: "Go Live to hold what the Output shows". Blank, by
+  contrast, stays usable before live: it arms, and the Output opens blank.
 
 ### 16.7 One-screen presenting: the Output as a view in the main window
 
