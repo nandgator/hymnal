@@ -201,7 +201,7 @@ if (import.meta.main) {
     join(out, ENGLISH_ID),
     {
       id: ENGLISH_ID,
-      title: "The Otterbein Hymnal: a sample",
+      title: "The Otterbein Hymnal — A Sample",
       language: "en",
       script: "Latn",
       publisher: "United Brethren Publishing House",

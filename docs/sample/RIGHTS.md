@@ -11,7 +11,7 @@ From The Otterbein Hymnal (1890), Project Gutenberg eBook #16455, numbered as
 printed there.
 
 - **18. Holy, holy, holy! Lord God Almighty!**: Reginald Heber (author, died
-  1826; [source](https://hymnary.org/person/Heber_R)). First published 1886.
+  1826; [source](https://hymnary.org/person/Heber_R)). First published 1826.
 - **28. O worship the King, all-glorious above**: Robert Grant (author, died
   1838; [source](https://hymnary.org/person/Grant_R)). First published 1839.
 - **56. Abide with me: fast falls the eventide**: Henry Francis Lyte (author,
