@@ -78,8 +78,9 @@ export function RecentsList(props: RecentsListProps) {
   // A song chosen moves to the top: every row, and each group heading, glides
   // from where it was to where it lands (FLIP), a new one fades in, and a
   // heading whose group emptied fades out where it stood (DESIGN.md § Motion).
-  // A row that passes over another is raised above it, and the one it
-  // passes is out of sight while it does (planCrossings). A glide cut short
+  // A row that passes over another is raised above it; the one it passes
+  // stays in view under the song's tonal fill, and is out of sight only
+  // while an unfilled row crosses it (planCrossings). A glide cut short
   // by another starts that one from where the rows settle. Reduced motion
   // lands at once.
   let list: HTMLDivElement | undefined;
@@ -108,6 +109,8 @@ export function RecentsList(props: RecentsListProps) {
         height,
         dy,
         fresh: !was,
+        // The song that's up wears the tonal fill: it covers what it passes.
+        opaque: !!el.querySelector('.recents-row[aria-current="true"]'),
       })),
     );
     for (const { el, dy } of moves) {

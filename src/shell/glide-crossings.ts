@@ -19,6 +19,9 @@ export interface GlideItem {
   dy: number;
   /** New on the page: it has no place to glide from, and fades in. */
   fresh?: boolean;
+  /** It has a fill of its own (the song that's up wears the tonal one), so
+   * it hides what it passes over: those rows need not fade. */
+  opaque?: boolean;
 }
 
 export interface CrossingPlan {
@@ -55,7 +58,9 @@ export function timeAtProgress(p: number, curve = EMPHASIZED_BEZIER): number {
  * relative to another covers it for a while: it is raised, and the other is
  * out of sight from just before it reaches the other's text to just after
  * it has left, so no glyph is ever half covered. Items that keep their
- * distance (a new song on top, the rest all sliding down) never cross. */
+ * distance (a new song on top, the rest all sliding down) never cross. A
+ * riser with a fill of its own (`opaque`) covers the rows it passes, which
+ * stay in view. */
 export function planCrossings(items: GlideItem[], glideMs = GLIDE_MS): Map<string, CrossingPlan> {
   const plans = new Map<string, CrossingPlan>(items.map((item) => [item.key, { lift: false }]));
   const windows = new Map<string, [number, number][]>();
@@ -77,6 +82,8 @@ export function planCrossings(items: GlideItem[], glideMs = GLIDE_MS): Map<strin
       ];
       const plan = plans.get(over.key);
       if (plan) plan.lift = true;
+      // Covered cleanly by a fill: no glyph is half hidden, so no fade.
+      if (over.opaque) continue;
       windows.set(under.key, [...(windows.get(under.key) ?? []), span]);
     }
   }
