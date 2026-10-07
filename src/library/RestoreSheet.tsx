@@ -334,7 +334,9 @@ export function RestoreSheet(props: RestoreSheetProps) {
       closeDisabled={committing()}
       placement={props.placement}
       tall
-      steady
+      // Held only while the file is read, so the card does not jump when the
+      // review lands; a settled review hugs its content (#53).
+      steady={!review() && !error()}
     >
       <div class="review restore">
         <Show
