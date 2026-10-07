@@ -22,11 +22,21 @@ const LEAVE_MS = 300;
 export function SnackbarHost(props: { notice: SnackbarProps | undefined }) {
   const [shown, setShown] = createSignal<SnackbarProps>();
   const [leaving, setLeaving] = createSignal(false);
+  let region: HTMLDivElement | undefined;
   createEffect(() => {
     const next = props.notice;
     if (next) {
+      const replaced = untrack(shown);
       setShown(next);
       setLeaving(false);
+      // A different notice over one already up goes to the top of the top
+      // layer again, or a sheet opened since would still cover it.
+      if (replaced && replaced.message !== next.message)
+        queueMicrotask(() => {
+          if (typeof region?.hidePopover !== "function" || !region.matches(":popover-open")) return;
+          region.hidePopover();
+          region.showPopover();
+        });
     } else if (untrack(shown)) {
       setLeaving(true);
       const timer = setTimeout(() => setShown(undefined), LEAVE_MS);
@@ -41,6 +51,7 @@ export function SnackbarHost(props: { notice: SnackbarProps | undefined }) {
           classList={{ "snackbar-leaving": leaving() }}
           aria-hidden={leaving() ? "true" : undefined}
           ref={(el) => {
+            region = el;
             // In the top layer, so a notice shows over an open sheet too.
             if (typeof el.showPopover !== "function") return;
             el.setAttribute("popover", "manual");

@@ -206,13 +206,21 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     expect(await crumbs.findByText("Mocked Hymnbook")).toBeInTheDocument();
   });
 
-  it("reaches About from the sections", async () => {
+  it("has no About in the sections; Search for About opens Settings, where it is last", async () => {
     mocks.rows = [first()];
     render(() => <App />);
     const sections = within(await screen.findByRole("navigation", { name: "Sections" }));
-    fireEvent.click(sections.getByRole("button", { name: "About" }));
-    expect(await screen.findByRole("heading", { name: "About" })).toBeInTheDocument();
-    expect(sections.getByRole("button", { name: "About" })).toHaveAttribute("aria-current", "page");
+    expect(sections.queryByRole("button", { name: "About" })).not.toBeInTheDocument();
+    await openFinder();
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const search = await screen.findByRole("dialog", { name: "Search" });
+    fireEvent.input(within(search).getByRole("combobox"), { target: { value: "about" } });
+    fireEvent.mouseDown(await within(search).findByRole("option", { name: /About/ }));
+    const settings = await screen.findByRole("dialog", { name: "Settings" });
+    const headings = within(settings).getAllByRole("heading", { level: 3 });
+    expect(headings.at(-1)).toHaveTextContent("About");
+    expect(within(settings).getByRole("button", { name: "Copy Diagnostics" })).toBeInTheDocument();
   });
 
   it("lists every readable book in the hymnbook picker, and chooses one", async () => {

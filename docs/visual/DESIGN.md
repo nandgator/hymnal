@@ -470,10 +470,10 @@ view is close enough to the frame to need a smaller unit.
   function with a lot of breathing room by giving each concern its own layer and
   choosing width by content, not by page. Here:
   1. **Sections** (the app's top level): a navigation rail on the left from
-     840px, a menu on a phone. Now: Present and Library. Reserved, not built:
-     Feedback and corrections, About (acknowledgements, copyright, credits),
-     Updates (over-the-air, as Supabase announces them). Settings moves to the
-     rail's foot.
+     840px, a menu on a phone. Now: Present and Library. About
+     (acknowledgements, copyright, credits) is the last section of Settings.
+     Reserved, not built: Feedback and corrections, Updates (over-the-air, as
+     Supabase announces them). Settings moves to the rail's foot.
   2. **Switcher row**, Supabase's org/project breadcrumb: **Hymnbook ▾ / #908
      Title ▾**. Each crumb is a picker. The hymnbook picker lists installed
      books; the hymn picker is quick-find (number or lyrics). Choosing either
@@ -484,8 +484,8 @@ view is close enough to the frame to need a smaller unit.
      clipped to a letter helps no one, and both stay the buttons' accessible
      names.
   3. **Workspace**, full width (Supabase's `full`, for dense tools): the
-     Operator below. Library and Finder use the default width, and Settings and
-     About the small one.
+     Operator below. Library and Finder use the default width, and Settings the
+     small one.
   4. **Dock**, the transport pinned to the bottom (below); **Go live** top
      right. A command menu (Ctrl/⌘+K or `/`) reaches everything from anywhere:
      one box that finds a hymn by number or lyrics, or an action by name, each
@@ -624,7 +624,11 @@ view is close enough to the frame to need a smaller unit.
     (switches). **Keyboard**: Keyboard Shortcuts is a page pushed inside the
     Settings sheet (nested navigation, § Motion), not a second dialog: its
     header says Back and returns to Settings, Escape too. Opened by `?` or the
-    command, the sheet opens straight on that page and says Close.
+    command from nothing, the sheet opens straight on that page and says Close;
+    from the command menu (Ctrl/⌘+K or `/`) it is pushed inside the Search
+    sheet, and Back returns to the search with its query kept. A sheet closed on
+    a page opens on its first page next time. **About** is the last section,
+    after Keyboard; Copy Diagnostics answers in a snackbar, not in its label.
     **Presentation** (part 4): at the top, **Go Live opens**, a segmented choice
     of **Automatic | This Screen | Output Window** (Automatic by default), and
     under it, in a disclosure shown for Automatic and Output Window only (hidden
@@ -716,39 +720,41 @@ view is close enough to the frame to need a smaller unit.
   other tab didn't answer. Close it, or try again." The Output window is never
   such a tab.
 - **Snackbar.** The shell's one notice, for what needs a word but not a stop:
-  **Update ready** with **Restart** and a close (Later), the note about keeping
-  the book file after a first load whose storage request was refused, with **Got
-  It**, and the Safari note about keeping books, with **Got It**. One pattern at
-  every width, for every notice: a **floating card** on the current theme's
-  `surface-container-highest` (text `on-surface`, the action in `primary`),
-  elevation 3, 12px corners, never wider than 36rem, **bottom-left of the
-  workspace, 16px in from the rail and from the bottom, level with the rail's
-  Settings item** (from 840px; it ends before the Presenter's stage, so the
-  transport at the stage's foot is never covered; on a phone the full width less
-  the 16px gutters, **above the dock** and the safe area). It is fixed, so it
-  never moves the layout and covers only the foot of the lyrics briefly. It
-  **enters** rising from below with a fade (250ms, emphasised easing) and
-  **leaves** the same way reversed (150ms); with reduced motion it only fades.
-  Its action and close wear the shared hover layer as a group (Interaction
-  states). In forced colours it gains a 1px CanvasText border. One at a time,
-  the update first, then the keep-your-file note, then Safari's, and **never
-  while the Output is live** (On Air or Blanked). It takes no focus; a
-  persistent live region announces its message. Keyboard: Esc puts it away
-  (Later; the note's Got It), and the command menu has **Restart to update**,
-  **Dismiss the storage note** and **Dismiss the Home Screen note**. Its buttons
-  have a visible focus ring. Undo still stays in the Repeat row, not here.
-  **Screen notices** are the exception to "never while live": they are about the
-  Output window itself and caused by it, so they show at once, are dismissed
-  (**Got It**) and never repeat once seen. They use the same card, in the same
-  place, so the layout does not move live, and they come before the update. Six:
-  "Drag the Output to the projector, then press F11" (a plain popup, once, and
-  **only when a second screen may exist**: `screen.isExtended` is true, with or
-  without the Window Management API; where the browser cannot say (Firefox,
-  Safari) or says one screen, it is not shown, so a single-screen user is never
-  nagged), "The Output is on the projector screen. If it isn't fullscreen, click
-  it or press F" (once), "The browser blocked the Output window" (pop-ups), "The
-  screen the Output was on is gone" (the window stays), and "That screen is
-  back. Move the Output to it?" with **Move it** and a close (Stay).
+  **Update ready** with **Restart** and a close (Later), a line answering an
+  action (**Diagnostics copied**, **Got It**; in the top layer, so it shows over
+  a sheet), the note about keeping the book file after a first load whose
+  storage request was refused, with **Got It**, and the Safari note about
+  keeping books, with **Got It**. One pattern at every width, for every notice:
+  a **floating card** on the current theme's `surface-container-highest` (text
+  `on-surface`, the action in `primary`), elevation 3, 12px corners, never wider
+  than 36rem, **bottom-left of the workspace, 16px in from the rail and from the
+  bottom, level with the rail's Settings item** (from 840px; it ends before the
+  Presenter's stage, so the transport at the stage's foot is never covered; on a
+  phone the full width less the 16px gutters, **above the dock** and the safe
+  area). It is fixed, so it never moves the layout and covers only the foot of
+  the lyrics briefly. It **enters** rising from below with a fade (250ms,
+  emphasised easing) and **leaves** the same way reversed (150ms); with reduced
+  motion it only fades. Its action and close wear the shared hover layer as a
+  group (Interaction states). In forced colours it gains a 1px CanvasText
+  border. One at a time, the update first, then the keep-your-file note, then
+  Safari's, and **never while the Output is live** (On Air or Blanked). It takes
+  no focus; a persistent live region announces its message. Keyboard: Esc puts
+  it away (Later; the note's Got It), and the command menu has **Restart to
+  update**, **Dismiss the storage note** and **Dismiss the Home Screen note**.
+  Its buttons have a visible focus ring. Undo still stays in the Repeat row, not
+  here. **Screen notices** are the exception to "never while live": they are
+  about the Output window itself and caused by it, so they show at once, are
+  dismissed (**Got It**) and never repeat once seen. They use the same card, in
+  the same place, so the layout does not move live, and they come before the
+  update. Six: "Drag the Output to the projector, then press F11" (a plain
+  popup, once, and **only when a second screen may exist**: `screen.isExtended`
+  is true, with or without the Window Management API; where the browser cannot
+  say (Firefox, Safari) or says one screen, it is not shown, so a single-screen
+  user is never nagged), "The Output is on the projector screen. If it isn't
+  fullscreen, click it or press F" (once), "The browser blocked the Output
+  window" (pop-ups), "The screen the Output was on is gone" (the window stays),
+  and "That screen is back. Move the Output to it?" with **Move it** and a close
+  (Stay).
 - **The Library** (Board #28 part 5; SDD-0004 §9). A list of the books held, in
   the default width, the mockup's `Library` header sticking under the switcher
   row as the Finder's field does (title-large, "N books on this device", and a

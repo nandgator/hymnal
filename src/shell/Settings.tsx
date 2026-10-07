@@ -42,6 +42,7 @@ import {
   type UserStateHandle,
   wholeSongOf,
 } from "../persistence/user-state.ts";
+import { About } from "./About.tsx";
 import { glideList } from "./glideList.ts";
 import { hoverGroup } from "./hoverGlide.ts";
 import { KeyCombo } from "./KeyCombo.tsx";
@@ -300,6 +301,8 @@ export interface SettingsProps {
   screens?: OutputScreens;
   /** Opens the shortcut sheet; without it, the Keyboard section is left out. */
   onShowShortcuts?: () => void;
+  /** A line the shell shows as a snackbar ("Diagnostics copied", from About). */
+  onNotice?: (message: string) => void;
   /** A backup file was picked to restore: the restore sheet takes it from here (SDD-0006 §2). */
   onRestoreFile?: (file: File) => void;
   /** The books' side of Back Up. Defaults to {@link getContentAdmin}; overridable for tests. */
@@ -332,7 +335,7 @@ export function backedUpNote(books: number, skipped: readonly SkippedBook[]): st
  * Board #10's "user-controlled text scale and contrast" (arc42 §8.7), applied
  * globally as `--font-scale` and `data-theme` on the root element, grouped
  * since Board #12 part 3d (DESIGN.md § Structure): Display, Workspace,
- * Presentation, Keyboard.
+ * Presentation, Keyboard, and About last (SDD-0001 §16.10).
  */
 export function Settings(props: SettingsProps) {
   const { preferences, update, adjustScale, setPane, setCue } =
@@ -907,6 +910,8 @@ export function Settings(props: SettingsProps) {
           </section>
         )}
       </Show>
+
+      <About onNotice={props.onNotice} />
     </div>
   );
 }

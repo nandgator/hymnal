@@ -82,29 +82,28 @@ ADR-0018, ADR-0019, SDD-0002 (format v1), SDD-0003 (import). Parts:
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                                                                                                                                                                                                                                   | Blocked by          |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| 54  | Settings: About becomes its last section, out of the sidebar; Keyboard Shortcuts from search or / slides in as from Settings, with Back to search and no blur blink; Settings opens on itself, not the last sheet page; Copy Diagnostics keeps its width (MD3: a snackbar says Copied) | —                   |
-| 55  | Presenter motion: the tonal card glides on a wrap (last part to first and back); no jerk when the lyrics scroll one way and the card moves the other                                                                                                                                   | —                   |
-| 56  | Shell motion: Recents glide to the top with the crossfade they had, no blink; no flicker expanding or collapsing tabs                                                                                                                                                                  | —                   |
-| 58  | Assorted Hymns: a book the person owns for single songs; favourites and queues are lists of songs, not books (with #22). Shape when it starts                                                                                                                                          | —                   |
-| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                                                                                                       | —                   |
-| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                                                                                                    | maintainer: devices |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                                                                                                                            | —                   |
-| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                                                                                                          | —                   |
-| 16  | Feedback and corrections from users — where collected: TBD                                                                                                                                                                                                                             | —                   |
-| 17  | About: acknowledgements, copyright, credits                                                                                                                                                                                                                                            | —                   |
-| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                                                                                                                                                            | —                   |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                                                                                                                                                                                                        | —                   |
-| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                                                                                                                                                         | —                   |
-| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                                                                                                                                                                | —                   |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                                                                                                                                                             | Phase 2             |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                                                                                                                                                          | content             |
-| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                                                                                                                                                          | —                   |
-| 38  | Search across books: one query over every loaded book (SDD-0001 §16)                                                                                                                                                                                                                   | —                   |
-| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                                                                                                                                                                 | —                   |
-| 41  | One-screen presenting: built (SDD-0001 §16.7); waits for the maintainer's check on GNOME Wayland and the keys' feel                                                                                                                                                                    | —                   |
-| 42  | Test suite speed (note): split App.test.tsx by area and use fake timers for its real waits; then isolate:false only for the DOM-free files, never globally (module-level state in channel.ts and friends)                                                                              | —                   |
+| #   | Task                                                                                                                                                                                                      | Blocked by          |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| 55  | Presenter motion: the tonal card glides on a wrap (last part to first and back); no jerk when the lyrics scroll one way and the card moves the other                                                      | —                   |
+| 56  | Shell motion: Recents glide to the top with the crossfade they had, no blink; no flicker expanding or collapsing tabs                                                                                     | —                   |
+| 58  | Assorted Hymns: a book the person owns for single songs; favourites and queues are lists of songs, not books (with #22). Shape when it starts                                                             | —                   |
+| 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                          | —                   |
+| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | maintainer: devices |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                                               | —                   |
+| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                             | —                   |
+| 16  | Feedback and corrections from users — where collected: TBD                                                                                                                                                | —                   |
+| 17  | About: acknowledgements, copyright, credits                                                                                                                                                               | —                   |
+| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                                                                               | —                   |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                                                                                                                           | —                   |
+| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                                                                            | —                   |
+| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                                                                                   | —                   |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                                                                                | Phase 2             |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                                                                             | content             |
+| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                                                                             | —                   |
+| 38  | Search across books: one query over every loaded book (SDD-0001 §16)                                                                                                                                      | —                   |
+| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                                                                                    | —                   |
+| 41  | One-screen presenting: built (SDD-0001 §16.7); waits for the maintainer's check on GNOME Wayland and the keys' feel                                                                                       | —                   |
+| 42  | Test suite speed (note): split App.test.tsx by area and use fake timers for its real waits; then isolate:false only for the DOM-free files, never globally (module-level state in channel.ts and friends) | —                   |
 
 Phase 1's app is done (#20 the last); 27 is a build-time tool beside it. The
 songs have left the repo (#28 done): nothing is bundled, and every book comes in
@@ -149,15 +148,15 @@ only, here:
 
 ## Log
 
+- 2026-10-07 — #54 done: About is the last section of Settings (the command
+  "About" opens it there); Keyboard Shortcuts from the search is a page of the
+  Search sheet; a closed sheet forgets its page; Copy Diagnostics answers in a
+  snackbar
 - 2026-10-07 — #53 and #57 done: review and Restore sheets hug their content
   once read; no notice when a review is cancelled; the source check is withdrawn
   (ADR-0029); keymap entries carry a scope, the Output forwards only
   presentation keys, and Present Here swallows the Operator's own (N moved the
   workspace over the audience's view); Hold says to Go Live first
-- 2026-10-07 — #53 built: the review and Restore sheets hug their content once a
-  file is read (they held 34rem, bd5da0c; now only while it is read); closing a
-  review of several books says nothing; the source check is withdrawn from the
-  app and the CLI (ADR-0029 point 4), `sourcecheck.ts` deleted
 - 2026-10-07 — Decided by the maintainer: About is the last section of Settings;
   the sample button stays Try the Sample; Blank arms before live, Hold waits for
   it; the source check (ADR-0029 point 4) is withdrawn from the app and the CLI:

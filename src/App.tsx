@@ -65,7 +65,6 @@ import {
   wholeSongOf,
 } from "./persistence/user-state.ts";
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
-import { About } from "./shell/About.tsx";
 import { autoHover } from "./shell/autoHover.ts";
 import { titleCase } from "./shell/case.ts";
 import { RootBoundary } from "./shell/ErrorScreen.tsx";
@@ -102,12 +101,11 @@ import { workspaceOf } from "./shell/workspace.ts";
 /** The app's top-level sections (DESIGN.md § Structure, layer 1). Feedback
  * and Updates are reserved here, not built (PLAN Board #16, #18). */
 type ShortcutsHost = "settings" | "menu" | "search";
-type Section = "present" | "library" | "about";
+type Section = "present" | "library";
 
 const SECTIONS: { id: Section; label: string; icon: string }[] = [
   { id: "present", label: "Present", icon: "icon-queue-music" },
   { id: "library", label: "Library", icon: "icon-library" },
-  { id: "about", label: "About", icon: "icon-info" },
 ];
 
 /** The same page, loaded in a second window, is the Output — SDD-0001 §16.1. */
@@ -915,6 +913,14 @@ function Operator(props: Shared) {
     scopeToSong();
     setHymnPickerOpen(true);
   };
+  // Settings, scrolled to a section once the sheet is up (About is its last).
+  const openSettings = (at?: "about") => {
+    openSheet(setSettingsOpen);
+    if (at)
+      requestAnimationFrame(() =>
+        document.getElementById(`settings-${at}`)?.scrollIntoView({ block: "start" }),
+      );
+  };
   const openCommandMenu = () => {
     scopeToSong();
     openSheet(setCommandMenuOpen);
@@ -1110,7 +1116,7 @@ function Operator(props: Shared) {
       },
       { label: "Switch hymnbook", run: run(() => openSheet(setBookPickerOpen)) },
       { label: "Library", run: run(() => go("library")) },
-      { label: "About", run: run(() => go("about")) },
+      { label: "About", run: run(() => openSettings("about")) },
       { label: "Settings", hint: keyHint("settings"), run: run(() => openSheet(setSettingsOpen)) },
       ...(canAdjustScale(prefs, 1)
         ? [
@@ -1436,9 +1442,6 @@ function Operator(props: Shared) {
                   onRestore={restoreFile}
                 />
               </Match>
-              <Match when={section() === "about"}>
-                <About onNotice={say} />
-              </Match>
               <Match when={section() === "present" && !hymnNumber()}>
                 {hymnbook() && (
                   <Finder
@@ -1607,6 +1610,7 @@ function Operator(props: Shared) {
             screens={screens}
             onShowShortcuts={() => showShortcuts("menu")}
             onRestoreFile={restoreFile}
+            onNotice={say}
           />
         </Sheet>
 
@@ -1623,6 +1627,7 @@ function Operator(props: Shared) {
             screens={screens}
             onShowShortcuts={() => showShortcuts("settings")}
             onRestoreFile={restoreFile}
+            onNotice={say}
           />
         </Sheet>
         <RestoreSheet

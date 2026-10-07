@@ -70,8 +70,9 @@ export async function diagnostics({ admin, state }: DiagnosticsSources): Promise
 }
 
 /** About (SDD-0001 §16.10): the app, privacy, the books, a problem, credits. */
-export function About(props: Partial<DiagnosticsSources> & { onNotice?: (message: string) => void }) {
-
+export function About(
+  props: Partial<DiagnosticsSources> & { onNotice?: (message: string) => void },
+) {
   const copy = async () => {
     try {
       const text = await diagnostics({
@@ -86,17 +87,15 @@ export function About(props: Partial<DiagnosticsSources> & { onNotice?: (message
   };
 
   return (
-    <div class="lib about">
-      <div class="lib-head">
-        <div class="lib-head-text">
-          <h1 class="title-large">About</h1>
-        </div>
-      </div>
+    <section class="settings-section about" id="settings-about" aria-labelledby="about-title">
+      <h3 id="about-title" class="settings-heading">
+        About
+      </h3>
 
-      <section class="settings-section" aria-labelledby="about-app">
-        <h2 id="about-app" class="settings-heading">
+      <div class="about-group">
+        <h4 id="about-app" class="settings-subheading">
           The app
-        </h2>
+        </h4>
         <div class="settings-row">
           <span class="settings-label">
             Hymnal
@@ -111,19 +110,19 @@ export function About(props: Partial<DiagnosticsSources> & { onNotice?: (message
             <span class="settings-supporting about-build">{__APP_BUILD__}</span>
           </span>
         </div>
-      </section>
+      </div>
 
-      <section class="settings-section" aria-labelledby="about-privacy">
-        <h2 id="about-privacy" class="settings-heading">
+      <div class="about-group">
+        <h4 id="about-privacy" class="settings-subheading">
           Privacy
-        </h2>
+        </h4>
         <p class="settings-note">{PRIVACY}</p>
-      </section>
+      </div>
 
-      <section class="settings-section" aria-labelledby="about-books">
-        <h2 id="about-books" class="settings-heading">
+      <div class="about-group">
+        <h4 id="about-books" class="settings-subheading">
           Your books
-        </h2>
+        </h4>
         <p class="settings-note">
           {YOUR_BOOKS}
           <Show when={SAMPLE_FILES.length > 0}>
@@ -134,12 +133,12 @@ export function About(props: Partial<DiagnosticsSources> & { onNotice?: (message
             </a>
           </Show>
         </p>
-      </section>
+      </div>
 
-      <section class="settings-section" aria-labelledby="about-report">
-        <h2 id="about-report" class="settings-heading">
+      <div class="about-group">
+        <h4 id="about-report" class="settings-subheading">
           Report a problem
-        </h2>
+        </h4>
         <p class="settings-note">
           Copy the diagnostics, then report the problem and paste them in if you choose. They hold
           the build, your browser and screen, how storage is set up and how many books you have.
@@ -155,12 +154,12 @@ export function About(props: Partial<DiagnosticsSources> & { onNotice?: (message
             </a>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section class="settings-section" aria-labelledby="about-credits">
-        <h2 id="about-credits" class="settings-heading">
+      <div class="about-group">
+        <h4 id="about-credits" class="settings-subheading">
           Credits
-        </h2>
+        </h4>
         <ul class="about-credits">
           <For each={CREDITS}>
             {(credit) => (
@@ -170,7 +169,7 @@ export function About(props: Partial<DiagnosticsSources> & { onNotice?: (message
             )}
           </For>
         </ul>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }
