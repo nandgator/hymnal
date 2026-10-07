@@ -451,7 +451,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     }
   });
 
-  it("says how many books were left unloaded when the review of several is closed", async () => {
+  it("says nothing when the review of several is closed", async () => {
     render(() => <App />);
     await booksReady();
     const files = ["a", "b", "c"].map((n) => new File(["x"], `${n}.hymnbook.json.gz`));
@@ -459,9 +459,8 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     const dialog = within(await screen.findByRole("dialog", { name: "Load Books" }));
     expect(await dialog.findByText("Book 1 of 3")).toBeInTheDocument();
     fireEvent.click(dialog.getByRole("button", { name: "Close" }));
-    expect((await screen.findAllByText("3 books not loaded")).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: "Got It" }));
-    await waitFor(() => expect(screen.queryByText("3 books not loaded")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText(/Book \d of 3/)).not.toBeInTheDocument());
+    expect(screen.queryByText(/not loaded/)).not.toBeInTheDocument();
   });
 
   it("says once that settings and recents won’t be kept when user state falls to memory, and Got It puts it away", async () => {
