@@ -3,17 +3,14 @@ import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { validateCorpus } from "../src/domain/validate.ts";
 import { parseSongText, textBook } from "../src/import/songtext.ts";
-import { formatSourceCheck, sourceCheck } from "../src/import/sourcecheck.ts";
 
 const USAGE = `Usage: bun run text <file.txt> --id <id> --title <title> --language <bcp47>
-                    --script <iso15924> [--number <n>] [--source <src.txt>]
+                    --script <iso15924> [--number <n>]
                     [--out <dir>] [--force]
 
 Reads song text format 1 (docs/authoring/text-format.md) and writes the format 1
 directory <out>/<id>/ (hymnbook.json and NNNN.json), by default under imports/.
-Any error is listed with its line number and nothing is written. With --source,
-the result is compared with the source text and every difference is listed
-(added or altered lines, dropped lines); differences exit 1. The book's own
+Any error is listed with its line number and nothing is written. The book's own
 fields (--id, --title, --language, --script) are never guessed from the text.
 --number applies only to a single song whose title line has no number (it is
 ignored for a book). The id is letters, digits, "-" and "_". A directory that
@@ -29,7 +26,6 @@ function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {
-      source: { type: "string" },
       out: { type: "string" },
       number: { type: "string" },
       id: { type: "string" },
@@ -46,9 +42,6 @@ function main() {
   }
   const file = positionals[0];
   if (!existsSync(file)) fail(`${file}: no such file`);
-  if (values.source !== undefined && !existsSync(values.source)) {
-    fail(`${values.source}: no such file`);
-  }
   const number = values.number === undefined ? undefined : Number(values.number);
   if (
     values.number !== undefined &&
@@ -102,20 +95,6 @@ function main() {
   console.log(`wrote ${dir}: ${files.length} song(s)`);
   for (const n of parsed.notes) console.log(`  note, hymn ${n.hymn}: ${n.message}`);
 
-  if (values.source !== undefined) {
-    const report = formatSourceCheck(
-      sourceCheck(readFileSync(values.source, "utf8"), parsed.songs),
-    );
-    if (report.length > 0) {
-      console.log(`source check against ${values.source}:`);
-      for (const line of report) console.log(line);
-      console.log("the check reports, you decide: fix the text and run this again");
-      process.exit(1);
-    }
-    console.log(`source check against ${values.source}: no differences`);
-  } else {
-    console.log("not checked against a source (--source)");
-  }
   console.log(`next: bun run pack ${dir}`);
 }
 

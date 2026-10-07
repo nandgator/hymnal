@@ -52,7 +52,6 @@ describe("bun run text", () => {
       { partId: "s1" },
       { partId: "c1" },
     ]);
-    expect(r.stdout).toContain("not checked against a source");
     const packed = packBook(dir, join(root, "packed"));
     expect(packed.ok).toBe(true);
   });
@@ -92,41 +91,14 @@ describe("bun run text", () => {
     ]);
   });
 
-  it("with --source, prints no differences and exits 0 when they agree", () => {
-    const text = file("a.txt", GOOD);
-    const r = run(text, ...BOOK, "--out", out, "--source", text);
-    expect(r.status).toBe(0);
-    expect(r.stdout).toContain("no differences");
-  });
-
-  it("with --source, lists differences and exits 1, after writing the directory", () => {
-    const source = file("src.txt", `${GOOD}\nA dropped line\n`);
-    const r = run(
-      file("a.txt", GOOD.replace("first b", "first c")),
-      ...BOOK,
-      "--out",
-      out,
-      "--source",
-      source,
-    );
-    expect(r.status).toBe(1);
-    expect(r.stdout).toContain("hymn 1, stanza 1, line 2: first c");
-    expect(r.stdout).toContain("source line 4: first b");
-    expect(r.stdout).toContain("A dropped line");
-    expect(existsSync(join(out, "t-book", "0001.json"))).toBe(true);
-  });
-
   it("prints usage and exits 0 for --help", () => {
     const r = run("--help");
     expect(r.status).toBe(0);
     expect(r.stdout).toContain("Usage: bun run text");
   });
 
-  it("refuses a missing text file and a missing --source file", () => {
+  it("refuses a missing text file", () => {
     expect(run(join(root, "nope.txt"), ...BOOK, "--out", out).stderr).toContain("no such file");
-    const r = run(file("a.txt", GOOD), ...BOOK, "--out", out, "--source", join(root, "nope.txt"));
-    expect(r.status).toBe(1);
-    expect(r.stderr).toContain("no such file");
     expect(existsSync(out)).toBe(false);
   });
 

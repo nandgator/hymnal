@@ -343,15 +343,14 @@ profile pipeline, not through it:
 
 ```sh
 bun run text <file.txt> --id I --title T --language L --script S \
-  [--source <src.txt>] [--out <dir>]
+  [--out <dir>]
 ```
 
 runs the deterministic parser (`src/import/songtext.ts`) and writes the same
 `<out>/<id>/` directory of format 1 (nothing on an error, each listed with its
-line number), which `bun run pack` packs. With `--source`, the source check
-(`src/import/sourcecheck.ts`) lists result lines absent from the source and
-source lines absent from the result, and exits 1 on any difference. No judge and
-no model are involved.
+line number), which `bun run pack` packs. No judge and no model are involved.
+(There was a `--source` check of the result against the original text; the
+maintainer withdrew it on 2026-10-07, ADR-0029 point 4.)
 
 The app (#28) never runs the import; it loads a format 1 file, a reviewed draft,
 into the device's own store (ADR-0024), which assigns its key, records source

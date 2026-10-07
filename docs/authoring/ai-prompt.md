@@ -21,10 +21,9 @@ the app.
 
 An AI is a source of silent edits: a modernised word, a smoothed line, a stanza
 that was never there. The prompt below asks it not to, and you should not rely
-on that. Keep your source, load the result, and compare (see
-[how to check it](README.md#how-to-check-it)). The source check
-(`bun run text --source`; in the app with the Library) lists the lines that were
-added, altered or dropped.
+on that. Keep your source, and before you load the result read it against your
+original, song by song (see [how to check it](README.md#how-to-check-it)).
+Hymnal does not check it for you.
 
 ## The prompt
 

@@ -17,17 +17,17 @@ describe("slugify", () => {
 
 describe("buildTextBook", () => {
   it("asks for what is missing, and writes nothing", () => {
-    const r = buildTextBook({ ...fields, title: "", id: "" }, "1. A\n\nLine\n", "");
+    const r = buildTextBook({ ...fields, title: "", id: "" }, "1. A\n\nLine\n");
     expect(r.ok).toBe(false);
     if (!r.ok) expect(Object.keys(r.fields)).toEqual(["title", "id"]);
   });
   it("takes the number of a single song from the field", () => {
-    expect(buildTextBook(fields, "A Song\n\nLine one\n", "").ok).toBe(false);
-    expect(buildTextBook({ ...fields, number: "7" }, "A Song\n\nLine one\n", "").ok).toBe(true);
+    expect(buildTextBook(fields, "A Song\n\nLine one\n").ok).toBe(false);
+    expect(buildTextBook({ ...fields, number: "7" }, "A Song\n\nLine one\n").ok).toBe(true);
   });
   it("builds the same bytes twice, so the same text is the same file", () => {
-    const a = buildTextBook(fields, "1. A\n\nLine\n", "");
-    const b = buildTextBook(fields, "1. A\n\nLine\n", "");
+    const a = buildTextBook(fields, "1. A\n\nLine\n");
+    const b = buildTextBook(fields, "1. A\n\nLine\n");
     expect(a.ok && b.ok && a.bytes).toEqual(a.ok && b.ok && b.bytes);
   });
 });

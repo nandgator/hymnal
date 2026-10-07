@@ -25,8 +25,8 @@ content format 1. A change to either is a new version.
 2. Run it through `bun run text` (or the Library's From Text) and read the
    review: every song, every part, the sung order. Fix the text, never the
    result, and run it again.
-3. Keep your source text next to the result, so the source check can compare
-   them.
+3. Keep your source text next to the result, and read the result against it
+   before you load it.
 
 Nothing here uploads anything. Books are built and loaded on your own device,
 and there is no public catalogue
@@ -34,21 +34,20 @@ and there is no public catalogue
 
 ## How to check it
 
-**In the command line.** `bun run text` runs the parser and the source check
-(the same code the app runs). Give it your song text and the book's own fields,
-which are never guessed from the text:
+**In the command line.** `bun run text` runs the parser (the same code the app
+runs). Give it your song text and the book's own fields, which are never guessed
+from the text:
 
 ```sh
 bun run text my-songs.txt --id my-book --title "My book" \
-  --language en --script Latn --source my-source.txt
+  --language en --script Latn
 ```
 
 If the text has errors, each is listed with its line number and nothing is
 written. Otherwise it writes `imports/my-book/` (`hymnbook.json` and the
 `NNNN.json` files; `--out` changes `imports`), prints any note about a sung
-order it had to take as printed, and, with `--source`, the source check below. A
-single song whose first line has no number takes `--number`. Then pack the
-directory and load the result in the app:
+order it had to take as printed. A single song whose first line has no number
+takes `--number`. Then pack the directory and load the result in the app:
 
 ```sh
 bun run pack imports/my-book
@@ -62,39 +61,21 @@ skip the first step and pack their directory.
 
 **In the app.** In the Library, **From Text** opens a sheet. Fill in the book's
 title, language and script (they are never guessed; the id is made from the
-title and you can change it), then paste the song text or open a `.txt`. If you
-have the text the songs came from, put it in the second area, or open it from a
-file. **Review the Book** parses the text: every error is listed with its line
-number and nothing is stored. When there are none you get the same review a
-loaded file gets, with the source check in it ("not checked against a source",
-"checked against a source: no differences", or the lines that differ), and the
-same buttons. Nothing is stored until you press one, and nothing leaves your
-device.
+title and you can change it), then paste the song text or open a `.txt`.
+**Review the Book** parses the text: every error is listed with its line number
+and nothing is stored. When there are none you get the same review a loaded file
+gets, and the same buttons. Nothing is stored until you press one, and nothing
+leaves your device.
 
-**The source check.** A local check, with no model, that compares the text you
-started from with the result and lists two things:
-
-- lines of the result that are not in the source (**added or altered**), such as
-  a modernised word or an invented chorus, with the song, part and line;
-- lines of the source that are not in the result (**dropped**), such as a
-  missing stanza, with their line numbers in the source.
-
-Lines are compared after Unicode NFC, whitespace and the quote and dash forms
-are normalised, and nothing else: a changed word is reported. Each source line
-explains at most one result line, so a chorus the result holds twice but the
-source printed once is listed; and a chorus the source prints in full each time,
-which the result holds once, is listed as dropped. Labels, details, `Sequence:`
-and comment lines of the source are not lyrics and are not listed. In a book of
-several songs, locations are approximate, because lines are matched across the
-whole source. Page numbers and headings are, and that is fine: it is a list for
-a person to read.
-
-It is optional (`--source`; in the Library's From Text it is the field "Original
-text, to check against"; a book loaded without one is marked "not checked
-against a source" in the review). It reports and you decide: it cannot tell a
-dropped stanza from a deliberate cut, and it exits 1 when it finds differences,
-so fix the text and run it again. Be most careful with a book that went through
-an AI.
+**Read it against your original.** Hymnal has no check of the result against the
+text you started from. Whoever used an AI must read the result against their
+original before loading it: look for a modernised word, a smoothed line, an
+invented chorus and a missing stanza, song by song. The review shows what will
+be stored, and that is what to read. Be most careful with a book that went
+through an AI. (An earlier version had a source check, `--source`; the
+maintainer withdrew it on 2026-10-07 because it reassured falsely and raised
+false alarms,
+[ADR-0029](../decisions/0029-others-build-their-books-the-format-is-the-contract.md).)
 
 ## What is not here
 

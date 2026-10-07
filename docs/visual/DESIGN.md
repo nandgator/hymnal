@@ -787,21 +787,17 @@ view is close enough to the frame to need a smaller unit.
     menu's surface and rows, opening in the flow under its field (never over the
     keyboard), ending in **Other…** to type a code; under it a quiet line,
     "Script: Malayalam (Mlym) · Change", the script derived from the language
-    and a field only after Change; then two text areas in the hymn face (the
-    song text, with **Open .txt Files**, several at once, and the optional
-    **Original text, to check against**, with **Open a .txt** and a hint line:
-    paste the book as printed and Hymnal checks the songs against it). The id
-    and the optional song number sit under an **Advanced** disclosure, which
-    opens by itself when one of them is asked for. The areas scroll inside
-    themselves (at most 40% of the height); one filled button, **Review the
-    Book**, is pinned at the bottom as the review's is. **Every error is a field
-    error**: the field gets the `error` outline and its helper text turns
-    `error`, under the field. Parse errors are listed under the song text, one
-    line each, "Line 12: message"; "There is no song text." is that field's
-    error too. No callout, no table. The first field in error is scrolled into
-    view. The review that follows is the same sheet, with a **Source check** row
-    in its facts and, when lines differ, a neutral callout and two lists (Added
-    or altered, Dropped), each scrolling inside itself.
+    and a field only after Change; then the song text area in the hymn face
+    (with **Open .txt Files**, several at once). The id and the optional song
+    number sit under an **Advanced** disclosure, which opens by itself when one
+    of them is asked for. The area scrolls inside itself (at most 40% of the
+    height); one filled button, **Review the Book**, is pinned at the bottom as
+    the review's is. **Every error is a field error**: the field gets the
+    `error` outline and its helper text turns `error`, under the field. Parse
+    errors are listed under the song text, one line each, "Line 12: message";
+    "There is no song text." is that field's error too. No callout, no table.
+    The first field in error is scrolled into view. The review that follows is
+    the same sheet, with no source check (withdrawn, ADR-0029 point 4).
   - **Several books**: Load Books takes several files at once (Load Again one),
     and **Open .txt Files** joins several `.txt` files into one song text with
     `---` between. The review of several is a queue: the sheet says **Book 2 of
@@ -810,8 +806,7 @@ view is close enough to the frame to need a smaller unit.
     before any is decided; the header reads Close. A book loaded says **Loaded**
     in place of its button; loading one shows the next open book. A file that
     cannot be read is said in the list and passed over. Closing the sheet asks
-    nothing, leaves the open books unloaded and says "2 books not loaded" in a
-    snackbar.
+    nothing, leaves the open books unloaded and says nothing.
   - **Reading a file**: the picked file's row appears first in the list, a tile,
     "Reading <file>", the line "Checking the file on this device. Nothing is
     sent anywhere.", an indeterminate bar and Cancel, with Load Books disabled.
@@ -846,8 +841,6 @@ view is close enough to the frame to need a smaller unit.
       whose title is not the book's adds a warning panel naming both titles.
     - Songs held in other books: a quiet line under any loadable verdict, by
       book, "They load anyway."
-    - _ADR-0029, later:_ "Not checked against a source" is the facts list's last
-      row. Not drawn yet.
   - **Remove** is a sheet of the same shape: the book, "This removes" (its
     songs, its Recents with their count), a note that the file is not touched
     and the book has no other copy, and, for the current book, which book takes

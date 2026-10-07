@@ -26,14 +26,13 @@ export function createTextDraft() {
   const [id, setId] = createSignal("");
   const [number, setNumber] = createSignal("");
   const [songText, setSongText] = createSignal("");
-  const [sourceText, setSourceText] = createSignal("");
   // The id follows the title until it is edited by hand.
   const [idEdited, setIdEdited] = createSignal(false);
   const scheduleSuggest = () => {
     clearTimeout(suggestTimer);
     const run = ++suggestRun;
     suggestTimer = setTimeout(async () => {
-      const code = await suggestLanguage(songText() || sourceText());
+      const code = await suggestLanguage(songText());
       if (run !== suggestRun || chosen()) return;
       batch(() => {
         setSuggested(code);
@@ -53,7 +52,6 @@ export function createTextDraft() {
     id,
     number,
     songText,
-    sourceText,
     setTitle: (value: string) => {
       setTitle(value);
       if (!idEdited()) setId(slugify(value));
@@ -76,16 +74,12 @@ export function createTextDraft() {
       setSongText(value);
       scheduleSuggest();
     },
-    setSourceText: (value: string) => {
-      setSourceText(value);
-      scheduleSuggest();
-    },
     reset: () => {
       clearTimeout(suggestTimer);
       suggestRun++;
       setChosen(false);
       setSuggested(undefined);
-      for (const set of [setTitle, setLanguage, setId, setNumber, setSongText, setSourceText]) {
+      for (const set of [setTitle, setLanguage, setId, setNumber, setSongText]) {
         set("");
       }
       setIdEdited(false);
@@ -162,8 +156,7 @@ const errorText = (e: TextError) => (e.line > 0 ? `Line ${e.line}: ${e.message}`
 
 /**
  * A book from song text (ADR-0029, SDD-0004 §9): the book's own fields, which
- * are required and never guessed, the song text, and optionally the book's
- * original text to check it against. Review parses; every error is a field
+ * are required and never guessed, and the song text. Review parses; every error is a field
  * error under its field and nothing is written. Everything stays on this
  * device.
  */
@@ -171,7 +164,6 @@ export function TextSheet(props: TextSheetProps) {
   const d = props.draft;
   let form: HTMLFormElement | undefined;
   const [songFile, setSongFile] = createSignal<HTMLInputElement>();
-  const [sourceFile, setSourceFile] = createSignal<HTMLInputElement>();
   const [changingScript, setChangingScript] = createSignal(false);
   const [advanced, setAdvanced] = createSignal(false);
 
@@ -193,17 +185,13 @@ export function TextSheet(props: TextSheetProps) {
     });
   });
 
-  const picker = (
-    setRef: (el: HTMLInputElement) => void,
-    into: (texts: string[]) => void,
-    several: boolean,
-  ) => (
+  const picker = (setRef: (el: HTMLInputElement) => void, into: (texts: string[]) => void) => (
     <input
       ref={setRef}
       type="file"
       class="visually-hidden"
       accept=".txt,.text,text/plain"
-      multiple={several}
+      multiple
       tabIndex={-1}
       aria-hidden="true"
       onChange={(event) => {
@@ -351,7 +339,7 @@ export function TextSheet(props: TextSheetProps) {
               <span class="icon icon-file-open" aria-hidden="true" />
               Open .txt Files
             </button>
-            {picker(setSongFile, (texts) => d.setSongText(joinSongTexts(texts)), true)}
+            {picker(setSongFile, (texts) => d.setSongText(joinSongTexts(texts)))}
           </div>
           <textarea
             id="song-text"
@@ -381,33 +369,6 @@ export function TextSheet(props: TextSheetProps) {
               </For>
             </ul>
           </Show>
-        </div>
-
-        <div class="field">
-          <div class="field-top">
-            <label class="field-label" for="source-text">
-              Original text, to check against <span class="field-optional">optional</span>
-            </label>
-            <button type="button" class="btn-text" onClick={() => sourceFile()?.click()}>
-              <span class="icon icon-file-open" aria-hidden="true" />
-              Open a .txt
-            </button>
-            {picker(setSourceFile, (texts) => d.setSourceText(texts.join("\n")), false)}
-          </div>
-          <textarea
-            id="source-text"
-            class="field-area"
-            rows={6}
-            spellcheck={false}
-            autocapitalize="off"
-            aria-describedby="source-hint"
-            value={d.sourceText()}
-            onInput={(e) => d.setSourceText(e.currentTarget.value)}
-          />
-          <span class="field-hint" id="source-hint">
-            Paste the book as printed, and Hymnal checks your songs against it. The review lists
-            lines that were added, changed or left out.
-          </span>
         </div>
 
         <details

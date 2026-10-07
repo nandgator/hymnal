@@ -1,10 +1,6 @@
 import { containerBytes } from "../import/container.ts";
 import { parseSongText, type TextError, type TextNote, textBook } from "../import/songtext.ts";
-import { type SourceCheck, sourceCheck } from "../import/sourcecheck.ts";
 import { isLanguageCode } from "./languages.ts";
-
-/** What the review says about the source check (ADR-0029): never run, or run. */
-export type SourceState = { kind: "none" } | { kind: "checked"; check: SourceCheck };
 
 export interface TextFields {
   title: string;
@@ -25,7 +21,6 @@ export type TextBuild =
       /** The book as a container file, built in memory like `bun run pack` builds it. */
       bytes: Uint8Array;
       notes: TextNote[];
-      source: SourceState;
     };
 
 /** A book id from a title: lower-case ASCII letters and digits, joined by "-". Empty when the title has none (Malayalam, say). */
@@ -54,11 +49,11 @@ export function joinSongTexts(texts: string[]): string {
 export const ID_RULE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
 /**
- * Song text (and an optional source text) to a container, or to what is wrong:
+ * Song text to a container, or to what is wrong:
  * the book's own fields, which are required and never guessed, and the parser's
  * errors, each with its line. Nothing is written either way.
  */
-export function buildTextBook(fields: TextFields, songText: string, sourceText: string): TextBuild {
+export function buildTextBook(fields: TextFields, songText: string): TextBuild {
   const title = fields.title.trim();
   const language = fields.language.trim();
   const script = fields.script.trim();
@@ -109,8 +104,5 @@ export function buildTextBook(fields: TextFields, songText: string, sourceText: 
     id,
     bytes: containerBytes(hymnbook, parsed.songs),
     notes: parsed.notes,
-    source: sourceText.trim()
-      ? { kind: "checked", check: sourceCheck(sourceText, parsed.songs) }
-      : { kind: "none" },
   };
 }

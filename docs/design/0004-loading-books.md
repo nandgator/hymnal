@@ -501,22 +501,20 @@ was dropped later: the Library is in the navigation).
 opens a sheet with the book's own fields (title, language and script, all
 required and never guessed; the id, made from the title as a slug and editable;
 an optional song number for one song whose first line has none), an area for the
-song text (pasted, or opened from a `.txt`), and an optional area for the source
-text. **Review the Book** runs `parseSongText` and nothing else: its errors are
-listed with their line numbers, or the fields that are missing, and nothing is
-written. When there are none, `textBook` builds the book and `containerBytes`
-(`src/import/container.ts`, the writer `bun run pack` uses, so the same text is
-the same bytes) gzips it in memory; the bytes go to `review` as a file named
-`<id>.hymnbook.json.gz`, exactly as a picked container would, so the validator,
-the hashes and the verdict (§8) are the one code path. The review shows a
-**Source check** row: "Not checked against a source" when no source text was
-given (ADR-0029, open point 3), "Checked against a source: no differences", or
-"Checked: N to look at" with the lines the book added or altered and the source
-lines it dropped, listed for a person to judge (`sourceCheck`; nothing is
-decided). The buttons are the same: Load Book, Keep Both, Replace, Open Book.
-Nothing is written before one is pressed, there is no network, and the text
-never leaves the page. Cancel in that review, or Edit the Text after a refusal,
-returns to the sheet with everything typed kept; a successful load clears it.
+song text (pasted, or opened from a `.txt`). **Review the Book** runs
+`parseSongText` and nothing else: its errors are listed with their line numbers,
+or the fields that are missing, and nothing is written. When there are none,
+`textBook` builds the book and `containerBytes` (`src/import/container.ts`, the
+writer `bun run pack` uses, so the same text is the same bytes) gzips it in
+memory; the bytes go to `review` as a file named `<id>.hymnbook.json.gz`,
+exactly as a picked container would, so the validator, the hashes and the
+verdict (§8) are the one code path. The review has no source check: it was
+withdrawn (ADR-0029, point 4; it reassured falsely and cried wolf), so whoever
+made the text with an AI reads the result against their original before loading.
+The buttons are the same: Load Book, Keep Both, Replace, Open Book. Nothing is
+written before one is pressed, there is no network, and the text never leaves
+the page. Cancel in that review, or Edit the Text after a refusal, returns to
+the sheet with everything typed kept; a successful load clears it.
 
 **Decided after the first look (Board #34 and #28, by the maintainer):**
 
@@ -557,9 +555,8 @@ whole set can be read first. Each book's decision is kept: open (not decided) or
 loaded; a loaded book shows "Loaded" in place of its button, and any book still
 open can be loaded from wherever the operator is. Loading one brings the next
 open book into view, and the sheet closes when none is left. Closing the sheet
-leaves the open books unloaded and says so in a snackbar ("2 books not loaded";
-nothing is said for one book, or when all were decided). A file that cannot be
-read is said and passed over, in either direction.
+leaves the open books unloaded and says nothing: closing is the person's choice.
+A file that cannot be read is said and passed over, in either direction.
 
 The session keeps **one** pending review (§3, §8), so the queue does not hold
 tokens: a book brought into view is **read again**, and the new review replaces

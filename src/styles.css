@@ -5577,11 +5577,6 @@ fieldset.book-main {
   font-size: 0.875rem;
   font-weight: 500;
 }
-.field-optional {
-  margin-inline-start: var(--space-xs);
-  font-weight: 400;
-  color: var(--md-sys-color-on-surface-variant);
-}
 .field-input,
 .field-area {
   width: 100%;
@@ -5785,24 +5780,6 @@ fieldset.book-main {
 }
 .violation-line {
   grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr);
-}
-.diffs {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-.diffs-head {
-  margin: var(--space-xs) 0 0;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-.diff-list {
-  max-height: 16rem;
-  overflow: auto;
-}
-.diff-text {
-  font-family: var(--font-family-hymn);
-  overflow-wrap: anywhere;
 }
 
 /* On a phone the header is tight: From Text drops its icon so the count stays on two lines. */

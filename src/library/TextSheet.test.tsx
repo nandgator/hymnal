@@ -147,7 +147,7 @@ const review = (dialog: Dialog) =>
   fireEvent.click(dialog.getByRole("button", { name: "Review the Book" }));
 
 describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
-  it("opens an empty sheet: the fields, two text areas, nothing written", async () => {
+  it("opens an empty sheet: the fields, one text area, nothing written", async () => {
     const { s, dialog } = await openSheet();
     for (const label of ["Title", "Language", "Id", "Song text"]) {
       expect(dialog.getByLabelText(label)).toHaveValue("");
@@ -155,9 +155,10 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     // The script is not asked for until a language says what it is.
     expect(dialog.queryByLabelText("Script code")).not.toBeInTheDocument();
     expect(dialog.queryByText(/^Script:/)).not.toBeInTheDocument();
-    expect(dialog.getByLabelText(/Original text, to check against/)).toBeInTheDocument();
+    // There is no original-text box to check against (withdrawn, ADR-0029).
+    expect(dialog.queryByLabelText(/Original text/)).not.toBeInTheDocument();
     expect(dialog.getByRole("button", { name: /Open \.txt Files/ })).toBeInTheDocument();
-    expect(dialog.getByRole("button", { name: /Open a \.txt/ })).toBeInTheDocument();
+    expect(dialog.queryByRole("button", { name: /Open a \.txt/ })).not.toBeInTheDocument();
     expect(s.admin.review).not.toHaveBeenCalled();
     expect(s.admin.commit).not.toHaveBeenCalled();
   });
@@ -202,48 +203,26 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     );
   });
 
-  const toReview = async (source: string) => {
+  const toReview = async () => {
     const { s, dialog } = await openSheet();
     fill(dialog);
     type(dialog, "Song text", SAMPLE);
-    if (source) type(dialog, /Original text, to check against/, source);
     review(dialog);
     const reviewDialog = within(await screen.findByRole("dialog", { name: "Load Books" }));
     return { s, reviewDialog };
   };
 
-  it("not checked against a source when none was given", async () => {
-    const { s, reviewDialog } = await toReview("");
-    expect(reviewDialog.getByText("Not checked against a source")).toBeInTheDocument();
+  it("reviews the book with no source check row", async () => {
+    const { s, reviewDialog } = await toReview();
+    expect(reviewDialog.queryByText("Source check")).not.toBeInTheDocument();
     expect(reviewDialog.getByText("A new book")).toBeInTheDocument();
     expect(reviewDialog.getByText("public-domain-sample")).toBeInTheDocument();
     expect(screen.getByRole("dialog", { name: "Load Books" })).toHaveTextContent("3 songs");
     expect(s.admin.commit).not.toHaveBeenCalled();
   });
 
-  it("checked against a source: no differences", async () => {
-    const { reviewDialog } = await toReview(SAMPLE);
-    expect(reviewDialog.getByText("Checked against a source: no differences")).toBeInTheDocument();
-    expect(reviewDialog.queryByLabelText("Source check")).not.toBeInTheDocument();
-  });
-
-  it("lists the lines the book added or dropped against its source", async () => {
-    const source = `${SAMPLE.replace(
-      "That saved a wretch like me!",
-      "That saved a soul like me!",
-    ).replace("Holy, holy, holy! Lord God Almighty!\nEarly", "Early")}\nAn extra source line\n`;
-    const { reviewDialog } = await toReview(source);
-    const diffs = within(reviewDialog.getByLabelText("Source check"));
-    expect(diffs.getByText("Added or altered", { exact: false })).toBeInTheDocument();
-    expect(diffs.getByText("That saved a wretch like me!")).toBeInTheDocument();
-    expect(diffs.getByText("An extra source line")).toBeInTheDocument();
-    expect(diffs.getByText("That saved a soul like me!")).toBeInTheDocument();
-    expect(diffs.getAllByText(/^Source line \d+$/).length).toBeGreaterThan(0);
-    expect(reviewDialog.getByText(/Checked: \d+ to look at/)).toBeInTheDocument();
-  });
-
   it("commits through the same button; the new book is listed and the text is cleared", async () => {
-    const { s, reviewDialog } = await toReview("");
+    const { s, reviewDialog } = await toReview();
     fireEvent.click(reviewDialog.getByRole("button", { name: "Load Book" }));
     await waitFor(() =>
       expect(s.admin.commit).toHaveBeenCalledWith("t1", "keep-both", expect.any(Function)),
@@ -257,7 +236,7 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
   });
 
   it("Cancel in the review goes back to the text, which is kept", async () => {
-    const { s, reviewDialog } = await toReview("");
+    const { s, reviewDialog } = await toReview();
     fireEvent.click(reviewDialog.getByRole("button", { name: "Cancel" }));
     const dialog = within(await screen.findByRole("dialog", { name: "Book from Text" }));
     expect(dialog.getByLabelText("Song text")).toHaveValue(SAMPLE);

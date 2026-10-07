@@ -151,6 +151,10 @@ only, here:
 
 ## Log
 
+- 2026-10-07 — #53 built: the review and Restore sheets hug their content once a
+  file is read (they held 34rem, bd5da0c; now only while it is read); closing a
+  review of several books says nothing; the source check is withdrawn from the
+  app and the CLI (ADR-0029 point 4), `sourcecheck.ts` deleted
 - 2026-10-07 — Decided by the maintainer: About is the last section of Settings;
   the sample button stays Try the Sample; Blank arms before live, Hold waits for
   it; the source check (ADR-0029 point 4) is withdrawn from the app and the CLI:

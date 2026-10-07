@@ -94,14 +94,18 @@ songbook; anything that produces valid format 1 can be loaded.
    that pasting lyrics into a hosted AI **sends them to that provider**. That is
    the user's choice, and may matter for a copyrighted book. Hymnal never makes
    that call, and has no key, endpoint or setting for one.
-4. **A local, deterministic source check** compares the source text with the
-   result, so that an AI's or a person's silent edits are caught. See below.
+4. **Withdrawn by the maintainer (2026-10-07):** ~~A local, deterministic source
+   check compares the source text with the result, so that an AI's or a person's
+   silent edits are caught.~~ The check is gone from the app (From Text) and the
+   CLI (`bun run text --source`). See "The source check" below for why. Whoever
+   used an AI reads the result against their original before loading it.
 5. **Sharing stays out of scope.** Books are built and loaded on the user's own
    device (ADR-0026). There is no public catalogue and no upload: the rights to
    most songbooks are not the project's to give (arc42 R2).
-6. **Order:** the authoring kit (docs) first; then the text parser and the
-   source check in the app; then the same in the CLI; the CMS (Board #14) and
-   Laya later, if hand-editing or the reports show a need.
+6. **Order:** the authoring kit (docs) first; then the text parser in the app
+   (it had the source check until point 4 was withdrawn); then the same in the
+   CLI; the CMS (Board #14) and Laya later, if hand-editing or the reports show
+   a need.
 
 Why this and not the options: the maintainer converting everything makes one
 person the whole catalogue and fails the first time he is away. The format
@@ -227,6 +231,14 @@ The parser lives in `src/import/` as pure TypeScript with no Node or DOM import
 
 ### The source check
 
+**Withdrawn by the maintainer (2026-10-07).** The check and its code are
+removed, from the app and from the CLI. It reassured falsely: the same text
+pasted twice as source and song text shows "no differences" and proves nothing.
+It also raised false alarms: several songs sharing one original, or an original
+that repeats a chorus, are listed as differences though nothing is wrong. A
+check that people misread is worse than reading the result. The record below is
+kept as history of what was decided on 2026-10-02.
+
 Given the source text (what the user pasted or loaded) and the result (a format
 1 file, however it was made), the check answers two questions and says nothing
 about whether the lyrics are good.
@@ -298,7 +310,7 @@ Neutral:
   ChordPro or OpenLyrics in the app; if import of either is wanted, it maps to
   the same format 1 and the same source check.
 - Items to add to the Board, in order, by the orchestrator: the authoring kit;
-  text parser, Library paste/load and source check; CLI parity.
+  text parser, Library paste/load and (withdrawn) source check; CLI parity.
 
 ## Alternatives
 
@@ -313,8 +325,8 @@ rules that matter (I1–I7, no unknown fields, part ids, a sequence that names
 parts) fail in ways that are easy to miss by eye, and the model has little to
 hold it to the source's words. The text format is shorter, a person can read and
 fix it, and the parser, not the model, owns the JSON. A user can still try to
-produce JSON by hand or by model and load it: the validator and the source check
-treat it as any other file.
+produce JSON by hand or by model and load it: the validator treats it as any
+other file.
 
 **A hosted converter service.** Rejected. It means uploading lyrics to the
 project's server, which ADR-0020 and ADR-0026 exist to avoid, needs a backend
@@ -342,5 +354,6 @@ The user answered on 2026-10-02, each as recommended:
 1. **Text format**: our own; ChordPro and OpenLyrics readers come later, under
    Board #24.
 2. **Authoring kit**: in `docs/` first; in-app help links to it later.
-3. **No source given**: the source check is optional; a book loaded without one
-   is marked "not checked against a source" in the review.
+3. **No source given**: the source check was optional, and a book loaded without
+   one was marked "not checked against a source" in the review. The check is
+   withdrawn (point 4), so the row is gone too.

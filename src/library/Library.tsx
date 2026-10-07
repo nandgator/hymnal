@@ -38,7 +38,7 @@ import {
 import { RemoveSheet, type RemoveTarget } from "./RemoveSheet.tsx";
 import { ReviewSheet } from "./ReviewSheet.tsx";
 import { createTextDraft, TextSheet } from "./TextSheet.tsx";
-import { buildTextBook, type FieldProblems, type SourceState } from "./textbook.ts";
+import { buildTextBook, type FieldProblems } from "./textbook.ts";
 
 /** Said in the Library when the books are held in memory (SDD-0004 §15). */
 const MEMORY_NOTE = "This window doesn’t keep books. They go when it closes, so keep the file.";
@@ -214,13 +214,13 @@ export function Library(props: LibraryProps) {
   const readingShown = createDelayed(() => !!reading());
   const savingShown = createDelayed(() => committing() && !reviewOpen());
   // A book from song text (ADR-0029): the sheet's draft, what its last Review found wrong,
-  // and, while its review is open, the source check that goes with it.
+  // and whether the review that is open is of such a book.
   const draft = createTextDraft();
   const [textOpen, setTextOpen] = createSignal(false);
   const [textBusy, setTextBusy] = createSignal(false);
   const [textErrors, setTextErrors] = createSignal<TextError[]>([]);
   const [textProblems, setTextProblems] = createSignal<FieldProblems>({});
-  const [reviewSource, setReviewSource] = createSignal<SourceState>();
+  const [reviewFromText, setReviewFromText] = createSignal(false);
   const [removing, setRemoving] = createSignal<RemoveTarget>();
   const [removeOpen, setRemoveOpen] = createSignal(false);
   const [removeRecents, setRemoveRecents] = createSignal(0);
@@ -278,7 +278,7 @@ export function Library(props: LibraryProps) {
     endQueue();
     // A review of song text goes back to the text, which is kept to fix; not while that book
     // is being saved, which clears the text when it lands.
-    if (reviewSource() && !saving) setTextOpen(true);
+    if (reviewFromText() && !saving) setTextOpen(true);
   };
 
   const openText = () => {
@@ -290,7 +290,7 @@ export function Library(props: LibraryProps) {
   /** Parse the text and, when it is clean, review the book as if its container had been read. */
   const reviewText = async () => {
     if (textBusy()) return;
-    const built = buildTextBook(draft.fields(), draft.songText(), draft.sourceText());
+    const built = buildTextBook(draft.fields(), draft.songText());
     if (!built.ok) {
       setTextProblems(built.fields);
       setTextErrors(built.errors);
@@ -305,7 +305,7 @@ export function Library(props: LibraryProps) {
       const result = await admin().review(new File([built.bytes as BlobPart], name));
       setReview(result);
       setReviewFile(name);
-      setReviewSource(built.source);
+      setReviewFromText(true);
       setReviewError(undefined);
       setTextOpen(false);
       setReviewOpen(true);
@@ -359,7 +359,7 @@ export function Library(props: LibraryProps) {
         present(entry.review, entry.file);
       } else setSheetReading(entry.file.name);
     } else {
-      setReviewSource(undefined);
+      setReviewFromText(false);
       setReading({ id, fileName: entry.file.name, target: now.target });
     }
     try {
@@ -498,9 +498,9 @@ export function Library(props: LibraryProps) {
       else props.onNotice?.(`${current.title || "The book"}: ${said}`);
       return;
     }
-    if (reviewSource()) {
+    if (reviewFromText()) {
       draft.reset();
-      setReviewSource(undefined);
+      setReviewFromText(false);
     }
     forgetBook(result.key);
     // A book that was written, restored or opened has its file: no longer missing.
@@ -550,7 +550,7 @@ export function Library(props: LibraryProps) {
 
   const chooseAnother = () => {
     const target = review()?.restore?.key;
-    const fromText = !!reviewSource();
+    const fromText = !!reviewFromText();
     closeReview();
     // A refused book from text goes back to the text; closeReview has reopened it.
     if (!fromText) pick(target);
@@ -1016,8 +1016,8 @@ export function Library(props: LibraryProps) {
         progress={progress()}
         refreshing={refreshing()}
         reading={sheetReading()}
-        problems={reviewSource() ? [] : readErrors()}
-        source={reviewSource()}
+        problems={reviewFromText() ? [] : readErrors()}
+        fromText={reviewFromText()}
         position={position()}
         placement={placement()}
         onCancel={() => closeReview()}
