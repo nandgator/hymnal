@@ -771,6 +771,12 @@ function Operator(props: Shared) {
     setCommandMenuOpen(false);
     setShortcuts(undefined);
   };
+  // A page belongs to the sheet it was pushed in: once that sheet is closed
+  // (Escape, the scrim, Close, a toggle key), the next opening starts on its
+  // first page.
+  createEffect(() => {
+    if (!menuOpen() && !settingsOpen() && !commandMenuOpen()) setShortcuts(undefined);
+  });
   const openSheet = (open: (value: boolean) => void) => {
     closeSheets();
     open(true);
