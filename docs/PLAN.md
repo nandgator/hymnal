@@ -85,7 +85,6 @@ Ordered. Top unblocked item is next.
 | #   | Task                                                                                                                                                                                                      | Blocked by          |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
 | 55  | Presenter motion: the tonal card glides on a wrap (last part to first and back); no jerk when the lyrics scroll one way and the card moves the other                                                      | —                   |
-| 56  | Shell motion: Recents glide to the top with the crossfade they had, no blink; no flicker expanding or collapsing tabs                                                                                     | —                   |
 | 58  | Assorted Hymns: a book the person owns for single songs; favourites and queues are lists of songs, not books (with #22). Shape when it starts                                                             | —                   |
 | 27  | Song import, CLI: PDF first (ADR-0018, SDD-0003)                                                                                                                                                          | —                   |
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks                                                                                       | maintainer: devices |
@@ -148,6 +147,10 @@ only, here:
 
 ## Log
 
+- 2026-10-07 — #56 done: expanding or collapsing a group glides its width
+  (`areaGlide.ts`) instead of a View Transition, whose two snapshots doubled the
+  text and could draw a garbage frame mid-resize; Recents rows a filled riser
+  passes stay in view (a regression from 29f538e)
 - 2026-10-07 — #54 done: About is the last section of Settings (the command
   "About" opens it there); Keyboard Shortcuts from the search is a page of the
   Search sheet; a closed sheet forgets its page; Copy Diagnostics answers in a
