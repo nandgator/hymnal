@@ -292,7 +292,7 @@ describe("Library: the books held (SDD-0004 §9)", () => {
     expect(screen.getByText("2 books on this device")).toBeInTheDocument();
   });
 
-  it("says one book, singular", async () => {
+  it("cancelling with one book left says nothing either", async () => {
     setup().view({ currentKey: "mal" });
     expect(await screen.findByText("1 book on this device")).toBeInTheDocument();
   });
@@ -1221,7 +1221,7 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     expect(screen.getByRole("heading", { name: "Book 1" })).toBeInTheDocument();
   });
 
-  it("closing the sheet leaves the undecided books unloaded, and says how many", async () => {
+  it("closing the sheet leaves the undecided books unloaded, and says nothing", async () => {
     const s = queueSetup();
     await screen.findByRole("list", { name: "Books" });
     pickFiles(...three);
@@ -1230,14 +1230,14 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     fireEvent.click(first.getByRole("button", { name: "Load Book" }));
     await screen.findByText("Book 2 of 3");
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    await waitFor(() => expect(s.onNotice).toHaveBeenCalledWith("2 books not loaded"));
     await new Promise((r) => setTimeout(r, 50));
+    expect(s.onNotice).not.toHaveBeenCalled();
     expect(s.admin.review).toHaveBeenCalledTimes(2);
     expect(s.admin.commit).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/Book \d of 3/)).not.toBeInTheDocument();
   });
 
-  it("says one book, singular", async () => {
+  it("cancelling with one book left says nothing either", async () => {
     const s = queueSetup();
     await screen.findByRole("list", { name: "Books" });
     pickFiles("1.hymnbook.json.gz", "2.hymnbook.json.gz");
@@ -1246,7 +1246,8 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     fireEvent.click(first.getByRole("button", { name: "Load Book" }));
     await screen.findByText("Book 2 of 2");
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    await waitFor(() => expect(s.onNotice).toHaveBeenCalledWith("1 book not loaded"));
+    await waitFor(() => expect(screen.queryByText(/Book \d of 2/)).not.toBeInTheDocument());
+    expect(s.onNotice).not.toHaveBeenCalled();
   });
 
   it("closing a single book's review says nothing", async () => {
@@ -1259,7 +1260,7 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
     expect(s.onNotice).not.toHaveBeenCalled();
   });
 
-  it("a file that cannot be read is said, in the sheet too, and counts as not loaded", async () => {
+  it("a file that cannot be read is said, in the sheet too, and is not a notice when cancelled", async () => {
     const s = queueSetup();
     await screen.findByRole("list", { name: "Books" });
     pickFiles("bad.hymnbook.json.gz", "2.hymnbook.json.gz");
@@ -1274,10 +1275,10 @@ describe("Library: several books at once, reviewed as a queue (SDD-0004 §9)", (
       ),
     ).toBeInTheDocument();
     fireEvent.click(dialog.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(s.onNotice).toHaveBeenCalledWith("2 books not loaded"));
     expect(
       await screen.findByText(/Couldn’t read bad\.hymnbook\.json\.gz: not readable/),
     ).toBeInTheDocument();
+    expect(s.onNotice).not.toHaveBeenCalled();
   });
 
   it("the sheet stays open from one book to the next, and closes only after the last", async () => {
