@@ -1635,8 +1635,6 @@ input[type="checkbox"].switch:disabled {
 /* Not clipped: only an area's body scrolls, and its header's menu may
    reach past the panel's edge. */
 .area {
-  /* Not an inline style: the Content Security Policy refuses those (ADR-0030). */
-  view-transition-class: area;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -2031,11 +2029,9 @@ input[type="checkbox"].switch:disabled {
    clipped, so bringing the current part's key into view can't scroll Live
    away. Short of height, Live shrinks first (to 6rem), keeping one row of
    the keypad, which then scrolls inside itself. */
-.area.stage:not(.skeleton-panel) {
-  view-transition-name: stage;
-}
-
 .stage {
+  /* Stays at the right edge while the groups' sizes glide (areaGlide.ts). */
+  margin-inline-start: auto;
   container: stage / inline-size;
   flex: 0 0 min(440px, 40%);
   padding-bottom: var(--space-md);
@@ -2974,7 +2970,7 @@ html[data-scrolling],
 }
 
 /* Motion (PRINCIPLES.md): Material's emphasised easing, quick, and only
-   to explain a change — areas gliding to new places (View Transitions),
+   to explain a change — areas gliding to new places (their widths),
    a menu growing from its button, a sheet rising over a blurred page. */
 :root {
   --motion-emphasized: cubic-bezier(0.2, 0, 0, 1);
@@ -2992,13 +2988,6 @@ html[data-scrolling],
   --motion-switch-ease: cubic-bezier(0.34, 1.3, 0.64, 1);
   /* A slight overshoot, for what springs back (a released press). */
   --motion-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
-}
-
-/* Only the named panels move in a transition; the rest of the page stays
-   live. Capturing the root too crossfaded two full-screen images, and that
-   alone dropped the glide to 30fps (measured, 1500px, integrated GPU). */
-:root {
-  view-transition-name: none;
 }
 
 /* A theme change (theme.ts): a still copy of the window in the old theme,
@@ -3074,34 +3063,6 @@ html[data-scrolling],
   height: 100%;
   margin: 0;
   pointer-events: none;
-}
-
-::view-transition-group(*) {
-  animation-duration: var(--motion-medium);
-  animation-timing-function: var(--motion-emphasized);
-}
-
-::view-transition-old(*),
-::view-transition-new(*) {
-  animation-duration: var(--motion-medium);
-}
-
-/* A panel reshapes; what's in it doesn't stretch. By default each
-   snapshot scales to the changing box, so the lyrics grew and shrank and
-   crossfaded at two sizes (the Split jitter). Instead they keep their own
-   size, pinned to the top left, and the panel's rounded box clips them as
-   it glides. */
-::view-transition-group(*.area) {
-  overflow: clip;
-  border-radius: 22px;
-}
-
-::view-transition-old(*.area),
-::view-transition-new(*.area) {
-  width: 100%;
-  height: 100%;
-  object-fit: none;
-  object-position: left top;
 }
 
 /* A control's change of state — hover, press, selected, disabled, a
@@ -3270,9 +3231,6 @@ html[data-scrolling],
     scale: 1;
   }
 
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*),
   .skeleton,
   .skeleton-panel,
   .workspace > :not(.operator),

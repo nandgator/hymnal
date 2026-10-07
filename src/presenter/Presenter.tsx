@@ -58,6 +58,7 @@ import {
   visibleGroups,
   type Workspace,
 } from "../shell/workspace.ts";
+import { glideAreas } from "./areaGlide.ts";
 import { glideBack, glideLyrics, watchTint } from "./lyricsGlide.ts";
 import { placePad, watchPad } from "./padGlide.ts";
 import { createRepeatDisplay } from "./repeatCount.ts";
@@ -452,21 +453,15 @@ export function Presenter(props: PresenterProps) {
     if (props.workspace !== undefined) setWorkspaceSignal(normalizeWorkspace(props.workspace));
   });
   // Motion explains the change (PRINCIPLES.md): expanding, collapsing,
-  // closing, splitting or switching tabs glides each area to its new place
-  // (a View Transition; styles.css sets the timing). Reduced motion, or no
-  // support, applies it at once.
-  const setWorkspace = (next: Workspace) => {
-    const apply = () => {
+  // closing or splitting glides each group to its new width (areaGlide.ts:
+  // the areas' own sizes, not a View Transition, whose cross-faded snapshots
+  // showed the lyrics doubled and tore). Reduced motion applies it at once.
+  let areasRow: HTMLDivElement | undefined;
+  const setWorkspace = (next: Workspace) =>
+    glideAreas(areasRow, () => {
       setWorkspaceSignal(next);
       props.onWorkspaceChange?.(next);
-    };
-    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (typeof document.startViewTransition === "function" && !reduced) {
-      document.startViewTransition(apply);
-    } else {
-      apply();
-    }
-  };
+    });
   const groups = createMemo(() => visibleGroups(workspace(), canSplit()));
   // A tab switch isn't a layout change: no View Transition (which would
   // snapshot and cross-fade the tab bar), just the pill's glide and the
@@ -1148,7 +1143,6 @@ export function Presenter(props: PresenterProps) {
       <section
         class="area"
         classList={{ "area-main": group().main }}
-        style={{ "view-transition-name": `area-${group().index}` }}
         aria-label={tabName(activeOf(group()))}
       >
         <div class="area-header">
@@ -1344,7 +1338,7 @@ export function Presenter(props: PresenterProps) {
               {/* From 840px (SDD-0001 §16.4): the tab groups, the main one
                   taking the room, then What they see — Live and Parts —
                   which never moves. */}
-              <div class="operator-areas">
+              <div class="operator-areas" ref={areasRow}>
                 <Index each={groups()}>{(group) => tabGroup(group, loaded)}</Index>
                 <aside class="area stage" aria-label="What they see">
                   <Show when={shown("live")}>

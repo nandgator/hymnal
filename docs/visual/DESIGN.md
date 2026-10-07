@@ -877,9 +877,13 @@ view is close enough to the frame to need a smaller unit.
   swap never resizes it. Repeat, Undo and Reset are text buttons: occasional, so
   quiet.
 - **Motion** explains change, at Material's emphasised easing: areas glide to
-  their places on expand, collapse, close and split (View Transitions of the
-  panels only, not the whole page, which halved the frame rate); a panel
-  reshapes but what's in it keeps its size, clipped as the panel glides, never
+  their places on expand, collapse, close and split (`areaGlide.ts`: each
+  group's own flex-basis moves from its old width to its new, 250ms, so the text
+  reflows as the panel does. Never a View Transition: its snapshots cross-faded
+  the old and new wrapping, the lyrics doubled for three frames, and a snapshot
+  taken mid-resize tore into fragments of other UI. A group that appears grows
+  and fades in; one that closes just goes, since a fading copy would lay its
+  wrapping over the survivor's); what's in a panel reflows with it, never
   stretched (the Split jitter). **The fold**: crossing 840px is MD3's
   fade-through — the old screen fades out (90ms), the new one fades in and zooms
   in from 92% (210ms), each through a slight blur (4px); the switcher row stays
