@@ -909,6 +909,33 @@ describe("App", () => {
     expect(within(search).getByRole("combobox")).toHaveValue("keyboard");
   });
 
+  it("opens Settings on its first page, whatever page it was last closed on", async () => {
+    render(() => <App />);
+    await booksReady();
+    const gear = () => screen.getAllByRole("button", { name: /^Settings/ })[0] as HTMLElement;
+
+    // Closed on a page pushed from its row.
+    fireEvent.click(gear());
+    fireEvent.click(
+      within(await screen.findByRole("dialog", { name: "Settings" })).getByRole("button", {
+        name: /Keyboard Shortcuts/,
+      }),
+    );
+    expect(await screen.findByRole("dialog", { name: "Keyboard Shortcuts" })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: ",", ctrlKey: true });
+    fireEvent.click(gear());
+    expect(await screen.findByRole("dialog", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Keyboard Shortcuts" })).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: ",", ctrlKey: true });
+
+    // Closed on the direct page (?).
+    fireEvent.keyDown(window, { key: "?" });
+    expect(await screen.findByRole("dialog", { name: "Keyboard Shortcuts" })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: ",", ctrlKey: true });
+    fireEvent.click(gear());
+    expect(await screen.findByRole("dialog", { name: "Settings" })).toBeInTheDocument();
+  });
+
   it("hides Live with L, remembered in preferences, and shows it again (SDD-0001 §16.4)", async () => {
     render(() => <App />);
     await openFinder();
