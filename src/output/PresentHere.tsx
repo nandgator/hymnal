@@ -2,7 +2,7 @@ import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import type { HymnbookId, HymnNumber } from "../domain/types.ts";
 import { Finder } from "../finder/Finder.tsx";
 import type { BandSize, Highlight, OutputCues, OutputTheme } from "../persistence/user-state.ts";
-import { isTyping } from "../shell/keymap.ts";
+import { isPresentationKey, isTyping } from "../shell/keymap.ts";
 import type { OutputMessage } from "./channel.ts";
 import { createIdleCursor } from "./idleCursor.ts";
 import { OutputBoundary } from "./OutputBoundary.tsx";
@@ -91,6 +91,10 @@ export function PresentHere(props: PresentHereProps) {
       if (!switcher()) openSwitcher();
     } else if (key === "o" || (key === "e" && event.shiftKey) || (key === "p" && event.shiftKey)) {
       // Go Live, End Live and Present here mean nothing from here.
+      swallow();
+    } else if (event.key.length === 1 && !isPresentationKey(event.key, event.shiftKey)) {
+      // The Operator's own keys (N, L, text size...) would change the screen
+      // under the audience's view; only the presentation's keys pass.
       swallow();
     }
   };
