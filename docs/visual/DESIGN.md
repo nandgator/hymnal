@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: hymnal-presenter-design
-description: A devotional presentation tool built on Material Design 3's tonal color system, seeded from an amber/brass hue (gilt hymnal pages, brass fixtures) rather than Google's default purple. Split into two audiences on two screens — an Operator view carrying full MD3 chrome (filled/tonal/outlined buttons, filter chips, an outlined text field, an extended FAB), and a chrome-less Output view built on teleprompter conventions (one continuous scroll of the whole hymn, the sung part or line lit and centred, a safe-area margin, no labels, ever). Dark-first; read across a room, sometimes in low light, by people not thinking about software.
+description: A devotional presentation tool built on Material Design 3's tonal color system, seeded from an amber/brass hue (gilt hymnal pages, brass fixtures) rather than Google's default purple. Split into two audiences on two screens — an Operator view carrying full MD3 chrome (filled/tonal/outlined buttons, keypad keys, a filled search field; no FAB is built), and a chrome-less Output view built on teleprompter conventions (one continuous scroll of the whole hymn, the sung part or line lit and centred, a safe-area margin, no labels, ever). Dark-first; read across a room, sometimes in low light, by people not thinking about software.
 
 colors:
   primary: "#ffb951"
@@ -22,12 +22,17 @@ colors:
   surface-container-low: "#201a12"
   surface-container: "#241e15"
   surface-container-high: "#2f2819"
+  surface-container-highest: "#3a3223"
   inverse-surface: "#eae1d9"
   inverse-on-surface: "#362f26"
+  inverse-primary: "#6e4500"
   error: "#ffb4ab"
   on-error: "#690005"
   error-container: "#93000a"
   on-error-container: "#ffdad6"
+  live: "#ff8c5f"
+  live-container: "#7b2e0d"
+  on-live-container: "#ffdbcf"
   output-ground: "#1b140c"
   output-ink: "#f3dfb5"
   output-ink-muted: "#9c8661"
@@ -68,12 +73,17 @@ colors-light:
   surface-container-low: "#fbf1e6"
   surface-container: "#f5ecdf"
   surface-container-high: "#f0e6d9"
+  surface-container-highest: "#eae1d4"
   inverse-surface: "#362f26"
   inverse-on-surface: "#fbeee1"
+  inverse-primary: "#ffb951"
   error: "#ba1a1a"
   on-error: "#ffffff"
   error-container: "#ffdad6"
   on-error-container: "#410002"
+  live: "#a83900"
+  live-container: "#ffdbcf"
+  on-live-container: "#380d00"
 
 typography:
   display-small:
@@ -133,6 +143,7 @@ rounded:
   sm: 8px
   md: 12px
   lg: 16px
+  panel: 22px
   pill: 999px
   full: 999px
 
@@ -173,33 +184,26 @@ components:
     textColor: "{colors.primary}"
     typography: "{typography.label-large}"
     padding: 0 12px
-  fab-extended:
-    backgroundColor: "{colors.primary-container}"
-    textColor: "{colors.on-primary-container}"
-    typography: "{typography.label-large}"
-    rounded: "{rounded.lg}"
-    height: 56px
-    padding: 0 24px 0 20px
-    elevation: level-3
-  text-field-outlined:
-    backgroundColor: transparent
+  text-field:
+    note: the one search and text field look, filled and tonal, no outline
+    backgroundColor: "{colors.surface-container}"
+    backgroundColorHover: "{colors.surface-container-high}"
     textColor: "{colors.on-surface}"
-    borderColor: "{colors.outline}"
-    borderColorFocused: "{colors.primary}"
-    rounded: "{rounded.sm}"
-    padding: 17px 16px 8px 44px
+    focusRing: "2px inset {colors.primary}"
+    rounded: "{rounded.md}"
+    height: 48px
+    padding: 0 16px 0 44px
   chip-filter:
-    backgroundColor: transparent
-    textColor: "{colors.on-surface-variant}"
-    borderColor: "{colors.outline}"
-    rounded: "{rounded.sm}"
-    height: 32px
+    note: a key of the parts pad; selection is fill alone, no checkmark
+    backgroundColor: "{colors.surface-container-high}"
+    textColor: "{colors.on-surface}"
+    rounded: "{rounded.md}"
+    height: 40px
   chip-filter-selected:
     backgroundColor: "{colors.secondary-container}"
     textColor: "{colors.on-secondary-container}"
-    rounded: "{rounded.sm}"
-    height: 32px
-    leadingIcon: checkmark
+    rounded: "{rounded.md}"
+    height: 40px
   chip-assist:
     backgroundColor: transparent
     textColor: "{colors.on-surface-variant}"
@@ -210,9 +214,9 @@ components:
   card-elevated:
     backgroundColor: "{colors.surface-container-low}"
     textColor: "{colors.on-surface}"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.panel}"
     padding: 26px 24px
-    elevation: level-1
+    elevation: flat
   switch:
     trackColorOff: "{colors.surface-container-high}"
     trackColorOn: "{colors.primary}"
@@ -254,8 +258,8 @@ problem than a warm, devotional, legible-at-distance tool.
 
 **Key characteristics:**
 
-- Two screens, two grammars: the **Operator** carries full MD3 chrome (pills,
-  chips, a FAB, tonal surfaces); the **Output** carries none of it — one
+- Two screens, two grammars: the **Operator** carries full MD3 chrome (square
+  buttons, keypad keys, tonal surfaces); the **Output** carries none of it — one
   scrolling column of lyrics on its own ground, and nothing else unless the
   operator turns a cue on.
 - Dark-first. Light exists (`colors-light`) and is fully supported, but the
@@ -283,10 +287,10 @@ problem than a warm, devotional, legible-at-distance tool.
 ### Brand & Accent
 
 - **primary** / **on-primary**: the one interactive color. Filled buttons, the
-  FAB's container role, the active state of anything selectable.
+  active state of anything selectable.
 - **primary-container** / **on-primary-container**: a quieter tint of the same
-  hue — the FAB's actual fill (a FAB is prominent by size and elevation, not by
-  shouting in full-strength primary).
+  hue — the role a FAB would take (none is built; the Library's tile for the
+  current book uses it).
 - **secondary** / **secondary-container** / **on-secondary-container**: a muted
   warm brown-tan, one step down in intensity from primary. Carries tonal buttons
   and the _selected_ state of filter chips — a second role doing real work, not
@@ -297,8 +301,16 @@ problem than a warm, devotional, legible-at-distance tool.
 - **surface** / **on-surface**: the base ground and its text.
 - **surface-variant** / **on-surface-variant**: secondary text, chip borders,
   anything that should read as present but not primary content.
-- **surface-container-low/…/-high**: the tonal-elevation ladder. A card sits on
-  `-low`; nothing in this app currently needs `-high` beyond hover states.
+- **surface-container-low/…/-high/-highest**: the tonal-elevation ladder. Panels
+  and cards sit on `-low`; fields on `surface-container`, their hover on
+  `-high`; the snackbar on `-highest`. `inverse-primary` is defined and unused
+  so far.
+
+### On air
+
+- **live** / **live-container** / **on-live-container**: a custom colour,
+  Material's way: red harmonised to the amber seed, in both themes. It means
+  "live" and nothing else (the On Air status, Blanked and Held, Live's dot).
 
 ### Error
 
@@ -376,15 +388,16 @@ problem than a warm, devotional, legible-at-distance tool.
 | `label-small`   | 11px                                            | 500    | 16px        | Assist chip (recurrence cue)                      |
 | `body-large`    | 16px                                            | 400    | 24px        | Running UI text                                   |
 | `hymn-display`  | `clamp(1.25rem, 1.0625rem + 0.75vw, 2.1875rem)` | 400    | 1.7         | Lyric lines, Operator view                        |
-| `output-line`   | `clamp(2.2rem, 6.5vw, 5rem)`                    | 500    | 1.35        | Output view, every line (lit or dimmed)           |
+| `output-line`   | `calc(7.5cqmin * 0.85 * var(--fit))`            | 500    | 1.35        | Output view, every line (lit or dimmed)           |
 
 ### Principles
 
-- **No fixed px type scale for hymn content.** `hymn-display` and `output-line`
-  are both `clamp()`s — phone and a large display sit on one continuous curve,
-  never a jump between fixed layouts. `hymn-display` is layered under the user's
-  own `--font-scale` multiplier (Board #10, `Settings`); `output-line` is not,
-  since the Output fills a separate display the operator isn't reading.
+- **No fixed px type scale for hymn content.** `hymn-display` is a `clamp()` on
+  the viewport and `output-line` is in container units (`cqmin`): phone and a
+  large display sit on one continuous curve, never a jump between fixed layouts.
+  `hymn-display` is layered under the user's own `--font-scale` multiplier
+  (Board #10, `Settings`); `output-line` is not, since the Output fills a
+  separate display the operator isn't reading.
 - **The Output is a continuous scroll, teleprompter-style** (SDD-0001 §16.1):
   the whole hymn in one column, the focus lit in `output-ink` and centred, every
   other line dimmed to `output-ink-dimmed`. The focus mirrors the Operator's
@@ -470,10 +483,9 @@ view is close enough to the frame to need a smaller unit.
   function with a lot of breathing room by giving each concern its own layer and
   choosing width by content, not by page. Here:
   1. **Sections** (the app's top level): a navigation rail on the left from
-     840px, a menu on a phone. Now: Present and Library. About
-     (acknowledgements, copyright, credits) is the last section of Settings.
-     Reserved, not built: Feedback and corrections, Updates (over-the-air, as
-     Supabase announces them). Settings moves to the rail's foot.
+     840px, a menu on a phone. Now: Present and Library, with Settings at the
+     rail's foot. About (acknowledgements, copyright, credits) is the last
+     section of Settings. Reserved, not built: Feedback and corrections.
   2. **Switcher row**, Supabase's org/project breadcrumb: **Hymnbook ▾ / #908
      Title ▾**. Each crumb is a picker. The hymnbook picker lists installed
      books; the hymn picker is quick-find (number or lyrics). Choosing either
@@ -501,16 +513,16 @@ view is close enough to the frame to need a smaller unit.
   - **This hymn**: the lyrics in sung order, tap a part or a line to send it
     live (ProPresenter's click-a-slide-to-go-live).
   - **Coming up**: Recents now, the service queue later (Board #22).
-  - This hymn, Recents and Queue are **tabs** in at most two **groups**: split
-    side by side (the three-area look) or merged into one tabbed area. Each
-    group's heading ends in a pane toolbar of icons, after VS Code's and Zed's:
-    expand or collapse, move a tab (a ⋯ menu, only in a group of several tabs;
-    the arrow points at the group it goes to), close the group (its tabs join
-    the other); merged, split. Split and merge are also a Settings switch and
-    command-menu entries. Expanding gives one group the room (the queue while
-    planning, the lyrics while singing). Under 1400px wide they merge by
-    themselves. What they see and the dock never move. No free docking or
-    floating panes: mid-service, a pane dragged by mistake would move the
+  - This Song and Recents (a Queue later) are **tabs** in at most two
+    **groups**: split side by side (the three-area look) or merged into one
+    tabbed area. Each group's heading ends in a pane toolbar of icons, after VS
+    Code's and Zed's: expand or collapse, move a tab (a ⋯ menu, only in a group
+    of several tabs; the arrow points at the group it goes to), close the group
+    (its tabs join the other); merged, split. Split and merge are also a
+    Settings switch and command-menu entries. Expanding gives one group the room
+    (the queue while planning, the lyrics while singing). Under 1400px wide they
+    merge by themselves. What they see and the dock never move. No free docking
+    or floating panes: mid-service, a pane dragged by mistake would move the
     controls. Popping Live out into its own window is noted for later.
   - **Areas are panels**: `surface-container-low` on the `surface` ground, 22px
     corners, 12px apart, no borders. Each has a quiet header, 52px tall: a small
@@ -585,22 +597,22 @@ view is close enough to the frame to need a smaller unit.
     the Live actions' one home (the header's button has no menu), and the
     transport's buttons (§ Buttons): equal-width tonal rounded rectangles on the
     neutral fill, one 8px gap between every pair, equal in height, in every
-    state. The stage's rail is a fixed 408px, too narrow for "Present Here"
-    beside an icon in a quarter of the row, so in the row each button stacks its
-    icon over its word (56px tall, the word at 12px). **Icon-only only where
-    space forces it**: the phone strip (48px squares), and any row too narrow
-    even so, decided by the row's own width (rem, so the text size counts):
-    under 22rem, where four columns can no longer hold the widest word plus
-    padding. All go icon-only together, the name kept as the accessible name and
-    the tooltip. If the Live pane is hidden the toolbar goes with it; the header
-    status, Ctrl+K and the keys remain. **Pressed** (Blanked, Held) is the
-    selected tone, the secondary container, as the keypad's selected part.
-    **Present Here** (Shift+P) is always there, so the row is always four equal
-    columns: not live, it starts presenting in this tab, whatever Settings' Go
-    Live opens; with an Output window live, it ends the window and presents in
-    this tab. Blank, Hold and End Live wait, disabled, while not live. (While
-    presenting here the shell is off screen, so the row is too.) End Live closes
-    the Output window.
+    state. The stage is at most 440px (40% of the width), too narrow for
+    "Present Here" beside an icon in a quarter of the row, so in the row each
+    button stacks its icon over its word (56px tall, the word at 12px).
+    **Icon-only only where space forces it**: the phone strip (48px squares),
+    and any row too narrow even so, decided by the row's own width (rem, so the
+    text size counts): under 22rem, where four columns can no longer hold the
+    widest word plus padding. All go icon-only together, the name kept as the
+    accessible name and the tooltip. If the Live pane is hidden the toolbar goes
+    with it; the header status, Ctrl+K and the keys remain. **Pressed**
+    (Blanked, Held) is the selected tone, the secondary container, as the
+    keypad's selected part. **Present Here** (Shift+P) is always there, so the
+    row is always four equal columns: not live, it starts presenting in this
+    tab, whatever Settings' Go Live opens; with an Output window live, it ends
+    the window and presents in this tab. Blank, Hold and End Live wait,
+    disabled, while not live. (While presenting here the shell is off screen, so
+    the row is too.) End Live closes the Output window.
   - **One round family, each with its own mark**, so the row reads as one set
     and none is mistaken at a glance, all filled circles: Blank, going dark, a
     slashed circle (`hide_source`); Restore, coming back, a plain dot
@@ -629,32 +641,37 @@ view is close enough to the frame to need a smaller unit.
     toggle is also a key (L for Live) and a command-menu action. Letting the
     user move a control between screen and Settings is deferred, not dropped.
   - **Settings, grouped**: one sheet, MD3 list sections. **Display**: theme
-    (System | Light | Dark) and text size (A− 100% A+). **Workspace**: Show
-    Live, Split the tab groups, and Scrolling the Output moves this screen
-    (switches). **Keyboard**: Keyboard Shortcuts is a page pushed inside the
-    Settings sheet (nested navigation, § Motion), not a second dialog: its
-    header says Back and returns to Settings, Escape too. Opened by `?` or the
-    command from nothing, the sheet opens straight on that page and says Close;
-    from the command menu (Ctrl/⌘+K or `/`) it is pushed inside the Search
-    sheet, and Back returns to the search with its query kept. A sheet closed on
-    a page opens on its first page next time. **About** is the last section,
-    after Keyboard; Copy Diagnostics answers in a snackbar, not in its label.
-    **Presentation** (part 4): at the top, **Go Live opens**, a segmented choice
-    of **Automatic | This Screen | Output Window** (Automatic by default), and
-    under it, in a disclosure shown for Automatic and Output Window only (hidden
-    values kept) the Output screen (on a phone its three long labels drop the
-    checkmark's slot, the pill still marking the choice); then the Output theme
-    (Dark | Light | Contrast | Warm) and one switch per cue. The disclosure's
-    **Output screen**, in Chrome and Edge only, is a choice menu (the Menu
-    component with its trigger a button showing the choice, a chevron after it,
-    never a native select) of Automatic and the screens by label and size
-    ("Built-in" for the laptop's panel, a remembered one not attached marked
-    "not connected"; the chosen one is the tonal pill; arrows, Enter and Esc
-    work, and ArrowDown opens it). With one screen attached there is no list:
-    the text "One screen attached" instead. A text **Detect Screens** button
-    asks the browser to list the screens; its supporting line says what
-    Automatic picks, or that permission is blocked. Hidden where the browser
-    cannot place a window.
+    (System | Light | Dark) and text size (A− 100% A+). **Workspace**: Show Live
+    Preview and Split the tabs (switches). **Presentation**, **Backup** (Back Up
+    and Restore…; a restore opens its own review sheet, SDD-0006), **Keyboard**
+    and **About**, in that order; the sheet has a search that hides the rows
+    (and empty sections) that don't match. **Keyboard**: Keyboard Shortcuts is a
+    page pushed inside the Settings sheet (nested navigation, § Motion), not a
+    second dialog: its header says Back and returns to Settings, Escape too.
+    Opened by `?` or the command from nothing, the sheet opens straight on that
+    page and says Close; from the command menu (Ctrl/⌘+K or `/`) it is pushed
+    inside the Search sheet, and Back returns to the search with its query kept.
+    A sheet closed on a page opens on its first page next time. **About** is the
+    last section, after Keyboard; Copy Diagnostics answers in a snackbar, not in
+    its label. **Presentation** (part 4): at the top, **Go Live opens**, a
+    segmented choice of **Automatic | This Screen | Output Window** (Automatic
+    by default), and under it, in a disclosure shown for Automatic and Output
+    Window only (hidden values kept) the Output screen (on a phone its three
+    long labels drop the checkmark's slot, the pill still marking the choice);
+    then the Output theme (Dark | Light | Contrast | Warm), Highlight on the
+    Output (Current part | Whole song), Layout (Part by part | Whole song), Pin
+    the chorus, Scrolling the Output moves this screen, Highlight while
+    scrolling (Part | Line), and, under On the Output, one switch per cue and
+    Fade the details. The disclosure's **Output screen**, in Chrome and Edge
+    only, is a choice menu (the Menu component with its trigger a button showing
+    the choice, a chevron after it, never a native select) of Automatic and the
+    screens by label and size ("Built-in" for the laptop's panel, a remembered
+    one not attached marked "not connected"; the chosen one is the tonal pill;
+    arrows, Enter and Esc work, and ArrowDown opens it). With one screen
+    attached there is no list: the text "One screen attached" instead. A text
+    **Detect Screens** button asks the browser to list the screens; its
+    supporting line says what Automatic picks, or that permission is blocked.
+    Hidden where the browser cannot place a window.
   - **Show/hide**: Live, remembered, and the tab layout (SDD-0001 §16.4). This
     hymn and the dock never hide.
 - **One transport** (Board #26, PRINCIPLES.md). From 840px it sits at the
@@ -756,15 +773,25 @@ view is close enough to the frame to need a smaller unit.
   about the Output window itself and caused by it, so they show at once, are
   dismissed (**Got It**) and never repeat once seen. They use the same card, in
   the same place, so the layout does not move live, and they come before the
-  update. Six: "Drag the Output to the projector, then press F11" (a plain
-  popup, once, and **only when a second screen may exist**: `screen.isExtended`
-  is true, with or without the Window Management API; where the browser cannot
-  say (Firefox, Safari) or says one screen, it is not shown, so a single-screen
-  user is never nagged), "The Output is on the projector screen. If it isn't
-  fullscreen, click it or press F" (once), "The browser blocked the Output
-  window" (pop-ups), "The screen the Output was on is gone" (the window stays),
-  and "That screen is back. Move the Output to it?" with **Move it** and a close
-  (Stay).
+  update. Eleven (`SCREEN_NOTICE_IDS`), each with **Got It** unless noted: "Drag
+  the Output to the projector, then press F11 for fullscreen" (a plain popup,
+  once, and **only when a second screen may exist**: `screen.isExtended` is
+  true, with or without the Window Management API; where the browser cannot say
+  or says one screen, it is not shown, so a single-screen user is never nagged),
+  "The Output is on the projector screen." (once the Output has verified it),
+  "Click the Output window (or press F there) to put it on the screen.", "The
+  Output is fullscreen. If it isn't on the screen, press Esc there, move it, and
+  press F again.", "Move this window to the screen, then press F." (with a Linux
+  line about Super+Shift+Arrow), "The browser blocked the Output window", "The
+  Output could not move. Drag it to the screen yourself.", a note that only one
+  screen was found and how to extend rather than mirror, "That screen is back.
+  Move the Output to it?" with **Move It** and a close (Stay), "A projector is
+  connected: the screen" with **Move the Output There** and a close (Not now),
+  and "The projector was disconnected; the Output is on the screen." with
+  **Blank** and a close (Dismiss). Two more cards share the place: "The Output
+  stopped working" with **Reopen** (a window) or **Got It**, and the Library's
+  word (books left unloaded; "Settings and recents won't be kept this time"),
+  put away by itself after a few seconds or by **Got It**.
 - **The Library** (Board #28 part 5; SDD-0004 §9). A list of the books held, in
   the default width, the mockup's `Library` header sticking under the switcher
   row as the Finder's field does (title-large, "N books on this device", and a
@@ -830,8 +857,9 @@ view is close enough to the frame to need a smaller unit.
     in its own shape.
   - **Nothing held** (the first run): the card keeps the skeleton's shape,
     display-small "Bring a songbook", one body line (load a file or type one in;
-    it stays on this device), the filled **Load Books** and a tonal **From
-    Text**. Find and Go Live are disabled.
+    it stays on this device), the filled **Load Books**, a tonal **From Text**
+    and, where the build carries the sample books, a text **Try the Sample**. Go
+    Live is disabled.
   - **The review** is a sheet, bottom under 840px and centred from it, taller
     than the others (88% of the height), its Cancel pinned, its content
     scrolling and its one action bar sticky. Read-only throughout: the book's
@@ -1027,18 +1055,18 @@ view is close enough to the frame to need a smaller unit.
   it's resized (fading through with the page). The command menu is called
   **Search**; Settings has its own search, which hides rows (and empty sections)
   that don't match.
-- **Words**: "song" on screen (This Song, Find a Song, 1,632 songs); the code
-  and domain keep "hymn". **Case, after Apple:** Title Case (Chicago: a, an,
-  the, and, or, to, of, on, in stay lower unless first or after a colon) for
-  what's pressed or navigated — every button (also a notice's action), tab, menu
-  and command name, sheet title, status (Go Live, On Air, Bring the Output
-  Forward, Present Here); sentence case for what reads as a sentence — switch
-  labels and their descriptions, field names, placeholders, tooltips, empty
-  states (Find a song or action, No recent songs yet). `titleCase()` titles the
-  command menu. Small-caps area titles stay uppercase. **Song titles** are Title
-  Case wherever shown (I Serve a Risen Savior; a bracketed subtitle starts
-  afresh); content keeps them in sentence case, which keeps which words are
-  names, and a script without case is left as it is.
+- **Words**: "song" on screen (This Song, Load Books, 1,632 songs); the code and
+  domain keep "hymn". **Case, after Apple:** Title Case (Chicago: a, an, the,
+  and, or, to, of, on, in stay lower unless first or after a colon) for what's
+  pressed or navigated — every button (also a notice's action), tab, menu and
+  command name, sheet title, status (Go Live, On Air, Bring the Output Forward,
+  Present Here); sentence case for what reads as a sentence — switch labels and
+  their descriptions, field names, placeholders, tooltips, empty states (Find a
+  song or action, No recent songs yet). `titleCase()` titles the command menu.
+  Small-caps area titles stay uppercase. **Song titles** are Title Case wherever
+  shown (I Serve a Risen Savior; a bracketed subtitle starts afresh); content
+  keeps them in sentence case, which keeps which words are names, and a script
+  without case is left as it is.
 - **Output: nothing ever bleeds off the screen.** The type is sized **per hymn**
   so its longest part fits between the 16% bands, then held for the whole hymn,
   so the text never changes size between parts. It's re-fitted on resize and
@@ -1053,8 +1081,8 @@ view is close enough to the frame to need a smaller unit.
   screen. Parts are separated by a gap of about half a line, as in a printed
   hymnal: where a verse ends and the chorus begins is visible without a label.
   Scrolled by hand, the highlight becomes a reading band fixed where the focus's
-  part sat, one part tall, lighting whatever passes through it, until the scroll
-  rests (SDD-0001 §16.1).
+  part sat, one part tall (or one line, by Settings' Highlight while scrolling),
+  lighting whatever passes through it, until the scroll rests (SDD-0001 §16.1).
 - **The chorus, pinned** (SDD-0001 §16.1, "Pin the chorus", off by default): in
   its own pane, dimmed until sung and lit in place when it is, while the verses
   scroll alone. **Side by side** on a landscape screen (verses left, chorus
@@ -1121,9 +1149,9 @@ mid-service. Three rules follow:
   never stretched, and the grid is at most as many cells wide as the hymn has
   stanzas (three minimum), so a full-row chip spans the stanzas beneath it, not
   the whole card.
-- **Selecting a chip never changes its width.** Every filter chip reserves the
-  checkmark's slot; selection only fills it. A wider selected chip would rewrap
-  the rail and move everything below it.
+- **Selecting a chip never changes its width.** Selection is the fill alone, no
+  checkmark, so no chip grows. A wider selected chip would rewrap the rail and
+  move everything below it.
 - **The Operator screen fits the viewport and never scrolls as a page.** Each
   pane scrolls inside itself instead: the sequence (kept centred on the current
   block), and each supporting pane in its column or sheet. Across the corpus the
@@ -1315,16 +1343,17 @@ and a snippet in `on-surface-variant`, never a button styled as a button.
 
 ## Elevation & Depth
 
-| Level             | Treatment                                    | Use                                      |
-| ----------------- | -------------------------------------------- | ---------------------------------------- |
-| Flat              | No shadow                                    | Top bar, keys, buttons at rest           |
-| Tonal (level 0→1) | Shift to `surface-container-low`, no shadow  | Panels, cards                            |
-| Floating          | Soft shadow (`0 1px 3px …, 0 4px 8px 3px …`) | Menus, sheets, snackbar, Back to Current |
+| Level             | Treatment                                   | Use                                      |
+| ----------------- | ------------------------------------------- | ---------------------------------------- |
+| Flat              | No shadow                                   | Top bar, keys, buttons at rest           |
+| Tonal (level 0→1) | Shift to `surface-container-low`, no shadow | Panels, cards                            |
+| Floating          | `--elevation-3`, soft and diffuse           | Menus, sheets, snackbar, Back to Current |
 
 **Shadow philosophy.** Only what floats above the page casts a shadow, one level
-of it; resting surfaces are tonal and flat, and nothing else gets one. A heavy
-drop shadow anywhere reads as Material 2, not 3 — elevation here means "which
-tonal step," with shadow only confirming it.
+of it (`--elevation-3`: three faint, layered shadows, a lift and not an outline;
+`--elevation-1` is defined and unused); resting surfaces are tonal and flat, and
+nothing else gets one. A heavy drop shadow anywhere reads as Material 2, not 3 —
+elevation here means "which tonal step," with shadow only confirming it.
 
 ## Inspiration — and why these, not generic SaaS
 
