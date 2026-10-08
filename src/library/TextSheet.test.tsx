@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { gunzipSync } from "fflate";
 import { describe, expect, it, vi } from "vitest";
@@ -408,5 +410,29 @@ describe("Library: the text sheet's picker and errors, in view", () => {
     const list = await dialog.findByRole("alert", { name: "Parse errors" });
     await waitFor(() => expect(scrolled).toContain(list));
     expect(dialog.getByLabelText("Song text")).toHaveFocus();
+  });
+});
+
+describe("Library: the sheet keeps its size while a list or a section opens", () => {
+  it("the language list floats in the top layer, out of the sheet's flow", async () => {
+    const show = vi.fn();
+    (HTMLElement.prototype as { showPopover?: () => void }).showPopover = show;
+    try {
+      const { dialog } = await openSheet();
+      fireEvent.focus(dialog.getByRole("combobox", { name: "Language" }));
+      const list = dialog.getByRole("listbox", { name: "Languages" });
+      expect(list).toHaveAttribute("popover", "manual");
+      await waitFor(() => expect(show).toHaveBeenCalled());
+      // Placed from the field's rect, like the app's menus, not laid out under it.
+      expect(list.style.top).not.toBe("");
+    } finally {
+      delete (HTMLElement.prototype as { showPopover?: () => void }).showPopover;
+    }
+  });
+
+  it("Advanced grows its body smoothly, so the card follows instead of jumping", () => {
+    const css = readFileSync(resolve(__dirname, "../styles.css"), "utf8");
+    expect(css).toMatch(/\.advanced::details-content\s*{[^}]*transition:[^;}]*block-size/);
+    expect(css).toMatch(/\.advanced[^{]*{[^}]*interpolate-size:\s*allow-keywords/);
   });
 });
