@@ -1129,6 +1129,16 @@ describe("App", () => {
       output.close();
     });
 
+    it("leaves the notice its width in the Library while live: no stage edge from the hidden song", async () => {
+      const { output } = await liveOutput();
+      const sections = within(screen.getByRole("navigation", { name: "Sections" }));
+      fireEvent.click(sections.getByRole("button", { name: "Library" }));
+      await booksReady();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(document.documentElement.style.getPropertyValue("--stage-left")).toBe("");
+      output.close();
+    });
+
     it("loads a book mid-service without touching the Output", async () => {
       const { output, seen } = await liveOutput();
       fireEvent.keyDown(window, { key: "r" });
