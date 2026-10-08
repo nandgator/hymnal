@@ -6,6 +6,7 @@ import {
   parseEase,
   planGlide,
   scrollTargetTop,
+  sweepDuration,
   watchTint,
 } from "./lyricsGlide.ts";
 
@@ -28,13 +29,8 @@ describe("planGlide", () => {
     expect(planGlide({ ...base, reduced: true })).toEqual({ tint: "snap", scroll: "snap" });
   });
 
-  it("fades a far tint jump (a wrap): the card leaves, the list lands, the card arrives", () => {
-    expect(planGlide({ ...base, tintTravel: 2400 })).toEqual({ tint: "fade", scroll: "land" });
-  });
-
-  it("treats exactly a screen as near, more than a screen as far", () => {
-    expect(planGlide({ ...base, tintTravel: 600 }).tint).toBe("glide");
-    expect(planGlide({ ...base, tintTravel: 601 }).tint).toBe("fade");
+  it("sweeps a far tint jump (a wrap): the card and the list glide together", () => {
+    expect(planGlide({ ...base, tintTravel: 2400 })).toEqual({ tint: "glide", scroll: "glide" });
   });
 
   it("lands a far scroll under a card that has not moved (nothing eases)", () => {
@@ -64,11 +60,21 @@ describe("planGlide", () => {
     expect(at(60000)).toBeLessThanOrEqual(700);
   });
 
-  it("never snaps the scroll under a card that eases: a far scroll fades like a far tint", () => {
+  it("never snaps the scroll under a card that eases: a far scroll sweeps with it", () => {
     expect(planGlide({ ...base, tintTravel: 100, scrollTravel: 3000 })).toEqual({
-      tint: "fade",
-      scroll: "land",
+      tint: "glide",
+      scroll: "glide",
     });
+  });
+
+  it("sweeps a little longer the further it goes, to a limit", () => {
+    const at = (travel: number) => sweepDuration(250, travel, 600);
+    expect(at(100)).toBe(250);
+    expect(at(600)).toBe(250);
+    expect(at(2400)).toBeGreaterThan(250);
+    expect(at(6000)).toBeGreaterThan(at(2400));
+    expect(at(60000)).toBe(at(600000));
+    expect(at(60000)).toBe(400);
   });
 
   it("is still when both still and reduced", () => {
@@ -78,20 +84,18 @@ describe("planGlide", () => {
     });
   });
 
-  it("fades a far tint that comes with no scroll to travel", () => {
+  it("sweeps a far tint that comes with no scroll to travel", () => {
     expect(planGlide({ ...base, tintTravel: 2400, scrollTravel: 0 })).toEqual({
-      tint: "fade",
-      scroll: "land",
+      tint: "glide",
+      scroll: "glide",
     });
   });
 
-  it("treats a scroll of exactly a screen as near", () => {
-    expect(planGlide({ ...base, scrollTravel: 600 }).scroll).toBe("glide");
-    expect(planGlide({ ...base, scrollTravel: 601 }).tint).toBe("fade");
-  });
-
-  it("with no viewport, any travel is far", () => {
-    expect(planGlide({ ...base, viewport: 0 })).toEqual({ tint: "fade", scroll: "land" });
+  it("with no viewport, a far scroll under a still card lands", () => {
+    expect(planGlide({ ...base, viewport: 0, tintTravel: 0, scrollTravel: 5 })).toEqual({
+      tint: "glide",
+      scroll: "snap",
+    });
     expect(planGlide({ ...base, viewport: 0, tintTravel: 0, scrollTravel: 0 })).toEqual({
       tint: "glide",
       scroll: "glide",
@@ -383,40 +387,42 @@ describe("glideLyrics", () => {
     expect(list.scrollTop).toBe(375);
   });
 
-  describe("a far step (a wrap, or a list scrolled far away)", () => {
+  describe("a far step (a wrap, or a list scrolled far away) sweeps", () => {
     // A 300-tall list: the blocks are 800 apart, a far tint jump.
-    it("holds the list while the old card leaves, lands it unseen, then the card arrives", () => {
+    it("glides the card and the list on one clock, a little longer", () => {
       const { list, current } = setup(300);
       glideLyrics(list, { still: true });
       current(1);
       glideLyrics(list, { still: false });
       expect(anims).toHaveLength(1);
-      // Not snapped: the card is fading out where it was, the list under it.
+      const { keyframes, options } = calls[0];
+      expect(keyframes).toHaveLength(25);
+      expect(keyframes.some((k) => "opacity" in k)).toBe(false);
+      expect(options.duration).toBeGreaterThan(250);
+      expect(options.duration).toBeLessThanOrEqual(400);
+      // Scroll 0 to 750 (the last block is centred) rides the progress.
       expect(list.scrollTop).toBe(0);
-      const { keyframes } = calls[0];
-      expect(keyframes[0]).toMatchObject({ opacity: 1, offset: 0 });
-      expect(keyframes[1]).toMatchObject({ opacity: 0, offset: 0.4 });
-      anims[0].progress = 0.3;
-      flush();
-      expect(list.scrollTop).toBe(0);
-      // Between the card's exit and its entrance (offsets 0.4 to 0.6).
       anims[0].progress = 0.5;
       flush();
-      expect(list.scrollTop).toBe(750);
+      expect(list.scrollTop).toBe(375);
       anims[0].finish();
       flush();
       expect(list.scrollTop).toBe(750);
     });
 
-    it("a card that was out of view just fades in, the list landing at once", () => {
+    it("a card that was out of view sweeps in, the list gliding with it", () => {
       const { list, current } = setup();
       glideLyrics(list, { still: true });
       list.scrollTop = 1400; // browsed far away
       current(1);
       glideLyrics(list, { still: false });
+      expect(list.scrollTop).toBe(1400);
+      anims[0].progress = 0.5;
+      flush();
+      expect(list.scrollTop).toBe(950);
+      anims[0].finish();
+      flush();
       expect(list.scrollTop).toBe(500);
-      expect(calls[0].keyframes).toHaveLength(2);
-      expect(calls[0].keyframes[0]).toMatchObject({ opacity: 0 });
     });
   });
 

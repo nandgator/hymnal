@@ -549,18 +549,23 @@ view is close enough to the frame to need a smaller unit.
     the old part to the new as the list scrolls, one motion (a line step keeps
     the tint still and only brightens its line). The card's edges are eased as
     the eye sees them, the scroll added back, so an edge never lunges against
-    the scroll and falls back. A jump of more than a screen (End, a wrap from
-    the last part to the first or back, a distant part, or a list browsed far
-    from the current part) never travels through the song, which at that speed
-    is a smear, and never snaps the list under a card still easing (a jerk): the
-    card fades out where it was, the list lands unseen at the middle of the
-    fade, and the card fades in at its part, all in the medium time; Back to
-    Current is the exception: it always scrolls there, the tint staying put,
-    taking longer the further it goes (the medium time to a screen away, up to
-    450ms more), and it is offered whenever the current part is out of view,
-    including the one a song opens on. A list shown anew (a tab, a split, expand
-    or collapse, another song) lands on the current part at once, and the tint
-    re-measures, never glides, as type size or width changes.
+    the scroll and falls back. A jump of more than a screen (End, Home, a wrap
+    from the last part to the first or back by a digit or a part chip, a distant
+    part, or a list browsed far from the current part) is a sweep: the card is
+    seen travelling from the old part to the new while the list scrolls with it,
+    on one clock and one easing, so the card (eased in screen space between two
+    places that are both on screen) never leaves the view and the text streams
+    under it rather than the list snapping. The leading edge arrives first and
+    the card takes the new part's height as it goes. A sweep takes the medium
+    time up to a screen of travel, then 40ms more for every 1000px, to at most
+    150ms more (400ms), quick but long enough for the eye to follow; reduced
+    motion shows the end state at once. Back to Current is the exception: it
+    always scrolls there, the tint staying put, taking longer the further it
+    goes (the medium time to a screen away, up to 450ms more), and it is offered
+    whenever the current part is out of view, including the one a song opens on.
+    A list shown anew (a tab, a split, expand or collapse, another song) lands
+    on the current part at once, and the tint re-measures, never glides, as type
+    size or width changes.
   - **Height matters too.** WCAG's Reflow sets a width floor (320 CSS px) but no
     single height floor, so the practice is to degrade gracefully. The stage
     needs Live and at least a row of the keypad: under 640px of height (a
