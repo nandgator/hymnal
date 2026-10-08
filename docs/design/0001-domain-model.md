@@ -1,6 +1,7 @@
 # SDD-0001 — Domain Model
 
-- **Status:** Draft
+- **Status:** Accepted; built through Phase 1 (the "noted, not built" items in
+  §8 and the Board aside)
 - **Date:** 2026-09-20
 - **Implements:**
   [ADR-0003](../decisions/0003-model-hymns-as-parts-and-an-occurrence-sequence.md),
@@ -52,7 +53,7 @@ type HymnbookId = string;
 /** Hymn number as printed. Unique within a hymnbook, not globally. */
 type HymnNumber = number;
 
-/** Unique within one hymn, e.g. "s1", "s2", "r". */
+/** Unique within one hymn, e.g. "s1", "s2", "c". */
 type PartId = string;
 
 /**
@@ -112,23 +113,27 @@ interface Hymn {
 }
 ```
 
-Everything in `HymnMeta` is optional. The corpus has almost none of it
+`HymnbookSource` (the book file plus its `format`) and `HymnSource` (a hymn
+without `hymnbookId`) are the shapes the content format stores
+([SDD-0002](0002-content-format.md)). Everything in `HymnMeta` is optional. The
+corpus has almost none of it
 ([ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)), and fields are
 backfilled as they become available rather than invented.
 
-`HymnbookId` stays a human slug, not a synthetic id (e.g. UUID), while the
-content pipeline is the only publisher: a single writer can guarantee uniqueness
-at build time the same way `HymnNumber` uniqueness is checked (I7), so a
-coordination-free scheme buys nothing yet and would cost the slug's legibility
-in URLs, filenames and debug output. Revisit this once the CMS (Board #11)
-allows hymnbooks from more than one contributor — see §8.
+A book file declares its `id` as a slug. On a device the store assigns the key
+(`HymnbookId`): a shipped book keeps its slug, a loaded one gets a UUIDv7, and
+the declared `id` is kept as its origin
+([ADR-0021](../decisions/0021-identify-books-by-the-store-that-holds-them.md),
+SDD-0004 §5). The key stays opaque either way. The slug convention below is the
+file's.
 
-Slug convention: `<ISO 639-3 language>-<publisher>-<title>-<edition>[-<isbn>]`,
-hyphen-separated, e.g. `mal-ymef-athmeeya-geethangal-16` (ISBN omitted when the
-book has none). The id is **opaque**: it is used whole, as a filename, URL
-segment and storage key, and never parsed. Publisher, edition and ISBN live in
-their own fields. Slashes were rejected as separators because they would make
-the id a path rather than a single token.
+File slug convention:
+`<ISO 639-3 language>-<publisher>-<title>-<edition>[-<isbn>]`, hyphen-separated,
+e.g. `mal-ymef-athmeeya-geethangal-16` (ISBN omitted when the book has none).
+The id is **opaque**: it is used whole, as a filename, URL segment, and never
+parsed. Publisher, edition and ISBN live in their own fields. Slashes were
+rejected as separators because they would make the id a path rather than a
+single token.
 
 ### 2.2 Occurrence — derived, never stored
 
@@ -150,7 +155,7 @@ interface Occurrence {
    * hymnal).
    */
   repeatOrdinal: number;
-  /** True when produced by live navigation rather than stored data. */
+  /** True when inserted by an explicit live repeat rather than stored data. */
   isAdHoc: boolean;
 }
 ```
@@ -235,15 +240,25 @@ interface SequenceEngine {
   occurrenceAt(index: number): Occurrence | undefined;
   current(): Occurrence;
 
-  next(): void;
-  previous(): void;
-  nextLine(): void;
-  previousLine(): void;
+  /** `skip` names a part that is always in view (§5.5). */
+  next(skip?: PartId): void;
+  previous(skip?: PartId): void;
+  nextLine(skip?: PartId): void;
+  previousLine(skip?: PartId): void;
+  /** Whether a part step has a showing to go to, or line focus to widen. */
+  hasNext(skip?: PartId): boolean;
+  hasPrevious(skip?: PartId): boolean;
 
   goTo(occurrenceIndex: number, lineIndex?: number | null): void;
 
   /** Move to an occurrence of `partId` in the path; never changes it. */
   jumpToPart(partId: PartId): void;
+
+  /** Sing the current part again: the only way to change the path. */
+  repeatCurrent(): void;
+  canUndoRepeat(): boolean;
+  undoRepeat(): void;
+  resetRepeats(): void;
 }
 ```
 
@@ -270,15 +285,15 @@ had been rather than to the part before `p` in the song):
 - **Back**: `p` appears only earlier. The cursor moves to its most recent
   occurrence, and the song carries on from there.
 
-A repeat is its own, explicit action, `repeatCurrent()` (exposed in the UI with
-part 4, Presentation, together with on-screen cues): an ad-hoc occurrence of the
-current part is inserted right after the cursor and the cursor moves to it
-(`repeatOrdinal` then reads 2, 3, …). `undoRepeat()` takes back the repeat the
-cursor is on: it only applies to an ad-hoc occurrence immediately repeating the
-one before it, removes that entry and returns the cursor to the previous
-showing, on the same line, so the Output (which shows a run of repeats once,
-§16.1) doesn't move. `resetRepeats()` takes back every repeat of the current run
-at once, from any showing in it, likewise keeping the line.
+A repeat is its own, explicit action, `repeatCurrent()` (the Repeat button and
+R, §16.4, §16.5): an ad-hoc occurrence of the current part is inserted right
+after the cursor and the cursor moves to it (`repeatOrdinal` then reads 2, 3,
+…). `undoRepeat()` takes back the repeat the cursor is on (`canUndoRepeat()`
+says whether there is one): it only applies to an ad-hoc occurrence immediately
+repeating the one before it, removes that entry and returns the cursor to the
+previous showing, on the same line, so the Output (which shows a run of repeats
+once, §16.1) doesn't move. `resetRepeats()` takes back every repeat of the
+current run at once, from any showing in it, likewise keeping the line.
 
 ```text
 stored: 1 R 2 R 3 R
@@ -476,7 +491,7 @@ Per [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md). Legacy record:
 | `id`                 | `hymn.number`                                               |
 | `author`             | `hymn.author`, `NULL` when empty (325 hymns)                |
 | `verses[i]`          | Part `s{i+1}`, kind `stanza`, label `{i+1}`                 |
-| `chorus` (non-empty) | Part `r`, kind `chorus`                                     |
+| `chorus` (non-empty) | Part `c`, kind `chorus`                                     |
 | `bridge`             | **Dropped.** Empty in all 1,631 records; survives as a kind |
 | `starts`             | Determines the first sequence entry                         |
 | —                    | `hymn.title` := first line of the first sequence entry      |
@@ -485,8 +500,8 @@ Sequence derivation:
 
 | Legacy shape                     | Count | Sequence                     |
 | -------------------------------- | ----- | ---------------------------- |
-| Chorus + verses                  | 918   | `r, s1, r, s2, r, … sN, r`   |
-| Verses + chorus, starts at verse | 270   | `s1, r, s2, r, … sN, r`      |
+| Chorus + verses                  | 918   | `c, s1, c, s2, c, … sN, c`   |
+| Verses + chorus, starts at verse | 270   | `s1, c, s2, c, … sN, c`      |
 | Verses, no chorus                | 345   | `s1, s2, … sN`               |
 | Chorus only, no verses           | 98    | `s1` — one stanza, no repeat |
 
@@ -494,9 +509,11 @@ The last row is a deliberate reinterpretation. A part that never repeats is not
 a chorus; calling it one was an artefact of the old template switch. These
 become a single stanza with a one-entry sequence.
 
-**Migration output is source, not a build artifact.** It is committed, and
-corrections are applied to it directly. Re-running the migration wholesale would
-discard accumulated corrections, so it must not run as part of the build.
+**Migration output is source, not a build artifact.** Corrections are applied to
+it directly. Re-running the migration wholesale would discard accumulated
+corrections, so it must not run as part of the build. Since ADR-0026 the songs
+are no longer in the repository: `content/` is ignored and local only, and a
+book reaches a device as a container (SDD-0004).
 
 ### 7.1 Output layout and script
 
@@ -533,7 +550,7 @@ record of how the corpus was derived:
   and asserts every non-empty legacy line appears exactly once in the output, in
   order.
 
-The first hymnbook is _Athmeeya Geethangal / Spiritual Hymns_, 16th edition,
+The first hymnbook was _Athmeeya Geethangal / Spiritual Hymns_, 16th edition,
 General YMEF and Premier Bible Publication, 1,631 hymns. No ISBN was found in
 any listing; `isbn` stays absent until the printed copy is checked.
 
@@ -593,11 +610,13 @@ names is gone is shown as needing review, never silently trimmed. Live editing
 ## 9. Content pipeline
 
 Turns `content/<hymnbook-id>/` into `public/content/<hymnbook-id>.sqlite` (Board
-#5). Run as `bun run build:content` (superseded by SDD-0004 (ADR-0026): the
-songs left the repo and the deploy no longer runs it; the script remains for
-building containers): a plain Bun script, independent of Vite, so the future CMS
-(Board #11) can reuse it. It uses `bun:sqlite`: the spike showed FTS5
-tokenisation is identical to the browser's SQLite Wasm build
+#5). Run as `bun run build:content <dir>`. Since SDD-0004 (ADR-0026) the songs
+are not in the repository and nothing is bundled, so the deploy does not run it;
+the script remains for building a package from a book's source directory, and
+the same loading and validation serve `bun run pack` (a container for the
+Library). It is a plain Bun script, independent of Vite, so a future CMS (Board
+#14) can reuse it. It uses `node:sqlite`: the spike showed FTS5 tokenisation is
+identical to the browser's SQLite Wasm build
 ([ADR-0015](../decisions/0015-use-official-sqlite-wasm-not-wa-sqlite.md)), since
 both are the same C code.
 
@@ -629,8 +648,9 @@ repeated chorus is not weighted up.
 
 **Versioning.** `schema_version` gates compatibility with the application. An
 installed copy older than the app's is replaced by the app's own bundled one,
-once (superseded by SDD-0004 (ADR-0026): nothing is bundled); a copy newer than
-the app says the app needs an update (ADR-0025, which took it to 2).
+once (superseded by SDD-0004 (ADR-0026): nothing is bundled; a held older copy
+is migrated in place, SDD-0004 §7); a copy newer than the app says the app needs
+a newer app. The version is 3 (ADR-0025 took it to 2; SDD-0004 §7 to 3).
 `content_hash` is a SHA-256 over the source files (name and bytes, in a fixed
 order), so any lyric correction changes it and the same source always yields the
 same hash. It is deliberately not a build timestamp: rebuilding unchanged
@@ -664,24 +684,23 @@ a plain async interface and never import Comlink or know a worker is involved.
 
 ### 10.2 Provisioning
 
-On worker startup: `sqlite3.installOpfsSAHPoolVfs()`, then check
-`poolUtil.getFileNames()` for `<hymnbook-id>.sqlite3`. If present, open it
-(`new poolUtil.OpfsSAHPoolDb(name)`). If absent — first run, or OPFS was evicted
-(arc42 R4) — fetch the bundled package (a Vite build asset, the exact file §9
-produces) and hand its bytes to `poolUtil.importDb(name, bytes)`, which writes
-it directly; no SQL involved. Superseded by SDD-0004 (ADR-0026): nothing is
-bundled, so there is no build asset to provision from; a book arrives as a
-container through the Library. As first written, Phase 1 had one bundled book
-and no download path, so this only ever provisioned from the build asset.
-Fetched via Vite's `import.meta.env.BASE_URL`, not a root-absolute path — the
-app must still work when served from a subpath, e.g. a GitHub Pages project
-page.
+On worker startup: `sqlite3.installOpfsSAHPoolVfs()` (behind the guards below),
+then the registry is read and the pool's files are reconciled with it (SDD-0004
+§6, §10). Nothing is bundled (ADR-0026) and nothing is fetched from the build: a
+book arrives as a container through the Library, which reads it, shows a review
+and writes the package into the pool (`importDb`) and a row into the registry. A
+held book whose file has gone (OPFS evicted it, arc42 R4) is shown in the
+Library as missing, with Load Again.
 
-A corrupt or partial file is a provisioning failure, reported as a distinct
-state rather than thrown as a generic error, so the app can offer "reinstall
-content" (re-run this same step) instead of crashing — consistent with
+`ContentStore.ensureInstalled` is the older, single-book entry point. The
+Library and the Presenter go through `ContentAdmin.openBook`, which answers with
+a `ContentStatus`: `ready`, `missing-asset`, `corrupt`, `schema-mismatch` or
+`unreadable` (needs reloading, needs a newer app). A corrupt or partial file is
+reported as that distinct state, not thrown, so the app can offer to load the
+book again instead of crashing, consistent with
 [arc42 §8.6](../architecture/arc42.md#86-handling-imperfect-content): never
-silently repair, never guess.
+silently repair, never guess. Where the browser refuses OPFS (a private window)
+the books are held in memory for the session (SDD-0004 §15).
 
 **Decided: the pool is started behind three guards.** sqlite-wasm's
 `installOpfsSAHPoolVfs` has a destructive failure path: when it cannot take a
@@ -723,15 +742,19 @@ general SQL client:
 
 ```ts
 interface ContentStore {
+  ensureInstalled(id: HymnbookId, onProgress?): Promise<ContentStatus>;
   getHymnbook(id: HymnbookId): Promise<Hymnbook>;
-  listHymns(id: HymnbookId): Promise<{ number: number; title: string }[]>;
+  listHymns(id: HymnbookId): Promise<HymnSummary[]>; // { number, title }
   getHymn(id: HymnbookId, number: number): Promise<HymnSource>;
-  searchLyrics(
-    id: HymnbookId,
-    query: string,
-  ): Promise<{ number: number; title: string; snippet: string }[]>;
+  searchLyrics(id: HymnbookId, query: string): Promise<SearchResult[]>; // + snippet
 }
 ```
+
+`ContentAdmin` is the other face of the worker: the registry's books, review and
+commit of a container, backup and restore, removal, the storage mode and
+`close()` (§10.4). The main-thread client (`src/persistence/content-store.ts`)
+keeps one list of songs per book and drops it when a book is replaced, restored
+or removed.
 
 Built on the OO1 API's `selectObjects()`/`exec()`, not raw
 `prepare`/`step`/`finalize` — the official build's query surface is
@@ -757,10 +780,10 @@ shell's use of it.
   store (`releaseContent()`: every connection closed, the pool paused, the
   worker ended), then lets the lock go, and shows the same note itself with its
   own Use Here. The lock is not given up until the store is closed.
-- A holder that is **live** (an Output window is open, or not yet known not to
-  be: the same `presence.live` the update gate uses) refuses with
-  `release-refused`; the asking tab says the other tab is presenting and keeps
-  Use Here for when the Output has closed.
+- A holder that is **live** (an Output window is open, this tab is presenting on
+  its own screen, or neither is yet known not to be: the same `presence.live`
+  the update gate uses) refuses with `release-refused`; the asking tab says the
+  other tab is presenting and keeps Use Here for when the Output has closed.
 - A holder that is **writing** (a Library load, replace or remove in flight, or
   a first install) refuses the same way (reason `saving`); a store is never let
   go mid-write. A review not yet committed is thrown away on release: nothing
@@ -768,6 +791,8 @@ shell's use of it.
   letting go; an asking tab that hears nothing in 5s withdraws its queued lock
   request (so it cannot take the lock later) and says the other tab did not
   answer. Use Here stays offered after each.
+- A holder whose books are in memory (a private window, SDD-0004 §15) cannot
+  hand them over: the note says Use Here would lose them.
 - The Output window is not an app tab: it never opens the store and never takes
   the lock.
 - #32's update takeover is unchanged: presence and `createAppUpdates` live in
@@ -781,8 +806,9 @@ shell's use of it.
 OPFS, Workers and Wasm don't exist in the Bun/vitest environment §9's tests run
 in — this can only be verified in a real browser, the same way Board #1's
 scaffold was. Anything with no browser-only dependency (name mapping, request
-shaping) is unit tested; the worker's OPFS/Wasm glue is not, and is checked by
-hand each time it changes.
+shaping) is unit tested; the worker's OPFS/Wasm glue is not. A Playwright smoke
+suite on three engines (`e2e/`, `bun run test:e2e`) loads a book in a real
+browser and covers it; the rest is checked by hand when it changes.
 
 ## 11. Persistence — user state
 
@@ -790,11 +816,10 @@ Board #6 part 2. The second store from
 [ADR-0008](../decisions/0008-sqlite-as-the-on-device-content-store.md): small,
 mutable, irreplaceable, via `idb` on the main thread — no OPFS, no Worker, plain
 `IndexedDB`. Per [ADR-0012](../decisions/0012-drop-the-bookmark-helper.md), user
-state is preferences, recents, last position and installed hymnbooks. This part
-builds the two Board #8/#9 already had a caller for — **last position** and
-**recents** — plus **preferences**, added in Board #10 once the display-settings
-board actually needed them (SDD-0001 §15). Installed-hymnbook tracking still
-gets its own shape when a board needs it.
+state is preferences, recents, last position and installed hymnbooks. Which
+books are installed is not user state after all: the registry holds them
+(SDD-0004 §6). User state holds **recents**, **preferences** and **last
+position**, which is stored and has no reader yet.
 
 **One object store, one document.** A few hundred bytes, never queried, no
 relations — an idb object store named `state` holding a single record at a fixed
@@ -806,6 +831,11 @@ owns, and writes it back.
 interface Preferences {
   theme: "system" | "light" | "dark";
   fontScale: number;
+  // All optional; absent means the default. The Output and shell ones are
+  // named where they are specified (§15, §16): panes, workspace, scrollSync,
+  // outputTheme, outputCues, bandSize, pinChorus, wholeSong, highlight,
+  // goLive, outputScreen, and the once-only hints (homeScreenHintDismissed,
+  // dragHintDismissed, fullscreenHintDismissed).
 }
 
 interface UserState {
@@ -813,10 +843,14 @@ interface UserState {
   setLastPosition(position: Position): Promise<void>;
   getRecents(): Promise<RecentEntry[]>;
   addRecent(hymnbookId: HymnbookId, hymnNumber: HymnNumber): Promise<void>;
+  dropRecents(hymnbookId: HymnbookId): Promise<void>; // a removed book's
   getPreferences(): Promise<Preferences>;
   setPreferences(preferences: Preferences): Promise<void>;
 }
 ```
+
+The shell also holds the handle's `mode()` (`idb` or `memory`), the
+memory-fallback listener and `reset()` (§11.1).
 
 `lastPosition` reuses the domain's own `Position` (§3) verbatim — it already is
 "one address space, used everywhere," so persisting it is a straight round-trip,
@@ -829,11 +863,10 @@ rather than a configurable one.
 `Preferences` is unconditionally readable — `getPreferences` always resolves,
 defaulting to `DEFAULT_PREFERENCES` (`{ theme: "system", fontScale: 1 }`) rather
 than `undefined`, because every render needs a value to apply and there's no
-meaningful "unset" state to show. Unlike `lastPosition` when it was first built
-(§11 originally, before Board #10), this write has an immediate reader the
-moment it's added — `Settings` applies it on load — so persisting it doesn't
-repeat the "write with no reader yet" mistake Board #9 avoided for
-`setLastPosition` (§14). `setLastPosition` itself stays unwired regardless.
+meaningful "unset" state to show. The shell applies it at start-up
+(`createPreferences`, `src/shell/Settings.tsx`), whether or not Settings is
+open. `setLastPosition` stays unwired: nothing offers a "resume" entry point to
+read it (§14).
 
 **Testing.** Unlike the content store, plain `IndexedDB` has a faithful
 in-memory implementation (`fake-indexeddb`), so this is fully unit tested — no
@@ -879,46 +912,34 @@ failed open, a blocked upgrade, a failed write, and the notice shown once.
 
 ## 12. Library
 
-Board #7. arc42 §5.1 defines Library as "list, install, remove hymnbooks; know
-which are available offline" — but Phase 1 shipped exactly one hymnbook, bundled
-at build time, with no download path (§10.2; superseded by SDD-0004 (ADR-0026):
-nothing is bundled, every book is loaded through the Library). With nothing to
-choose between, Library is narrowed to the one thing that's real today: the
-first-run provisioning gate.
+Board #7, then Board #28. arc42 §5.1 defines Library as "list, install, remove
+hymnbooks; know which are available offline". What it shows and does (the list
+of books, loading containers, the review, remove, Back Up and Restore, Try the
+Sample) is [SDD-0004 §9](0004-loading-books.md#9-the-library); how it is drawn
+is `visual/DESIGN.md` § The Library. Phase 1 first shipped one bundled book and
+a provisioning gate; nothing is bundled now (ADR-0026) and every book is loaded
+through the Library.
 
-`src/library/Library.tsx` calls `ContentStore.ensureInstalled` for the one
-bundled `HymnbookId` on mount (a Solid `createResource`), and renders one of
-three states:
+`src/library/Library.tsx` is one of the shell's two sections (§16.4). It takes
+the `Books` list from the shell (`createBooks`), the current key, the presented
+key (the book on the Output, which cannot be removed while live) and callbacks:
+`onChoose`, `onOpen` (a tap on a row, which aims the Finder at that book),
+`onEndLive`, `onStorageRefused`, `onNotice` and `onRestore`. It does not
+navigate itself.
 
-- **pending** — `Loading…`.
-- **error** — a message specific to the failing `ContentStatus`
-  (`missing-asset`, `corrupt`, `schema-mismatch`), plus a **Retry** button that
-  re-runs provisioning. This is arc42 §8.6's "offer reinstall content instead of
-  crashing," concretely.
-- **ready** — the hymnbook's title, hymn count and edition. This is the entire
-  "know which are available offline" answer while there's only one book to know
-  about.
-
-**Not built:** a list/picker UI, install, remove, or any persisted notion of
-"installed hymnbooks" — user state's `installed` field (§11) stays unbuilt for
-the same reason. All of it returns as its own decision once a second hymnbook
-exists, rather than being guessed at now. Navigation to Finder/Presenter (Board
-#8/#9) is also not wired yet — there is nothing to navigate to.
-
-**Navigation, once there is something to navigate to,** will be Solid signal
-state (a `view` union swapping which component renders), not a router — Phase 1
-is single-device with no deep-linking requirement
+**Navigation is a Solid signal, not a router.** `App.tsx` holds
+`section: "present" | "library"`. Present shows the Finder when no song is up
+and the Presenter when one is; Library shows the Library. There is no
+deep-linking requirement
 ([ADR-0012](../decisions/0012-drop-the-bookmark-helper.md) dropped bookmarking
-in favour of recents + last position), and a router is a dependency with nothing
-to spend it on yet.
+in favour of recents). With no book held the Library is where the app is:
+Present needs a book.
 
-**Testing.** `Library` takes the `Books` list, the current key, and an `admin`
-and `userState` as optional props, defaulting to `getContentAdmin()` and the
-`userState` singleton: tests inject fakes instead of touching the real
-Worker/OPFS, so every state (loading, installing, each failure, empty, listed,
-unreadable, each review verdict, remove) is unit tested despite the underlying
-store not being (§10.5). `BUNDLED_HYMNBOOK_ID` is gone: nothing assumes one book
-(SDD-0004 §10).
+**Testing.** `Library` takes `admin` and `userState` as optional props,
+defaulting to `getContentAdmin()` and the `userState` singleton: tests inject
+fakes instead of touching the real Worker/OPFS, so every state (loading,
+installing, each failure, empty, listed, unreadable, each review verdict,
+remove) is unit tested despite the underlying store not being (§10.5).
 
 ## 13. Finder
 
@@ -929,63 +950,55 @@ is one search box with no mode toggle: all-digit input is a hymn number
 (`ContentStore.searchLyrics`). The input shape decides the path, matching how
 people actually search a hymnal ("I know it's 42" vs. "how does it start").
 
-**Number lookup is direct, not a results list.** `getHymn` either succeeds — in
-which case the hymn is immediately selected, no extra click — or fails, reported
-as "No hymn numbered N." There is nothing to disambiguate: a number identifies
-at most one hymn.
+**Number lookup is direct, not a results list.** Enter on a number hands it to
+`onSelect` at once. A number with no hymn still opens, and the Presenter reports
+it ("No song numbered N."). There is nothing to disambiguate: a number
+identifies at most one hymn.
 
-**Lyric search matching** (moved into `content-store.worker.ts`'s
-`searchLyrics`, replacing the whole-phrase placeholder from §10.3): each word
-becomes a quoted FTS5 prefix term (`"word"*`), joined with spaces for implicit
-AND. A query matches lines containing all the words, regardless of order, and
-matches as the user finishes typing a word. Each term is quoted (not merely
-escaped) so FTS5 query-syntax characters in free text can't break the query —
-the same defence the placeholder had, kept. **Capped at 30 results**
-(`SEARCH_LIMIT`): found by browser-testing against the real corpus — a common
-word matches hundreds of hymns, and `rank` ordering doesn't help a caller that
-renders every row. The snippet is the first line containing any query word,
-since a multi-word query can match across different lines of the same hymn.
+**Lyric search matching** (in `content-store.worker.ts`'s `searchLyrics`): each
+word becomes a quoted FTS5 prefix term (`"word"*`), joined with spaces for
+implicit AND. A query matches lines containing all the words, regardless of
+order, and matches as the user finishes typing a word. Each term is quoted (not
+merely escaped) so FTS5 query-syntax characters in free text can't break the
+query. **Capped at 30 results** (`SEARCH_LIMIT`): found by browser-testing
+against the real corpus — a common word matches hundreds of hymns, and `rank`
+ordering doesn't help a caller that renders every row. The snippet is the first
+line containing any query word, since a multi-word query can match across
+different lines of the same hymn.
 
-**Search as you type** (revised in Board #12, at the maintainer's request: "what
-if I want to see the options while I type"). The box is an ARIA combobox over a
-live results list; the fast path is unchanged — type `11`, Enter, and hymn 11
-opens.
+**Search as you type** (Board #12, at the maintainer's request: "what if I want
+to see the options while I type"). The box is an ARIA combobox over a live
+results list; the fast path is unchanged — type `11`, Enter, and hymn 11 opens.
+There is no Find button.
 
-- **Numbers** suggest instantly from `listHymns` (already loaded for recents):
-  the exact number first, then numbers that start with what's typed, ascending,
-  eight at most — each with its title, so the right hymn is visible before
-  choosing. A number with no hymn still opens on Enter, and Presenter reports
-  it, as before.
-- **Lyrics** search as the typing pauses (about 200ms), or at once on Enter; the
-  previous results stay up while the next load, so the list doesn't flicker.
-- **Keys:** ↑/↓ move the highlighted option, Enter (or Find) takes it — the top
-  one unless moved — and Escape clears the query. While the box is empty the
-  Finder shows Recents (this book's, when there are any) and, below them, the
-  book's first songs by number (twenty: "From the start", or "Songs" when the
-  book has no more), each opening on a tap. With no recents the Recents heading
-  and its "No recent songs yet" line are not shown; they stay where the book has
-  no song list to show instead. A line under the field says which book is
-  searched.
+- **Numbers** suggest instantly from `listHymns`: the exact number first, then
+  numbers that start with what's typed, ascending, eight at most
+  (`NUMBER_SUGGESTIONS`) — each with its title, so the right hymn is visible
+  before choosing.
+- **Lyrics** search as the typing pauses (about 200ms, `LYRIC_DEBOUNCE_MS`), or
+  at once on Enter; the previous results stay up while the next load, so the
+  list doesn't flicker.
+- **Keys:** ↑/↓ move the highlighted option, Enter takes it — the top one unless
+  moved — and Escape clears the query (a second Escape reaches the sheet and
+  closes it). While the box is empty the Finder shows Recents (this book's, when
+  there are any, as the shared `RecentsList`) and, below them, the book's first
+  songs by number (twenty, `OPENING_SONGS`: "From the start", or "Songs" when
+  the book has no more), each opening on a tap. With no recents the Recents
+  heading is not shown. A line under the field says which book is searched.
 - While focus is in the box, the Presenter's shortcuts are off (§16.5): arrow
   keys that move the highlight must never also move the Output.
 
-**Picking a hymn** (from a number lookup, a search result, or a recent) hands
-its number straight to an `onSelect(number)` callback and nothing else. **Finder
-never opens or renders the hymn**, and — revised in Board #9 — it no longer
-records it as recent either: `userState.addRecent` moved to Presenter, because a
-hymn picked in Finder isn't necessarily opened, and a search result clicked by
-mistake shouldn't count as "recently viewed." Recording happens where a hymn is
-actually opened; see §14. `hymns()` off `ContentStore.listHymns`, requested once
-per mount, still backs the title shown for each recent — `RecentEntry` (§11)
-only carries `hymnNumber`.
+**Where it appears.** The Finder fills Present when no song is up. With a song
+up, the same Finder is the picker sheet that the crumb's song button (and
+Presenter's Back to Search) opens, and, with `commands` listed ahead of the
+results, the command menu (§16.5). `compact` is the Present Here quick switcher
+(§16.7).
 
-**Navigation.** `App.tsx` holds the `view` signal promised in §12:
-`"library" | "finder" | "presenter"`. `Library` gains an `onReady` callback prop
-— its ready state now also renders a "Find a hymn" button that calls it — and
-`App` uses it to flip `view` to `"finder"`. `Finder`'s `onSelect` flips `view`
-to `"presenter"` and carries the chosen number in a second `App`-level signal.
-Still no router (§12) — `Presenter`'s own "Back to Search" flips `view` back to
-`"finder"` directly, not through history.
+**Picking a hymn** hands its number to `onSelect(number)` and nothing else.
+**Finder never opens or renders the hymn**, and does not record it as recent:
+`addRecent` happens in Presenter once a hymn has loaded, because a hymn picked
+in Finder isn't necessarily opened (§14). The shell's `chooseHymn` sets the
+number and its book together and shows Present.
 
 **Testing.** `Finder` takes `hymnbookId`, `store` and `userState` as optional
 props, same pattern as `Library` — tests inject fakes for both, covering number
@@ -993,79 +1006,57 @@ lookup, lyric search (results and no-match), recents (empty and populated,
 title-resolved), and that picking a hymn — by number, by search result, or from
 recents — calls `onSelect` with its number. The FTS5 matching and result-cap
 logic itself is worker code, not unit tested for the same reason as the rest of
-`content-store.worker.ts` (§10.5) — verified by hand against the real corpus,
-including confirming the 30-result cap holds for a deliberately common word.
+`content-store.worker.ts` (§10.5).
 
 ## 14. Presenter
 
-Board #9. arc42 §5.2 decomposes Presenter into Sequence Engine (§5, already
-built and pure), Occurrence Resolver (folded into the engine's `occurrenceAt` —
-a separate component bought nothing extra), Renderer and Focus Controller.
+Board #9. arc42 §5.2 decomposes Presenter into Sequence Engine (§5, pure),
+Occurrence Resolver (folded into the engine's `occurrenceAt`: a separate
+component bought nothing extra), Renderer and Focus Controller.
 `src/presenter/Presenter.tsx` covers the latter two: it loads the picked hymn,
-wraps it in a `SequenceEngine`, and renders the current occurrence.
+wraps it in a `SequenceEngine`, publishes the current occurrence to the Output
+(§16.1) and draws the Operator's side of it (§16.4).
 
-**Opening records the recent, not picking.** Board #8 originally had Finder call
-`userState.addRecent` on selection; trying it end to end showed that was wrong —
-merely searching (or misclicking a result) isn't "viewing" a hymn. `Presenter`'s
-`createResource` fetcher calls `store.getHymn`, and only once that succeeds does
-it call `addRecent`. A hymn number that doesn't resolve shows
-`No hymn numbered N.` and a way back to Finder, the same shape as Library's
-error state (§12) — mirrored here since `Presenter`, not `Finder`, is now the
-only place that actually knows whether a hymn opens.
+**Opening records the recent, not picking.** Merely searching (or misclicking a
+result) isn't "viewing" a hymn. The `createResource` fetcher calls
+`store.getHymn`, and only once that succeeds does it call `addRecent`. A hymn
+number that doesn't resolve shows `No song numbered N.` and a Back to Search
+button, which opens the picker: `Presenter`, not `Finder`, is the one place that
+knows whether a hymn opens.
 
 **Reactivity over a plain engine.** `SequenceEngine` is deliberately not a Solid
 primitive (§5: pure, no framework). `Presenter` wraps it with a `version` signal
-bumped after every mutating call (`next`, `previous`, `nextLine`,
-`previousLine`, `jumpToPart`); memos for the current occurrence and cursor read
-`version()` first, so touching it invalidates them. This keeps the engine
-importable and testable with zero DOM, at the cost of one signal bump per
-navigation.
+bumped after every mutating call; memos for the current occurrence, cursor, runs
+and Lyrics blocks read `version()` first, so touching it invalidates them. This
+keeps the engine importable and testable with zero DOM, at the cost of one
+signal bump per navigation.
 
-**Default focus on arrival is whole-part**, confirming §5.4's open question now
-that there's something on screen to try it against: `lineIndex` stays `null`
-until the presenter explicitly steps into a line with `nextLine`.
+**Default focus on arrival is whole-part**, which settled §5.4's open question
+once there was something on screen to try it against: `lineIndex` stays `null`
+until the presenter steps into a line.
 
-**Recurrence cue (R4) is a text label**, not a color or a background change —
-legibility in the room (arc42 quality goal #2) rules out relying on color at
-distance or in bright venue light. A repeated part's heading gets `(repeat)`, or
-`(final repeat)` on its last showing
-(`recurrenceIndex + 1 === totalRecurrences`). A "Show repeat cues" checkbox
-hides the label entirely: raised directly by the maintainer — a song leader
-deliberately skipping or reordering parts finds a cue tracking the _stored_
-order actively misleading once they've departed from it. The toggle is a plain
-Solid signal, not persisted — nothing yet reads a saved preference, and Board
-#11's `installed`-style deferral (§11, §12) applies here too: don't build the
-general mechanism before a second consumer needs it.
+**The recurrence cue is a text label**, never a colour or a background change:
+legibility in the room (arc42 quality goal #2) rules out relying on colour at
+distance. The model is `repeatOrdinal` (§2.2), not the `recurrenceIndex` /
+`totalRecurrences` / "final repeat" first built here, which fired on ordinary
+verse-chorus structure (§16.2). The Repeat count (×2) shows on the Operator
+beside Repeat and Undo (§16.4), and on the Output as the opt-in Repeat count cue
+(§16.1).
 
-**Revised in §16**: this section's `recurrenceIndex`/`totalRecurrences`/ "final
-repeat" model fired on ordinary verse-chorus structure, not just genuine repeats
-— see §2.2 and §5.2 for the corrected, evidenced definition (`repeatOrdinal`,
-adjacency-only).
+**Overriding the sequence (R6)**: the Parts keypad calls `jumpToPart` directly,
+one key per part (§5.1). Lyrics, the list of the hymn in sung order, calls
+`goTo(i)` or `goTo(i, line)` and never `jumpToPart`. Repeat, Undo and Reset are
+the only things that change the path.
 
-**Overriding the sequence (R6) is in scope now**, not deferred: a "Parts" list
-next to the renderer calls `SequenceEngine.jumpToPart` directly, one button per
-part. This is the same mechanism a presenter uses to jump ahead past a chorus
-the leader skips, or back to one sung again unexpectedly — the engine already
-inserts an ad-hoc occurrence and recomputes recurrence correctly for it (§5.2,
-§5.3), verified against the real corpus: jumping to a stanza a second time
-correctly shows `(final repeat)` even though that part never repeats in the
-stored sequence.
-
-**Not built:** `setLastPosition` stays unwired — recording it on every
-navigation would be write-only state with no reader, since nothing offers a
-"resume" entry point yet (§11 already flagged this the same way for `addRecent`,
-before Board #9 gave it one). Responsive layout and any real typography are
-Board #10's "phone → large display" (arc42 §1.1 R8); this board's markup is
-plain, semantic, and unstyled.
+**Not built:** `setLastPosition` stays unwired. Recording it on every navigation
+would be write-only state with no reader, since nothing offers a "resume" entry
+point (§11).
 
 **Testing.** `Presenter` takes `hymnbookId`, `store` and `userState` as optional
 props, same pattern as `Library`/`Finder` — unit tests cover loading, the error
 state, opening on the first occurrence with the whole part focused, `addRecent`
-firing once on open, part and line navigation, the repeat cue appearing/hiding,
-and jump-to-part's recurrence math. Verified by hand in a real browser against
-hymn 1 (a real 7-stanza hymn with an 8-times-repeated chorus): search does not
-touch recents, opening does, recents survive a reload, and the cue and "final
-repeat" wording match the engine's actual recurrence count end to end.
+firing once on open, part and line navigation, repeat, undo and reset, the tab
+groups and jump-to-part's recurrence math.
 
 ## 15. PWA shell, deployment, and responsive presentation
 
@@ -1073,36 +1064,32 @@ Board #10. arc42 R7 (offline), R8 (phone → large display) and §8.7
 (user-controlled scale and contrast) — the last Phase 1 board, closing what
 every prior board deliberately left unstyled and undeployed.
 
-**Deployment.** There was no CI at all — the archived implementation's GitHub
-Pages workflow wasn't carried over. `.github/workflows/deploy.yml` adds one:
-`bun run check` (gate on it — the first CI this project has ever had is not the
-place to skip that), `bun run build:content` (superseded by SDD-0004 (ADR-0026):
-dropped from the deploy), `bun run build`, then the standard
-`actions/{configure-pages,upload-pages-artifact, deploy-pages}` sequence.
-`vite.config.ts` first set `base: "/hymnal/"` for the production build — GitHub
-Pages serves a project page from that subpath, not the domain root, which is
-exactly what the `BASE_URL` fix in §10.2 already anticipated for the content
-fetch. The site has since moved to a custom domain, which serves from the root,
-so `BASE` now comes from the `BASE_PATH` env var and defaults to `"/"`
-(`BASE_PATH=/hymnal/` restores the subpath build). One thing this caught:
-`vite preview` reports `command: "serve"`, same as dev, even though it serves
-the already-built `dist/` output whose URLs are baked in at that base — the
-config keys off `isPreview`, not `command`, or preview requests 404 on every
-asset.
+**Deployment.** `.github/workflows/deploy.yml` builds and publishes to GitHub
+Pages: `bun install --frozen-lockfile`, `bun audit` (a high or critical advisory
+stops the deploy, ADR-0030), `bun run check` (the gate), the sample's files
+fetched from a release by hash (SDD-0004 §16), `bun run build`, then the
+standard `actions/{configure-pages,upload-pages-artifact,deploy-pages}`
+sequence, with a Playwright job (`bun run test:e2e`) beside it. `build:content`
+is not run: no songs are in the repository (ADR-0026). The site is on a custom
+domain, which serves from the root, so `vite.config.ts` takes `BASE` from the
+`BASE_PATH` env var and defaults to `"/"` (`BASE_PATH=/hymnal/` restores a
+project-page subpath build). `vite preview` reports `command: "serve"`, same as
+dev, even though it serves the already-built `dist/` whose URLs are baked in at
+that base, so the config keys off `isPreview`, not `command`, or preview
+requests 404 on every asset.
 
 **Service worker and manifest via `vite-plugin-pwa`** (Workbox-based), matching
 this project's habit of leaning on a maintained library over hand-rolled
 infrastructure (`idb`, `comlink`, `@sqlite.org/sqlite-wasm`). Its precache is
 the **app shell only** — JS, CSS, HTML, fonts, and `sqlite3*.wasm` — never
-`public/content/*.sqlite`, excluded by `globIgnores`. That split isn't cosmetic:
-the content package is `ContentStore`'s job, fetched once and persisted to OPFS
-itself (§10.2), and at 5.5MB it would bloat the shell's own install-time cache
-for no benefit. The wasm binary _is_ shell, not content — sqlite3's own runtime,
-without which nothing else works — and was missing from the precache glob on the
-first pass; caught only by testing genuinely offline against the production
-build (`vite preview`, `page.context().setOffline(true)`), the same "no faithful
-polyfill, must verify by hand" limitation as the rest of the OPFS/Worker layer
-(§10.5).
+`content/**`, excluded by `globIgnores`. That split isn't cosmetic: books are
+the content store's job, loaded into OPFS by the Library (§10.2), and would
+bloat the shell's own install-time cache for no benefit. The wasm binary _is_
+shell, not content — sqlite3's own runtime, without which nothing else works —
+and was missing from the precache glob on the first pass; caught only by testing
+genuinely offline against the production build (`vite preview`,
+`page.context().setOffline(true)`), the same "no faithful polyfill, must verify
+by hand" limitation as the rest of the OPFS/Worker layer (§10.5).
 
 **Updates (Board #32).** `registerType` is `"prompt"`, not `"autoUpdate"`, which
 skipped waiting and reloaded at once, deleting the old version's files under a
@@ -1147,58 +1134,48 @@ so a manual choice wins either direction — the same three-state pattern
 (`system` defers to the OS; `light`/`dark` override it) used anywhere a user
 preference should coexist with a system default.
 
-**Responsive scaling is continuous, not breakpoint-driven**, for R8 — for
-content only since [ADR-0017](../decisions/0017-fix-the-interface-scale.md),
-which fixes the interface at the browser's size times `fontScale`. As first
-built, the root font size was `clamp(1rem, 0.85rem + 0.6vw, 1.75rem)`, so a
-phone and a large display sit on the same curve rather than jumping between
-fixed layouts. `Preferences.fontScale` multiplies that clamp directly, so the
-user's chosen size and the viewport-driven size compose rather than fight —
-confirmed by hand: a large viewport with a bumped scale produces a
-proportionally wider reading column too, since the column's own max-width is set
-in `rem`. One hard breakpoint exists at `60rem`, not to change the type scale
-but to cap line length — a large display run wall-to-wall would violate
-legibility (quality goal 2) by making lines too long to track, the opposite
-problem from a phone.
+**The interface scale is fixed, the content's is not** (R8), since
+[ADR-0017](../decisions/0017-fix-the-interface-scale.md): the root font size is
+the browser's size times `--font-scale` (`calc(100% * var(--font-scale))` in
+`styles.css`), and a window's size changes the layout, never the size of the
+interface. Content that scales with the screen says so itself: `.hymn-text` (a
+`clamp()` on the viewport) and the Output. `Preferences.fontScale` is the user's
+multiplier, set by A−/A+ in Settings and by + and − (§16.5). As first built, the
+root font size was itself a viewport `clamp()`, with a hard breakpoint at
+`60rem` to cap line length; both went with ADR-0017.
 
-**`Settings` (`src/shell/Settings.tsx`) is the "user-controlled text scale and
-contrast" (§8.7) UI** — a font-scale stepper and a theme cycle, rendered once in
-`App.tsx` above the view `Switch`, not per-view, since legibility matters in
-Library and Finder too, not only Presenter. It reads and writes
+**`Settings` (`src/shell/Settings.tsx`) holds the "user-controlled text scale
+and contrast" (§8.7) and the rest of the settings.** It is a sheet, opened from
+the foot of the section rail and by Ctrl/⌘+, (on a phone the Menu sheet holds
+the sections and the same settings), with these sections in order: Display
+(theme, text size), Workspace (the panes, the tab split), Presentation (§16.1,
+§16.7), Backup (SDD-0006), Keyboard (a row that opens the shortcut sheet) and
+About (§16.10), the last. It has a search over its settings. It reads and writes
 `UserState.preferences` (§11) and applies the result as `--font-scale` and
-`data-theme` on `document.documentElement` — global CSS state, not
-component-local, because every view's styling depends on it.
+`data-theme` on `document.documentElement` — global CSS state, because every
+view's styling depends on it. The shell applies it at start-up, so it holds
+whether or not the sheet is open.
 
-**Typography is data-driven, now for real.** Noto Serif Malayalam (OFL-licensed,
-reused from the archived implementation, converted from its variable-weight TTF
-to a single ~65KB woff2) is bundled as a `@font-face` in `styles.css` and
-applied via a `.hymn-text` class scoped to lyric content in `Presenter`, not the
-whole app — UI chrome (buttons, labels) stays on a system font stack. Fonts are
-bundled, never fetched from a CDN (arc42 §8.3), so this ships in the app-shell
-precache with everything else. Malayalam is the only script Phase 1 has; a
-second hymnbook's script picks its own font when that board arrives, per
-hymnbook data rather than hardcoded here.
+**Typography.** Hymnal Sans (Google Sans, subset and renamed, SIL OFL; about
+80KB woff2) is bundled as a `@font-face` in `styles.css` and used for both UI
+chrome and hymn text, with Noto Sans Malayalam named after it in
+`--font-family-hymn` as a fallback (`visual/DESIGN.md` § Typography). Fonts are
+bundled, never fetched from a CDN (arc42 §8.3), so they ship in the app-shell
+precache with everything else. This replaced Noto Serif Malayalam (§16.3).
 
-**Full keyboard navigation (§8.8)** was added to `Presenter`: arrow keys for
-fine control (`ArrowDown`/`ArrowUp` step a line, `ArrowLeft`/`ArrowRight` step a
-part), plus `PageUp`/`PageDown` since that's what most presentation remotes and
-clickers actually send. A `window` keydown listener is added/removed with the
-component's lifecycle (`onMount`/`onCleanup`); Space was deliberately left
-unbound to avoid double-firing the "Show repeat cues" checkbox when it has
-focus.
+**Keyboard navigation (§8.8)** is the keymap of §16.5: arrows, Page Up/Down and
+Space among them, one table (`src/shell/keymap.ts`). Handlers are added and
+removed with the component's lifecycle (`onMount`/`onCleanup`).
 
-**Icons and favicon** (`public/icons/`, `public/favicon.svg`) are likewise
-reused from the archived implementation, rasterized fresh from its SVG source
-rather than hand-drawn new — a placeholder worth keeping until real branding
-exists, not a design decision.
+**Icons and favicon** (`public/icons/`, `public/favicon.svg`) were reused from
+the archived implementation, rasterized fresh from its SVG source rather than
+hand-drawn: a placeholder worth keeping until real branding exists, not a design
+decision.
 
-**Not built:** a distinct "presentation mode" that hides Presenter's own
-controls for a large display facing a congregation — considered and declined.
-Phase 1 is single-device (scope guard); whoever sees the screen is the one
-operating it, and a chrome-less audience-facing view is really the deferred
-projector-output feature (ADR-0011), not a responsive-layout concern. True
-`maskable` icon variants (safe-zone padding, not just a square PNG) are also
-deferred until real app icons exist to need it.
+**Presentation mode is built**, as the Output (§16.1) and Present Here (§16.7),
+which Board #10 had declined as the deferred projector feature (ADR-0011). **Not
+built:** true `maskable` icon variants (safe-zone padding, not just a square
+PNG), deferred until real app icons exist to need it.
 
 **Testing.** `Settings` and the `UserState.preferences` accessors are unit
 tested the normal way (fakes, `fake-indexeddb`). Everything else here — service
@@ -1238,32 +1215,37 @@ display and makes fullscreen. State flows Operator → Output over a
 App-level Solid state — the channel itself has no reason to be a component.
 
 **Lifecycle**: the Output connection lives above `Presenter` (opened once per
-service from `App`-level state, or earlier from Library/Finder), not owned by
-`Presenter`'s own mount/unmount. `Presenter` just **publishes** its current
-position whenever it's mounted; Output shows a neutral/blank state otherwise. A
-real service has many hymns — reopening and repositioning an Output window
-between every single one would be a genuine operational failure, not a minor
-inconvenience.
+service from `App`-level state), not owned by `Presenter`'s own mount/unmount.
+`Presenter` just **publishes** its current position whenever it's mounted;
+Output shows a neutral/blank state otherwise. **While live, the song stays
+mounted** (hidden) when the Operator goes to another section, such as the
+Library, so the Output keeps the song and its place, the keys still drive it,
+and a book can be loaded mid-service without touching it; N, a tab of the hidden
+screen, does nothing there. It unmounts, and the Output goes idle, only when not
+live. A real service has many hymns — reopening and repositioning an Output
+window between every single one would be a genuine operational failure, not a
+minor inconvenience.
 
-**Content rule — Mode 1, continuous scroll** (supersedes an earlier 2-line
-sliding-window draft): Output renders the whole effective sequence as one
-scrolling column of lines (`flattenLines()`), the focus brightened and centred,
-everything else dimmed. The focus mirrors the Operator's exactly: under
-whole-part focus the **whole part** is brightened, and a line step narrows it to
-one line. An earlier draft brightened only the first line under whole-part
-focus, and that made the first Down press after entering a part invisible to the
-audience. A focus taller than the screen is aligned to its first line instead of
-centred. Scrolling is native `scrollTo({ behavior: "smooth" })` on a real
-overflow container, not a hand-rolled transform: smooth scroll runs at roughly
-constant velocity, so a one-line step and a whole-part jump both take a duration
-proportional to their distance for free. A new hymn snaps instantly rather than
-scrolling from the previous one. **Parts are set apart by a gap** (about half a
-line), as in a printed hymnal, so the congregation can see where a verse ends
-and the chorus begins: a shape, not a label, so it needs no language. **No part
-label, no recurrence cue unless the operator turns one on** — those are Operator
-aids; a cue tracking the _stored_ order has no meaning to a congregation
-watching lyrics. Cues (hymn number, title, hymnbook, part, repeat ×N) are
-opt-in, one switch each (by default the number and hymnbook, fading after a few
+**Content rule — Mode 1, continuous scroll** (the Part by part layout; the other
+layout, Whole song, is SDD-0005) (supersedes an earlier 2-line sliding-window
+draft): Output renders the whole effective sequence as one scrolling column of
+lines (`flattenLines()`), the focus brightened and centred, everything else
+dimmed. The focus mirrors the Operator's exactly: under whole-part focus the
+**whole part** is brightened, and a line step narrows it to one line. An earlier
+draft brightened only the first line under whole-part focus, and that made the
+first Down press after entering a part invisible to the audience. A focus taller
+than the screen is aligned to its first line instead of centred. Scrolling is
+native `scrollTo({ behavior: "smooth" })` on a real overflow container, not a
+hand-rolled transform: smooth scroll runs at roughly constant velocity, so a
+one-line step and a whole-part jump both take a duration proportional to their
+distance for free. A new hymn snaps instantly rather than scrolling from the
+previous one. **Parts are set apart by a gap** (about half a line), as in a
+printed hymnal, so the congregation can see where a verse ends and the chorus
+begins: a shape, not a label, so it needs no language. **No part label, no
+recurrence cue unless the operator turns one on** — those are Operator aids; a
+cue tracking the _stored_ order has no meaning to a congregation watching
+lyrics. Cues (hymn number, title, hymnbook, part, repeat ×N) are opt-in, one
+switch each (by default the number, hymnbook and part, fading after a few
 seconds): the number as a badge top left (for printed songbooks), the part as a
 small marker attached to its part, above its first line, start-aligned with the
 part's text and scrolling with it (the whole-song markers' type: 0.55 of the
@@ -1374,8 +1356,8 @@ decides.
   and becomes a band fixed to the viewport where the focus's part sat, one part
   tall by default: lines light as they pass through it, whichever part they
   belong to. Nothing jumps as a trackpad glides. The band can instead be one
-  line tall (`bandSize`): a Workspace preference in Settings,
-  `preferences.bandSize` (part by default), sent to the Output in the
+  line tall (`bandSize`): "Highlight while scrolling" in Settings' Presentation
+  section, `preferences.bandSize` (part by default), sent to the Output in the
   `presentation` message and toggled from the command menu, with no key (§16.5).
 - **On rest, a seek.** Once scrolling pauses (about 200ms), the Output posts
   `{ type: "seek", hymnbookId, number, line, whole }`: the flattened line at the
@@ -1386,8 +1368,8 @@ decides.
   carries on from there. Its next publish ends the band.
 - **Only a person's scroll counts.** The Output's own programmatic re-centring
   never arms a seek, or every step would echo back.
-- **The Operator may say no.** Sync is a Workspace setting, "Scrolling the
-  Output moves the Operator", on by default, kept as `preferences.scrollSync`
+- **The Operator may say no.** Sync is a Presentation setting, "Scrolling the
+  Output moves this screen", on by default, kept as `preferences.scrollSync`
   (absent means on). Off, the Presenter ignores seeks. A seek naming a different
   hymn than the one open is ignored too.
 - **Drift back is the fallback.** The Output returns to the focus 1s after a
@@ -1396,15 +1378,15 @@ decides.
 - **Keys in the Output act as in the Operator.** With the Output fullscreen on
   the projector, a clicker's keys often land in its window. The Output forwards
   the keys that act on the presentation (no Ctrl, ⌘ or Alt) as
-  `{ type: "key", key, shiftKey }` instead of scrolling itself, and the Operator
-  replays them through its own keymap (§16.5), so arrows, Space, digits, C, R,
-  U, B, H, Shift+H and Shift+E do exactly what they do there. Each keymap entry
-  has a scope, `presentation` or `operator`, and only the presentation ones are
-  forwarded. The Operator's own keys stay in the Output: N (next tab), L (Live
-  pane), O (Output window), Shift+P (Present here), `/` (search), `?`, Ctrl+K,
-  Ctrl+, and the text size are the Operator's screen, not the audience's, and
-  Esc is the browser's (it leaves fullscreen). F leaves or enters fullscreen
-  there.
+  `{ type: "key", key, shiftKey, repeat? }` instead of scrolling itself, and the
+  Operator replays them through its own keymap (§16.5), so arrows, Space,
+  digits, C, R, U, B, H, Shift+H and Shift+E do exactly what they do there (R
+  and U ignore a key held down). Each keymap entry has a scope, `presentation`
+  or `operator`, and only the presentation ones are forwarded. The Operator's
+  own keys stay in the Output: N (next tab), L (Live pane), O (Output window),
+  Shift+P (Present here), `/` (search), `?`, Ctrl+K, Ctrl+, and the text size
+  are the Operator's screen, not the audience's, and Esc is the browser's (it
+  leaves fullscreen). F leaves or enters fullscreen there.
 - **Live never seeks.** The Operator's Live pane stays a picture that takes no
   input, so a stray swipe over the Operator can't move the audience screen;
   Lyrics is the Operator's own way to go to a line.
@@ -1562,26 +1544,29 @@ workspace, the dock.
 - **Revised for Board #26: areas, not navigators.** The Parts | Lyrics switch
   goes. The Operator has fixed areas, each answering one question: **What they
   see** (Live, its controls and the part keypad: a rail on the right from
-  840px), **This hymn** (the lyrics in sung order, tap to go live) and **Coming
+  840px), **This Song** (the lyrics in sung order, tap to go live) and **Coming
   up** (Recents now, the service queue with Board #22), plus the dock. A future
-  feature joins the area it belongs to rather than adding a row: Hold (#21) and
-  follow status (ADR-0010) under Live, a stage output (#25) in Live's outputs
-  and the Go live button, Follow in the dock. Parts calls `jumpToPart` (§5.1);
-  lyrics call `goTo(i)` or `goTo(i, line)`, never `jumpToPart`, since moving
-  within the path isn't a deviation. Scrolling lyrics never calls the engine.
-- **Two tab groups.** This hymn, Recents and (later) Queue are **tabs** in at
+  feature joins the area it belongs to rather than adding a row: follow status
+  (ADR-0010) under Live, a stage output (#25) in Live's outputs and the Go live
+  button, Follow in the dock. Hold (#21) is built, in Live's toolbar (§16.6).
+  Parts calls `jumpToPart` (§5.1); lyrics call `goTo(i)` or `goTo(i, line)`,
+  never `jumpToPart`, since moving within the path isn't a deviation. Scrolling
+  lyrics never calls the engine.
+- **Two tab groups.** This Song, Recents and (later) Queue are **tabs** in at
   most two **groups**, side by side (split) or merged into one tabbed area. Each
   group's heading ends in a pane toolbar, after VS Code's and Zed's: **Expand**
   to main or **Collapse** to the side, **Move** a tab to the other group (a ⋯
   menu, only in a group of several tabs: a lone tab's move would just close its
   group), **Close group** (its tabs join the other; nothing is lost); merged,
-  **Split**. Drag comes later. A group left empty closes; splitting with every
-  tab in one group moves one not showing across. While a menu is open the
-  Operator's keys stand down, so an arrow never moves the Output. The **main**
-  group takes the room, so the queue can have it while a service is planned.
-  This hymn never closes: it's the controls, like the dock. Under 1400px wide
-  the groups merge by themselves and split again when there's room. What they
-  see and the dock never move.
+  **Split**. Drag is not built. Closing and splitting glide each group to its
+  new width (`areaGlide.ts`), not a View Transition, whose cross-faded snapshots
+  blurred the text. A group left empty closes; splitting with every tab in one
+  group moves one not showing across. While a menu is open the Operator's keys
+  stand down, so an arrow never moves the Output. The **main** group takes the
+  room, so the queue can have it while a service is planned. This Song never
+  closes: it's the controls, like the dock. Under 1400px wide the groups merge
+  by themselves and split again when there's room. What they see and the dock
+  never move.
 
   ```ts
   type TabId = "hymn" | "recents"; // "queue" joins with Board #22
@@ -1595,7 +1580,7 @@ workspace, the dock.
 
   Kept as `preferences.workspace` in `UserState` (§11); absent means the default
   (`[["recents"], ["hymn"]]`, main 1, split). A stored layout is normalised on
-  read: an unknown tab is dropped, a missing one joins the main group, This hymn
+  read: an unknown tab is dropped, a missing one joins the main group, This Song
   is always present. `preferences.navigator` and the `sidebar` pane are retired;
   Live stays a hideable pane (L), and the pane registry (`src/shell/panes.ts`)
   keeps the Settings, command menu and keymap entries in one place.
@@ -1608,8 +1593,8 @@ workspace, the dock.
   never holds it.
 - **Supporting panes stay data, not layout code**: the registry above, plus the
   tab list. With no Live on screen (Live hidden, or another section), the
-  Blanked badge (§16.5) sits at the end of the switcher row, space nothing else
-  uses, so a blanked audience screen is never out of sight and nothing shifts.
+  header's live button still reads **Blanked** or **Held** (below), so a blanked
+  audience screen is never out of sight and nothing shifts.
 - **Go live → On air** (Board #26 part 3b). Whether an Output window is open is
   known, not guessed: each Output sends `hello` with its own id on opening (and
   in answer to the Operator's `ping`, so a reloaded Operator finds it) and `bye`
@@ -1651,12 +1636,12 @@ workspace, the dock.
   all the transport's tonal buttons. Present Here (Shift+P) is always there: not
   live it presents in this tab (whatever Go Live opens says); with an Output
   window open it closes the window and presents in this tab, as the old menu row
-  did. Blank, Hold and End Live wait, disabled, while not live. Go Live itself
-  decides between the Output window and presenting here by the Go Live opens
-  setting (§16.7).
-- **The Live pane's control is "Hide Live Preview"**, not "Hide Live", so it is
-  never confused with ending Live: it hides the preview (the pane toggle, **L**,
-  Settings' "Show Live Preview") and does nothing to the Output.
+  did. Hold and End Live wait, disabled, while not live; Blank does not (§16.5).
+  Go Live itself decides between the Output window and presenting here by the Go
+  Live opens setting (§16.7).
+- **Hiding Live is "Hide Live Preview"**, never "Hide Live", so it is not
+  confused with ending Live: the pane toggle (**L**, Settings' "Show Live
+  Preview", the command menu) hides the preview and does nothing to the Output.
 - **Hot-swap.** The hymnbook and hymn are the Operator's inputs, not its
   identity. Choosing another from the switcher row or the command menu replaces
   the engine in place: a new `SequenceEngine` for the new hymn, the cursor at
@@ -1687,38 +1672,47 @@ The keymap was reviewed at Board #20: a letter goes to what's done mid-song
 clickers send arrows, Page Up/Down, and `.` or `B` for a black screen, so those
 work too.
 
-| Keys                    | Action                          |
-| ----------------------- | ------------------------------- |
-| → Page Down Space       | Next part                       |
-| ← Page Up Shift+Space   | Previous part                   |
-| ↓ ↑                     | Next / previous line            |
-| Home End                | First / last part               |
-| 1–9, two digits quickly | Jump to stanza _n_ (§5.1)       |
-| C                       | Jump to the chorus              |
-| R                       | Repeat this part                |
-| U                       | Undo the last repeat            |
-| B or .                  | Blank the Output / restore      |
-| O                       | Open or focus the Output window |
-| Shift+E                 | End Live: close the Output      |
-| Shift+H                 | Hold the Output / release       |
-| Shift+P                 | Present on this screen (§16.7)  |
-| F, Esc                  | Leave presenting here (§16.7)   |
-| N                       | Next tab (see below)            |
-| L                       | Show or hide Live Preview       |
-| / or Ctrl/⌘+K           | Command menu: hymns and actions |
-| + −                     | Operator text size              |
-| ?                       | Shortcut sheet                  |
-| Ctrl/⌘+,                | Settings                        |
-| Esc                     | Close a sheet or menu           |
+| Keys                    | Action                          | Scope        |
+| ----------------------- | ------------------------------- | ------------ |
+| → Page Down Space       | Next part                       | presentation |
+| ← Page Up Shift+Space   | Previous part                   | presentation |
+| ↓ ↑                     | Next / previous line            | presentation |
+| Home End                | First / last part               | presentation |
+| 1–9, two digits quickly | Jump to stanza _n_ (§5.1)       | presentation |
+| C                       | Jump to the chorus              | presentation |
+| R                       | Repeat this part                | presentation |
+| U                       | Undo the last repeat            | presentation |
+| B or .                  | Blank the Output / restore      | presentation |
+| H                       | Light the whole song / the part | presentation |
+| Shift+H                 | Hold the Output / release       | presentation |
+| Shift+E                 | End Live: close the Output      | presentation |
+| F, Esc                  | Leave presenting here (§16.7)   | presentation |
+| O                       | Open or focus the Output window | operator     |
+| Shift+P                 | Present on this screen (§16.7)  | operator     |
+| N                       | Next tab (see below)            | operator     |
+| L                       | Show or hide Live Preview       | operator     |
+| / or Ctrl/⌘+K           | Command menu: hymns and actions | operator     |
+| + −                     | Operator text size              | operator     |
+| ?                       | Shortcut sheet                  | operator     |
+| Ctrl/⌘+,                | Settings                        | operator     |
+| Esc                     | Close a sheet or menu           | operator     |
 
 - **One table, two owners.** The table is data (`src/shell/keymap.ts`,
   `SHORTCUTS`), rendered by the `?` sheet and read by every other place a key
   shows, so none can disagree: a control's tooltip and `aria-keyshortcuts`, and
   the command menu's hints all derive from it, with no hardcoded key strings.
   The shell handles the keys that work on every screen (B, O, Shift+E, Shift+H,
-  L, /, Ctrl/⌘+K, +, −, ?); the Presenter handles the ones that move an engine
-  (parts, lines, stanzas, chorus, R, U) and N, which switches tabs inside the
-  Presenter's own workspace.
+  Shift+P, H, L, /, Ctrl/⌘+K, +, −, ?); the Presenter handles the ones that move
+  an engine (parts, lines, stanzas, chorus, R, U) and N, which switches tabs
+  inside the Presenter's own workspace.
+- **Every entry has a scope.** `presentation` keys act on what the audience
+  sees; `operator` keys act on the Operator's own screen. `isPresentationKey` is
+  the one test of it. The Output window forwards only presentation keys (Esc is
+  the browser's there), and Present Here, whose tab is the audience's screen,
+  lets only those through to the shell and Presenter: it swallows the Operator's
+  own keys (N, L, text size, `?`, Ctrl/⌘+,) in the capture phase, and O, Shift+E
+  and Shift+P as well (§16.7). While the song is live in another section the
+  presentation keys still drive it.
 - **Keys follow the layout.** A control with a key shows it in its tooltip
   ("Repeat this part (R)"); on a phone (under 840px, usually no keyboard)
   tooltips carry no key hint, though `aria-keyshortcuts` stays. A command-menu
@@ -1760,9 +1754,11 @@ behind it, and restore shows wherever they are. It's a separate channel message,
 laying out and positioning the hymn underneath, and fades the text out to the
 bare background, so restore is instant and already in place. Late join replays
 both the last content and the blank state. The state lives in the shell, not the
-Presenter, so it survives a hot-swap. The Operator shows it: the Live preview
-dims, with a **Blanked** badge that restores on a tap, and the command menu
-lists Blank or Restore.
+Presenter, so it survives a hot-swap. **Blank arms before Go Live**: the control
+and key work with no Output open, and the window opens already blank. The
+Operator shows it: the Live preview dims to the Output's ground, the Blank
+control reads **Restore**, the header's live button reads **Blanked**, and the
+command menu lists Blank or Restore.
 
 **Command menu** (Ctrl/⌘+K or `/`): one box over hymns and actions. It is the
 Finder (§13) with actions listed ahead of the hymn results: an action shows when
@@ -1772,11 +1768,15 @@ With the box empty, the actions show, each with its key. Actions: Blank or
 Restore the Output, Hold or Release the Output (while one is open), Open the
 Output Window (Bring the Output forward, while one is open), End Live (while one
 is open), Present on this screen (§16.7; not while an Output window is open),
-Next tab, Split or merge the tabs and Make the other tab group main (only where
-two groups fit, from 1400px; they glide as the pane toolbar's do), Show or hide
-each pane, Switch hymnbook, Library, Settings, Text size up and down, Keyboard
-shortcuts, and the Output's band size. Repeat and Undo repeat show R and U; Show
-the details now has no key.
+Repeat this part, Undo repeat and Reset repeat (while there is one to take
+back), Next tab, Split or merge the tabs and Make the other tab group main (only
+where two groups fit, from 1400px; they glide as the pane toolbar's do), Show or
+hide Live Preview, Show or hide each cue on the Output, Show the details now,
+the Output's band size, Light the whole song or only the current part, Scroll
+the song or Show the whole song, Fade or Keep the details, Switch hymnbook,
+Library, About (Settings scrolled to it), Settings, Text size up and down,
+Keyboard shortcuts, and a line to dismiss or act on a pending notice (Restart to
+update). Repeat and Undo repeat show R and U; Show the details now has no key.
 
 ### 16.6 Hold
 
@@ -1847,13 +1847,13 @@ the app's own tab, fullscreen, with the Operator's state its only source.
   button's tooltip says what it will do under the setting. Present here has no
   button of its own. The explicit choices remain: the commands "Open the Output
   Window" (O) and "Present on This Screen" (Shift+P, a chord, so a stray key
-  cannot take the tab over), and, while an Output window is open, the **Present
-  Here** button of Live's toolbar (§16.4), which closes the window and then
-  presents here once its `bye` has landed (the click's activation still serves
-  fullscreen). It needs a book, as Go Live does (a song may be chosen from the
-  switcher), and is **not offered while an Output window is open**: one
-  audience, one place. An Output window that opens or answers late while
-  presenting here ends presenting here.
+  cannot take the tab over), and the **Present Here** button of Live's toolbar
+  (§16.4), which is always there: with an Output window open it closes the
+  window and then presents here once its `bye` has landed (the click's
+  activation still serves fullscreen). It needs a book, as Go Live does (a song
+  may be chosen from the switcher). The key and the command are **not offered
+  while an Output window is open**: one audience, one place. An Output window
+  that opens or answers late while presenting here ends presenting here.
 - **What it shows.** `PresentHere` (`src/output/PresentHere.tsx`) renders the
   same `OutputView` as the Output window, full-bleed over the shell
   (`position: fixed`, above everything, the shell `inert` underneath), in the
@@ -1870,10 +1870,12 @@ the app's own tab, fullscreen, with the Operator's state its only source.
   the song's title show on air (`Presence.here`, `src/shell/updates.ts`).
 - **Driving it.** The keys are the Output window's forwarded keys, handled
   directly by the shell and the Presenter (steps, lines, C, R, U, B, H, Home,
-  End); nothing is duplicated. `PresentHere` owns only what the Operator's
-  window would not: it takes, in the capture phase, the keys that would open a
-  sheet over the audience (`?`, Ctrl/⌘+,), Go Live, End Live and Present here
-  (O, Shift+E, Shift+P), and the switcher's keys.
+  End); nothing is duplicated. Each keymap entry has a scope (§16.5) and only
+  `presentation` ones pass. `PresentHere` owns the rest: it takes, in the
+  capture phase, the keys that would open a sheet over the audience (`?`,
+  Ctrl/⌘+,), Go Live, End Live and Present here (O, Shift+E, Shift+P), the
+  switcher's keys, and every other Operator key (N, L, text size), which would
+  change the screen under the audience's view.
 - **The quick switcher.** Ctrl/⌘+K or `/` opens the search field at the bottom
   centre, with no card (30rem at most, five matches at most, the box beneath the
   list), on a full-width band of the Output's ground over a blur that rises a
@@ -1947,9 +1949,10 @@ at 390×844 and dark is a hand check.
 ### 16.10 About, and what a beta tester needs
 
 Board #49, with #17 and #16 in part; moved by Board #54. **About** is the last
-section of Settings, after Keyboard (it was a pane of the sidebar, after
-Library: the sections are Present and Library only). The command menu's "About"
-opens Settings scrolled to it. It holds, in this order:
+section of Settings, after Keyboard (`src/shell/About.tsx`). It was once a
+section of the sidebar, after Library; the sidebar now has Present and Library
+only. The command menu's "About" opens Settings scrolled to it. It holds, in
+this order:
 
 1. **The app.** Its name, a line on what it is, and the build (`__APP_BUILD__`,
    SDD-0001 §16.9), selectable.
@@ -1958,12 +1961,13 @@ opens Settings scrolled to it. It holds, in this order:
    no tracking and no cookies. The site is hosted on GitHub Pages, which logs
    visitors' IP addresses under GitHub's own privacy statement._ (ADR-0030.)
 3. **Your books.** _The books you load are yours to load: you answer for having
-   the right to use them. The sample books that ship with the app are in the
-   public domain, and each song says why._ (PLAN Log, 2026-10-06; #43.) The
-   second sentence shows only once a sample ships.
+   the right to use them._ Then, only where the build offers the sample: _The
+   sample books offered in the Library are in the public domain, and each song’s
+   record says why_, with a link to the sample’s rights (PLAN Log, 2026-10-06;
+   #43; SDD-0004 §16).
 4. **Report a problem.** **Copy Diagnostics** (the button keeps its label and
-   its width; a snackbar says "Diagnostics copied", or "Couldn't copy the
-   diagnostics"), then **Report a Problem**, which opens `REPORT_URL`
+   its width; the shell's snackbar answers "Diagnostics copied", or "Couldn’t
+   copy the diagnostics"), then **Report a Problem**, which opens `REPORT_URL`
    (`src/config.ts`) in a new tab with nothing attached: the user pastes what
    they copied, if they choose. Diagnostics are the build, the user agent, the
    screen size, whether storage is persisted and its estimate, the store's mode
