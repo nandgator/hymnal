@@ -6016,3 +6016,12 @@ fieldset.book-main {
   padding: 0;
   list-style: none;
 }
+
+/* The song kept mounted while live in another section (App.tsx): no box of
+   its own when shown, none at all when hidden. */
+.presenter-host {
+  display: contents;
+}
+.presenter-host[hidden] {
+  display: none;
+}

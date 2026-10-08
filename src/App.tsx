@@ -1452,7 +1452,18 @@ function Operator(props: Shared) {
                   />
                 )}
               </Match>
-              <Match when={section() === "present" && hymnNumber() && presentedKey()}>
+            </Switch>
+            {/* The song stays mounted while live in another section, so the
+                Output keeps it and its place (the keys still drive it); it
+                unmounts, blanking the Output, only when not live. */}
+            <Show
+              when={
+                hymnNumber() &&
+                presentedKey() &&
+                (section() === "present" || presentingOutput() || presentingHere())
+              }
+            >
+              <div class="presenter-host" hidden={section() !== "present"}>
                 <Presenter
                   hymnNumber={hymnNumber() as HymnNumber}
                   hymnbookId={presentedKey() as string}
@@ -1466,6 +1477,7 @@ function Operator(props: Shared) {
                   onPresentHere={switchToHere}
                   outputWindow={presentingOutput()}
                   presenting={presentingOutput() || presentingHere()}
+                  away={section() !== "present"}
                   panes={preferences.preferences().panes}
                   workspace={preferences.preferences().workspace}
                   onWorkspaceChange={(workspace) =>
@@ -1482,8 +1494,8 @@ function Operator(props: Shared) {
                   liveLandscape={outputLandscape()}
                   highlight={highlightOf(preferences.preferences())}
                 />
-              </Match>
-            </Switch>
+              </div>
+            </Show>
           </main>
         </div>
 

@@ -1129,6 +1129,30 @@ describe("App", () => {
       output.close();
     });
 
+    it("loads a book mid-service without touching the Output", async () => {
+      const { output, seen } = await liveOutput();
+      fireEvent.keyDown(window, { key: "r" });
+      await waitFor(() => expect(contents(seen).at(-1)?.repeat).toBe(2));
+      const shown = JSON.stringify(contents(seen).at(-1));
+      seen.length = 0;
+      const sections = within(screen.getByRole("navigation", { name: "Sections" }));
+      fireEvent.click(sections.getByRole("button", { name: "Library" }));
+      await booksReady();
+      fireEvent.change(screen.getByTestId("book-file"), {
+        target: { files: [new File(["x"], "hof.hymnbook.json.gz")] },
+      });
+      const dialog = within(await screen.findByRole("dialog", { name: "Load Books" }));
+      fireEvent.click(dialog.getByRole("button", { name: "Load Book" }));
+      await within(screen.getByRole("list", { name: "Books" })).findByRole("button", {
+        name: /^Hymns of Fellowship/,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(seen.filter((m) => m.type === "idle")).toEqual([]);
+      expect(contents(seen).every((m) => JSON.stringify(m) === shown)).toBe(true);
+      expect(screen.getByRole("button", { name: "On Air" })).toBeInTheDocument();
+      output.close();
+    });
+
     it("End Live cancels the Hold", async () => {
       const { output, seen } = await liveOutput();
       fireEvent.keyDown(window, { key: "H", shiftKey: true });

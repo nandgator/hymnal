@@ -134,6 +134,10 @@ export interface PresenterProps {
   onEndLive?: () => void;
   /** An Output window is open: Live's dot is the on-air light. */
   presenting?: boolean;
+  /** Kept mounted but hidden while the Operator is in another section and
+   * the Output is live, so the song keeps its place; its keys act only
+   * while live, and N (a tab of this screen) not at all. */
+  away?: boolean;
   /** The Output is a window (not this tab): Present Here's tooltip says it
    * closes it (SDD-0001 §16.7). */
   outputWindow?: boolean;
@@ -390,11 +394,13 @@ export function Presenter(props: PresenterProps) {
   // shell handles the keys that work on every screen.
   const onKeyDown = (event: KeyboardEvent) => {
     if (ignoresShortcuts(event)) return;
+    if (props.away && !props.presenting) return;
     // Space is Next part even on a focused button, so a clicker never
     // re-presses the last chip tapped; radios and checkboxes keep it.
     if (event.key === " " && event.target instanceof HTMLInputElement) return;
     const key = event.key.toLowerCase();
     if (key === "n" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      if (props.away) return;
       event.preventDefault();
       nextTab();
       return;
@@ -519,6 +525,8 @@ export function Presenter(props: PresenterProps) {
   // meaning (PRINCIPLES.md, motion explains change).
   let lastStep: string | undefined;
   let lastEngine: SequenceEngine | undefined;
+  // Hidden in another section: nothing to measure; shown again, it lands.
+  let wasAway = false;
   createEffect(() => {
     version();
     expanded();
@@ -526,11 +534,18 @@ export function Presenter(props: PresenterProps) {
     groups();
     const lineIndex = cursor()?.lineIndex;
     const step = `${cursor()?.occurrenceIndex}:${lineIndex}`;
+    if (props.away) {
+      wasAway = true;
+      lastStep = step;
+      lastEngine = engine();
+      return;
+    }
     // A step glides; the same step again lands at once, and so does a song
     // shown anew: its engine arrives after the hymn number changes, with the
     // cursor back at the start, which is not a step.
     const current = engine();
-    const still = step === lastStep || current !== lastEngine;
+    const still = step === lastStep || current !== lastEngine || wasAway;
+    wasAway = false;
     lastStep = step;
     lastEngine = current;
     for (const chip of document.querySelectorAll<HTMLElement>(
