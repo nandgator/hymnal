@@ -24,8 +24,8 @@ usually broken one of these, not lacked a feature. Sources at the end.
    and faded text there. Selected is a fill, not a fill plus a tick that shifts
    the label.
 7. **Elevation means something.** Resting surfaces are flat and tonal; only what
-   floats above the page (menus, the command palette, a snackbar) casts a
-   shadow, from a two- or three-step scale. If everything floats, nothing does.
+   floats above the page (menus, the command menu, a snackbar) casts a shadow,
+   from a two- or three-step scale. If everything floats, nothing does.
 8. **Labels earn their place.** Text that restates what the control already
    shows ("Jump to any part" above a keypad) is noise.
 
@@ -35,9 +35,9 @@ usually broken one of these, not lacked a feature. Sources at the end.
    present; during it, to move on. The loudest control is the one the moment
    needs, and a one-off action becomes a status once done.
 2. **Motion explains change.** Expanding, collapsing, closing, splitting and
-   opening the palette animate from where they start to where they end, quickly
-   (200–300ms, emphasised easing), and never for decoration. Reduced-motion
-   users get the end state.
+   opening the command menu animate from where they start to where they end,
+   quickly (200–300ms, emphasised easing), and never for decoration.
+   Reduced-motion users get the end state.
 3. **Rhythm.** Gaps between areas, above them and below them are the same
    number. Edges line up across areas.
 4. **Words match the user's world.** "Song" where a worship leader would say

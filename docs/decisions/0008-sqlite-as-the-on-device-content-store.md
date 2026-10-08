@@ -1,6 +1,8 @@
 # 0008 — SQLite as the on-device content store
 
-- **Status:** Accepted
+- **Status:** Accepted. The library choice is superseded by
+  [ADR-0015](0015-use-official-sqlite-wasm-not-wa-sqlite.md); the two-store
+  split stands
 - **Date:** 2026-09-20
 
 ## Context and Problem Statement

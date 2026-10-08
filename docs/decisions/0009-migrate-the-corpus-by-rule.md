@@ -1,6 +1,6 @@
 # 0009 — Migrate the corpus by rule, refine in place
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0026](0026-songs-leave-the-repository.md)
 - **Date:** 2026-09-20
 
 ## Context and Problem Statement

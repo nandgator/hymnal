@@ -1,6 +1,7 @@
 # 0018 — Import songs through a layout-aware pipeline, command line first
 
-- **Status:** Accepted
+- **Status:** Accepted. The in-browser import path is superseded by
+  [ADR-0024](0024-import-case-by-case.md): the app loads format 1 only
 - **Date:** 2026-09-27
 
 ## Context and Problem Statement

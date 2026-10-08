@@ -1,6 +1,8 @@
 # 0011 — Defer multi-device sync and projector output
 
-- **Status:** Deferred
+- **Status:** Deferred. Projector output is superseded by
+  [ADR-0028](0028-put-the-output-on-the-projector-screen.md); multi-device sync
+  stays deferred
 - **Date:** 2026-09-20
 
 ## Context and Problem Statement

@@ -4,8 +4,9 @@ Following the [arc42](https://arc42.org) template. Sections are populated where
 decided and marked `OPEN:` where not, so the gaps are visible rather than
 implied.
 
-- **Status:** Phase 1 design, pre-implementation
-- **Last updated:** 2026-09-24
+- **Status:** Phase 1 built; in beta at
+  [hymnal.sagaveracity.com](https://hymnal.sagaveracity.com)
+- **Last updated:** 2026-10-08
 
 ---
 
@@ -17,12 +18,12 @@ publish them. Songs come from what the user imports, kept on their device, and
 from books the user loads, never bundled with the app
 ([ADR-0020](../decisions/0020-present-songs-do-not-publish-them.md), ADR-0026).
 
-The existing implementation (now under [`archive/`](../../archive/)) generated
-1,631 frozen HTML slide decks at build time. Every hymn was a static file, the
-hymnal's name was compiled into a Rust binary, search matched only on hymn
-number, and no state survived a page load. It proved the content was worth
-having and that the presentation idea worked. It could not become the system
-described here, which is why it was archived rather than refactored
+The earlier implementation (since removed from the tree; it lives in git
+history) generated 1,631 frozen HTML slide decks at build time. Every hymn was a
+static file, the hymnal's name was compiled into a Rust binary, search matched
+only on hymn number, and no state survived a page load. It proved the content
+was worth having and that the presentation idea worked. It could not become the
+system described here, which is why it was archived rather than refactored
 ([ADR-0002](../decisions/0002-rebuild-from-a-clean-slate.md)).
 
 ### 1.1 Requirements Overview
@@ -44,29 +45,28 @@ described here, which is why it was archived rather than refactored
 
 Recorded so scope creep stays visible:
 
-| Deferred                                               | Rationale                                                                                                                                                           |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Multi-device live sync                                 | [ADR-0011](../decisions/0011-defer-multi-device-sync-and-projector-output.md)                                                                                       |
-| Projector / external display output                    | [ADR-0011](../decisions/0011-defer-multi-device-sync-and-projector-output.md)                                                                                       |
-| Audio follow — announcement detection, lyric alignment | Phase 2; [ADR-0010](../decisions/0010-model-liveness-as-pluggable-follow-sources.md)                                                                                |
-| Native app packaging                                   | [ADR-0006](../decisions/0006-defer-the-native-wrapper-decision.md)                                                                                                  |
-| Transliteration — search and display across scripts    | [ADR-0014](../decisions/0014-defer-transliteration.md)                                                                                                              |
-| Bookmarks                                              | [ADR-0012](../decisions/0012-drop-the-bookmark-helper.md)                                                                                                           |
-| Content authoring / editing UI                         | Corpus is corrected by rule and by hand for now; [ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)                                                        |
-| Song import in the browser                             | Needs a review screen and a second book on the device; the CLI importer comes first — [ADR-0018](../decisions/0018-import-songs-through-a-layout-aware-pipeline.md) |
+| Deferred                                               | Rationale                                                                                                                                                                                                          |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Multi-device live sync                                 | [ADR-0011](../decisions/0011-defer-multi-device-sync-and-projector-output.md)                                                                                                                                      |
+| Audio follow — announcement detection, lyric alignment | Phase 2; [ADR-0010](../decisions/0010-model-liveness-as-pluggable-follow-sources.md)                                                                                                                               |
+| Native app packaging                                   | [ADR-0006](../decisions/0006-defer-the-native-wrapper-decision.md)                                                                                                                                                 |
+| Transliteration — search and display across scripts    | [ADR-0014](../decisions/0014-defer-transliteration.md)                                                                                                                                                             |
+| Bookmarks                                              | [ADR-0012](../decisions/0012-drop-the-bookmark-helper.md)                                                                                                                                                          |
+| Content authoring / editing UI                         | Books are built outside the app and reviewed without edit; [ADR-0029](../decisions/0029-others-build-their-books-the-format-is-the-contract.md), [ADR-0027](../decisions/0027-review-a-book-without-editing-it.md) |
+| Importing a PDF or deck in the browser                 | The app loads format 1 only; import runs in the CLI, case by case — [ADR-0024](../decisions/0024-import-case-by-case.md)                                                                                           |
 
 ### 1.2 Quality Goals
 
 Ordered. Where two conflict, the higher one wins — this ordering is the single
 most useful thing in the document.
 
-| #   | Goal                                         | Why it ranks here                                                                                                               | Concretely                                                                        |
-| --- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 1   | **Lyrical correctness**                      | A wrong word projected in front of a congregation is the only truly unrecoverable failure. Everything else is an inconvenience. | Content is validated at build time; the app never silently repairs malformed data |
-| 2   | **Legibility in the room**                   | If it can't be read from the back, or in sunlight, it has failed at its one job                                                 | Malayalam shaped correctly at every size; contrast and scale are user-controlled  |
-| 3   | **Offline reliability**                      | Venue networks are unreliable or absent, and the need is _during_ a service                                                     | No network call is on any critical path after install                             |
-| 4   | **Retrieval speed**                          | Hymns are announced with no warning and everyone waits for the operator                                                         | Number → on screen in under 3 seconds, no network                                 |
-| 5   | **Extensibility across books and languages** | The corpus is one book today; the model is worthless if a second book requires reworking it                                     | A new hymnbook is data, not code                                                  |
+| #   | Goal                                         | Why it ranks here                                                                                                               | Concretely                                                                                      |
+| --- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1   | **Lyrical correctness**                      | A wrong word projected in front of a congregation is the only truly unrecoverable failure. Everything else is an inconvenience. | Content is validated when packed and when loaded; the app never silently repairs malformed data |
+| 2   | **Legibility in the room**                   | If it can't be read from the back, or in sunlight, it has failed at its one job                                                 | Malayalam shaped correctly at every size; contrast and scale are user-controlled                |
+| 3   | **Offline reliability**                      | Venue networks are unreliable or absent, and the need is _during_ a service                                                     | No network call is on any critical path after install                                           |
+| 4   | **Retrieval speed**                          | Hymns are announced with no warning and everyone waits for the operator                                                         | Number → on screen in under 3 seconds, no network                                               |
+| 5   | **Extensibility across books and languages** | The corpus is one book today; the model is worthless if a second book requires reworking it                                     | A new hymnbook is data, not code                                                                |
 
 Note what is _absent_: raw runtime performance, visual novelty, and feature
 breadth. This is a reading and presenting tool used under mild time pressure by
@@ -87,13 +87,13 @@ people who are not thinking about software.
 
 ### 2.1 Technical
 
-| Constraint                      | Consequence                                                                                    |
-| ------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Local-first, no backend service | No accounts, no server-side search, no sync. All state is on-device                            |
-| Static hosting only             | Content packages are fetched as plain files; no dynamic API exists                             |
-| Browser runtime                 | Storage, fonts and text rendering are subject to browser policy — notably storage eviction     |
-| Malayalam script                | Requires correct complex-text shaping; rules out naive text measurement and hand-rolled layout |
-| Target device floor             | A mid-range Android phone, several years old — not a development laptop                        |
+| Constraint                      | Consequence                                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Local-first, no backend service | No accounts, no server-side search, no sync. All state is on-device                             |
+| Static hosting only             | The app and the sample are plain files; no dynamic API exists. Books come from the user's files |
+| Browser runtime                 | Storage, fonts and text rendering are subject to browser policy — notably storage eviction      |
+| Malayalam script                | Requires correct complex-text shaping; rules out naive text measurement and hand-rolled layout  |
+| Target device floor             | A mid-range Android phone, several years old — not a development laptop                         |
 
 ### 2.2 Organisational
 
@@ -138,16 +138,20 @@ The dotted edge is the only external dependency at runtime, and it is optional.
 Superseded by SDD-0004 (ADR-0026): nothing is bundled, so no hymnbook ships
 inside the application (was
 [ADR-0007](../decisions/0007-bundle-the-core-hymnbook.md)); books are loaded
-from container files through the Library.
+from container files through the Library. The one fetch left is the
+public-domain sample, from the app's own site and only when asked (Try the
+Sample, SDD-0004 §16).
 
 ### 3.2 Technical Context
 
-| Interface        | Direction    | Protocol               | Notes                                        |
-| ---------------- | ------------ | ---------------------- | -------------------------------------------- |
-| Hymnbook package | Host → App   | HTTPS GET, static file | Superseded (ADR-0026): no host fetch         |
-| Content store    | App ↔ Device | OPFS                   | Installed hymnbooks                          |
-| User state       | App ↔ Device | IndexedDB              | Preferences, recents, last position          |
-| Container file   | User → App   | File pick or drop      | A book loaded through the Library (SDD-0004) |
+| Interface      | Direction         | Protocol               | Notes                                        |
+| -------------- | ----------------- | ---------------------- | -------------------------------------------- |
+| Sample book    | Host → App        | HTTPS GET, static file | Only when asked (SDD-0004 §16)               |
+| Content store  | App ↔ Device      | OPFS                   | Installed hymnbooks                          |
+| User state     | App ↔ Device      | IndexedDB              | Preferences, recents, last position          |
+| Container file | User → App        | File pick or drop      | A book loaded through the Library (SDD-0004) |
+| Backup file    | App ↔ User        | Download, file pick    | Books and settings (SDD-0006)                |
+| Output channel | Operator → Output | BroadcastChannel       | Two windows, one browser (§6.4)              |
 
 ### 3.3 Out of Scope
 
@@ -185,10 +189,10 @@ and cost flexibility. →
 [ADR-0006](../decisions/0006-defer-the-native-wrapper-decision.md)
 
 **3. SQLite as the content store, one database per hymnbook.** Content is
-read-heavy, immutable at runtime, and needs full-text search over Malayalam. A
-prebuilt SQLite per book makes a hymnbook a _file_ — installable, removable,
-versionable, and independently distributable — which is what makes R1 and
-quality goal 5 cheap. →
+read-heavy, immutable at runtime, and needs full-text search over Malayalam. The
+app writes one SQLite per book when it loads a container, so a hymnbook is a
+_file_ — loadable, removable, and independently distributable — which is what
+makes R1 and quality goal 5 cheap. →
 [ADR-0008](../decisions/0008-sqlite-as-the-on-device-content-store.md)
 
 **4. "What is live" is an observable with pluggable sources.** Phase 1 ships
@@ -198,12 +202,14 @@ additional source rather than a rewrite of the renderer. This is one interface,
 and it is the only concession Phase 1 makes to Phase 2. →
 [ADR-0010](../decisions/0010-model-liveness-as-pluggable-follow-sources.md)
 
-**5. Migrate the corpus by rule, and refine it in use.** The existing 1,631
-hymns have no titles, no sequences, and a `bridge` field empty in every record.
-Perfect data is unreachable without a manual pass over the printed book. A
-rule-based migration produces a good-enough corpus now, and the storage format
-is designed so corrections never require re-migration. →
-[ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)
+**5. Books are imports, not source.** No song is in the repository and none
+ships with the app. A book is a format-1 file
+([SDD-0002](../design/0002-content-format.md)) built outside the app — by the
+CLI import, from text, or by hand with the authoring kit — and loaded through
+the Library, where it is reviewed before it is kept. →
+[ADR-0026](../decisions/0026-songs-leave-the-repository.md),
+[ADR-0029](../decisions/0029-others-build-their-books-the-format-is-the-contract.md),
+[ADR-0024](../decisions/0024-import-case-by-case.md)
 
 ---
 
@@ -213,18 +219,18 @@ is designed so corrections never require re-migration. →
 
 ```mermaid
 flowchart TB
-    subgraph Build["Build time"]
-        Corpus[(Corpus<br/>source files)]
-        Pipeline[Content Pipeline]
-        Pkg[[Hymnbook package<br/>.sqlite]]
-        Corpus --> Pipeline --> Pkg
+    subgraph Build["Outside the app"]
+        Source[(Source<br/>PDF, deck, text)]
+        Tools[Import tools]
+        Pkg[[Container<br/>.hymnbook.json.gz]]
+        Source --> Tools --> Pkg
     end
 
     subgraph App["Runtime"]
         Library[Library]
         Finder[Finder]
         Presenter[Presenter]
-        Follow[Follow]
+        Output[Output]
         Store[(Persistence)]
     end
 
@@ -232,18 +238,22 @@ flowchart TB
     Library --> Store
     Finder --> Store
     Presenter --> Store
-    Follow --> Presenter
     Library --> Finder --> Presenter
+    Presenter --> Output
 ```
 
-| Block                | Responsibility                                                                | Deliberately not responsible for                    |
-| -------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------- |
-| **Content Pipeline** | Validate the corpus, derive parts and sequences, emit one SQLite per hymnbook | Anything at runtime — it is a build tool            |
-| **Library**          | List, install, remove hymnbooks; know which are available offline             | Hymn content                                        |
-| **Finder**           | Retrieval by number and by lyric text; recents                                | Ranking beyond relevance; any notion of "favourite" |
-| **Presenter**        | Walk a sequence, resolve occurrences to parts, render, hold focus             | Deciding _why_ focus moved — that comes from Follow |
-| **Follow**           | Produce a stream of "what is live now"                                        | Rendering                                           |
-| **Persistence**      | Content store and user state, as two separate concerns                        | Business rules                                      |
+| Block            | Responsibility                                                                                    | Deliberately not responsible for                    |
+| ---------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| **Import tools** | `scripts/`: read a PDF, parse song text, validate and pack a book into a container (SDD-0003)     | Anything at runtime — they are CLI tools            |
+| **Library**      | List, load (after a review), remove, back up and restore books; flag a book whose file is missing | Hymn content                                        |
+| **Finder**       | Retrieval by number and by lyric text; recents                                                    | Ranking beyond relevance; any notion of "favourite" |
+| **Presenter**    | Walk a sequence, resolve occurrences to parts, render, hold focus                                 | The audience's screen — that is Output              |
+| **Output**       | The audience's view, in its own window or full screen in the main one (SDD-0001 §16)              | Deciding what is live                               |
+| **Shell**        | Panes, Settings, command menu, keymap, update prompt, one-tab lock (`src/shell/`)                 | Hymn logic                                          |
+| **Persistence**  | Content store and user state, as two separate concerns                                            | Business rules                                      |
+
+**Follow** (ADR-0010) is not built. Navigation by the user is the only source of
+"what is live", and no follow interface exists in the code yet.
 
 ### 5.2 Level 2 — Presenter
 
@@ -273,8 +283,13 @@ than sharing `Presenter`'s Solid signals directly (different window, different
 JS realm). Not a decomposition of Renderer — a second consumer of the same
 state.
 
-`OPEN:` Level 2 for Content Pipeline and Finder, once the migration rules and
-the Malayalam search strategy are settled.
+The Output shows one part, or the whole song at once on a landscape screen
+([SDD-0005](../design/0005-full-song-output.md)). **Present here** renders the
+same view in the main window, full screen, for one-screen setups (SDD-0001
+§16.7).
+
+The import tools and the Finder have no Level 2 here:
+[SDD-0003](../design/0003-song-import.md) and SDD-0001 §13 hold their design.
 
 ---
 
@@ -328,18 +343,16 @@ Implemented in Board #9: a plain list of the hymn's parts next to the renderer,
 one button per part, calling `jumpToPart` directly — no separate "override
 mode," since freely jumping is the whole point (R6's "without hesitation").
 
-### 6.3 Install a hymnbook
+### 6.3 Load a book
 
-Fetch package → verify → write to OPFS → register in Library → available
-offline. Failure at any step leaves the previous state intact; a partially
-written book is never registered.
+Pick a container → read, validate and hash → review → confirm → write to OPFS →
+register in the Library → available offline (SDD-0004 §1). Failure at any step
+leaves the previous state intact; a partially written book is never registered.
+The sample goes the same way: fetched from the site when asked, then reviewed
+like any file. A book whose file the browser has evicted is flagged in the
+Library and can be loaded again (SDD-0004 §9).
 
-Superseded by SDD-0004 (ADR-0026): nothing is bundled or fetched. A book is
-loaded from a container file through the Library; `ContentStore.ensureInstalled`
-only opens a package already on the device.
-
-`OPEN:` A real install/remove flow and list UI, once a second hymnbook exists;
-storage-eviction recovery (§11); Phase 2 audio follow.
+`OPEN:` Eviction recovery on a real device (Board #50); Phase 2 audio follow.
 
 ### 6.4 Operator publishes to Output
 
@@ -349,23 +362,28 @@ sequenceDiagram
     participant C as BroadcastChannel
     participant O as Output window
 
-    P->>O: window.open() — operator drags it to the second display, fullscreens
-    loop every navigation
-        P->>C: publish 2-line window (current, next)
+    P->>O: window.open(), on the chosen screen where the browser allows
+    loop every navigation or setting change
+        P->>C: content (lines, focus, cues) or presentation settings
         C-->>O: same message
-        O-->>O: render current (large) + next (preview), no labels
+        O-->>O: render the lit part, or the whole song
     end
-    P->>C: publish idle (Presenter unmounts)
+    P->>C: blank, hold, reveal
+    P->>C: idle (Presenter unmounts)
     C-->>O: idle
     O-->>O: blank until the next hymn opens
+    P->>C: close (End Live)
+    C-->>O: the window closes itself
 ```
 
-Two windows, one browser, one device — not the deferred multi-device/ projector
-scenario (ADR-0011). The channel is a module-level singleton (same shape as
-`userState`); the Output window's own lifecycle lives above `Presenter`, so it
-survives being navigated back to Finder and a different hymn opening, rather
-than closing and reopening between every hymn in a service. Full mechanism and
-rationale: SDD-0001 §16.1.
+Two windows, one browser, one device — not the deferred multi-device scenario
+(ADR-0011). Where the browser has the Window Management API and a second screen
+is attached, the Output opens there; elsewhere it is a popup the operator drags
+([ADR-0028](../decisions/0028-put-the-output-on-the-projector-screen.md)). With
+one screen, Go Live presents in the main window instead (SDD-0001 §16.7). The
+channel is a module-level singleton (same shape as `userState`); the Output
+window's lifecycle lives above `Presenter`, so it survives a different hymn
+opening. Full mechanism: SDD-0001 §16.1.
 
 ---
 
@@ -373,8 +391,9 @@ rationale: SDD-0001 §16.1.
 
 ```mermaid
 flowchart TB
-    subgraph CI["CI"]
-        Build[Build + content pipeline]
+    subgraph GitHub["GitHub"]
+        Sample[Release asset: the sample]
+        Build[CI: audit, check, e2e, build]
     end
     subgraph Host["Static host"]
         AppBundle[App bundle, no hymnbook]
@@ -385,10 +404,9 @@ flowchart TB
         IDB[(IndexedDB: user state)]
     end
 
+    Sample -->|SHA-256 checked| Build
     Build --> AppBundle
-    Build --> Extra
     AppBundle --> Browser
-    Extra -.-> Browser
     Browser --> OPFS
     Browser --> IDB
 ```
@@ -398,8 +416,13 @@ makes the app itself available offline; a first run has no book until one is
 loaded from a file (ADR-0026), after which it works with no network.
 
 Implemented in Board #10 (SDD-0001 §15): `.github/workflows/deploy.yml` builds
-and deploys to GitHub Pages on every push to `main`, gated on `bun run check`.
-The service worker (`vite-plugin-pwa`) precaches the app shell — including the
+and deploys to GitHub Pages on every push to `main`, gated on a dependency audit
+(ADR-0030), `bun run check` and the Playwright smoke suite on Chromium, Firefox
+and WebKit (Board #52). It fetches the sample's containers from the release
+named in `sample/RELEASE` and stops on any whose SHA-256 differs from
+`sample/SHA256SUMS` (SDD-0004 §16). The site is served at an origin of its own,
+`hymnal.sagaveracity.com`, never a project path on a shared host (ADR-0030). The
+service worker (`vite-plugin-pwa`) precaches the app shell — including the
 SQLite Wasm runtime, which the app can't function without — but never the
 content package, which stays `ContentStore`'s job via OPFS. Verified against the
 actual production build with the network cut off: the shell, the SQLite engine,
@@ -436,16 +459,14 @@ under size changes. Fonts are bundled, never fetched — a network-dependent fon
 would violate quality goal 3. Each hymnbook declares its language and script so
 typography is data-driven. UI language is independent of content language.
 
-Implemented in Board #10 (SDD-0001 §15): Noto Serif Malayalam, bundled as a
-woff2 and scoped to lyric content only (a `.hymn-text` class), not UI chrome.
-
-**Revised in the Presenter redesign** (SDD-0001 §16.3): Google Sans, one family
-for both UI chrome and hymn content — verified to carry full Malayalam glyph
-coverage and shipped under OFL. Full rationale and the complete visual token
-system (color, type scale, shape, elevation, components) live in
+One family serves both UI chrome and hymn content: **Hymnal Sans**, Google Sans
+subset and renamed (OFL), with full Malayalam coverage, bundled as one woff2
+([`src/fonts/README.md`](../../src/fonts/README.md)). Noto Sans and Serif
+Malayalam stay in the font stack as fallbacks only. The rationale and the visual
+token system (color, type scale, shape, elevation, components) live in
 [`docs/visual/DESIGN.md`](../visual/DESIGN.md), not here — read it before
 touching CSS. A second hymnbook's script gets its own font the same way, per
-hymnbook data, when that board arrives.
+hymnbook data, when that need arrives.
 
 ### 8.4 Search
 
@@ -453,24 +474,28 @@ Number lookup is exact and must be instant. Text search runs over lyrics via
 SQLite FTS5. Malayalam needs normalisation (Unicode NFC, chillu and ZWJ/ZWNJ
 handling) before indexing — naive tokenisation will produce poor recall.
 
-`OPEN:` Whether FTS5's default tokeniser is adequate for Malayalam, or a custom
-one is required. This needs an experiment against the real corpus, not a
-judgement call.
+The tokeniser is `unicode61` with the Malayalam vowel signs, virama and joiners
+as token characters; the default fragmented words (§11, R5). Queries are quoted
+and prefix-matched, so near misses are not found; typo-tolerant search is Board
+#40.
 
 ### 8.5 Persistence
 
 Two stores with different lifecycles, deliberately not merged: **content**
-(large, immutable, re-fetchable, in OPFS) and **user state** (small, mutable,
-irreplaceable, in IndexedDB). Losing content is an inconvenience; losing user
-state is data loss. See §11 on eviction.
+(large, immutable, loaded from the user's own container files, in OPFS) and
+**user state** (small, mutable, irreplaceable, in IndexedDB). Losing content is
+an inconvenience; losing user state is data loss. A backup file holds both
+(SDD-0006). One tab owns the content store at a time, through a Web Lock
+(SDD-0001 §10.4). See §11 on eviction.
 
 ### 8.6 Handling imperfect content
 
 The corpus is known-imperfect, and quality goal 1 says never silently repair.
-Validation happens at **build time**, where a human can act on it. At runtime a
-malformed hymn renders as plainly as possible and is flagged — it never crashes
-the presenter, and never guesses. Contrast with the archived implementation,
-which called `panic!` on any hymn shape its four templates did not anticipate.
+Validation happens when a book is **packed** and again when it is **loaded**,
+where a human can act on it. At runtime a malformed hymn renders as plainly as
+possible and is flagged — it never crashes the presenter, and never guesses.
+Contrast with the archived implementation, which called `panic!` on any hymn
+shape its four templates did not anticipate.
 
 ### 8.7 Presentation and legibility
 
@@ -478,14 +503,13 @@ Responsive from phone to large display. User-controlled text scale and contrast.
 Focus transitions must be smooth enough not to distract and fast enough not to
 lag singing.
 
-Resolved in Board #9 (SDD-0001 §14): a text label, not color, so the cue stays
-legible in bright venue light and for colorblind viewers — quality goal 2 ranks
-above visual novelty. A toggle hides it entirely, since a presenter deliberately
-departing from the stored order finds a cue tracking that order actively
-misleading. **Revised in the Presenter redesign** (SDD-0001 §16): the label is
-now a plain running count (`repeatOrdinal`), and only ever appears for an
-immediately adjacent repeat — verse-chorus-verse-chorus is the hymn's normal
-printed form, not a repeat (§2.2, §5.2).
+The recurrence cue (R4) is a text label, not color, so it stays legible in
+bright venue light and for colorblind viewers — quality goal 2 ranks above
+visual novelty. A toggle hides it, since a presenter deliberately departing from
+the stored order finds a cue tracking that order misleading. The label is a
+plain running count (`repeatOrdinal`), and only appears for an immediately
+adjacent repeat — verse-chorus-verse-chorus is the hymn's normal printed form,
+not a repeat (SDD-0001 §14, §16).
 
 Responsive layout implemented in Board #10 (SDD-0001 §15), since narrowed to
 content by [ADR-0017](../decisions/0017-fix-the-interface-scale.md) (the
@@ -511,43 +535,54 @@ Lyrics are semantic text, never images. Focus changes announced to assistive
 technology. Full keyboard navigation — which also serves presenters using a
 remote or clicker.
 
-Implemented in Board #10: arrow keys step a line or a part in `Presenter`;
-`PageUp`/`PageDown` do the same, since that's what most presentation remotes and
-clickers actually send.
+Arrow keys step a line or a part in `Presenter`; `PageUp`/`PageDown` do the
+same, since that's what most presentation remotes and clickers send. The full
+key table is data in `src/shell/keymap.ts` (SDD-0001 §16.5).
+
+### 8.9 Security
+
+A local-first threat model: no server, no accounts, nothing leaves the device
+unless the user sends it. A strict Content Security Policy is built into the
+deploy (`scripts/csp.ts`), the dependency audit gates the build, and the site
+has an origin of its own. See
+[ADR-0030](../decisions/0030-security-a-local-first-threat-model.md).
 
 ---
 
 ## 9. Architecture Decisions
 
-| ADR                                                                          | Decision                                                   | Status                                                                            |
-| ---------------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| [0001](../decisions/0001-record-architecture-decisions.md)                   | Record architecture decisions                              | Accepted                                                                          |
-| [0002](../decisions/0002-rebuild-from-a-clean-slate.md)                      | Rebuild from a clean slate, archive the old implementation | Accepted                                                                          |
-| [0003](../decisions/0003-model-hymns-as-parts-and-an-occurrence-sequence.md) | Model hymns as parts plus an occurrence sequence           | Accepted                                                                          |
-| [0004](../decisions/0004-build-a-responsive-web-application.md)              | Build a responsive web application                         | Accepted                                                                          |
-| [0005](../decisions/0005-use-solidjs.md)                                     | Use SolidJS as the frontend framework                      | Accepted                                                                          |
-| [0006](../decisions/0006-defer-the-native-wrapper-decision.md)               | Defer the native wrapper decision                          | Deferred                                                                          |
-| [0007](../decisions/0007-bundle-the-core-hymnbook.md)                        | Bundle the core hymnbook, download additional books        | Superseded by ADR-0026                                                            |
-| [0008](../decisions/0008-sqlite-as-the-on-device-content-store.md)           | SQLite as the on-device content store                      | Superseded by [0015](../decisions/0015-use-official-sqlite-wasm-not-wa-sqlite.md) |
-| [0009](../decisions/0009-migrate-the-corpus-by-rule.md)                      | Migrate the corpus by rule, refine in place                | Superseded by [0026](../decisions/0026-songs-leave-the-repository.md)             |
-| [0010](../decisions/0010-model-liveness-as-pluggable-follow-sources.md)      | Model liveness as pluggable follow sources                 | Accepted                                                                          |
-| [0011](../decisions/0011-defer-multi-device-sync-and-projector-output.md)    | Defer multi-device sync and projector output               | Deferred                                                                          |
-| [0012](../decisions/0012-drop-the-bookmark-helper.md)                        | Drop the bookmark helper                                   | Accepted                                                                          |
-| [0013](../decisions/0013-toolchain-bun-biome-prettier-markdownlint.md)       | Toolchain: bun, biome, prettier with markdownlint          | Accepted                                                                          |
-| [0014](../decisions/0014-defer-transliteration.md)                           | Defer transliteration (search and display)                 | Deferred                                                                          |
-| [0015](../decisions/0015-use-official-sqlite-wasm-not-wa-sqlite.md)          | Use the official SQLite Wasm build, not wa-sqlite          | Accepted                                                                          |
-| [0016](../decisions/0016-license-under-apache-2.md)                          | License the project under Apache-2.0                       | Accepted                                                                          |
-| [0017](../decisions/0017-fix-the-interface-scale.md)                         | Fix the interface scale; only content scales               | Accepted                                                                          |
-| [0018](../decisions/0018-import-songs-through-a-layout-aware-pipeline.md)    | Import songs through a layout-aware pipeline, CLI first    | Accepted                                                                          |
-| [0019](../decisions/0019-version-the-content-format.md)                      | Version the content format; one gzipped file per book      | Accepted                                                                          |
-| [0020](../decisions/0020-present-songs-do-not-publish-them.md)               | Present songs; don't publish them                          | Accepted                                                                          |
-| [0021](../decisions/0021-identify-books-by-the-store-that-holds-them.md)     | Identify books by the store that holds them                | Accepted                                                                          |
-| [0022](../decisions/0022-publish-a-json-schema-for-the-format.md)            | Publish a JSON Schema for the content format               | Accepted                                                                          |
-| [0023](../decisions/0023-recognise-the-document-and-infer-its-layout.md)     | Recognise what a document holds; infer its layout          | Superseded by [0024](../decisions/0024-import-case-by-case.md)                    |
-| [0024](../decisions/0024-import-case-by-case.md)                             | Import case by case; the app loads only format 1           | Accepted                                                                          |
-| [0025](../decisions/0025-call-it-the-chorus.md)                              | Call it the chorus: screen, key, code and format           | Accepted                                                                          |
-| [0026](../decisions/0026-songs-leave-the-repository.md)                      | Songs leave the repository; every book is an import        | Accepted                                                                          |
-| [0027](../decisions/0027-review-a-book-without-editing-it.md)                | Review a book without editing it                           | Accepted                                                                          |
+| ADR                                                                              | Decision                                                   | Status                                                                                                       |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| [0001](../decisions/0001-record-architecture-decisions.md)                       | Record architecture decisions                              | Accepted                                                                                                     |
+| [0002](../decisions/0002-rebuild-from-a-clean-slate.md)                          | Rebuild from a clean slate, archive the old implementation | Accepted                                                                                                     |
+| [0003](../decisions/0003-model-hymns-as-parts-and-an-occurrence-sequence.md)     | Model hymns as parts plus an occurrence sequence           | Accepted                                                                                                     |
+| [0004](../decisions/0004-build-a-responsive-web-application.md)                  | Build a responsive web application                         | Accepted                                                                                                     |
+| [0005](../decisions/0005-use-solidjs.md)                                         | Use SolidJS as the frontend framework                      | Accepted                                                                                                     |
+| [0006](../decisions/0006-defer-the-native-wrapper-decision.md)                   | Defer the native wrapper decision                          | Deferred                                                                                                     |
+| [0007](../decisions/0007-bundle-the-core-hymnbook.md)                            | Bundle the core hymnbook, download additional books        | Superseded by [0026](../decisions/0026-songs-leave-the-repository.md)                                        |
+| [0008](../decisions/0008-sqlite-as-the-on-device-content-store.md)               | SQLite as the on-device content store                      | Accepted; library superseded by [0015](../decisions/0015-use-official-sqlite-wasm-not-wa-sqlite.md)          |
+| [0009](../decisions/0009-migrate-the-corpus-by-rule.md)                          | Migrate the corpus by rule, refine in place                | Superseded by [0026](../decisions/0026-songs-leave-the-repository.md)                                        |
+| [0010](../decisions/0010-model-liveness-as-pluggable-follow-sources.md)          | Model liveness as pluggable follow sources                 | Accepted                                                                                                     |
+| [0011](../decisions/0011-defer-multi-device-sync-and-projector-output.md)        | Defer multi-device sync and projector output               | Deferred; projector output superseded by [0028](../decisions/0028-put-the-output-on-the-projector-screen.md) |
+| [0012](../decisions/0012-drop-the-bookmark-helper.md)                            | Drop the bookmark helper                                   | Accepted                                                                                                     |
+| [0013](../decisions/0013-toolchain-bun-biome-prettier-markdownlint.md)           | Toolchain: bun, biome, prettier with markdownlint          | Accepted                                                                                                     |
+| [0014](../decisions/0014-defer-transliteration.md)                               | Defer transliteration (search and display)                 | Deferred                                                                                                     |
+| [0015](../decisions/0015-use-official-sqlite-wasm-not-wa-sqlite.md)              | Use the official SQLite Wasm build, not wa-sqlite          | Accepted                                                                                                     |
+| [0016](../decisions/0016-license-under-apache-2.md)                              | License the project under Apache-2.0                       | Accepted                                                                                                     |
+| [0017](../decisions/0017-fix-the-interface-scale.md)                             | Fix the interface scale; only content scales               | Accepted                                                                                                     |
+| [0018](../decisions/0018-import-songs-through-a-layout-aware-pipeline.md)        | Import songs through a layout-aware pipeline, CLI first    | Accepted; browser path superseded by [0024](../decisions/0024-import-case-by-case.md)                        |
+| [0019](../decisions/0019-version-the-content-format.md)                          | Version the content format; one gzipped file per book      | Accepted                                                                                                     |
+| [0020](../decisions/0020-present-songs-do-not-publish-them.md)                   | Present songs; don't publish them                          | Accepted                                                                                                     |
+| [0021](../decisions/0021-identify-books-by-the-store-that-holds-them.md)         | Identify books by the store that holds them                | Accepted                                                                                                     |
+| [0022](../decisions/0022-publish-a-json-schema-for-the-format.md)                | Publish a JSON Schema for the content format               | Accepted                                                                                                     |
+| [0023](../decisions/0023-recognise-the-document-and-infer-its-layout.md)         | Recognise what a document holds; infer its layout          | Superseded by [0024](../decisions/0024-import-case-by-case.md)                                               |
+| [0024](../decisions/0024-import-case-by-case.md)                                 | Import case by case; the app loads only format 1           | Accepted                                                                                                     |
+| [0025](../decisions/0025-call-it-the-chorus.md)                                  | Call it the chorus: screen, key, code and format           | Accepted                                                                                                     |
+| [0026](../decisions/0026-songs-leave-the-repository.md)                          | Songs leave the repository; every book is an import        | Accepted                                                                                                     |
+| [0027](../decisions/0027-review-a-book-without-editing-it.md)                    | Review a book without editing it                           | Accepted                                                                                                     |
+| [0028](../decisions/0028-put-the-output-on-the-projector-screen.md)              | Put the Output on the projector screen                     | Accepted                                                                                                     |
+| [0029](../decisions/0029-others-build-their-books-the-format-is-the-contract.md) | Others build their books: the format is the contract       | Accepted; point 4 withdrawn                                                                                  |
+| [0030](../decisions/0030-security-a-local-first-threat-model.md)                 | Security: a local-first threat model                       | Accepted                                                                                                     |
 
 Full index, with open questions, in [`docs/decisions/`](../decisions/README.md).
 
@@ -568,37 +603,37 @@ Hymnal
 
 ### 10.2 Scenarios
 
-| #   | Scenario                                              | Response measure                                                                   |
-| --- | ----------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Q1  | A hymn number is announced; the presenter enters it   | On screen, correct, in < 3s with no network                                        |
-| Q2  | The corpus contains a hymn with a malformed structure | Build fails with the hymn identified; never reaches a release                      |
-| Q3  | Device is fully offline for an entire service         | Every installed hymnbook works; no degraded behaviour                              |
-| Q4  | The congregation repeats a chorus unexpectedly        | Presenter reaches any part in one action; recurrence cue stays correct             |
-| Q5  | A second hymnbook in a new language is added          | No application code changes; typography follows the book's declared script         |
-| Q6  | A reader views a 12-verse hymn on a small phone       | Readable without horizontal scrolling or broken conjuncts                          |
-| Q7  | The browser evicts OPFS content                       | Loss is detected, reported plainly, and re-install is offered; user state survives |
+| #   | Scenario                                            | Response measure                                                                   |
+| --- | --------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Q1  | A hymn number is announced; the presenter enters it | On screen, correct, in < 3s with no network                                        |
+| Q2  | A book contains a hymn with a malformed structure   | Pack and load refuse the book with the song identified; nothing is repaired        |
+| Q3  | Device is fully offline for an entire service       | Every installed hymnbook works; no degraded behaviour                              |
+| Q4  | The congregation repeats a chorus unexpectedly      | Presenter reaches any part in one action; recurrence cue stays correct             |
+| Q5  | A second hymnbook in a new language is added        | No application code changes; typography follows the book's declared script         |
+| Q6  | A reader views a 12-verse hymn on a small phone     | Readable without horizontal scrolling or broken conjuncts                          |
+| Q7  | The browser evicts OPFS content                     | Loss is detected, reported plainly, and Load Again is offered; user state survives |
 
-`OPEN:` Q1's budget needs validating against the device floor (§2.1) — 1,631
-hymns with FTS5 in WASM is unproven on old hardware.
+`OPEN:` Q1's budget needs validating against the device floor (§2.1) — a book of
+1,631 hymns with FTS5 in WASM is unproven on old hardware (Board #50).
 
 ---
 
 ## 11. Risks and Technical Debt
 
-| #   | Risk                                                                                                                                                          | Impact                                        | Mitigation                                                                                                                                                                                                                                                                                                                                                                                       |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| R1  | **Corpus fidelity.** Rule-derived sequences will be wrong for some hymns; no title, tune or metadata exists; `bridge` is empty in all 1,631 records           | Directly threatens quality goal 1             | Accept knowingly ([ADR-0009](../decisions/0009-migrate-the-corpus-by-rule.md)); make corrections cheap; never re-migrate                                                                                                                                                                                                                                                                         |
-| R2  | **Lyrics copyright.** Redistribution rights are not established. The archived UI asserted "all songs are owned by their respective authors"                   | Legal exposure; blocks app store distribution | Narrowed by [ADR-0020](../decisions/0020-present-songs-do-not-publish-them.md): only public-domain or permitted books ship; imports stay on the device. For what ships, establish provenance **before** any store submission: per-book permission and a per-song rights record, served only where free or permitted — [SDD-0001 §8](../design/0001-domain-model.md#8-open-questions). Unresolved |
-| R3  | **AGPL vs app stores.** ~~AGPL-3.0 conflicts with Apple's App Store terms~~                                                                                   | Could invalidate the iOS target entirely      | **Resolved**: relicensed to Apache-2.0, which is App Store–compatible — [ADR-0016](../decisions/0016-license-under-apache-2.md)                                                                                                                                                                                                                                                                  |
-| R4  | **Storage eviction.** Browsers may evict OPFS under pressure                                                                                                  | Content vanishes, possibly mid-service        | Request persistent storage; detect and re-install; never store user state in OPFS                                                                                                                                                                                                                                                                                                                |
-| R5  | **Malayalam full-text search.** ~~FTS5's default tokeniser may handle Malayalam poorly~~ — confirmed: it fragments words to bare consonants                   | Text search unusable — half of R2             | **Resolved** (Board #3): `unicode61` with Malayalam marks in `tokenchars` validated against the real corpus — see [SDD-0001 §6](../design/0001-domain-model.md#6-storage-schema)                                                                                                                                                                                                                 |
-| R6  | **Phase 2 is unproven.** Aligning against live congregational singing is research-grade, and unlike Metrolist there are no pre-made LRC files to fall back on | Phase 2 may not be deliverable as imagined    | Phase 1 depends on it only through one interface. Treat announcement detection and lyric alignment as separate capabilities with very different risk                                                                                                                                                                                                                                             |
-| R7  | **SolidJS ecosystem.** Smallest community of the frameworks considered                                                                                        | Fewer libraries, fewer answers                | Accepted ([ADR-0005](../decisions/0005-use-solidjs.md)); keep domain logic framework-free so it stays portable                                                                                                                                                                                                                                                                                   |
-| R8  | **Solo maintainer.** Every part must stay comprehensible to one person                                                                                        | Complexity is the dominant failure mode       | Deferral is a first-class tool — see the number of `Deferred` ADRs in §9                                                                                                                                                                                                                                                                                                                         |
+| #   | Risk                                                                                                                                                              | Impact                                        | Mitigation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | **Book fidelity.** An imported book is wrong in places: sequences, part kinds and line breaks are inferred from a layout; the Malayalam book was migrated by rule | Directly threatens quality goal 1             | The importer reports what it guessed ([ADR-0024](../decisions/0024-import-case-by-case.md)); a book is reviewed before it is kept ([ADR-0027](../decisions/0027-review-a-book-without-editing-it.md)); a reviewed book is corrected in place, never regenerated                                                                                                                                                                                                                                                                                                                                             |
+| R2  | **Lyrics copyright.** Redistribution rights are not established. The archived UI asserted "all songs are owned by their respective authors"                       | Legal exposure; blocks app store distribution | Narrowed by [ADR-0020](../decisions/0020-present-songs-do-not-publish-them.md): only public-domain or permitted books ship; imports stay on the device. For what ships, establish provenance **before** any store submission: per-book permission and a per-song rights record, served only where free or permitted — [SDD-0001 §8](../design/0001-domain-model.md#8-open-questions). The shipped sample is public domain, each song's record in [`docs/sample/RIGHTS.md`](../sample/RIGHTS.md); the app polices no loaded book, and About says users answer for what they load. Open for any store release |
+| R3  | **AGPL vs app stores.** ~~AGPL-3.0 conflicts with Apple's App Store terms~~                                                                                       | Could invalidate the iOS target entirely      | **Resolved**: relicensed to Apache-2.0, which is App Store–compatible — [ADR-0016](../decisions/0016-license-under-apache-2.md)                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| R4  | **Storage eviction.** Browsers may evict OPFS under pressure                                                                                                      | Content vanishes, possibly mid-service        | Request persistent storage; flag a missing book and offer Load Again; back up (SDD-0006); never store user state in OPFS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| R5  | **Malayalam full-text search.** ~~FTS5's default tokeniser may handle Malayalam poorly~~ — confirmed: it fragments words to bare consonants                       | Text search unusable — half of R2             | **Resolved** (Board #3): `unicode61` with Malayalam marks in `tokenchars` validated against the real corpus — see [SDD-0001 §6](../design/0001-domain-model.md#6-storage-schema)                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| R6  | **Phase 2 is unproven.** Aligning against live congregational singing is research-grade, and unlike Metrolist there are no pre-made LRC files to fall back on     | Phase 2 may not be deliverable as imagined    | Phase 1 depends on it only through one interface. Treat announcement detection and lyric alignment as separate capabilities with very different risk                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| R7  | **SolidJS ecosystem.** Smallest community of the frameworks considered                                                                                            | Fewer libraries, fewer answers                | Accepted ([ADR-0005](../decisions/0005-use-solidjs.md)); keep domain logic framework-free so it stays portable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| R8  | **Solo maintainer.** Every part must stay comprehensible to one person                                                                                            | Complexity is the dominant failure mode       | Deferral is a first-class tool — see the number of `Deferred` ADRs in §9                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 **Debt carried deliberately:** no content authoring UI; no automated lyric
-verification against the printed source; recurrence visual language unresolved
-(§8.7).
+verification against the printed source (the source check was withdrawn,
+[ADR-0029](../decisions/0029-others-build-their-books-the-format-is-the-contract.md)).
 
 ---
 
@@ -612,8 +647,10 @@ verification against the printed source; recurrence visual language unresolved
 | **Sequence**          | The ordered list of part references that constitutes the hymn's sung order                                                             |
 | **Occurrence**        | A single position in the sequence. Distinct from the part it shows — the same chorus sung three times is three occurrences of one part |
 | **Recurrence index**  | How many times a part has already been shown at a given occurrence. `0` is the first showing                                           |
-| **Ad-hoc occurrence** | An occurrence appended by live navigation rather than drawn from the stored sequence                                                   |
+| **Ad-hoc occurrence** | An occurrence inserted by a live repeat rather than drawn from the stored sequence                                                     |
 | **Focus**             | The currently active occurrence, and the active line within it                                                                         |
 | **Follow source**     | A producer of "what is live now". Phase 1 has exactly one: local navigation                                                            |
-| **Package**           | A prebuilt, distributable SQLite database containing one hymnbook                                                                      |
-| **Corpus**            | The source-of-truth hymn data, before packaging                                                                                        |
+| **Container**         | A gzipped format-1 file (`.hymnbook.json.gz`) holding one hymnbook; what a user loads and shares                                       |
+| **Package**           | The SQLite database the app writes on the device when it loads a container                                                             |
+| **Operator / Output** | The presenter's private screen, and the audience-facing view it drives                                                                 |
+| **Corpus**            | A book's source text, before it is packed; kept by whoever built it                                                                    |

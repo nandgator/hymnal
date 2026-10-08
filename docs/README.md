@@ -21,6 +21,12 @@ own AI, and a sample
 ([ADR-0029](decisions/0029-others-build-their-books-the-format-is-the-contract.md)).
 It is for users, not contributors, and is versioned with the content format.
 
+Beside them: [`sample/RIGHTS.md`](sample/RIGHTS.md) records the rights of each
+song in the shipped public-domain sample (generated, not edited by hand);
+[`visual/PRINCIPLES.md`](visual/PRINCIPLES.md) holds the working notes behind
+DESIGN.md; `feedback/` holds the maintainer's screenshots, evidence rather than
+documentation.
+
 ## The rule
 
 **arc42 describes the present.** It is rewritten in place. It never explains a
@@ -30,8 +36,11 @@ choice in depth — it states the choice and links the ADR.
 made: the forces, the options considered, and what was given up. ADRs are
 immutable. A decision that stops being right is not edited — a new ADR is
 written with `Supersedes: NNNN`, and the old one is marked `Superseded by NNNN`.
-This matters more than it sounds: the value of an ADR is that it preserves
-reasoning you will otherwise reconstruct incorrectly in a year.
+Only its Status line changes. If one part of a record stops holding, the Status
+says which part (for example,
+`Accepted; its library choice superseded by 0015`). This matters more than it
+sounds: the value of an ADR is that it preserves reasoning you will otherwise
+reconstruct incorrectly in a year.
 
 **An SDD sits below arc42.** Detailed design for one subsystem — data
 structures, interfaces, algorithms, invariants. Written when a part is complex
@@ -64,7 +73,8 @@ forces the choice — see
 
 - ADRs follow [MADR](https://adr.github.io/madr/), numbered sequentially, named
   `NNNN-lowercase-with-hyphens.md`.
-- Status is one of `Proposed`, `Accepted`, `Deferred`, `Superseded`, `Rejected`.
+- Status is one of `Proposed`, `Accepted`, `Deferred`, `Superseded`, `Rejected`,
+  with a clause after it when only part of the record has changed.
 - Diagrams are source-controlled text (Mermaid) so they diff, never binary
   exports.
 - `OPEN:` marks a known, deliberate gap. Grep for it to find undecided

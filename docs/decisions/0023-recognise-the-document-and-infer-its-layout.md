@@ -1,6 +1,6 @@
 # 0023 — Recognise what a document holds, and infer its layout
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0024](0024-import-case-by-case.md)
 - **Date:** 2026-09-27
 
 ## Context and Problem Statement

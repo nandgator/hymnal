@@ -1,6 +1,6 @@
 # 0029 — Others build their books: the format is the contract
 
-- **Status:** Accepted
+- **Status:** Accepted. Point 4 (the source check) was withdrawn on 2026-10-07
 - **Date:** 2026-10-02
 
 ## Context and Problem Statement
