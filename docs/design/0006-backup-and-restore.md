@@ -67,18 +67,24 @@ The file is untrusted, whoever made it. The worker reads it:
 3. **Inflating.** Each entry is inflated with a ceiling of its declared size,
    itself capped at 512 MB, the declared sizes together at 2 GB, and its SHA-256
    checked against the manifest. A mismatch refuses that book as damaged and
-   lets the rest restore.
+   lets the rest restore. A book key is letters, digits, `_` and `-`, up to 64,
+   and its entry is `books/<key>.sqlite3`; a package lists at most 64 sources.
 4. **Each book, rebuilt.** A package is never copied into the pool as it is. It
    is opened from its bytes in a scratch in-memory database with
    `trusted_schema` off and SQLite's defensive flag on; its schema must hold
    only a package's own tables, columns and indexes (and `hymn_fts`'s), checked
    against the schema the app writes rather than by `sqlite_master`'s `type`,
-   and any trigger, view or other row refuses it; `PRAGMA integrity_check` must
-   pass. A version the app can migrate is migrated in the scratch (SDD-0004 §7).
-   Its rows are read back into a book and its hymns, `validateCorpus` runs as
-   for a load, and the package is written fresh by `packageRows`, the one
-   builder, under the backup's key with its origin, `sources` and
-   `content_hash`. So a restored book is exactly as safe as a loaded one.
+   and any trigger, view or other row refuses it. The match is exact against
+   three schemas, made by running the app's own DDL: the current one, version 2,
+   and version 2 as the migration leaves it. So a change to `SCHEMA_SQL` (even a
+   comment), or a bump of `SCHEMA_VERSION`, must freeze the old DDL as a
+   constant and add it here, or every older backup is refused as unsafe;
+   `PRAGMA integrity_check` must pass. A version the app can migrate is migrated
+   in the scratch (SDD-0004 §7). Its rows are read back into a book and its
+   hymns, `validateCorpus` runs as for a load, and the package is written fresh
+   by `packageRows`, the one builder, under the backup's key with its origin,
+   `sources` and `content_hash`. So a restored book is exactly as safe as a
+   loaded one.
 5. **User state** goes through `cleanUserDoc` (SDD-0001 §11.1).
 
 ## 4. The review

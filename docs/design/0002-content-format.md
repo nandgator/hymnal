@@ -46,18 +46,18 @@ All files are UTF-8 JSON. `NNNN` is the hymn number, zero-padded to four digits.
 
 ## 2. `hymnbook.json`
 
-| Field       | Type    | Required | Meaning                                                                          |
-| ----------- | ------- | -------- | -------------------------------------------------------------------------------- |
-| `$schema`   | string  | no       | The schema this file follows, for editors (§6)                                   |
-| `format`    | integer | yes      | This format's version; `1`                                                       |
-| `id`        | string  | yes      | Opaque slug, the directory name ([SDD-0001 §2.1](0001-domain-model.md#21-types)) |
-| `title`     | string  | yes      | Title in the book's own script                                                   |
-| `language`  | string  | yes      | BCP-47, e.g. `ml`                                                                |
-| `script`    | string  | yes      | ISO 15924, e.g. `Mlym`                                                           |
-| `publisher` | string  | no       |                                                                                  |
-| `edition`   | string  | no       |                                                                                  |
-| `isbn`      | string  | no       |                                                                                  |
-| `hymnCount` | integer | yes      | How many hymn files there are                                                    |
+| Field       | Type         | Required | Meaning                                                                          |
+| ----------- | ------------ | -------- | -------------------------------------------------------------------------------- |
+| `$schema`   | string       | no       | The schema this file follows, for editors (§6)                                   |
+| `format`    | integer      | yes      | This format's version; `1`                                                       |
+| `id`        | string       | yes      | Opaque slug, the directory name ([SDD-0001 §2.1](0001-domain-model.md#21-types)) |
+| `title`     | string       | yes      | Title in the book's own script                                                   |
+| `language`  | string       | yes      | BCP-47, e.g. `ml`                                                                |
+| `script`    | string       | yes      | ISO 15924, e.g. `Mlym`                                                           |
+| `publisher` | string       | no       |                                                                                  |
+| `edition`   | string       | no       |                                                                                  |
+| `isbn`      | string       | no       |                                                                                  |
+| `hymnCount` | integer, ≥ 0 | yes      | How many hymn files there are                                                    |
 
 ## 3. `NNNN.json`
 
@@ -93,7 +93,8 @@ rules are the invariants I1–I7 of
 [SDD-0001 §4](0001-domain-model.md#4-invariants), plus:
 
 - Each file name matches its `number`; the file count matches `hymnCount`.
-- Every required field is present, with the type above.
+- Every required field is present, with the type above. `id`, `title`,
+  `language`, `script` and a hymn's `title` are not blank after trimming.
 - **No field outside these tables**, at any level. An unknown field is a
   violation, never ignored.
 - `format` is a version the reader knows. A newer one is refused with a message

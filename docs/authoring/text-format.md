@@ -155,7 +155,8 @@ With no Sequence line, the sung order is:
 3. **No references, one chorus, and no pre-chorus or post-chorus** (the rule of
    SDD-0003 section 3, from ADR-0009): the chorus is sung first if it is printed
    first, and after every stanza and bridge. An intro is first, and an outro and
-   a tag last, where printed.
+   a tag last, where printed. With no stanza or bridge in the song, the order is
+   as printed.
 4. **Anything else** (several choruses, or a pre-chorus or post-chorus, with no
    references and no Sequence line): the order as printed, and the review says
    so, so that you can add a Sequence line if it is wrong.
@@ -167,9 +168,10 @@ were no details), `parts` and `sequence`.
 
 - Each block that is not a reference is a part, in printed order. Its `kind` and
   `label` are from section 2.3; its `lines` are the block's lines. Its `id` is
-  assigned by the parser, by kind and count: `s1`, `s2`, ... for stanzas, `c1`
-  for choruses, `b` bridges, `i` intros, `o` outros, `t` tags, `p` pre-choruses,
-  `q` post-choruses. An id means nothing outside its hymn.
+  assigned by the parser, a letter for the kind and the count of that kind so
+  far: `s1`, `s2`, ... for stanzas, `c1`, `c2` for choruses, `b1` bridges, `i1`
+  intros, `o1` outros, `t1` tags, `p1` pre-choruses, `q1` post-choruses. An id
+  means nothing outside its hymn.
 - The `sequence` is a list of `{ "partId": ... }`, from section 2.5 or 2.6.
 - A file with several songs is also a book, and needs the book's own fields,
   asked for at the call and never guessed from the text: `id`, `title`,

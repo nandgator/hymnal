@@ -8,7 +8,8 @@
 
 Turns a source document into a draft hymnbook in the content format
 ([SDD-0002](0002-content-format.md)), plus a report of what the importer was
-unsure of. Command line first; the browser later, on the same code.
+unsure of. The PDF and PowerPoint import is command line only. Song text has a
+second way in, the app's From Text sheet (§5).
 
 ## 1. Shape
 
@@ -30,9 +31,14 @@ flowchart LR
 | Draft  | Numbers, titles, sequence, `hymnbook.json`; checked by `validate.ts`     | `src/import/`       |
 | CLI    | Arguments, file I/O, writing the draft and report                        | `scripts/import.ts` |
 
+The same folder also holds the song text parser (`songtext.ts`, §5) and the
+container writer (`container.ts`, SDD-0004 §2), which are not stages of this
+pipeline.
+
 Everything in `src/import/` is pure TypeScript with no Node or DOM import, like
-`src/domain/`, so the browser can run it unchanged. Readers may depend on a
-library (pdf.js runs in both); only the CLI touches the file system.
+`src/domain/`, so the browser can run it unchanged (the From Text sheet does,
+for song text). Readers may depend on a library (pdf.js runs in both); only the
+CLI touches the file system.
 
 ## 2. The reader contract
 
@@ -244,6 +250,10 @@ draft, by hymn:
 
 ### 4.1 The judge: an optional second opinion
 
+**Not built.** Nothing in `src/` or `scripts/` defines a `Judge`, and the CLI
+has no `--judge` flag. It is #27 part 6, run last (PLAN). This section is the
+design it would follow.
+
 Most report items are small typed questions about a little evidence: "chorus or
 stanza?", "does this line continue the one above?", "is this line a title?",
 "does this column continue the song before it?". Decision models such as Laya
@@ -348,13 +358,18 @@ bun run text <file.txt> --id I --title T --language L --script S \
 
 runs the deterministic parser (`src/import/songtext.ts`) and writes the same
 `<out>/<id>/` directory of format 1 (nothing on an error, each listed with its
-line number), which `bun run pack` packs. No judge and no model are involved.
-(There was a `--source` check of the result against the original text; the
-maintainer withdrew it on 2026-10-07, ADR-0029 point 4.)
+line number), which `bun run pack` packs. `--number` numbers a single song whose
+title line has none. `--out` defaults to `imports/`. A directory that already
+holds an import draft (`report.md`) is refused unless `--force`; only
+`hymnbook.json` and the `NNNN.json` files are replaced. The app's From Text
+sheet runs the same parser in the browser and builds the container in memory
+(`src/library/textbook.ts`). No judge and no model are involved. (There was a
+`--source` check of the result against the original text; the maintainer
+withdrew it on 2026-10-07, ADR-0029 point 4.)
 
-The app (#28) never runs the import; it loads a format 1 file, a reviewed draft,
-into the device's own store (ADR-0024), which assigns its key, records source
-and song hashes, and handles a file or book it already holds
+The app never runs the PDF or PowerPoint import. It loads a format 1 file, a
+reviewed draft, into the device's own store (ADR-0024), which assigns its key,
+records source and song hashes, and handles a file or book it already holds
 ([ADR-0021](../decisions/0021-identify-books-by-the-store-that-holds-them.md)).
 
 ## 6. Testing

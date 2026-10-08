@@ -1,6 +1,6 @@
 # SDD-0004 — Loading books
 
-- **Status:** Proposed; its decisions are accepted (ADR-0026, ADR-0027)
+- **Status:** Accepted; built (parts 1 to 6, §13)
 - **Date:** 2026-10-02
 - **Decisions:** [ADR-0026](../decisions/0026-songs-leave-the-repository.md)
   (songs leave the repository),
@@ -32,16 +32,16 @@ flowchart LR
     Write --> Books[("Books, in OPFS")]
 ```
 
-| Stage    | Does                                                       | Lives in                   |
-| -------- | ---------------------------------------------------------- | -------------------------- |
-| Pack     | A directory → a container, validated first                 | `scripts/pack.ts`          |
-| Read     | Bytes → the file's hash, a validated book, a hash per song | `src/domain/container.ts`  |
-| Hashes   | The file's, and each song's, canonical form                | `src/domain/hash.ts`       |
-| Key      | A UUIDv7                                                   | `src/domain/key.ts`        |
-| Verdict  | What loading this would do, against what is held           | `src/domain/duplicates.ts` |
-| Registry | The books held, their sources and song hashes              | content-store worker, OPFS |
-| Package  | A SQLite package per book, schema version 3                | content-store worker, OPFS |
-| Library  | List, load, summary, prompt, remove, choose                | `src/library/`             |
+| Stage    | Does                                                       | Lives in                                                            |
+| -------- | ---------------------------------------------------------- | ------------------------------------------------------------------- |
+| Pack     | A directory → a container, validated first                 | `scripts/pack.ts`                                                   |
+| Read     | Bytes → the file's hash, a validated book, a hash per song | `src/domain/container.ts`                                           |
+| Hashes   | The file's, and each song's, canonical form                | `src/domain/hash.ts`                                                |
+| Key      | A UUIDv7                                                   | `src/domain/key.ts`                                                 |
+| Verdict  | What loading this would do, against what is held           | `src/domain/duplicates.ts`                                          |
+| Registry | The books held, their sources and song hashes              | `src/persistence/registry.ts`, OPFS                                 |
+| Package  | A SQLite package per book, schema version 3                | `src/domain/package-rows.ts`, `src/persistence/package-io.ts`, OPFS |
+| Library  | List, load, summary, prompt, remove, choose                | `src/library/`                                                      |
 
 Everything in `src/domain/` stays pure, with no framework and no DOM, like the
 rest of it. Reading and hashing use `DecompressionStream` and `crypto.subtle`,
@@ -52,7 +52,9 @@ large book never holds up a frame.
 
 `bun run pack <dir> [--out <dir>]` writes `<id>.hymnbook.json.gz`
 ([SDD-0002 §1](0002-content-format.md#1-two-forms)) from `content/<id>/` or
-`imports/<id>/`. It is a CLI step beside `import`, not part of it.
+`imports/<id>/`. It is a CLI step beside `import`, not part of it. The writer
+itself is `src/import/container.ts` (`gzipContainer`, `containerBytes`), so the
+app and the CLI write the same bytes.
 
 1. Load the directory with `loadContent`, as `build:content` does, and run
    `validateCorpus`. Any violation is listed and nothing is written; the exit
@@ -76,7 +78,9 @@ device keys the book itself (§5).
 
 ## 3. Reading a container
 
-One file picker, `accept=".gz"`. The worker is handed the `File`.
+One file picker, `accept=".gz,.hymnal"` (plus the gzip media types). The worker
+is handed the `File`. A file that is a backup, by its content, goes to the
+restore sheet instead ([SDD-0006](0006-backup-and-restore.md)).
 
 1. **Bytes.** `file.arrayBuffer()`. The source hash is the SHA-256 of these
    bytes (§4), taken before anything else.
@@ -248,8 +252,9 @@ it starts:
   rebuilt only when SQLite calls it not a database or malformed; on any other
   error the app runs without a registry that session.
 - A `shipped` book the app no longer bundles becomes `loaded`, key unchanged.
-  When the songs leave (§13, part 6), this keeps the Malayalam book on every
-  device that has it.
+  When the songs left (§13, part 6), this kept the Malayalam book on every
+  device that had it. `SHIPPED_BOOK_IDS` (`src/config.ts`) is now empty, so
+  every book is `loaded`.
 - A book's `sources` in the package and its `source` rows in the registry are
   merged: the union is kept in both, so a crash between the two writes (§8)
   heals.
@@ -324,7 +329,7 @@ that order; the registry transaction is the commit.
 | Found                 | What happens                                                             |
 | --------------------- | ------------------------------------------------------------------------ |
 | The app's version     | Open                                                                     |
-| Older, a shipped book | Replaced from the bundle, once (ADR-0025)                                |
+| Older, a shipped book | Replaced from the bundle, once (ADR-0025); nothing ships now (§13)       |
 | Older, a loaded book  | **Migrated in place**, step by step, from the version it has to this one |
 | Older, no step known  | Kept, listed as "needs reloading", openable never, removable always      |
 | Newer than the app    | Kept, listed as "needs a newer app", removable                           |
@@ -436,15 +441,16 @@ Library; this says what it shows and does.
   and its choices (§8), and how many songs are held elsewhere, by book. Nothing
   is written until a button is pressed. Cancel throws the parsed book away. A
   long read or write shows its phase and count on a bar (§14).
-- **Remove**: chosen, by the maintainer: a loaded book only, after a
-  confirmation that names it. It removes the package file and the registry rows
-  and drops its recents; if it was the current book, the next held book becomes
-  current, or none.
+- **Remove**: chosen, by the maintainer: a loaded book only (the row's ⋯ menu,
+  **Remove…**), after a confirmation that names it. It removes the package file
+  and the registry rows and drops its recents; if it was the current book, the
+  next held book becomes current, or none.
 - **Nothing held** is the first run (ADR-0026), chosen by the maintainer: the
   Library says, in a line, that a songbook file is loaded or typed in and stays
   on this device ("Bring a songbook"), and offers **Load Books** (the filled
-  button) and **From Text**. No demo book, no download. The Finder and the
-  Operator say "no book yet" and link to it.
+  button), **From Text** and, where the build has a sample, **Try the Sample**
+  (§16; it is also offered under a non-empty list). No demo book. The Finder and
+  the Operator say "no book yet" and link to it.
 
 Chosen, by the maintainer: the first load asks for persistent storage
 (`navigator.storage.persist()`), since a loaded book has no host to come back
@@ -572,17 +578,17 @@ for reviews taken out of order.
 
 ## 10. Several books
 
-Nothing may assume one book. `BUNDLED_HYMNBOOK_ID` and its `?book=` development
-hook go, along with the defaults that read it (`Library`, `Finder`, `Presenter`,
-`App`):
+Nothing assumes one book. `BUNDLED_HYMNBOOK_ID` and its `?book=` development
+hook are gone, along with the defaults that read it:
 
 - The content store's methods already take a `HymnbookId`; it becomes the key.
   `openBook(key)` (part 5) answers whether the book held under a key can be read
   (`ready`, or `missing-asset`, or `unreadable` with the registry's reason), and
   the store's queries find the book's file from the registry's **current row**
   for the key, not from its name, so a Replace (a new file under the same key)
-  needs nothing invalidated. `ensureInstalled(id)` stays for the shipped book
-  until part 6; the Library uses it only for a shipped book not yet held. The
+  needs nothing invalidated. `ensureInstalled(id)` remains on the store, but
+  since part 6 it only checks that the file is held, registers it if it has no
+  row, and answers `missing-asset` otherwise: there is no bundle to fetch. The
   worker adds `listBooks`, `review(file, target?, onProgress?)`,
   `commit(token, choice?, onProgress?)`, `cancel(token)` and `removeBook(key)`;
   `onProgress` hears the phases of §14.
@@ -642,26 +648,25 @@ OPFS, Workers and Wasm remain browser-only
 registry code is checked by hand in a real browser, with the run-app skill, each
 time it changes, and the check is written down in the part.
 
-**A harness before the UI.** Parts 3 and 4 come before the Library's screen, so
-they are driven from the browser's console: a development-only hook,
-`window.hymnalDev` (`load(file)`, `list()`, `remove(key)`, and the review and
-commit calls of §10), installed only under `import.meta.env.DEV`, so a
-production build strips it. Part 5 replaces its loading calls with the screen
-and deletes them. What stays, dev-only, is the inspector for the cases only OPFS
-can show: `list`, `files`, `sql`, `put`, `copy`, `del`, `reconcile`, `recents`
-and `addRecent`, which build a damaged package, a missing file or a recents
-entry to look at in the Library. Everything pure in the worker's logic, the
-registry's SQL, the migration steps and the verdict, is also tested in vitest on
-`node:sqlite`, with no OPFS stand-in: what only OPFS can show is shown through
-the hook.
+**A harness before the UI.** Parts 3 and 4 came before the Library's screen, so
+they were driven from the browser's console. Part 5 replaced its loading calls
+with the screen. What stays is a development-only hook, `window.hymnalDev`
+(`src/dev/hymnal-dev.ts`), installed only under `import.meta.env.DEV`, so a
+production build strips it. It is the inspector for the cases only OPFS can
+show: `list`, `files`, `sql`, `put`, `copy`, `del`, `reconcile`, `recents`,
+`addRecent` and `install`, which build a damaged package, a missing file or a
+recents entry to look at in the Library. Everything pure in the worker's logic,
+the registry's SQL, the migration steps and the verdict, is also tested in
+vitest on `node:sqlite`, with no OPFS stand-in: what only OPFS can show is shown
+through the hook.
 
-**The app keeps working between parts.** Until part 6 the bundled book still
-ships. Part 3 adds the registry and the new path beside `ensureInstalled` and
-the bundle fetch, which keep working unchanged; the bundled book registers as
-`shipped`. Schema 3 covers the bundled package: `build:content` writes it
+**The app kept working between parts.** Until part 6 the bundled book still
+shipped. Part 3 added the registry and the new path beside `ensureInstalled` and
+the bundle fetch, which kept working unchanged; the bundled book registered as
+`shipped`. Schema 3 covered the bundled package: `build:content` writes it
 through `packageRows` (§7) with `origin` equal to the slug and no `sources`, and
-an installed copy at version 2 is replaced from the bundle, once, as ADR-0025
-says. `Library`, `Finder` and `Presenter` keep their defaults until part 5.
+an installed copy at version 2 was replaced from the bundle, once, as ADR-0025
+says.
 
 ## 13. Parts
 
@@ -701,11 +706,12 @@ Each part is built and reviewed on its own, in order. Each ends with
    screenshots at 390x844 and in the dark theme, with the worst cases: a title
    that just fits, a Malayalam title with glyph overhang, wide song counts, a
    long list. The empty first run is looked at.
-6. **The songs leave** (ADR-0026) — **done, pending the user** (prepared on the
-   branch `board-songsleave`; it lands once the maintainer has loaded the
-   container on their device and says go). Last, once the maintainer has loaded
-   the Malayalam container through the Library. What depends on `content/`
-   today, from a search of the tree, and what happens to each:
+6. **The songs leave** (ADR-0026) — **done**: `content/` is ignored, nothing
+   ships, and the bundle path is gone. It ran last, once the maintainer had
+   loaded the Malayalam container through the Library. What depended on
+   `content/`, from a search of the tree at the time, and what happened to each
+   (a record of the staging; `build:content` remains, and `content/` stays on
+   the maintainer's disk, ignored):
 
    | Depends                                   | On                                                       | Then                                                                                    |
    | ----------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -723,7 +729,7 @@ Each part is built and reviewed on its own, in order. Each ends with
    | `src/domain/types.ts`, tests              | a comment, and a fixture id                              | comment reworded                                                                        |
 
    Then: `git rm -r content/`, the ignore, the `deploy.yml` step, the removed
-   defaults. Verify: `bun run check` with no `content/` on disk (a clean
+   defaults. Verified: `bun run check` with no `content/` on disk (a clean
    checkout), and `bun run build`; a device that holds the old copy still has
    its book, adopted as `loaded` (§6), recents intact.
 
@@ -803,6 +809,9 @@ not flood the channel.
 | `hashing`  | review     | songs hashed               | Comparing 400 of 1,631 songs |
 | `saving`   | commit     | songs written              | Saving 1,200 of 1,631 songs  |
 | `indexing` | commit     | nothing (search, registry) | Indexing for search…         |
+
+A seventh phase, `packing`, counts the books of a backup
+([SDD-0006 §2](0006-backup-and-restore.md)).
 
 `LoadStatus` (`src/shell/Loading.tsx`) is the bar and the line under it, the
 `ProgressBar` of the shipped-book install: determinate where counted, sweeping

@@ -1,6 +1,6 @@
 # SDD-0005 — Full song on the Output
 
-- **Status:** Proposed; its decisions are the user's (Board #30)
+- **Status:** Accepted; built (Board #30)
 - **Date:** 2026-10-02
 - **Decisions:** the four questions of the #30 mockup, all taken as recommended:
   the tint in this layout only; an overlapped fade across columns; a soft floor
@@ -127,15 +127,16 @@ list of part indices; also whether it is below the floor.
    short song stays one centred column.
 5. **Floor and pages** (§ 3).
 
-On the 1,907 songs of the two bundled books, at 1920x1080 with the 16% bands:
-before the larger type (9cqmin was 7.5, the floor 0.30 of it, 24px) 1,884 songs
-were one page and 23 paged, the median type 36px (Malayalam) and 42px (English);
-now (the floor 0.275 of 9cqmin, 26.7px, the maintainer's choice of a 10% step)
-57 are paged, the median still 36px and 42px. The type a song gets is what fits,
-so a typical song is unchanged: the step is in the cap (a short song is set 20%
-larger) and the floor (a long one pages rather than going below 26.7px). A 15%
-step (28px) would page 102, a 20% one (29px) 135. 6 Malayalam songs still fall
-below the floor: a part taller than a column.
+On the 1,907 songs of the two books measured then (none is bundled now), at
+1920x1080 with the 16% bands: before the larger type (9cqmin was 7.5, the floor
+0.30 of it, 24px) 1,884 songs were one page and 23 paged, the median type 36px
+(Malayalam) and 42px (English); now (the floor 0.275 of 9cqmin, 26.7px, the
+maintainer's choice of a 10% step) 57 are paged, the median still 36px and 42px.
+The type a song gets is what fits, so a typical song is unchanged: the step is
+in the cap (a short song is set 20% larger) and the floor (a long one pages
+rather than going below 26.7px). A 15% step (28px) would page 102, a 20% one
+(29px) 135. 6 Malayalam songs still fall below the floor: a part taller than a
+column.
 
 ## 3. The floor, and pages
 
@@ -152,7 +153,7 @@ it the song is split, never scrolled:
 3. If no split reaches it (one part taller than a column at the floor, say), the
    split with the largest fit wins and the layout reports it is below the floor.
    The part stays whole, and the type goes down as far as it must, never past
-   0.15.
+   0.125.
 4. Each page then takes its columns at the song's fit, with its own count: the
    page's own choice of k, or a larger k if wrapping made that infeasible.
 

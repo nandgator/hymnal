@@ -45,9 +45,12 @@ bun run text my-songs.txt --id my-book --title "My book" \
 
 If the text has errors, each is listed with its line number and nothing is
 written. Otherwise it writes `imports/my-book/` (`hymnbook.json` and the
-`NNNN.json` files; `--out` changes `imports`), prints any note about a sung
+`NNNN.json` files; `--out` changes `imports`) and prints any note about a sung
 order it had to take as printed. A single song whose first line has no number
-takes `--number`. Then pack the directory and load the result in the app:
+takes `--number`. The id is letters, digits, `-` and `_`. A directory that
+already holds an import draft (a `report.md`) is refused unless you add
+`--force`; a re-run replaces only `hymnbook.json` and the `NNNN.json` files.
+Then pack the directory and load the result in the app:
 
 ```sh
 bun run pack imports/my-book
@@ -60,12 +63,13 @@ what will be stored before anything is. If you wrote the format 1 files by hand,
 skip the first step and pack their directory.
 
 **In the app.** In the Library, **From Text** opens a sheet. Fill in the book's
-title, language and script (they are never guessed; the id is made from the
-title and you can change it), then paste the song text or open a `.txt`.
-**Review the Book** parses the text: every error is listed with its line number
-and nothing is stored. When there are none you get the same review a loaded file
-gets, and the same buttons. Nothing is stored until you press one, and nothing
-leaves your device.
+title, language and script (they are never guessed; the language is picked by
+name, and the id, made from the title, is under Advanced where you can change
+it), then paste the song text or open one or more `.txt` files (several are
+joined with `---`). **Review the Book** parses the text: every error is listed
+with its line number and nothing is stored. When there are none you get the same
+review a loaded file gets, and the same buttons. Nothing is stored until you
+press one, and nothing leaves your device.
 
 **Read it against your original.** Hymnal has no check of the result against the
 text you started from. Whoever used an AI must read the result against their

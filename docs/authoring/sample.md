@@ -3,8 +3,9 @@
 Three short hymns, first as **song text** (text format 1,
 [`text-format.md`](text-format.md)), then as the **format 1** files they become
 ([SDD-0002](../design/0002-content-format.md)). The JSON was checked against the
-published schema and the repository's validator, and the text was checked
-against the rules by hand.
+published schema and the repository's validator. The text was run through
+`bun run text` (with the book fields given under "What it becomes"), and its
+output equals the JSON below.
 
 All three are public domain. Newton (died 1807), Heber (died 1826), Watts
 (died 1748) and Hudson (died 1906) are long out of copyright anywhere, and the
