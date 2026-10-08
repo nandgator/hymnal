@@ -146,6 +146,13 @@ only, here:
 
 ## Log
 
+- 2026-10-08 — The maintainer's second pass: while live, the song stays mounted
+  (hidden) in another section, so the Output keeps it, its keys still drive it,
+  and loading a book mid-service leaves it alone (decided: keys act from the
+  Library while live); a far jump sweeps the card across (the maintainer's
+  choice over #55's fade); the language list floats and Advanced grows smoothly;
+  a dismissed file picker no longer closes its sheet; the rest of the sample is
+  offered under the list; a shorter font credit
 - 2026-10-07 — #55 done: a far step (a wrap by Home or End, a far browse) is an
   exit and enter, the card fading out, the list landing unseen, the card fading
   in; a near step holds the card still on screen as the text slides through it,
