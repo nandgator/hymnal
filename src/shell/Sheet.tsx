@@ -210,6 +210,9 @@ export function Sheet(props: SheetProps) {
       aria-label={props.page?.title ?? props.title}
       onClose={() => props.onClose()}
       onCancel={(event) => {
+        // A file input's cancel (its picker dismissed) bubbles here: only the
+        // dialog's own, which is Escape, closes or goes back.
+        if (event.target !== event.currentTarget) return;
         event.preventDefault();
         back();
       }}
