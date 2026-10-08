@@ -606,6 +606,12 @@ export function Presenter(props: PresenterProps) {
   const keepNoticeClear = (stage: HTMLElement) => {
     const root = document.documentElement;
     const fit = () => {
+      // Hidden (the song kept while live in another section): no stage, so no
+      // edge for the notice to stop at.
+      if (props.away || stage.getClientRects().length === 0) {
+        root.style.removeProperty("--stage-left");
+        return;
+      }
       const left = `${Math.round(stage.getBoundingClientRect().left)}px`;
       if (root.style.getPropertyValue("--stage-left") !== left)
         root.style.setProperty("--stage-left", left);
