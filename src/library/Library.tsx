@@ -231,7 +231,12 @@ export function Library(props: LibraryProps) {
   const [sheetReading, setSheetReading] = createSignal<string>();
   // Files that could not be read, each said in words.
   const [readErrors, setReadErrors] = createSignal<string[]>([]);
-  const sample = () => props.sample ?? SAMPLE_FILES;
+  // The sample's files not yet in the Library: a container's name is its
+  // book's origin (SDD-0004 §16), so a loaded one is not offered again.
+  const sample = () =>
+    (props.sample ?? SAMPLE_FILES).filter(
+      (name) => !rows().some((book) => `${book.origin}.hymnbook.json.gz` === name),
+    );
   const [fetchingSample, setFetchingSample] = createSignal(false);
   // Books whose file turned out to be gone when they were chosen (evicted).
   const [missing, setMissing] = createSignal<ReadonlySet<string>>(new Set());
@@ -886,6 +891,11 @@ export function Library(props: LibraryProps) {
         <Show when={savingShown()}>{savingRow()}</Show>
         <For each={rows()}>{bookRow}</For>
       </ul>
+      {/* The same offer as the empty Library's, under the list: the header
+          has no room for a third action at phone width. */}
+      <Show when={sample().length > 0}>
+        <div class="lib-sample">{sampleButton()}</div>
+      </Show>
       <Show when={modeKnown()}>
         <p class="lib-foot">
           <Show when={inMemory()} fallback={KEPT_NOTE}>

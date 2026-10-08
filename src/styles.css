@@ -4883,6 +4883,10 @@ html[data-scrolling],
   font-size: 0.875rem;
   color: var(--md-sys-color-on-surface-variant);
 }
+/* The rest of the sample, offered as in the empty Library (Library.tsx). */
+.lib-sample {
+  padding: var(--space-xs) 0 0;
+}
 .lib-foot {
   padding: var(--space-xs) var(--space-xs) 0;
   font-size: 0.875rem;
