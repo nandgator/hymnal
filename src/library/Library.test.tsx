@@ -1495,6 +1495,35 @@ describe("Library: the sample (Board #43)", () => {
     }
   });
 
+  it("offers the rest of the sample under a Library's list, fetching only what is missing", async () => {
+    const other = "malayalam-public-domain-sample.hymnbook.json.gz";
+    const fetch = vi.fn(async () => new Response(new Uint8Array([0x1f, 0x8b, 8, 0])));
+    vi.stubGlobal("fetch", fetch);
+    try {
+      const s = setup({
+        rows: [loaded({ origin: "otterbein-hymnal-sample", title: "The Otterbein Hymnal" })],
+        sample: [SAMPLE, other],
+      });
+      s.view();
+      await screen.findByRole("list", { name: "Books" });
+      fireEvent.click(await screen.findByRole("button", { name: "Try the Sample" }));
+      await waitFor(() => expect(s.admin.review).toHaveBeenCalled());
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(fetch).toHaveBeenCalledWith(`/sample/${other}`);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("offers no sample once every sample book is loaded", async () => {
+    setup({
+      rows: [loaded({ origin: "otterbein-hymnal-sample" })],
+      sample: [SAMPLE],
+    }).view();
+    await screen.findByRole("list", { name: "Books" });
+    expect(screen.queryByRole("button", { name: "Try the Sample" })).not.toBeInTheDocument();
+  });
+
   it("says so when the sample cannot be fetched, and loads nothing", async () => {
     vi.stubGlobal(
       "fetch",
