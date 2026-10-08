@@ -15,7 +15,7 @@ const SAMPLE_BOOKS =
 /** What the app is built from, each with the licence it carries (ADR-0016). */
 const CREDITS: { name: string; licence: string }[] = [
   {
-    name: "Hymnal Sans, from Google Sans, renamed as its trademark note asks",
+    name: "Hymnal Sans (renamed Google Sans)",
     licence: "SIL OFL 1.1",
   },
   { name: "SQLite", licence: "public domain" },
