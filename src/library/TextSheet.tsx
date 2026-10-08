@@ -151,6 +151,18 @@ async function readTexts(files: FileList | null | undefined): Promise<string[] |
   }
 }
 
+/** While a section grows, keep its end in view frame by frame: past the card's cap the body scrolls with it, with no jump. */
+function followGrowth(el: HTMLDetailsElement) {
+  if (typeof requestAnimationFrame !== "function") return;
+  const end = performance.now() + 300;
+  const step = () => {
+    if (!el.open) return;
+    el.querySelector(".advanced-body")?.scrollIntoView?.({ block: "nearest" });
+    if (performance.now() < end) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
 /** A parse error as a field error: "Line 12: …", or the message alone when it has no line. */
 const errorText = (e: TextError) => (e.line > 0 ? `Line ${e.line}: ${e.message}` : e.message);
 
@@ -374,7 +386,11 @@ export function TextSheet(props: TextSheetProps) {
         <details
           class="advanced"
           open={advanced()}
-          onToggle={(e) => setAdvanced(e.currentTarget.open)}
+          onToggle={(e) => {
+            const el = e.currentTarget;
+            setAdvanced(el.open);
+            if (el.open) followGrowth(el);
+          }}
         >
           <summary class="advanced-summary">
             <span class="icon icon-chevron-right advanced-chevron" aria-hidden="true" />

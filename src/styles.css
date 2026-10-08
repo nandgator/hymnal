@@ -3511,6 +3511,7 @@ html[data-scrolling],
   --sheet-pad-bottom: max(var(--space-lg), env(safe-area-inset-bottom));
   flex: 1;
   min-height: 0;
+  scroll-padding-block-end: 5rem;
   padding: var(--space-xs) var(--space-lg) var(--sheet-pad-bottom);
   overflow-y: auto;
 }
@@ -5605,8 +5606,8 @@ fieldset.book-main {
   box-shadow: inset 0 0 0 2px var(--md-sys-color-error);
 }
 
-/* The language picker: the list opens in the flow under its field, in the
-   menu's own surface and rows. */
+/* The language picker: the list floats over the sheet (a popover placed from
+   its field), in the menu's own surface and rows. */
 .lang {
   display: flex;
   flex-direction: column;
@@ -5637,11 +5638,15 @@ fieldset.book-main {
   flex: 1 1 14rem;
 }
 .lang-list {
-  position: relative;
+  position: fixed;
+  inset: auto;
+  z-index: 5;
   isolation: isolate;
   max-height: 14.5rem;
   margin: 0;
   padding: var(--space-xs) 0;
+  border: none;
+  color: var(--md-sys-color-on-surface);
   overflow-y: auto;
   border-radius: var(--shape-md);
   background-color: var(--md-sys-color-surface-container-high);
@@ -5650,6 +5655,9 @@ fieldset.book-main {
   scroll-padding-block: var(--space-xs);
   animation: menu-in var(--motion-short) var(--motion-emphasized);
   transform-origin: top left;
+}
+.lang-list-above {
+  transform-origin: bottom left;
 }
 .lang-row {
   display: flex;
@@ -5742,6 +5750,21 @@ fieldset.book-main {
 }
 .advanced[open] .advanced-chevron {
   transform: rotate(90deg);
+}
+/* Opening grows the section's height from zero, so the card follows smoothly
+   up to its cap and only then scrolls inside the body. */
+.advanced {
+  interpolate-size: allow-keywords;
+}
+.advanced::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition:
+    block-size var(--motion-medium) var(--motion-emphasized),
+    content-visibility var(--motion-medium) allow-discrete;
+}
+.advanced[open]::details-content {
+  block-size: auto;
 }
 .advanced-body {
   display: flex;

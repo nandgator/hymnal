@@ -420,7 +420,7 @@ describe("Library: the sheet keeps its size while a list or a section opens", ()
     try {
       const { dialog } = await openSheet();
       fireEvent.focus(dialog.getByRole("combobox", { name: "Language" }));
-      const list = dialog.getByRole("listbox", { name: "Languages" });
+      const list = dialog.getByRole("listbox", { hidden: true });
       expect(list).toHaveAttribute("popover", "manual");
       await waitFor(() => expect(show).toHaveBeenCalled());
       // Placed from the field's rect, like the app's menus, not laid out under it.

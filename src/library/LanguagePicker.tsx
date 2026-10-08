@@ -1,5 +1,6 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js";
 import { type GlideList, glideList } from "../shell/glideList.ts";
+import { placeMenu } from "../shell/menuPlacement.ts";
 import {
   COMMON_CODES,
   filterLanguages,
@@ -29,9 +30,9 @@ interface Entry {
 
 /**
  * A searchable list of languages by name, each in its own name and in English
- * ("മലയാളം — Malayalam"), with "Other…" to type a code. The list opens in the
- * flow under the field, not over the sheet, so a phone's keyboard and the
- * sheet's scroll never fight it. Arrow keys move, Enter picks, Escape closes.
+ * ("മലയാളം — Malayalam"), with "Other…" to type a code. The list is a popover
+ * in the top layer, placed from the field's rect like the app's menus, so it
+ * floats over the sheet and never changes its size or adds a scrollbar. Arrow keys move, Enter picks, Escape closes.
  */
 export function LanguagePicker(props: LanguagePickerProps) {
   const [open, setOpen] = createSignal(false);
@@ -42,6 +43,7 @@ export function LanguagePicker(props: LanguagePickerProps) {
   let field: HTMLInputElement | undefined;
   let returning = false;
   let list: HTMLDivElement | undefined;
+  let box: HTMLDivElement | undefined;
   let glide: GlideList | undefined;
 
   // Nothing typed: Common first, then every language. Typed: the matches among all of them.
@@ -118,8 +120,39 @@ export function LanguagePicker(props: LanguagePickerProps) {
     // No language yet: the top of the list, not "Other…" (the empty code).
     setActive(props.value ? Math.max(0, rows().indexOf(props.value)) : 0);
     setOpen(true);
-    queueMicrotask(() => list?.scrollIntoView?.({ block: "nearest" }));
   };
+
+  // Under the field, or above it when there is no room below; scrolls inside
+  // its own max-height. Repositioned as the rows change and as the page moves.
+  const place = () => {
+    if (!list || !box) return;
+    list.style.maxHeight = "";
+    const at = box.getBoundingClientRect();
+    const own = list.getBoundingClientRect();
+    const spot = placeMenu({
+      trigger: at,
+      menu: { w: at.width, h: list.scrollHeight + (own.height - list.clientHeight) },
+      viewport: { w: window.innerWidth, h: window.innerHeight },
+      align: "start",
+    });
+    list.style.width = `${at.width}px`;
+    list.style.top = `${spot.top}px`;
+    list.style.left = `${spot.left}px`;
+    if (spot.maxHeight !== undefined) list.style.maxHeight = `${spot.maxHeight}px`;
+    list.classList.toggle("lang-list-above", spot.above);
+  };
+  createEffect(() => {
+    if (!open()) return;
+    shown();
+    queueMicrotask(place);
+    const again = () => place();
+    document.addEventListener("scroll", again, true);
+    window.addEventListener("resize", again);
+    onCleanup(() => {
+      document.removeEventListener("scroll", again, true);
+      window.removeEventListener("resize", again);
+    });
+  });
 
   return (
     <div class="lang">
@@ -147,7 +180,7 @@ export function LanguagePicker(props: LanguagePickerProps) {
           </div>
         }
       >
-        <div class="lang-box">
+        <div class="lang-box" ref={box}>
           <input
             ref={field}
             id={props.id}
@@ -203,8 +236,13 @@ export function LanguagePicker(props: LanguagePickerProps) {
             id={listId}
             role="listbox"
             aria-label="Languages"
+            popover={"showPopover" in HTMLElement.prototype ? "manual" : undefined}
             ref={(el) => {
               list = el;
+              queueMicrotask(() => {
+                if (typeof el.showPopover === "function" && el.isConnected) el.showPopover();
+                place();
+              });
               glide = glideList(el, { rows: ".lang-row", current: ".lang-row[data-current]" });
               onCleanup(glide.stop);
             }}
