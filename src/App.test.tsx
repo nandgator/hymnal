@@ -1105,6 +1105,30 @@ describe("App", () => {
       output.close();
     });
 
+    it("keeps the Output on the song while the Operator is in the Library, keys still driving it", async () => {
+      const { output, seen } = await liveOutput();
+      const sections = within(screen.getByRole("navigation", { name: "Sections" }));
+      const repeatShown = () => contents(seen).at(-1)?.repeat;
+
+      seen.length = 0;
+      fireEvent.click(sections.getByRole("button", { name: "Library" }));
+      await booksReady();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(seen.filter((m) => m.type === "idle")).toEqual([]);
+
+      // A key still drives the Output from the Library while live: R repeats.
+      fireEvent.keyDown(window, { key: "r" });
+      await waitFor(() => expect(repeatShown()).toBe(2));
+
+      // Back to Present: the song keeps its place, not started over.
+      seen.length = 0;
+      fireEvent.click(sections.getByRole("button", { name: "Present" }));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(seen.filter((m) => m.type === "idle")).toEqual([]);
+      expect(contents(seen).every((m) => m.repeat === 2)).toBe(true);
+      output.close();
+    });
+
     it("End Live cancels the Hold", async () => {
       const { output, seen } = await liveOutput();
       fireEvent.keyDown(window, { key: "H", shiftKey: true });
