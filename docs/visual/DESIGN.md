@@ -739,7 +739,9 @@ view is close enough to the frame to need a smaller unit.
   line ("Only one tab can hold your books at a time. Use it here, and the other
   tab will let go.") and the filled **Use Here**. Calm, not an error: no error
   colour, no icon, no alert role. The tab that let go shows the same note at
-  once. While the request waits the button is disabled; if the other tab is
+  once. A tab whose books are held in memory (no storage for them) says "The
+  other tab holds this window's books, in memory. Use them here, and they go."
+  instead. While the request waits the button is disabled; if the other tab is
   presenting (its Output is open) the line becomes "The other tab is presenting.
   Close its Output window first, then use Hymnal here." and Use Here stays for
   another try. Two more lines in the same place: "The other tab is saving a
@@ -794,11 +796,12 @@ view is close enough to the frame to need a smaller unit.
   put away by itself after a few seconds or by **Got It**.
 - **The Library** (Board #28 part 5; SDD-0004 §9). A list of the books held, in
   the default width, the mockup's `Library` header sticking under the switcher
-  row as the Finder's field does (title-large, "N books on this device", and a
-  tonal **Load Books** with a file icon, always there). Never a card per book:
-  **one panel** (`surface-container-low`, 22px, 8px inside), a row per book
-  inside it (14px), no borders, in the order added, never reordered, so the
-  current book is marked and not hoisted (§ Stability).
+  row as the Finder's field does (title-large, "N books on this device" or,
+  where the books are held in memory, "N books in this window", and a tonal
+  **Load Books** with a file icon, always there). Never a card per book: **one
+  panel** (`surface-container-low`, 22px, 8px inside), a row per book inside it
+  (14px), no borders, in the order added, never reordered, so the current book
+  is marked and not hoisted (§ Stability).
   - **A row** is a 40px tile (the book icon), the title in the hymn face (500,
     line-height 1.6 so Malayalam conjuncts are not clipped, two lines at most,
     then an ellipsis; the full title is in the review), and one meta line,
@@ -811,56 +814,70 @@ view is close enough to the frame to need a smaller unit.
   - **Current** is tonal and says so: `secondary-container` fill, a
     `primary-container` tile, and the word Current (fill alone is too faint in
     light). Neutral rows are actions at rest. A book just loaded is outlined in
-    `primary` and tagged **Added** for a few seconds, and scrolled into view.
+    `primary` and tagged **Added** at the end of its meta line for 4 seconds,
+    and scrolled into view.
   - **A book that cannot be opened** is a row that does not choose: an
     `error-container` tile (a warning icon, or an update icon for a newer app),
     the title (or the key, if it has none), a status line in `error`, **Needs
     reloading**, **Can't be read**, **File missing** or **Needs a newer app**,
-    one sentence, and **Load Again** (text button) where a file can fix it.
-    Remove is in its menu.
+    one sentence, and **Load Again** (text button) where a file can fix it (not
+    for **Needs a newer app**, whose line says to update Hymnal). Each status
+    has a sentence under it. Remove is in its menu.
   - **The menu** is the Menu component with its list kept for one item:
     **Remove…** with "Drops the book and its Recents". A shipped book's is
     disabled, "Shipped with the app".
   - **From Text** (Board #34; SDD-0004 §9) is a text button left of Load Books
     (its icon dropped under 600px), and a tonal button under the filled one in
-    the empty card. It opens the **text sheet**, a tall sheet of the review's
-    kind: filled fields (the search field's fill, a 2px `primary` ring on
-    focus), the title; the **language**, a searchable picker of languages by
-    name, each in its own name and in English ("മലയാളം — Malayalam"), in the
-    menu's surface and rows, opening in the flow under its field (never over the
-    keyboard), ending in **Other…** to type a code; under it a quiet line,
-    "Script: Malayalam (Mlym) · Change", the script derived from the language
-    and a field only after Change; then the song text area in the hymn face
-    (with **Open .txt Files**, several at once). The id and the optional song
-    number sit under an **Advanced** disclosure, which opens by itself when one
-    of them is asked for. The area scrolls inside itself (at most 40% of the
-    height); one filled button, **Review the Book**, is pinned at the bottom as
-    the review's is. **Every error is a field error**: the field gets the
-    `error` outline and its helper text turns `error`, under the field. Parse
-    errors are listed under the song text, one line each, "Line 12: message";
-    "There is no song text." is that field's error too. No callout, no table.
-    The first field in error is scrolled into view. The review that follows is
-    the same sheet, with no source check (withdrawn, ADR-0029 point 4).
+    the empty card. It opens the **text sheet** ("Book from Text"), a tall sheet
+    of the review's kind: a short lead line, then filled fields (the search
+    field's fill, a 2px `primary` ring on focus), the title; the **language**, a
+    searchable picker of languages by name, each in its own name and in English
+    ("മലയാളം — Malayalam"), grouped Common then All languages, in the menu's
+    surface and rows, a popover floating over the sheet from the field's
+    position, ending in **Other…** to type a code; a suggestion from the song
+    text ("Looks like …") fills it until the person picks; once a language is
+    set, a quiet line, "Script: Malayalam (Mlym) · Change", the script derived
+    from the language and a field ("Script code", with Done) only after Change;
+    then the song text area in the hymn face (with **Open .txt Files**, several
+    at once). The id and the optional song number sit under an **Advanced**
+    disclosure, which opens by itself when one of them is asked for. The area
+    scrolls inside itself (at most 40% of the height, resizable); one filled
+    button, **Review the Book**, is pinned at the bottom as the review's is.
+    **Every error is a field error**: the field gets the `error` outline and its
+    helper text turns `error`, under the field. Parse errors are listed under
+    the song text, one line each, "Line 12: message"; "There is no song text."
+    is that field's error too. No callout, no table. The first field in error is
+    scrolled into view (and focused, except the language). The review that
+    follows is the same sheet, with no source check (withdrawn, ADR-0029 point
+    4); a refusal there offers **Edit the Text** in place of Choose Another
+    File.
   - **Several books**: Load Books takes several files at once (Load Again one),
     and **Open .txt Files** joins several `.txt` files into one song text with
     `---` between. The review of several is a queue: the sheet says **Book 2 of
-    5** and the file's name between **Back** and **Next** chevrons (48px,
-    disabled at the ends; the arrow keys too), so every book can be looked at
-    before any is decided; the header reads Close. A book loaded says **Loaded**
-    in place of its button; loading one shows the next open book. A file that
-    cannot be read is said in the list and passed over. Closing the sheet asks
-    nothing, leaves the open books unloaded and says nothing.
+    5** and the file's name between previous and next chevrons (48px, disabled
+    at the ends; the arrow keys too, except in a text field or the radios), so
+    every book can be looked at before any is decided; the header reads Close. A
+    book loaded says **Loaded** in place of its button (a disabled tonal one
+    with a check, over a "This book is in the Library now" panel); loading one
+    shows the next open book. A file that cannot be read is said in a list above
+    the review and passed over. Closing the sheet asks nothing, leaves the open
+    books unloaded and says nothing.
   - **Reading a file**: the picked file's row appears first in the list, a tile,
     "Reading <file>", the line "Checking the file on this device. Nothing is
     sent anywhere.", an indeterminate bar and Cancel, with Load Books disabled.
-    No spinner. From an empty Library the empty card turns into the same lines
-    in its own shape.
+    No spinner. Once loading starts the same row reads "Saving <title>" with
+    "Writing the book on this device. It can't be cancelled." and the progress
+    bar, in the list or, from an empty Library, in the card. From an empty
+    Library the empty card turns into the same lines in its own shape.
   - **Nothing held** (the first run): the card keeps the skeleton's shape,
     display-small "Bring a songbook", one body line (load a file or type one in;
     it stays on this device), the filled **Load Books**, a tonal **From Text**
-    and, where the build carries the sample books, a text **Try the Sample**. Go
-    Live is disabled.
-  - **The review** is a sheet, bottom under 840px and centred from it, taller
+    and, where the build carries the sample books, a text **Try the Sample**
+    (with sample books it also sits under the list, once books are held). The
+    line also says where the books live ("It stays on this device.", or that
+    this window doesn't keep books). Go Live is disabled.
+  - **The review** is a sheet titled **Load Books** (**Load Again** for a book
+    that could not be opened), bottom under 840px and centred from it, taller
     than the others (88% of the height), its Cancel pinned, its content
     scrolling and its one action bar sticky. Read-only throughout: the book's
     title and `Language · N songs`, a facts list (language with its code and
@@ -869,7 +886,9 @@ view is close enough to the frame to need a smaller unit.
     - **A refusal** (`error-container`; the violations listed all, by song and
       rule, none repaired; or a newer format, naming both versions; or not a
       hymnbook file). The only action is **Choose Another File**; the header
-      reads Close.
+      reads Close. The header also reads Close for Same file, for a queue and
+      while saving; while saving there is no button, the progress bar takes its
+      place, and the sheet may be closed.
     - **Same file**: a neutral panel, nothing written, **Open Book**.
     - **Same songs**: a neutral panel naming the book, and that opening records
       the file; **Open Book**. Cancel records nothing.
@@ -882,13 +901,25 @@ view is close enough to the frame to need a smaller unit.
     - **New**: a quiet primary-tinted panel and **Load Book**.
     - **Load Again** (a review aimed at a book that could not be opened):
       "Brings a book back", the held book named, and **Restore Book**; a file
-      whose title is not the book's adds a warning panel naming both titles.
-    - Songs held in other books: a quiet line under any loadable verdict, by
-      book, "They load anyway."
+      whose title is not the book's adds a "Not the same title" panel naming
+      both titles.
+    - Songs held in other books: a quiet line under New, Same origin and Load
+      Again, by book, "They load anyway."
   - **Remove** is a sheet of the same shape: the book, "This removes" (its
     songs, its Recents with their count), a note that the file is not touched
     and the book has no other copy, and, for the current book, which book takes
     over (or that none will). One filled destructive **Remove Book** (`error`).
+    If the book is on the Output now, the button is disabled, a line says "End
+    Live first", and a tonal **End Live** sits above it; if the hymn on screen
+    is from the book, the note says it goes with the book and the Operator
+    returns to the Finder.
+  - **Restore** (SDD-0006) is a sheet of the same shape for a backup file, which
+    the picker recognises by its content and takes on its own. It names the
+    backup ("Backup from Sun, Sep 27") and its build, lists each book with what
+    restoring does ("Will be restored", "Already here", "A different edition is
+    here" with **Keep this device's** or **Replace**), a "Not restored" list,
+    and one filled **Restore**; the header reads Cancel, then Close when done or
+    refused, and the progress bar takes the button's place while it runs.
   - **Keep your file** is the snackbar's note (above), after a first load whose
     persistent-storage request was refused; a granted request says nothing.
   - **Choosing and loading**: a load never changes the current book, unless none
@@ -1087,31 +1118,35 @@ view is close enough to the frame to need a smaller unit.
   its own pane, dimmed until sung and lit in place when it is, while the verses
   scroll alone. **Side by side** on a landscape screen (verses left, chorus
   right, both on the eyeline), so the back rows see it over the heads in front;
-  **a band at the foot** on portrait, or when side by side would shrink the type
-  below 70% of full size (5.25% of the screen's shorter side). A hymn that
-  neither layout can hold there flows. Only the chorus pins; a bridge or tag
-  stays in the verse column. In these scroll layouts no part carries a mark (no
-  box, glow, rule, label or italics): being sung, it's lit like any other, and
-  the part gap sets it apart. The one exception is Full Song, below.
+  **a band at the foot** on portrait, or on landscape when side by side would
+  shrink the type below 70% of full size (5.25% of the screen's shorter side); a
+  portrait screen falls back to side by side if the band cannot hold it. A hymn
+  that neither layout can hold there flows. Only the chorus pins; a bridge or
+  tag stays in the verse column. In these scroll layouts no part carries a mark
+  (no box, glow, rule, label or italics): being sung, it's lit like any other,
+  and the part gap sets it apart. The one exception is Full Song, below.
 - **Full Song** (SDD-0005, Presentation > Layout > "Whole song", off by default,
   landscape only, in place of the scroll and its pinned chorus): the whole song
   at once in its printed form, in columns, left-aligned (one column: centred).
   Nothing scrolls. Parts are whole, in printed order, balanced across as few
   columns as buy type size; the type, one size for the song, shrinks to fit,
   down to a fit of 0.275 of 9cqmin (26.7px on a 1080p screen). A song that would
-  need less is split into pages of whole parts and the page turns with the tint;
-  no page says so. A chorus the song sings after its verses is printed again on
-  each page that sings it, after the verse it follows, so the tint moves from a
-  verse to its chorus to the next verse of the page without a page turning; only
-  a step to a verse on another page turns it. **The tint is a mark here**, the
-  one exception to the rule above: with no eyeline to say where the song is, a
-  box behind the current part (9% ink over the ground, the badge's tone, corners
-  0.4em) does, and the lit part's text is lit, the rest dimmed, by colour alone.
-  Margins, cues and the ground are the scroll's. **Highlight on the Output**
-  (Presentation, and the H key) can be _Whole song_ in this layout and the
-  scroll alike: every part at full brightness, no tint, no dimming, for singing
-  straight through; the switch animates the colour and the tint in 250ms, at
-  once under reduced motion.
+  need less is split into pages of whole parts and the page turns with the tint
+  (a 250ms cross-dissolve, the new page rising 12px; none under reduced motion);
+  no page says so. A part's marker, where one is shown (verse number, Chorus),
+  sits above its first line, small and muted. A chorus the song sings more than
+  once is printed on each page that sings it (once per page), after the verse it
+  first follows there (before the verse, if the song opens on it), so the tint
+  moves from a verse to its chorus to the next verse of the page without a page
+  turning; only a step to a verse on another page turns it. **The tint is a mark
+  here**, the one exception to the rule above: with no eyeline to say where the
+  song is, a box behind the current part (9% ink over the ground, the badge's
+  tone, corners 0.4em) does, and the lit part's text is lit, the rest dimmed, by
+  colour alone. Margins, cues and the ground are the scroll's. **Highlight on
+  the Output** (Presentation, and the H key) can be _Whole song_ in this layout
+  and the scroll alike: every part at full brightness, no tint, no dimming, for
+  singing straight through; the switch animates the colour and the tint in
+  250ms, at once under reduced motion.
 - **One hard breakpoint** (`~60rem`), not to change the type scale but to cap
   reading-column width on a large display — unconstrained lines on a big screen
   are exactly as illegible as too-small text on a phone.
