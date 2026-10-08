@@ -27,6 +27,20 @@ describe("Sheet", () => {
     expect(document.activeElement).toBe(focused);
   });
 
+  it("stays open when a file picker inside it is dismissed (its input's cancel bubbles)", () => {
+    const onClose = vi.fn();
+    const { container } = render(() => (
+      <Sheet open onClose={onClose} title="Settings">
+        <input type="file" data-testid="picker" />
+      </Sheet>
+    ));
+    const input = container.querySelector("input") as HTMLInputElement;
+    const event = new Event("cancel", { bubbles: true, cancelable: true });
+    fireEvent(input, event);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   it("keeps the title and Close outside what scrolls, so no sheet can scroll them away", () => {
     const { container } = render(() => (
       <Sheet open onClose={() => {}} title="Settings">
