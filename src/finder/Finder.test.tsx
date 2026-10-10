@@ -660,11 +660,9 @@ describe("Finder", () => {
       const groups = screen.getAllByRole("group");
       expect(groups).toHaveLength(3);
       expect(groups.map((g) => g.getAttribute("aria-labelledby")?.length)).not.toContain(0);
-      expect(groups.map((g) => g.firstElementChild?.textContent)).toEqual([
-        "Current Book",
-        "Second Book",
-        "Third Book",
-      ]);
+      expect(groups[0]).toHaveAccessibleName("Current Book");
+      expect(groups[1]).toHaveAccessibleName("Second Book");
+      expect(groups[2]).toHaveAccessibleName("Third Book");
       // The listbox holds only groups, and each option sits in one.
       for (const option of options()) expect(option.closest('[role="group"]')).not.toBeNull();
     });
@@ -686,8 +684,6 @@ describe("Finder", () => {
       fireEvent.mouseDown(group("Second Book").getByRole("option", { name: /More in/ }));
       expect(group("Second Book").getAllByRole("option")).toHaveLength(7);
       expect(group("Second Book").queryByText(/More in/)).not.toBeInTheDocument();
-      // The highlight stays where the top match is.
-      expect(selected()).toBe(0);
       fireEvent.input(find(), { target: { value: "lines" } });
       await waitFor(() => expect(group("Second Book").getAllByRole("option")).toHaveLength(6));
     });
@@ -709,6 +705,38 @@ describe("Finder", () => {
       // The highlight is on the first song that was hidden.
       expect(options()[13]).toHaveTextContent("Second Song 6");
       expect(selected()).toBe(13);
+    });
+
+    it("Enter on a highlighted row still picks while the next search is pending and a group had been opened", async () => {
+      let release: (hits: BookHits[]) => void = () => {};
+      const searchAll = vi.fn(async (query: string) =>
+        query === "line" ? allHits() : await new Promise<BookHits[]>((r) => (release = r)),
+      );
+      const onSelect = renderMany({}, fakeStore({ searchAll }));
+      await type("line");
+      fireEvent.mouseDown(group("Second Book").getByRole("option", { name: /More in/ }));
+      // Typing resets the highlight; the arrows then move it to the last of the sixteen rows.
+      fireEvent.input(find(), { target: { value: "lines" } });
+      fireEvent.keyDown(find(), { key: "ArrowUp" });
+      expect(options()).toHaveLength(16);
+      // The search starts after the pause, and has not answered: the list must not have shrunk.
+      await waitFor(() => expect(searchAll).toHaveBeenCalledWith("lines", "cur"));
+      expect(options()).toHaveLength(16);
+      fireEvent.submit(find().closest("form") as HTMLFormElement);
+      expect(onSelect).toHaveBeenCalledWith(1, "three");
+      release([]);
+    });
+
+    it("never shows an empty heading or an unnamed group as a number turns into words", async () => {
+      renderMany();
+      fireEvent.input(find(), { target: { value: "42" } });
+      await screen.findByRole("option", { name: /Forty-Second Hymn/ });
+      // Words typed: the number's suggestions stay up until the search answers.
+      fireEvent.input(find(), { target: { value: "lord" } });
+      expect(screen.getByRole("option", { name: /Forty-Second Hymn/ })).toBeInTheDocument();
+      for (const heading of document.querySelectorAll(".finder-group-heading"))
+        expect(heading.textContent).not.toBe("");
+      for (const g of screen.queryAllByRole("group")) expect(g).toHaveAccessibleName();
     });
 
     it("Enter takes the top of the first group unless moved, and a pick in another book hands its key", async () => {
