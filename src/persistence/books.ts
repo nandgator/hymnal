@@ -1,5 +1,6 @@
 import type { OnLoadProgress } from "../domain/progress.ts";
 import type { Choice, CommitResult } from "./load.ts";
+import type { RemovedFromAssorted } from "./registry.ts";
 import type { UserState } from "./user-state.ts";
 
 /** What `navigator.storage.persist()` answered, when it could be asked. */
@@ -76,4 +77,24 @@ export async function removeBookAndRecents(
   const removed = await admin.removeBook(key);
   if (removed) await state.dropRecents(key);
   return removed;
+}
+
+/**
+ * Removes one song of Assorted Hymns and drops its recents and its position
+ * (SDD-0004 §17), in the order a book's removal does: the package first, the
+ * commit; a crash after it leaves a recent that names a song no longer held,
+ * which the app skips. The last song takes the book with it, and then every
+ * recent of the book goes, as removing a book does.
+ */
+export async function removeAssortedSongAndRecents(
+  admin: { removeAssortedSong(number: number): Promise<RemovedFromAssorted> },
+  state: Pick<UserState, "dropSong" | "dropRecents">,
+  number: number,
+): Promise<RemovedFromAssorted> {
+  const result = await admin.removeAssortedSong(number);
+  if (result.removed) {
+    await state.dropSong(result.key, number);
+    if (result.bookRemoved) await state.dropRecents(result.key);
+  }
+  return result;
 }

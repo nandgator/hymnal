@@ -19,11 +19,12 @@ import {
   listBooks,
   openRegistry,
   REGISTRY_FILE,
+  REGISTRY_VERSION,
   reconcile,
   removeBook,
   startRegistry,
 } from "../src/persistence/registry.ts";
-import { SCHEMA_SQL } from "./content-schema.ts";
+import { SCHEMA_V2_SQL, SCHEMA_VERSION } from "./content-schema.ts";
 import {
   container,
   FakeFiles,
@@ -34,13 +35,7 @@ import {
   sqlOf,
 } from "./registry-fixtures.ts";
 
-const V2_SQL = SCHEMA_SQL.replace(
-  "  origin         TEXT NOT NULL,       -- the id the file declared\n",
-  "",
-)
-  .replace(",\n  sources        TEXT NOT NULL        -- JSON array of container file hashes", "")
-  .replace("  position    INTEGER NOT NULL,   -- printed order, as the file has the parts\n", "")
-  .replace(",\n  UNIQUE (hymn_number, position)", "");
+const V2_SQL = SCHEMA_V2_SQL;
 
 /** A version 2 package, as the last app built it; parts in file order by rowid. */
 function putV2(files: FakeFiles, file: string, id: string) {
@@ -72,13 +67,18 @@ describe("the fixture", () => {
   });
 });
 
-describe("package schema 3", () => {
+describe("the current package schema", () => {
   it("writes origin, sources and part positions", () => {
     const { files } = setup();
     files.put("/k.1.sqlite3", "k", hymns, ["s1"]);
     files.open("/k.1.sqlite3", (sql) => {
-      expect(packageVersion(sql)).toBe(3);
-      expect(readHead(sql, 3)).toMatchObject({ key: "k", origin: "k", sources: ["s1"], songs: 2 });
+      expect(packageVersion(sql)).toBe(SCHEMA_VERSION);
+      expect(readHead(sql, SCHEMA_VERSION)).toMatchObject({
+        key: "k",
+        origin: "k",
+        sources: ["s1"],
+        songs: 2,
+      });
       expect(
         sql.all("SELECT id, position FROM part WHERE hymn_number = 1 ORDER BY position"),
       ).toEqual([
@@ -92,7 +92,7 @@ describe("package schema 3", () => {
   it("hashes the same from the package as from the container, parts out of first-appearance order", async () => {
     const { files } = setup();
     files.put("/k.1.sqlite3", "k");
-    const fromPackage = files.open("/k.1.sqlite3", (sql) => readHymns(sql, 3));
+    const fromPackage = files.open("/k.1.sqlite3", (sql) => readHymns(sql, SCHEMA_VERSION));
     expect(await Promise.all(fromPackage.map(songHash))).toEqual(
       await Promise.all(hymns.map(songHash)),
     );
@@ -124,9 +124,9 @@ describe("migration 2 to 3", () => {
     const before = files.open("/old.sqlite3", (sql) => readHymns(sql, 2));
     expect(files.open("/old.sqlite3", (sql) => migratePackage(sql, 2))).toBe(true);
     files.open("/old.sqlite3", (sql) => {
-      expect(packageVersion(sql)).toBe(3);
-      expect(readHead(sql, 3)).toMatchObject({ origin: "old", sources: [], songs: 2 });
-      expect(readHymns(sql, 3)).toEqual(before);
+      expect(packageVersion(sql)).toBe(SCHEMA_VERSION);
+      expect(readHead(sql, SCHEMA_VERSION)).toMatchObject({ origin: "old", sources: [], songs: 2 });
+      expect(readHymns(sql, SCHEMA_VERSION)).toEqual(before);
     });
     expect(await Promise.all(before.map(songHash))).toEqual(await Promise.all(hymns.map(songHash)));
   });
@@ -145,15 +145,15 @@ describe("migration 2 to 3", () => {
 });
 
 describe("the registry", () => {
-  it("creates its tables at user_version 1, and rebuilds when the version is another", () => {
+  it("creates its tables at the registry version, and rebuilds when the version is another", () => {
     const { sql } = setup();
-    expect(sql.all("PRAGMA user_version")).toEqual([{ user_version: 1 }]);
+    expect(sql.all("PRAGMA user_version")).toEqual([{ user_version: REGISTRY_VERSION }]);
     sql.exec(
       "INSERT INTO book VALUES ('x','x','loaded','/x','t','l','s',0,1,'ok'); PRAGMA user_version = 9",
     );
     openRegistry(sql);
     expect(sql.all("SELECT * FROM book")).toEqual([]);
-    expect(sql.all("PRAGMA user_version")).toEqual([{ user_version: 1 }]);
+    expect(sql.all("PRAGMA user_version")).toEqual([{ user_version: REGISTRY_VERSION }]);
   });
 
   it("refuses a bad state", () => {
@@ -307,7 +307,9 @@ describe("reconcile", () => {
     files.put("/new.1.sqlite3", "new");
     files.open("/new.1.sqlite3", (sql) => sql.run("UPDATE hymnbook SET schema_version = 9"));
     await reconcile(ctx);
-    files.open("/new.1.sqlite3", (sql) => sql.run("UPDATE hymnbook SET schema_version = 3"));
+    files.open("/new.1.sqlite3", (sql) =>
+      sql.run(`UPDATE hymnbook SET schema_version = ${SCHEMA_VERSION}`),
+    );
     await reconcile(ctx);
     expect(listBooks(ctx)).toMatchObject([{ key: "new", songs: 2, language: "en", state: "ok" }]);
     expect(ctx.registry.all("SELECT * FROM song")).toHaveLength(2);
@@ -382,7 +384,7 @@ describe("reconcile", () => {
     putV2(files, "/old.sqlite3", "old");
     await reconcile(ctx);
     expect(listBooks(ctx)).toMatchObject([{ key: "old", kind: "loaded", songs: 2, state: "ok" }]);
-    expect(files.open("/old.sqlite3", (sql) => packageVersion(sql))).toBe(3);
+    expect(files.open("/old.sqlite3", (sql) => packageVersion(sql))).toBe(SCHEMA_VERSION);
     const read = await container("old");
     expect(ctx.registry.all("SELECT number, hash FROM song ORDER BY number")).toEqual(
       [...read.songHashes].map(([number, hash]) => ({ number, hash })),
@@ -607,7 +609,7 @@ describe("a failing registry", () => {
       },
     );
     expect(discarded).toBe(1);
-    expect(sql.all("PRAGMA user_version")).toEqual([{ user_version: 1 }]);
+    expect(sql.all("PRAGMA user_version")).toEqual([{ user_version: REGISTRY_VERSION }]);
     rmSync(dir, { recursive: true });
   });
 

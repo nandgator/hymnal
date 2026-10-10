@@ -3,6 +3,7 @@ import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
 import * as Comlink from "comlink";
 import { SCHEMA_VERSION } from "../../scripts/content-schema.ts";
 import { SHIPPED_BOOK_IDS } from "../config.ts";
+import { assortedOrder } from "../domain/assorted.ts";
 import { hasZipMagic, isBackup, MAX_BACKUP_BYTES } from "../domain/backup.ts";
 import type { OnLoadProgress } from "../domain/progress.ts";
 import type {
@@ -23,7 +24,13 @@ import {
   writeBackup,
 } from "./backup.ts";
 import type { InstallProgress } from "./download.ts";
-import { type Choice, type CommitResult, type LoadReview, LoadSession } from "./load.ts";
+import {
+  type AssortedResult,
+  type Choice,
+  type CommitResult,
+  type LoadReview,
+  LoadSession,
+} from "./load.ts";
 import { createMemoryPool } from "./memory-pool.ts";
 import type { Value } from "./package-io.ts";
 import { type PackagePool, PoolFiles, sqlOf } from "./pool-files.ts";
@@ -41,7 +48,9 @@ import {
   listBooks,
   REGISTRY_FILE,
   type RegistryContext,
+  type RemovedFromAssorted,
   reconcile,
+  removeAssortedSong,
   removeBook,
   startRegistry,
 } from "./registry.ts";
@@ -49,6 +58,9 @@ import {
 export interface HymnSummary {
   number: number;
   title: string;
+  /** Assorted Hymns only: the song's own language and script (SDD-0004 §17). */
+  language?: string;
+  script?: string;
 }
 
 export interface SearchResult {
@@ -115,6 +127,23 @@ export interface ContentAdmin {
   commit(token: string, choice?: Choice, onProgress?: OnLoadProgress): Promise<CommitResult>;
   /** Throws the parsed book away. */
   cancel(token: string): Promise<boolean>;
+  /**
+   * Adds the one song of a reviewed book to Assorted Hymns, making the book if the
+   * device has none (SDD-0004 §17). `language` is a BCP-47 tag, `script` an ISO 15924 code.
+   * A song already there (by hash) is reported with its number and not added.
+   */
+  addToAssorted(
+    token: string,
+    language: string,
+    script: string,
+    onProgress?: OnLoadProgress,
+  ): Promise<AssortedResult>;
+  /**
+   * Removes one song of Assorted Hymns by number; its number is retired. The last
+   * song takes the book with it. Its recents and position go with it: see
+   * `removeAssortedSongAndRecents`.
+   */
+  removeAssortedSong(number: number): Promise<RemovedFromAssorted>;
   /**
    * Builds the backup: every held book that can be opened, and the user-state
    * document the page passes (`backupDoc`). Shipped books and books that cannot
@@ -337,6 +366,22 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     return this.#session.cancel(token);
   }
 
+  addToAssorted(
+    token: string,
+    language: string,
+    script: string,
+    onProgress?: OnLoadProgress,
+  ): Promise<AssortedResult> {
+    return this.#track(this.#session.addToAssorted(token, language, script, quiet(onProgress)));
+  }
+
+  removeAssortedSong(number: number): Promise<RemovedFromAssorted> {
+    // Behind the loads in line, so a removal never races a write to the same book.
+    return this.#track(
+      this.#session.exclusive(async () => removeAssortedSong(await this.#registry(), number)),
+    );
+  }
+
   backUp(userState: unknown, onProgress?: OnLoadProgress): Promise<BackupFile | BackupTooLarge> {
     return this.#track(
       (async () => {
@@ -516,6 +561,20 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
 
   async listHymns(id: HymnbookId): Promise<HymnSummary[]> {
     const db = this.#open(id);
+    const assorted = this.#liveCtx
+      ? listBooks(this.#liveCtx).some((book) => book.key === id && book.kind === "assorted")
+      : false;
+    if (assorted) {
+      // Language, then title in that language's collation, then number (SDD-0004 §17).
+      return assortedOrder(
+        this.#rows(db, "SELECT number, title, language, script FROM hymn").map((row) => ({
+          number: row.number as number,
+          title: row.title as string,
+          ...(typeof row.language === "string" ? { language: row.language } : {}),
+          ...(typeof row.script === "string" ? { script: row.script } : {}),
+        })),
+      );
+    }
     return this.#rows(db, "SELECT number, title FROM hymn ORDER BY number").map((row) => ({
       number: row.number as number,
       title: row.title as string,
@@ -524,9 +583,11 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
 
   async getHymn(id: HymnbookId, number: number): Promise<HymnSource> {
     const db = this.#open(id);
-    const hymnRow = this.#row(db, "SELECT title, author, tune, meter FROM hymn WHERE number = ?", [
-      number,
-    ]);
+    const hymnRow = this.#row(
+      db,
+      "SELECT title, author, tune, meter, language, script FROM hymn WHERE number = ?",
+      [number],
+    );
 
     const partRows = this.#rows(
       db,
@@ -560,6 +621,8 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     return {
       number,
       title: hymnRow.title as string,
+      ...(typeof hymnRow.language === "string" ? { language: hymnRow.language } : {}),
+      ...(typeof hymnRow.script === "string" ? { script: hymnRow.script } : {}),
       parts,
       sequence,
       meta: {

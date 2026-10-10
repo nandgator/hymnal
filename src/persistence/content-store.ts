@@ -60,6 +60,21 @@ export function getContentAdmin(): ContentAdmin {
       commit: (token, choice, onProgress) =>
         remote.commit(token, choice, onProgress && Comlink.proxy(onProgress)),
       cancel: (token) => remote.cancel(token),
+      addToAssorted: async (token, language, script, onProgress) => {
+        const result = await remote.addToAssorted(
+          token,
+          language,
+          script,
+          onProgress && Comlink.proxy(onProgress),
+        );
+        if (result.ok) forgetBook(result.key);
+        return result;
+      },
+      removeAssortedSong: async (number) => {
+        const result = await remote.removeAssortedSong(number);
+        if (result.removed) forgetBook(result.key);
+        return result;
+      },
       backUp: (userState, onProgress) =>
         remote.backUp(userState, onProgress && Comlink.proxy(onProgress)),
       isBackup: (file) => remote.isBackup(file),
@@ -139,6 +154,6 @@ export type {
   OnLoadProgress,
   SearchResult,
 } from "./content-store.worker.ts";
-export type { Choice, CommitResult, LoadReview } from "./load.ts";
+export type { AssortedResult, Choice, CommitResult, LoadReview } from "./load.ts";
 export type { StorageMode } from "./pool-init.ts";
-export type { BookRow } from "./registry.ts";
+export type { AddedToAssorted, BookRow, RemovedFromAssorted } from "./registry.ts";

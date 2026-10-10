@@ -10,7 +10,7 @@ export interface HeldBook {
   key: string;
   title: string;
   origin: string;
-  kind: "shipped" | "loaded";
+  kind: "shipped" | "loaded" | "assorted";
   /** Only an `ok` book is compared: the others have no song or source rows. */
   state: string;
   sources: readonly string[];

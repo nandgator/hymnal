@@ -10,7 +10,9 @@ import { uuidv7 } from "../domain/key.ts";
 import { type OnLoadProgress, throttled } from "../domain/progress.ts";
 import type { Violation } from "../domain/validate.ts";
 import {
+  addAssortedSong,
   addBook,
+  assortedStatus,
   heldBooks,
   listBooks,
   type RegistryContext,
@@ -46,7 +48,26 @@ export interface LoadReview {
   };
   /** Songs of this file already held in another book. */
   held: HeldElsewhere;
+  /**
+   * Set when the file holds exactly one song (SDD-0004 §17): where it would go in
+   * Assorted Hymns. `next` is the number it will get; `has` the number of the same
+   * song (by hash) already there, in which case it is "already here as n" and not
+   * added; `key` is the Assorted Hymns book, null if the device has none yet.
+   */
+  assorted?: { key: string | null; next: number; has: number | null };
 }
+
+/** The result of adding a reviewed one-song book to Assorted Hymns. */
+export type AssortedResult =
+  | { ok: true; key: string; number: number; created: boolean; firstLoad?: true }
+  | {
+      ok: false;
+      reason: "no-review" | "not-one-song" | "already-here" | "invalid" | "failed";
+      message: string;
+      /** For `already-here`: the book and the number the song has there. */
+      key?: string;
+      number?: number;
+    };
 
 /** The choice for a same-origin verdict (§8): Keep both is the default. */
 export type Choice = "keep-both" | { replace: string };
@@ -188,7 +209,20 @@ export class LoadSession {
         read.songHashes,
         held.filter((b) => b.key !== target),
       ),
+      ...(hymns.length === 1 && !row
+        ? { assorted: assortedStatus(ctx, read.songHashes.get(hymns[0]?.number as number)) }
+        : {}),
     };
+  }
+
+  /** Runs a write after those in line, one at a time with them (a removal never races a commit). */
+  exclusive<T>(write: () => Promise<T>): Promise<T> {
+    const run = this.#tail.then(write);
+    this.#tail = run.then(
+      () => {},
+      () => {},
+    );
+    return run;
   }
 
   /** Throws away any pending review (the store is being let go). Nothing is written. */
@@ -227,6 +261,84 @@ export class LoadSession {
     const generation = this.#generation;
     const report = throttled(onProgress);
     const run = this.#tail.then(() => this.#commit(pending, choice, generation, report));
+    this.#tail = run.then(
+      () => {},
+      () => {},
+    );
+    return run;
+  }
+
+  /**
+   * Adds the one song of a reviewed book to Assorted Hymns under `language` and
+   * `script` (SDD-0004 §17). Like `commit`, it takes the review at once and
+   * writes in turn; on a refusal or a failure the review comes back, so the
+   * language can be corrected. The verdict of the review is not used: Assorted
+   * Hymns looks only for the song's hash in itself.
+   */
+  addToAssorted(
+    token: string,
+    language: string,
+    script: string,
+    onProgress?: OnLoadProgress,
+  ): Promise<AssortedResult> {
+    const pending = this.#pending;
+    if (!pending || pending.token !== token) {
+      return Promise.resolve({
+        ok: false,
+        reason: "no-review",
+        message: "no review is pending under that token (or it is being committed)",
+      });
+    }
+    const [song, ...more] = pending.read.book.hymns;
+    if (!song || more.length > 0 || pending.target !== undefined) {
+      return Promise.resolve({
+        ok: false,
+        reason: "not-one-song",
+        message: "only a file of exactly one song is added to Assorted Hymns",
+      });
+    }
+    this.#pending = undefined;
+    const generation = this.#generation;
+    const report = throttled(onProgress);
+    const run = this.#tail.then(async (): Promise<AssortedResult> => {
+      const keep = () => {
+        if (generation === this.#generation && !this.#pending) this.#pending = pending;
+      };
+      try {
+        const ctx = await this.#registry();
+        const first = !listBooks(ctx).some((b) => b.kind !== "shipped");
+        const hash = pending.read.songHashes.get(song.number) as string;
+        const added = await addAssortedSong(
+          ctx,
+          this.#newKey,
+          { hymn: song, hash },
+          language,
+          script,
+          report,
+        );
+        if (added.ok) {
+          return { ...added, ...(first ? { firstLoad: true as const } : {}) };
+        }
+        keep();
+        if (added.reason === "already-here") {
+          return {
+            ok: false,
+            reason: "already-here",
+            message: `already in Assorted Hymns as ${added.number}`,
+            key: added.key,
+            number: added.number,
+          };
+        }
+        return { ok: false, reason: "invalid", message: added.message };
+      } catch (error) {
+        keep();
+        return {
+          ok: false,
+          reason: "failed",
+          message: error instanceof Error ? error.message : String(error),
+        };
+      }
+    });
     this.#tail = run.then(
       () => {},
       () => {},
@@ -346,7 +458,7 @@ export class LoadSession {
     action: "loaded" | "kept-both",
     report?: OnLoadProgress,
   ): Promise<CommitResult> {
-    const first = !listBooks(ctx).some((b) => b.kind === "loaded");
+    const first = !listBooks(ctx).some((b) => b.kind !== "shipped");
     const row = await addBook(ctx, this.#newKey(), read, 1, report);
     return { ok: true, action, key: row.key, ...(first ? { firstLoad: true as const } : {}) };
   }

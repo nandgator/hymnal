@@ -1,7 +1,12 @@
 // @vitest-environment node
 
 import { describe, expect, it, vi } from "vitest";
-import { askPersist, commitAndPersist, removeBookAndRecents } from "./books.ts";
+import {
+  askPersist,
+  commitAndPersist,
+  removeAssortedSongAndRecents,
+  removeBookAndRecents,
+} from "./books.ts";
 import type { CommitResult } from "./load.ts";
 
 const storage = (persisted: boolean, grant: boolean | Error) => ({
@@ -121,5 +126,53 @@ describe("removeBookAndRecents", () => {
       ),
     ).rejects.toThrow("shipped");
     expect(dropRecents).not.toHaveBeenCalled();
+  });
+});
+
+describe("removeAssortedSongAndRecents", () => {
+  const state = () => ({
+    dropSong: vi.fn(async () => {}),
+    dropRecents: vi.fn(async () => {}),
+  });
+
+  it("drops the song's recents and position after the song goes", async () => {
+    const order: string[] = [];
+    const s = {
+      dropSong: async (k: string, n: number) => void order.push(`song ${k} ${n}`),
+      dropRecents: async (k: string) => void order.push(`recents ${k}`),
+    };
+    await removeAssortedSongAndRecents(
+      {
+        removeAssortedSong: async () => {
+          order.push("removed");
+          return { removed: true as const, key: "k", bookRemoved: false };
+        },
+      },
+      s,
+      4,
+    );
+    expect(order).toEqual(["removed", "song k 4"]);
+  });
+
+  it("drops every recent of the book when the last song took the book", async () => {
+    const s = state();
+    await removeAssortedSongAndRecents(
+      { removeAssortedSong: async () => ({ removed: true, key: "k", bookRemoved: true }) },
+      s,
+      1,
+    );
+    expect(s.dropSong).toHaveBeenCalledWith("k", 1);
+    expect(s.dropRecents).toHaveBeenCalledWith("k");
+  });
+
+  it("drops nothing when no song was removed", async () => {
+    const s = state();
+    await removeAssortedSongAndRecents(
+      { removeAssortedSong: async () => ({ removed: false }) },
+      s,
+      1,
+    );
+    expect(s.dropSong).not.toHaveBeenCalled();
+    expect(s.dropRecents).not.toHaveBeenCalled();
   });
 });

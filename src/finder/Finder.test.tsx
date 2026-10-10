@@ -37,6 +37,7 @@ function fakeUserState(overrides: Partial<UserState> = {}): UserState {
     getRecents: async () => [],
     addRecent: async () => {},
     dropRecents: async () => {},
+    dropSong: async () => {},
     getPreferences: async () => ({ theme: "system", fontScale: 1 }),
     setPreferences: async () => {},
     ...overrides,

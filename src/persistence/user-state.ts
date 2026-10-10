@@ -130,6 +130,11 @@ export interface UserState {
   addRecent(hymnbookId: HymnbookId, hymnNumber: HymnNumber): Promise<void>;
   /** Forgets a book's recents: removing a loaded book drops them (SDD-0004 §9). */
   dropRecents(hymnbookId: HymnbookId): Promise<void>;
+  /**
+   * Forgets one song: its recents, and the last position if it is on that song
+   * (removing a song from Assorted Hymns, SDD-0004 §17).
+   */
+  dropSong(hymnbookId: HymnbookId, hymnNumber: HymnNumber): Promise<void>;
   getPreferences(): Promise<Preferences>;
   setPreferences(preferences: Preferences): Promise<void>;
 }
@@ -443,6 +448,20 @@ export function openUserState(dbName: string): UserStateHandle {
         await writeDoc({
           ...doc,
           recents: doc.recents.filter((entry) => entry.hymnbookId !== hymnbookId),
+        });
+      }),
+
+    dropSong: (hymnbookId, hymnNumber) =>
+      serial(async () => {
+        const doc = await readDoc();
+        const { lastPosition, ...rest } = doc;
+        const onSong =
+          lastPosition?.hymnbookId === hymnbookId && lastPosition.hymnNumber === hymnNumber;
+        await writeDoc({
+          ...(onSong ? rest : doc),
+          recents: doc.recents.filter(
+            (entry) => entry.hymnbookId !== hymnbookId || entry.hymnNumber !== hymnNumber,
+          ),
         });
       }),
 

@@ -97,6 +97,7 @@ vi.mock("./persistence/user-state.ts", async (importOriginal) => {
     getRecents: async () => mocks.recents,
     addRecent: (book, number) => mocks.addRecent(book, number),
     dropRecents: async () => {},
+    dropSong: async () => {},
     getPreferences: async () => ({ theme: "system", fontScale: 1, ...mocks.prefs }),
     setPreferences: async () => {},
     onMemoryFallback: (listener) => {

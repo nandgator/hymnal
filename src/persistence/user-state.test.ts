@@ -214,6 +214,39 @@ describe("dropRecents", () => {
   });
 });
 
+describe("dropSong", () => {
+  it("forgets one song's recents and keeps the rest of the book's", async () => {
+    await state.addRecent("a", 1);
+    await state.addRecent("a", 2);
+    await state.addRecent("b", 1);
+    await state.dropSong("a", 1);
+    expect((await state.getRecents()).map((r) => [r.hymnbookId, r.hymnNumber])).toEqual([
+      ["b", 1],
+      ["a", 2],
+    ]);
+  });
+
+  it("drops the last position only when it is on that song", async () => {
+    const at = (hymnNumber: number) => ({
+      hymnbookId: "a",
+      hymnNumber,
+      occurrenceIndex: 0,
+      lineIndex: null,
+    });
+    await state.setLastPosition(at(1));
+    await state.dropSong("a", 2);
+    expect(await state.getLastPosition()).toEqual(at(1));
+    await state.dropSong("a", 1);
+    expect(await state.getLastPosition()).toBeUndefined();
+  });
+
+  it("is a no-op for a song with none", async () => {
+    await state.addRecent("b", 2);
+    await state.dropSong("a", 1);
+    expect(await state.getRecents()).toHaveLength(1);
+  });
+});
+
 /** Stores `record` as the document, as an app of another version might have. */
 async function seed(record: unknown) {
   const db = await openDB(dbName, 1, { upgrade: (d) => void d.createObjectStore("state") });
