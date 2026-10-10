@@ -58,22 +58,21 @@ to drop the songs from old commits is the maintainer's own later step
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                                                                                                                                                      | Blocked by          |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                                                                                  | another machine     |
-| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                                          | maintainer: devices |
-| 42  | Test suite speed (note): split App.test.tsx by area and use fake timers for its real waits; then isolate:false only for the DOM-free files, never globally (module-level state in channel.ts and friends) | —                   |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                                               | —                   |
-| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                             | —                   |
-| 16  | Feedback and corrections from users — where collected: TBD                                                                                                                                                | —                   |
-| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                                                                               | —                   |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                                                                                                                           | —                   |
-| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                                                                            | —                   |
-| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                                                                                   | —                   |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                                                                                | Phase 2             |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                                                                             | content             |
-| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                                                                             | —                   |
-| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                                                                                    | —                   |
+| #   | Task                                                                                                                                             | Blocked by          |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                         | another machine     |
+| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland) | maintainer: devices |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                      | —                   |
+| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                    | —                   |
+| 16  | Feedback and corrections from users — where collected: TBD                                                                                       | —                   |
+| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                      | —                   |
+| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                                                                  | —                   |
+| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                   | —                   |
+| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                          | —                   |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                       | Phase 2             |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                    | content             |
+| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                    | —                   |
+| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                           | —                   |
 
 14–15 sit past the scope guard below. 16–25 and 37–40 are notes, not scheduled:
 the shell reserves room for them (DESIGN.md § Structure).
@@ -117,6 +116,10 @@ only, here:
 
 ## Log
 
+- 2026-10-10 — #42 done: the unit suite runs in about 52 s, not 77 s.
+  `App.test.tsx` is split by area over a shared testkit; the hint and notice
+  waits use fake timers; 34 DOM-free files run in node without isolation (an
+  allowlist in `vitest.config.ts`, new files isolated by default)
 - 2026-10-10 — #38 done, with an e2e on three engines: the Finder searches every
   book (`searchAll`, about 12 ms at worst over the Malayalam book), results
   grouped under book titles, the current book first, five then More in for the
@@ -153,5 +156,3 @@ only, here:
 - 2026-10-07 — #51 done: the flaky App tests wait on delivery, not the clock
 - 2026-10-07 — The origin is hymnal.sagaveracity.com (ADR-0030); the fork is
   detached
-- 2026-10-06 — #52 done: Playwright smoke suite on three engines; found and
-  fixed Firefox's `persist()` prompt stalling the first load
