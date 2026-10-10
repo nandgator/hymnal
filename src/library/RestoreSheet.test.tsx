@@ -146,6 +146,17 @@ describe("RestoreSheet: the review", () => {
 
   it("has one sentence for each verdict", () => {
     expect(whatItDoes(book({ verdict: { kind: "already-here" } }))).toBe("Already here");
+    expect(whatItDoes(book({ verdict: { kind: "merge", adds: 1 } }))).toBe(
+      "Will be merged into this device’s: 1 new song",
+    );
+    expect(whatItDoes(book({ verdict: { kind: "merge", adds: 12 } }))).toBe(
+      "Will be merged into this device’s: 12 new songs",
+    );
+  });
+
+  it("lets Restore be pressed for a merge, which changes the device's Assorted Hymns", async () => {
+    setup(ok({ books: [book({ title: "Assorted Hymns", verdict: { kind: "merge", adds: 2 } })] }));
+    expect(await screen.findByRole("button", { name: "Restore" })).toBeEnabled();
   });
 
   it("lists the problems under Not restored, and the line about settings", async () => {

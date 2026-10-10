@@ -6,6 +6,7 @@ import {
   assortedBook,
   isLanguageTag,
   isScriptCode,
+  mergeSongs,
 } from "../domain/assorted.ts";
 import type { ContainerBook } from "../domain/container.ts";
 import type { HeldBook } from "../domain/duplicates.ts";
@@ -346,10 +347,12 @@ export async function addBook(
   read: ContainerRead,
   n = 1,
   onProgress?: OnLoadProgress,
+  /** Restoring Assorted Hymns writes kind `assorted` (SDD-0004 §17). */
+  kind: BookKind = "loaded",
 ): Promise<BookRow> {
   const file = `/${key}.${n}.sqlite3`;
   await writeNewPackage(ctx, file, key, read, onProgress);
-  const row = rowOf(ctx, key, file, read);
+  const row = rowOf(ctx, key, file, read, ctx.now(), kind);
   commitRow(ctx, row, read);
   return row;
 }
@@ -561,6 +564,69 @@ export async function addAssortedSong(
   const row = rowOf(ctx, key, `/${key}.1.sqlite3`, read, ctx.now(), "assorted");
   commitRow(ctx, row, read);
   return { ok: true, key, number: plan.number, created: true };
+}
+
+export interface MergedIntoAssorted {
+  /** The device's Assorted Hymns, which keeps its key. */
+  key: string;
+  /** Backup number to the number the device holds that song under (SDD-0004 §17). */
+  numbers: Map<number, number>;
+  added: number;
+}
+
+/**
+ * Merges a backup's Assorted Hymns into the device's (SDD-0004 §17): each song
+ * not there by hash is added, per `mergeSongs`. Written as an add is: the
+ * package afresh as `<key>.<n+1>`, then the registry transaction, the commit,
+ * so a crash leaves either the old book or the merged one. Nothing is written
+ * when every song is there already. Throws if the device has no readable
+ * Assorted Hymns or the whole would not validate.
+ */
+export async function mergeIntoAssorted(
+  ctx: RegistryContext,
+  incoming: { hymns: readonly HymnSource[]; songHashes: ReadonlyMap<number, string> },
+  onProgress?: OnLoadProgress,
+): Promise<MergedIntoAssorted> {
+  const now = readAssorted(ctx);
+  if (now === null || now === "unreadable") {
+    throw new Error("the device has no Assorted Hymns that can be opened to merge into");
+  }
+  const key = now.row.key;
+  // Hashed from the package itself, not the registry's copy, which is only an index.
+  const deviceHashes = await hashesOf(now.hymns);
+  const plan = mergeSongs(now, deviceHashes, incoming.hymns, incoming.songHashes);
+  if (plan.added === 0) return { key, numbers: plan.numbers, added: 0 };
+  const book = assortedBook(plan.hymns.length, plan.nextNumber);
+  const shaped = asContainerShape(book, plan.hymns);
+  const violations = validateCorpus(
+    shaped.book,
+    shaped.hymns.map((hymn) => ({ file: hymnFileName(hymn.number), hymn })),
+  );
+  if (violations.length > 0) {
+    const first = violations
+      .slice(0, 3)
+      .map((v) => `${v.where}: ${v.message}`)
+      .join("; ");
+    throw new Error(`the merged Assorted Hymns would not be valid: ${first}`);
+  }
+  const songHashes = new Map(deviceHashes);
+  for (const [backupNumber, number] of plan.numbers) {
+    const hash = incoming.songHashes.get(backupNumber);
+    if (hash !== undefined && !songHashes.has(number)) songHashes.set(number, hash);
+  }
+  await replaceBook(
+    ctx,
+    key,
+    {
+      sourceHash: now.contentHash,
+      sources: [],
+      contentHash: now.contentHash,
+      book: { hymnbook: book, hymns: plan.hymns },
+      songHashes,
+    },
+    { onProgress },
+  );
+  return { key, numbers: plan.numbers, added: plan.added };
 }
 
 export type RemovedFromAssorted =

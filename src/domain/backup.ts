@@ -1,4 +1,5 @@
 import { inflateSync } from "fflate";
+import { ASSORTED_ORIGIN } from "./assorted.ts";
 import { type BookRef, type HeldBook, verdict as verdictOf } from "./duplicates.ts";
 import { type SongHashes, sameSongs, sha256Hex } from "./hash.ts";
 
@@ -387,7 +388,12 @@ export type BackupVerdict =
    * Nothing held: restored under the backup's key. `over` is a held book of
    * that key that cannot be opened (SDD-0004 §9), which the backup restores.
    */
-  | { kind: "restore"; over?: true };
+  | { kind: "restore"; over?: true }
+  /**
+   * Assorted Hymns, with the device's holding other songs (SDD-0004 §17): the
+   * `adds` songs it lacks are added to the device's, which keeps its key.
+   */
+  | { kind: "merge"; adds: number };
 
 /**
  * §4's table, fed SDD-0004 §8's verdict: the book's `sources` stand in for the
@@ -396,6 +402,16 @@ export type BackupVerdict =
  * duplicate here: it is another edition, and the backup's own key stands.
  */
 export function backupVerdict(book: BackupBookFacts, held: readonly HeldBook[]): BackupVerdict {
+  const assorted = book.origin === ASSORTED_ORIGIN;
+  // The device has one Assorted Hymns, whatever its key: a backup's is merged into it (SDD-0004 §17).
+  const device = assorted ? held.find((b) => b.kind === "assorted") : undefined;
+  if (device) {
+    // One that cannot be opened is not written to; there is nothing to merge into.
+    if (device.state !== "ok") return { kind: "conflict", replaceable: false };
+    const there = new Set(device.songs.values());
+    const adds = new Set([...book.songs.values()].filter((hash) => !there.has(hash))).size;
+    return adds === 0 ? { kind: "already-here" } : { kind: "merge", adds };
+  }
   const same = held.find((b) => b.key === book.key);
   if (same) {
     if (same.state === "ok") {
@@ -409,6 +425,8 @@ export function backupVerdict(book: BackupBookFacts, held: readonly HeldBook[]):
       ? { kind: "restore", over: true }
       : { kind: "conflict", replaceable: false };
   }
+  // Assorted Hymns is the person's own book: another book's songs do not make it a duplicate.
+  if (assorted) return { kind: "restore" };
   const others = held.filter((b) => b.key !== book.key);
   for (const sourceHash of book.sources.length > 0 ? book.sources : [""]) {
     const found = verdictOf({ sourceHash, origin: book.origin, songHashes: book.songs }, others);

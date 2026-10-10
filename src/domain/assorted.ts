@@ -119,3 +119,96 @@ export const assortedBook = (count: number, nextNumber: number): HymnbookSource 
   hymnCount: count,
   nextNumber,
 });
+
+/** What merging a backup's Assorted Hymns into the device's gives, before it is written. */
+export interface MergePlan {
+  /** The device's songs, then each added one under the number it took. */
+  hymns: HymnSource[];
+  nextNumber: number;
+  /**
+   * For every song of the backup, the number the device holds it under: the one
+   * it took if it was added, the device's own copy's if it was already there.
+   */
+  numbers: Map<number, number>;
+  added: number;
+}
+
+/**
+ * Merges a backup's songs into the device's (SDD-0004 §17, "Backup and
+ * restore"). The backup's songs are taken in number order. One whose hash is
+ * already on the device is skipped and points at the device's copy. Any other
+ * keeps its backup number if that is at or above the counter (every number
+ * below it is held or retired), else it takes the counter; either way the
+ * counter then moves one past it. The counter starts as `addSong`'s does: the
+ * larger of `next_number` and one past the highest number held. Each song
+ * carries its own language and script.
+ */
+export function mergeSongs(
+  device: { hymns: readonly HymnSource[]; nextNumber: number | null },
+  deviceHashes: ReadonlyMap<number, string>,
+  incoming: readonly HymnSource[],
+  incomingHashes: ReadonlyMap<number, string>,
+): MergePlan {
+  const held = new Map<string, number>();
+  for (const [number, hash] of [...deviceHashes].sort((a, b) => a[0] - b[0])) {
+    if (!held.has(hash)) held.set(hash, number);
+  }
+  const highest = device.hymns.reduce((max, h) => Math.max(max, h.number), 0);
+  let next = Math.max(device.nextNumber ?? 1, highest + 1);
+  const hymns = [...device.hymns];
+  const numbers = new Map<number, number>();
+  let added = 0;
+  for (const song of [...incoming].sort((a, b) => a.number - b.number)) {
+    const hash = incomingHashes.get(song.number);
+    const there = hash === undefined ? undefined : held.get(hash);
+    if (there !== undefined) {
+      numbers.set(song.number, there);
+      continue;
+    }
+    const number = song.number >= next ? song.number : next;
+    next = number + 1;
+    hymns.push({ ...song, number });
+    numbers.set(song.number, number);
+    if (hash !== undefined) held.set(hash, number);
+    added++;
+  }
+  return { hymns, nextNumber: next, numbers, added };
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+
+/**
+ * A backup's user-state document with its recents and position on one book
+ * moved to another key and its songs to other numbers, before the user-state
+ * merge. An entry on a number that `numbers` does not know is dropped, since
+ * under the device's key it would name another song. Pure; the document is
+ * untrusted and goes through `cleanUserDoc` after.
+ */
+export function followBook(
+  doc: unknown,
+  from: string,
+  to: string,
+  numbers: ReadonlyMap<number, number>,
+): unknown {
+  if (!isRecord(doc)) return doc;
+  const moved = (entry: Record<string, unknown>) => {
+    const number = typeof entry.hymnNumber === "number" ? numbers.get(entry.hymnNumber) : undefined;
+    return number === undefined ? null : { ...entry, hymnbookId: to, hymnNumber: number };
+  };
+  const out: Record<string, unknown> = { ...doc };
+  if (Array.isArray(doc.recents)) {
+    out.recents = doc.recents.flatMap((entry: unknown) => {
+      if (!isRecord(entry) || entry.hymnbookId !== from) return [entry];
+      const next = moved(entry);
+      return next ? [next] : [];
+    });
+  }
+  const position = doc.lastPosition;
+  if (isRecord(position) && position.hymnbookId === from) {
+    const next = moved(position);
+    if (next) out.lastPosition = next;
+    else delete out.lastPosition;
+  }
+  return out;
+}

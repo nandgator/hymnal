@@ -78,6 +78,8 @@ export function whatItDoes(book: BackupReviewBook): string {
       return verdict.over ? "Can’t be opened here. Restoring replaces it." : "Will be restored";
     case "conflict":
       return "A different edition is here";
+    case "merge":
+      return `Will be merged into this device’s: ${count(verdict.adds)} new ${verdict.adds === 1 ? "song" : "songs"}`;
   }
 }
 
@@ -217,6 +219,7 @@ export function RestoreSheet(props: RestoreSheetProps) {
     now.books.some(
       (book) =>
         book.verdict.kind === "restore" ||
+        book.verdict.kind === "merge" ||
         (book.verdict.kind === "conflict" &&
           book.verdict.replaceable &&
           choices()[book.key] === "replace"),
@@ -289,7 +292,9 @@ export function RestoreSheet(props: RestoreSheetProps) {
   };
 
   const restoredCount = (now: Done) =>
-    now.books.filter((b) => b.outcome === "restored" || b.outcome === "replaced").length;
+    now.books.filter(
+      (b) => b.outcome === "restored" || b.outcome === "replaced" || b.outcome === "merged",
+    ).length;
   const failed = (now: Done) => now.books.filter((b) => b.outcome === "failed");
 
   const refusedBody = (now: NonNullable<ReturnType<typeof refusal>>) => {

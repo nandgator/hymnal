@@ -9,6 +9,7 @@ import {
 import {
   ASSORTED_ORIGIN,
   asContainerShape,
+  followBook,
   isLanguageTag,
   isScriptCode,
 } from "../domain/assorted.ts";
@@ -51,9 +52,11 @@ import {
 import { type PoolFiles, sqlOf } from "./pool-files.ts";
 import {
   addBook,
+  assortedRow,
   freeGeneration,
   heldBooks,
   listBooks,
+  mergeIntoAssorted,
   type RegistryContext,
   replaceBook,
 } from "./registry.ts";
@@ -427,7 +430,10 @@ async function readBack(sql: Sql, onProgress?: OnLoadProgress): Promise<RebuildR
     "SELECT COUNT(*) AS n FROM hymn WHERE language IS NOT NULL OR script IS NOT NULL",
   );
   if (!assorted && (extra.next_number !== null || (fields?.n as number) > 0)) {
-    return fail("damaged", "it holds a next number or a song language that only Assorted Hymns has");
+    return fail(
+      "damaged",
+      "it holds a next number or a song language that only Assorted Hymns has",
+    );
   }
   // Whatever type the column holds, it is a safe integer from 1 or the book is damaged.
   if (
@@ -533,7 +539,14 @@ export type RestoreChoices = Readonly<Record<string, "keep" | "replace">>;
 export interface BackupBookResult {
   key: string;
   title: string;
-  outcome: "restored" | "replaced" | "kept" | "already-here" | "already-here-as" | "failed";
+  outcome:
+    | "restored"
+    | "replaced"
+    | "merged"
+    | "kept"
+    | "already-here"
+    | "already-here-as"
+    | "failed";
   /** Why, for a failure. */
   message?: string;
 }
@@ -755,6 +768,9 @@ export class BackupSession {
     const sqlite3 = await this.#sqlite3();
     const firstLoad = !listBooks(ctx).some((b) => b.kind !== "shipped");
     const results: BackupBookResult[] = [];
+    // The backup's Assorted Hymns, if it is merged into the device's: its recents and position
+    // follow it to the device's key and numbers (SDD-0004 §17).
+    let followed: { from: string; to: string; numbers: Map<number, number> } | undefined;
     for (const { entry, title, verdict } of pending.books) {
       const done = (outcome: BackupBookResult["outcome"], message?: string) =>
         results.push({ key: entry.key, title, outcome, ...(message ? { message } : {}) });
@@ -776,7 +792,16 @@ export class BackupSession {
           },
           heldBooks(ctx),
         );
+        const assorted = read.book.hymnbook.id === ASSORTED_ORIGIN;
         if (now.kind === "already-here" || now.kind === "already-here-as") {
+          // Nothing is written, but a recent on one of these songs points at the device's copy.
+          if (assorted && now.kind === "already-here" && assortedRow(ctx)?.state === "ok") {
+            const merged = await mergeIntoAssorted(ctx, {
+              hymns: read.book.hymns,
+              songHashes: read.songHashes,
+            });
+            followed = { from: entry.key, to: merged.key, numbers: merged.numbers };
+          }
           done(now.kind);
           continue;
         }
@@ -784,7 +809,15 @@ export class BackupSession {
           done("failed", "the books held changed; read the backup again");
           continue;
         }
-        if (now.kind === "conflict") {
+        if (now.kind === "merge") {
+          const merged = await mergeIntoAssorted(
+            ctx,
+            { hymns: read.book.hymns, songHashes: read.songHashes },
+            report,
+          );
+          followed = { from: entry.key, to: merged.key, numbers: merged.numbers };
+          done("merged");
+        } else if (now.kind === "conflict") {
           if (choices[entry.key] === "replace" && now.replaceable) {
             await replaceBook(ctx, entry.key, read, { onProgress: report });
             done("replaced");
@@ -795,7 +828,14 @@ export class BackupSession {
           await replaceBook(ctx, entry.key, read, { restore: true, onProgress: report });
           done("restored");
         } else {
-          await addBook(ctx, entry.key, read, freeGeneration(ctx, entry.key), report);
+          await addBook(
+            ctx,
+            entry.key,
+            read,
+            freeGeneration(ctx, entry.key),
+            report,
+            assorted ? "assorted" : "loaded",
+          );
           done("restored");
         }
       } catch (error) {
@@ -803,12 +843,18 @@ export class BackupSession {
       }
     }
     const held = listBooks(ctx).map((b) => b.key);
-    const wrote = results.some((r) => r.outcome === "restored" || r.outcome === "replaced");
+    const wrote = results.some(
+      (r) => r.outcome === "restored" || r.outcome === "replaced" || r.outcome === "merged",
+    );
+    const userState =
+      followed && pending.userState !== undefined
+        ? followBook(pending.userState, followed.from, followed.to, followed.numbers)
+        : pending.userState;
     return {
       ok: true,
       books: results,
       held,
-      ...(pending.userState === undefined ? {} : { userState: pending.userState }),
+      ...(userState === undefined ? {} : { userState }),
       ...(firstLoad && wrote ? { firstLoad: true as const } : {}),
     };
   }
