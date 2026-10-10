@@ -1,12 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { describe, expect, it, vi } from "vitest";
 import type {
+  AssortedResult,
   BookRow,
   Choice,
   CommitResult,
   ContentStatus,
   LoadReview,
   OnLoadProgress,
+  RemovedFromAssorted,
   StorageMode,
 } from "../persistence/content-store.ts";
 import { createBooks, type LibraryAdmin } from "./books.ts";
@@ -89,6 +91,10 @@ function setup(options: Setup = {}) {
     }),
     openBook: vi.fn(async (): Promise<ContentStatus> => options.openBook ?? { state: "ready" }),
     storageMode: vi.fn(async (): Promise<StorageMode> => options.mode ?? "opfs"),
+    addToAssorted: vi.fn(
+      async (): Promise<AssortedResult> => ({ ok: false, reason: "no-review", message: "" }),
+    ),
+    removeAssortedSong: vi.fn(async (): Promise<RemovedFromAssorted> => ({ removed: false })),
     isBackup: vi.fn(async (file: File) => (options.backups ?? []).includes(file.name)),
   } satisfies LibraryAdmin;
   const store = {
@@ -101,6 +107,7 @@ function setup(options: Setup = {}) {
       { hymnbookId: "mal", hymnNumber: 9, viewedAt: 1 },
     ]),
     dropRecents: vi.fn(async () => {}),
+    dropSong: vi.fn(async () => {}),
   };
   const onChoose = vi.fn();
   const onOpen = vi.fn();

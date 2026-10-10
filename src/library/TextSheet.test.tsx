@@ -5,7 +5,14 @@ import { gunzipSync } from "fflate";
 import { describe, expect, it, vi } from "vitest";
 import sampleMd from "../../docs/authoring/sample.md?raw";
 import { validateCorpus } from "../domain/validate.ts";
-import type { BookRow, Choice, CommitResult, LoadReview } from "../persistence/content-store.ts";
+import type {
+  AssortedResult,
+  BookRow,
+  Choice,
+  CommitResult,
+  LoadReview,
+  RemovedFromAssorted,
+} from "../persistence/content-store.ts";
 import { createBooks, type LibraryAdmin } from "./books.ts";
 import { Library } from "./Library.tsx";
 
@@ -101,6 +108,10 @@ function setup() {
     removeBook: vi.fn(async () => true),
     openBook: vi.fn(async () => ({ state: "ready" as const })),
     storageMode: vi.fn(async () => "opfs" as const),
+    addToAssorted: vi.fn(
+      async (): Promise<AssortedResult> => ({ ok: false, reason: "no-review", message: "" }),
+    ),
+    removeAssortedSong: vi.fn(async (): Promise<RemovedFromAssorted> => ({ removed: false })),
   } satisfies LibraryAdmin;
   const store = { ensureInstalled: vi.fn(async () => ({ state: "ready" as const })) };
   const persist = vi.fn(async () => "granted" as const);
@@ -112,7 +123,11 @@ function setup() {
         currentKey="mal"
         onChoose={() => {}}
         admin={admin}
-        userState={{ getRecents: async () => [], dropRecents: async () => {} }}
+        userState={{
+          getRecents: async () => [],
+          dropRecents: async () => {},
+          dropSong: async () => {},
+        }}
         persist={persist}
       />
     );
@@ -124,7 +139,9 @@ const openSheet = async () => {
   const s = setup();
   await screen.findByRole("list", { name: "Books" });
   fireEvent.click(screen.getByRole("button", { name: "From Text" }));
-  const dialog = within(await screen.findByRole("dialog", { name: "Book from Text" }));
+  const dialog = within(await screen.findByRole("dialog", { name: "From Text" }));
+  // A song may go to Assorted Hymns, the default; these tests are of a book of its own.
+  fireEvent.click(dialog.getByRole("radio", { name: "A New Book" }));
   return { s, dialog };
 };
 
@@ -233,14 +250,14 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     // The buttons stay off until the book is written and listed.
     await waitFor(() => expect(screen.getByRole("button", { name: "From Text" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "From Text" }));
-    const dialog = within(await screen.findByRole("dialog", { name: "Book from Text" }));
+    const dialog = within(await screen.findByRole("dialog", { name: "From Text" }));
     expect(dialog.getByLabelText("Song text")).toHaveValue("");
   });
 
   it("Cancel in the review goes back to the text, which is kept", async () => {
     const { s, reviewDialog } = await toReview();
     fireEvent.click(reviewDialog.getByRole("button", { name: "Cancel" }));
-    const dialog = within(await screen.findByRole("dialog", { name: "Book from Text" }));
+    const dialog = within(await screen.findByRole("dialog", { name: "From Text" }));
     expect(dialog.getByLabelText("Song text")).toHaveValue(SAMPLE);
     expect(s.admin.commit).not.toHaveBeenCalled();
     await waitFor(() => expect(s.admin.cancel).toHaveBeenCalledWith("t1"));

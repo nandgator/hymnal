@@ -1435,8 +1435,21 @@ function Operator(props: Shared) {
                   presentedKey={presentedKey()}
                   outputLive={presence.live()}
                   onEndLive={endLive}
+                  presentedNumber={hymnNumber()}
                   onChoose={setCurrentKey}
                   onOpen={chooseHymnbook}
+                  onOpenSong={(key, number) => {
+                    setCurrentKey(key);
+                    chooseHymn(number, key);
+                  }}
+                  onSongRemoved={(key, number) => {
+                    // The song on screen is gone: the Operator returns to the Finder.
+                    if (presentedKey() === key && hymnNumber() === number) {
+                      setPresentedKey(undefined);
+                      setHymnNumber(undefined);
+                      setHymn(undefined);
+                    }
+                  }}
                   onStorageRefused={() => setKeepFile(true)}
                   onNotice={setLibraryNote}
                   onRestore={restoreFile}

@@ -1,5 +1,5 @@
 import type { OnLoadProgress } from "../domain/progress.ts";
-import type { Choice, CommitResult } from "./load.ts";
+import type { AssortedResult, Choice, CommitResult } from "./load.ts";
 import type { RemovedFromAssorted } from "./registry.ts";
 import type { UserState } from "./user-state.ts";
 
@@ -95,6 +95,43 @@ export async function removeAssortedSongAndRecents(
   if (result.removed) {
     await state.dropSong(result.key, number);
     if (result.bookRemoved) await state.dropRecents(result.key);
+  }
+  return result;
+}
+
+export type AddedSong = AssortedResult & {
+  /** As {@link CommittedBook.persisted}: the answer to the first load's request to keep storage. */
+  persisted?: Promise<PersistResult>;
+};
+
+/**
+ * Adds a reviewed one-song book to Assorted Hymns (SDD-0004 §17) and, when that
+ * made the device's first loaded book, asks for persistent storage as a first
+ * commit does.
+ */
+export async function addToAssortedAndPersist(
+  admin: {
+    addToAssorted(
+      token: string,
+      language: string,
+      script: string,
+      onProgress?: OnLoadProgress,
+    ): Promise<AssortedResult>;
+  },
+  token: string,
+  language: string,
+  script: string,
+  persist: () => Promise<PersistResult> = askPersist,
+  onProgress?: OnLoadProgress,
+): Promise<AddedSong> {
+  const result = await admin.addToAssorted(token, language, script, onProgress);
+  if (result.ok && result.firstLoad) {
+    return {
+      ...result,
+      persisted: Promise.resolve()
+        .then(persist)
+        .catch(() => "unsupported"),
+    };
   }
   return result;
 }

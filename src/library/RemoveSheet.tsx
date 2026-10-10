@@ -53,7 +53,8 @@ export function RemoveSheet(props: RemoveSheetProps) {
               <h3>{book().title}</h3>
               <Show when={book().state === "ok"}>
                 <p>
-                  {languageName(book().language)} · <span class="num">{count(book().songs)}</span>{" "}
+                  {book().language ? `${languageName(book().language)} · ` : ""}
+                  <span class="num">{count(book().songs)}</span>{" "}
                   {book().songs === 1 ? "song" : "songs"}
                 </p>
               </Show>

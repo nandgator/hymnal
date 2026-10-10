@@ -1,11 +1,28 @@
-import { batch, createEffect, createSignal, For, type JSX, onCleanup, Show } from "solid-js";
+import {
+  batch,
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  type JSX,
+  onCleanup,
+  Show,
+} from "solid-js";
 import type { TextError } from "../import/songtext.ts";
+import { Segmented } from "../shell/Segmented.tsx";
 import { Sheet } from "../shell/Sheet.tsx";
 import { count } from "./books.ts";
 import { suggestLanguage } from "./detectLanguage.ts";
 import { LanguagePicker } from "./LanguagePicker.tsx";
 import { englishName, scriptName, scriptOf } from "./languages.ts";
-import { type FieldProblems, joinSongTexts, slugify, type TextFields } from "./textbook.ts";
+import {
+  type Destination,
+  type FieldProblems,
+  joinSongTexts,
+  slugify,
+  songCount,
+  type TextFields,
+} from "./textbook.ts";
 
 /** Typing or pasting pauses this long before the text is read for a language. */
 const SUGGEST_DELAY_MS = 300;
@@ -26,6 +43,12 @@ export function createTextDraft() {
   const [id, setId] = createSignal("");
   const [number, setNumber] = createSignal("");
   const [songText, setSongText] = createSignal("");
+  // Where one song goes (SDD-0004 §17): Assorted Hymns unless the person asks for a book.
+  const [asked, setAsked] = createSignal<Destination>("assorted");
+  const songs = createMemo(() => songCount(songText()));
+  // Several songs make a book; nothing, or one, may join Assorted Hymns.
+  const offered = () => songs() <= 1;
+  const destination = (): Destination => (offered() ? asked() : "book");
   // The id follows the title until it is edited by hand.
   const [idEdited, setIdEdited] = createSignal(false);
   const scheduleSuggest = () => {
@@ -52,6 +75,10 @@ export function createTextDraft() {
     id,
     number,
     songText,
+    /** Assorted Hymns is on offer: the text holds no more than one song. */
+    offered,
+    destination,
+    setDestination: setAsked,
     setTitle: (value: string) => {
       setTitle(value);
       if (!idEdited()) setId(slugify(value));
@@ -83,6 +110,7 @@ export function createTextDraft() {
         set("");
       }
       setIdEdited(false);
+      setAsked("assorted");
       setScriptEdit(undefined);
     },
     fields: (): TextFields => ({
@@ -91,6 +119,7 @@ export function createTextDraft() {
       script: script(),
       id: id(),
       number: number(),
+      destination: destination(),
     }),
   };
 }
@@ -216,6 +245,7 @@ export function TextSheet(props: TextSheetProps) {
 
   const lineCount = (text: string) => (text.trim() ? text.split(/\r\n|\r|\n/).length : 0);
   const script = () => d.script();
+  const toAssorted = () => d.destination() === "assorted";
   // A language the platform has no default script for, or a script being changed.
   const scriptOpen = () => changingScript() || (!!d.language() && !script());
 
@@ -223,7 +253,7 @@ export function TextSheet(props: TextSheetProps) {
     <Sheet
       open={props.open}
       onClose={props.onCancel}
-      title="Book from Text"
+      title="From Text"
       closeLabel="Cancel"
       placement={props.placement}
       tall
@@ -239,28 +269,49 @@ export function TextSheet(props: TextSheetProps) {
       >
         <p class="textsheet-lead">
           Songs written as plain text, in the <span class="nowrap">text format</span>, become a
-          book. You see it all before anything is stored, and nothing leaves this device.
+          book, or one song joins Assorted Hymns. You see it all before anything is stored, and
+          nothing leaves this device.
         </p>
 
-        <Field id="book-title" label="Title" problem={props.problems.title}>
-          {(by) => (
-            <input
-              class="field-input"
-              type="text"
-              autocomplete="off"
-              id="book-title"
-              value={d.title()}
-              aria-invalid={!!props.problems.title}
-              aria-describedby={by}
-              onInput={(e) => d.setTitle(e.currentTarget.value)}
-              autofocus
+        <Show when={d.offered()}>
+          <div class="field">
+            <span class="field-label" id="destination-label">
+              Add it to
+            </span>
+            <Segmented
+              legend="Where the song goes"
+              options={[
+                { value: "assorted", label: "Assorted Hymns" },
+                { value: "book", label: "A New Book" },
+              ]}
+              value={d.destination()}
+              onChange={d.setDestination}
+              tight
             />
-          )}
-        </Field>
+          </div>
+        </Show>
+
+        <Show when={!toAssorted()}>
+          <Field id="book-title" label="Title" problem={props.problems.title}>
+            {(by) => (
+              <input
+                class="field-input"
+                type="text"
+                autocomplete="off"
+                id="book-title"
+                value={d.title()}
+                aria-invalid={!!props.problems.title}
+                aria-describedby={by}
+                onInput={(e) => d.setTitle(e.currentTarget.value)}
+                autofocus
+              />
+            )}
+          </Field>
+        </Show>
 
         <div class="field">
           <label class="field-label" for="book-language">
-            Language
+            {toAssorted() ? "Song’s language" : "Language"}
           </label>
           <LanguagePicker
             id="book-language"
@@ -383,67 +434,69 @@ export function TextSheet(props: TextSheetProps) {
           </Show>
         </div>
 
-        <details
-          class="advanced"
-          open={advanced()}
-          onToggle={(e) => {
-            const el = e.currentTarget;
-            setAdvanced(el.open);
-            if (el.open) followGrowth(el);
-          }}
-        >
-          <summary class="advanced-summary">
-            <span class="icon icon-chevron-right advanced-chevron" aria-hidden="true" />
-            Advanced
-          </summary>
-          <div class="advanced-body">
-            <Field
-              id="book-id"
-              label="Id"
-              hint="Made from the title; change it if you like."
-              problem={props.problems.id}
-            >
-              {(by) => (
-                <input
-                  class="field-input"
-                  type="text"
-                  autocomplete="off"
-                  autocapitalize="off"
-                  spellcheck={false}
-                  id="book-id"
-                  value={d.id()}
-                  aria-invalid={!!props.problems.id}
-                  aria-describedby={by}
-                  onInput={(e) => d.setId(e.currentTarget.value)}
-                />
-              )}
-            </Field>
-            <Field
-              id="book-number"
-              label="Song number"
-              hint="For one song whose first line has no number."
-              problem={props.problems.number}
-            >
-              {(by) => (
-                <input
-                  class="field-input"
-                  type="text"
-                  inputmode="numeric"
-                  autocomplete="off"
-                  id="book-number"
-                  value={d.number()}
-                  aria-invalid={!!props.problems.number}
-                  aria-describedby={by}
-                  onInput={(e) => d.setNumber(e.currentTarget.value)}
-                />
-              )}
-            </Field>
-          </div>
-        </details>
+        <Show when={!toAssorted()}>
+          <details
+            class="advanced"
+            open={advanced()}
+            onToggle={(e) => {
+              const el = e.currentTarget;
+              setAdvanced(el.open);
+              if (el.open) followGrowth(el);
+            }}
+          >
+            <summary class="advanced-summary">
+              <span class="icon icon-chevron-right advanced-chevron" aria-hidden="true" />
+              Advanced
+            </summary>
+            <div class="advanced-body">
+              <Field
+                id="book-id"
+                label="Id"
+                hint="Made from the title; change it if you like."
+                problem={props.problems.id}
+              >
+                {(by) => (
+                  <input
+                    class="field-input"
+                    type="text"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    spellcheck={false}
+                    id="book-id"
+                    value={d.id()}
+                    aria-invalid={!!props.problems.id}
+                    aria-describedby={by}
+                    onInput={(e) => d.setId(e.currentTarget.value)}
+                  />
+                )}
+              </Field>
+              <Field
+                id="book-number"
+                label="Song number"
+                hint="For one song whose first line has no number."
+                problem={props.problems.number}
+              >
+                {(by) => (
+                  <input
+                    class="field-input"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    id="book-number"
+                    value={d.number()}
+                    aria-invalid={!!props.problems.number}
+                    aria-describedby={by}
+                    onInput={(e) => d.setNumber(e.currentTarget.value)}
+                  />
+                )}
+              </Field>
+            </div>
+          </details>
+        </Show>
 
         <div class="review-actions">
           <button type="submit" class="btn-filled" disabled={props.busy}>
-            Review the Book
+            {toAssorted() ? "Review the Song" : "Review the Book"}
           </button>
         </div>
       </form>
