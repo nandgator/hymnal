@@ -55,9 +55,7 @@ import {
 } from "./registry.ts";
 import { type BookHits, type SearchResult, searchBook, searchBooks } from "./search.ts";
 
-export type { HymnSummary };
-
-export type { BookHits, SearchResult };
+export type { BookHits, HymnSummary, SearchResult };
 
 export type ContentStatus =
   | { state: "ready" }
