@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { clickGoLive } from "./App.testkit.tsx";
+import { clickGoLive, fakeAppTimers } from "./App.testkit.tsx";
 import App from "./App.tsx";
 
 vi.mock("./persistence/content-store.ts", async () =>
@@ -225,11 +225,12 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
       configurable: true,
     });
     try {
+      fakeAppTimers();
       const { details, getScreenDetails } = attach([laptop]);
       render(() => <App />);
       await waitFor(() => expect(getScreenDetails).toHaveBeenCalled());
       replug(details as never);
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await vi.advanceTimersByTimeAsync(700);
       expect(noticeText(/A projector is connected/)).toBe(0);
     } finally {
       Reflect.deleteProperty(navigator, "permissions");
@@ -286,12 +287,13 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
   });
 
   it("a burst of screen events is one change: a screen that went and came straight back is no news", async () => {
+    fakeAppTimers();
     const { details } = await goLive();
     unplug(details as never);
     replug(details as never);
     unplug(details as never);
     replug(details as never);
-    await new Promise((resolve) => setTimeout(resolve, 700));
+    await vi.advanceTimersByTimeAsync(700);
     expect(noticeText(/projector was disconnected/)).toBe(0);
     expect(noticeText(/That screen is back/)).toBe(0);
   });
@@ -351,6 +353,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
   it("leaves an open Output alone when any other setting changes, never taking it out of fullscreen", async () => {
     // Every preference change re-runs the screen-choice effect; only a change
     // of the chosen screen may move the Output (a move leaves fullscreen).
+    fakeAppTimers();
     const { win } = await goLive();
     const exitFullscreen = vi.fn(() => Promise.resolve());
     Object.assign(win.document, { fullscreenElement: {}, exitFullscreen });
@@ -361,7 +364,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     fireEvent.click(title);
     await waitFor(() => expect(title).toBeChecked());
     fireEvent.click(await screen.findByRole("switch", { name: /Show song number/ }));
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    await vi.advanceTimersByTimeAsync(600);
 
     expect(exitFullscreen).not.toHaveBeenCalled();
     expect(win.moveTo).not.toHaveBeenCalled();
@@ -369,6 +372,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
   });
 
   it("gives no drag hint to a single-screen user, with the API or without it", async () => {
+    fakeAppTimers();
     attach([laptop]);
     Object.defineProperty(window.screen, "isExtended", {
       value: false,
@@ -379,28 +383,32 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
     fireEvent.keyDown(window, { key: "o" });
     await waitFor(() => expect(open).toHaveBeenCalled());
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await vi.advanceTimersByTimeAsync(100);
     expect(noticeText(/Drag the Output to the projector/)).toBe(0);
   });
 
   it("gives no drag hint where the browser cannot say (Firefox, Safari)", async () => {
+    fakeAppTimers();
     Reflect.deleteProperty(window, "getScreenDetails");
     Reflect.deleteProperty(window.screen, "isExtended");
     const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
     render(() => <App />);
     await clickGoLive();
     await waitFor(() => expect(open).toHaveBeenCalled());
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await vi.advanceTimersByTimeAsync(100);
     expect(noticeText(/Drag the Output to the projector/)).toBe(0);
   });
 
   it("puts a hint away by itself, so it cannot hold the update notice back", async () => {
+    fakeAppTimers();
     attach([laptop]);
     vi.spyOn(window, "open").mockReturnValue({} as Window);
     render(() => <App />);
     await waitFor(() => expect(screen.getByRole("button", { name: "Go Live" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
     await screen.findAllByText(/Drag the Output to the projector/);
+    // The hint stays its whole stay (HINT_MS in App.tsx), then goes by itself.
+    await vi.advanceTimersByTimeAsync(8000);
     await waitFor(() => expect(noticeText(/Drag the Output to the projector/)).toBe(0), {
       timeout: 10000,
     });

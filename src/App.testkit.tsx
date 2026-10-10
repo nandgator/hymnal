@@ -194,3 +194,15 @@ export async function openFinder() {
   await waitFor(() => expect(present).toBeEnabled());
   fireEvent.click(present);
 }
+
+/**
+ * The app's own timers (hint lengths, grace periods, debounces) on a clock a
+ * test steps with `vi.advanceTimersByTimeAsync`. Real time still flows, so
+ * `waitFor` and the channel's deliveries keep working. Install it before the
+ * action that starts the timer; the test's afterEach restores real timers.
+ */
+export const fakeAppTimers = () =>
+  vi.useFakeTimers({
+    shouldAdvanceTime: true,
+    toFake: ["setTimeout", "clearTimeout"],
+  });

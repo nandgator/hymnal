@@ -1,6 +1,13 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { clickGoLive, endLiveFromMenu, mocks, openFinder, updates } from "./App.testkit.tsx";
+import {
+  clickGoLive,
+  endLiveFromMenu,
+  fakeAppTimers,
+  mocks,
+  openFinder,
+  updates,
+} from "./App.testkit.tsx";
 import App from "./App.tsx";
 import type { BookRow } from "./persistence/content-store.ts";
 
@@ -242,6 +249,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
   });
 
   it("holds the update prompt while live, and shows it once End Live has closed the window (#32)", async () => {
+    fakeAppTimers();
     const { output } = await goLive();
     const seen: unknown[] = [];
     closesOnCommand(output, seen);
@@ -250,7 +258,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     expect(noticeText(/Update ready/)).toBe(0);
     endLiveFromMenu();
     await screen.findByRole("button", { name: "Go Live" });
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    await vi.advanceTimersByTimeAsync(600);
     await waitFor(() => expect(noticeText(/Update ready/)).toBeGreaterThan(0));
     output.close();
     updates.set(false);
@@ -260,12 +268,13 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     // The hint is due a moment after the window opens (to see whether it went
     // fullscreen by itself). Closed by then, it would be about a gone window,
     // and would hold the update notice back for its whole stay.
+    fakeAppTimers();
     const { output } = await goLive();
     updates.set(true);
     output.postMessage({ type: "bye", id: "test-output" });
     await waitFor(() => expect(noticeText(/Update ready/)).toBeGreaterThan(0));
     // Past the grace the hint waits (FULLSCREEN_GRACE_MS in App.tsx).
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await vi.advanceTimersByTimeAsync(1500);
     expect(noticeText(/The Output is on the projector screen/)).toBe(0);
     expect(noticeText(/Update ready/)).toBeGreaterThan(0);
     output.close();
