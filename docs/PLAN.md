@@ -32,8 +32,14 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 [hymnal.sagaveracity.com](https://hymnal.sagaveracity.com) (ADR-0030) once
 `main` is pushed; the sample is released as `sample-2` (SDD-0004 §16). #50, the
 real-device pass, waits on the maintainer's devices; the beta may go before it,
-iOS marked untested. The maintainer's reviews of 2026-10-07 and 10-08 are done;
-#58 waits on a design talk.
+iOS marked untested. The maintainer's reviews of 2026-10-07 and 10-08 are done.
+
+**Board #58 (Assorted Hymns)**: shaped
+([ADR-0031](decisions/0031-assorted-hymns-the-persons-own-book.md), SDD-0004
+§17). Parts: A, the package (schema 4), the registry kind and the worker's add,
+remove and order; B, From Text's choice, Add Song, the Library row and its
+sheet, the Finder's order; C, the restore merge; D, the e2e path. B and C after
+A.
 
 **Board #27 (song import, CLI)**: touches no UI. Target: _Hymns of Fellowship_,
 the second hymnbook; its draft stays in `imports/` until its rights are known
@@ -61,7 +67,7 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                                                                                                                                                                      | Blocked by          |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| 58  | Assorted Hymns: a book the person owns for single songs; favourites and queues are lists of songs, not books (with #22). Shape when it starts                                                             | —                   |
+| 58  | Assorted Hymns (ADR-0031, SDD-0004 §17): parts A–D, see Now                                                                                                                                               | —                   |
 | 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                                                                                  | another machine     |
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                                          | maintainer: devices |
 | 42  | Test suite speed (note): split App.test.tsx by area and use fake timers for its real waits; then isolate:false only for the DOM-free files, never globally (module-level state in channel.ts and friends) | —                   |
@@ -120,6 +126,10 @@ only, here:
 
 ## Log
 
+- 2026-10-10 — #58 shaped with the maintainer: Assorted Hymns is a real book,
+  one per device, mixed languages (`mul`), each song's language in the package,
+  stable numbers shown in language-then-title order, From Text's one song the
+  only way in; ADR-0031
 - 2026-10-08 — Docs brought up to date: README rewritten (the beta, features,
   commands); arc42, SDDs, DESIGN.md, CLAUDE.md and the agents' files audited
   against the code; this file trimmed to its rules

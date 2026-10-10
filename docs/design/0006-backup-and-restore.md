@@ -104,7 +104,9 @@ and its song hashes:
 
 **Decided by the recommendation:** a conflict keeps the device's copy by
 default, since it may be the newer edit, and Merge loses nothing. A restored
-book keeps its key, so the backup's recents and position point at it.
+book keeps its key, so the backup's recents and position point at it. Assorted
+Hymns is restored or merged by its own table
+([SDD-0004 §17](0004-loading-books.md#17-assorted-hymns)).
 
 One button, **Restore**, writes the books, then the user state. Settings come
 from the backup. Recents are merged: both lists, one entry per song, the newest

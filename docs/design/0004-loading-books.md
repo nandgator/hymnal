@@ -1,6 +1,6 @@
 # SDD-0004 — Loading books
 
-- **Status:** Accepted; built (parts 1 to 6, §13)
+- **Status:** Accepted; built (parts 1 to 6, §13); §17 to build (Board #58)
 - **Date:** 2026-10-02
 - **Decisions:** [ADR-0026](../decisions/0026-songs-leave-the-repository.md)
   (songs leave the repository),
@@ -11,7 +11,9 @@
   [ADR-0019](../decisions/0019-version-the-content-format.md) (the container),
   [ADR-0024](../decisions/0024-import-case-by-case.md) (the app loads format 1),
   [ADR-0020](../decisions/0020-present-songs-do-not-publish-them.md) (stays on
-  the device)
+  the device),
+  [ADR-0031](../decisions/0031-assorted-hymns-the-persons-own-book.md) (Assorted
+  Hymns)
 
 How a book gets onto a device and how the app knows what it holds: a container
 file is picked, read, checked, shown, and stored, with a key, in the content
@@ -737,8 +739,7 @@ Each part is built and reviewed on its own, in order. Each ends with
    changed) and picked per song (ADR-0021). Not designed here; its screen is
    drawn when this part is picked up.
 
-`OPEN:` loose songs, which belong to no book, are a later Board item (ADR-0021).
-The registry's `kind` would gain a third value for them.
+Loose songs, which belong to no book, are Assorted Hymns (§17).
 
 ## 14. Progress and speed
 
@@ -915,3 +916,99 @@ domain and links the rights page.
 
 To change the sample: rerun the script, build, upload the containers to a new
 release, and commit the new `sample/RELEASE` and `sample/SHA256SUMS` together.
+
+## 17. Assorted Hymns
+
+The person's own book of single songs
+([ADR-0031](../decisions/0031-assorted-hymns-the-persons-own-book.md), Board
+#58). Favourites and the service queue are lists of songs in books, not this
+(#22).
+
+### The book
+
+One per device, made by its first song. Its registry row is kind `assorted` (the
+`CHECK` gains the value; registry `user_version` 2, and a registry of version 1
+is rebuilt, as any index is, §6), key a UUIDv7, origin `assorted`, title
+Assorted Hymns, language `mul`, script `Zyyy`. Reconcile adopts a package of
+origin `assorted` as kind `assorted`; of two, the one added first keeps the kind
+and the other is listed as a loaded book, so nothing is lost.
+
+### The package, schema version 4
+
+| Table      | Column        | Holds                                                             |
+| ---------- | ------------- | ----------------------------------------------------------------- |
+| `hymnbook` | `next_number` | `INTEGER`, null except in Assorted Hymns: the next number to give |
+| `hymn`     | `language`    | `TEXT`, null except in Assorted Hymns: the song's BCP-47 tag      |
+| `hymn`     | `script`      | `TEXT`, null except in Assorted Hymns: the song's ISO 15924 code  |
+
+Step 3 → 4 adds the three columns, null, in one transaction. `packageRows` fills
+them from optional fields on the book and its hymns, which no container can set:
+format 1 is untouched (`validate.ts` still refuses a hymn `language` in a file).
+The version 3 DDL is frozen beside version 2's, and a backup of either restores
+(SDD-0006 §3.4).
+
+### Adding a song
+
+From Text (ADR-0029) parses the text. When it holds **one song**, the sheet
+offers where it goes, **Assorted Hymns** (the default) or **A New Book**. For
+Assorted Hymns it asks only the song's language and script; the book's id and
+title and the song's number are hidden. Several songs make a book, as now.
+
+The one-song book is reviewed as any book is (ADR-0027), with the song's number
+shown as the one it will get, and the button **Add Song**. The verdict looks for
+the song's hash: already in Assorted Hymns, it says "already here as _n_" and
+offers **Open Song** in place of Add Song; in another book, it is flagged, never
+blocked (ADR-0021).
+
+Add Song reads Assorted Hymns' hymns from its package, gives the song
+`next_number` and the language and script asked for, increments `next_number`,
+validates the whole (`validateCorpus`), and writes the package afresh by
+`packageRows` as Replace does (§7, §8): `<key>.<n+1>.sqlite3`, then the
+registry, the registry transaction the commit. With no Assorted Hymns yet, it is
+made with the song as number 1 and `next_number` 2. The Operator then shows the
+song.
+
+### Removing a song
+
+Assorted Hymns' row in the Library opens a sheet of its songs, in the order
+below, each with **Remove**, confirmed as a book's removal is. Removing writes
+the package afresh without the song; `next_number` is unchanged, so the number
+is retired. The song's recents and a position on it are dropped. Removing the
+last song removes the book, as Remove Book does (§9). Assorted Hymns can also be
+removed whole from its row.
+
+### The order
+
+Wherever its songs are listed (that sheet, the Finder's browse), Assorted Hymns
+is ordered by the song's language tag (code point order), then by title with
+`Intl.Collator(language)`, then by number. Search ranks as for any book, and a
+number finds its song. Every other book stays in number order. In the Library
+its row sits first, above the language groups, labelled by its count of songs
+and no language.
+
+### Backup and restore
+
+The package travels in a backup like any other (SDD-0006). On restore:
+
+| Found on the device               | Does                                                      |
+| --------------------------------- | --------------------------------------------------------- |
+| No Assorted Hymns                 | **Restore** under the backup's key                        |
+| Assorted Hymns, the same songs    | Nothing: "already here"                                   |
+| Assorted Hymns, other songs in it | **Merge**: each song not there by hash is added, as below |
+
+The merged songs are taken in their backup numbers' order. Each keeps its backup
+number if that is at or above the device's `next_number` (every number below it
+is held or retired), else it takes `next_number`; either way `next_number` then
+moves one past it. The backup's recents and position on Assorted Hymns are
+rewritten to the device's key and numbers before the user-state merge; one on a
+song that was skipped (already here) points at the device's copy of it.
+
+### Testing
+
+Unit: the 3 → 4 step and its frozen DDL; `packageRows` with and without the new
+fields; add (first song makes the book; numbers; a duplicate by hash); remove
+(number retired; last song removes the book; recents dropped); the order (mixed
+languages, collation, ties); the restore table and the number and recents
+rewrite of a merge. Component: the From Text choice and its hidden fields, Add
+Song and Open Song in the review, the Library row and its sheet. E2E: paste a
+song, add it, find it, present it, remove it.

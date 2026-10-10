@@ -41,6 +41,7 @@ superseded in part says which part.
 | [0028](0028-put-the-output-on-the-projector-screen.md)              | Put the Output on the projector screen                            | Accepted                                                                                          |
 | [0029](0029-others-build-their-books-the-format-is-the-contract.md) | Others build their books: the format is the contract              | Accepted; point 4 (the source check) withdrawn                                                    |
 | [0030](0030-security-a-local-first-threat-model.md)                 | Security: a local-first threat model                              | Accepted                                                                                          |
+| [0031](0031-assorted-hymns-the-persons-own-book.md)                 | Assorted Hymns: the person's own book of single songs             | Accepted                                                                                          |
 
 ## Open questions
 
