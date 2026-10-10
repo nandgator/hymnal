@@ -36,10 +36,9 @@ iOS marked untested. The maintainer's reviews of 2026-10-07 and 10-08 are done.
 
 **Board #58 (Assorted Hymns)**: shaped
 ([ADR-0031](decisions/0031-assorted-hymns-the-persons-own-book.md), SDD-0004
-§17). Parts: A, the package (schema 4), the registry kind and the worker's add,
-remove and order; B, From Text's choice, Add Song, the Library row and its
-sheet, the Finder's order; C, the restore merge; D, the e2e path. B and C after
-A.
+§17). Parts A (the package, schema 4, the worker's add, remove and order), B
+(From Text's choice, Add Song, the Library row and its sheet) and C (the restore
+merge) are on `main`; D, the e2e path, remains.
 
 **Board #27 (song import, CLI)**: touches no UI. Target: _Hymns of Fellowship_,
 the second hymnbook; its draft stays in `imports/` until its rights are known
@@ -126,10 +125,12 @@ only, here:
 
 ## Log
 
-- 2026-10-10 — #58 shaped with the maintainer: Assorted Hymns is a real book,
-  one per device, mixed languages (`mul`), each song's language in the package,
-  stable numbers shown in language-then-title order, From Text's one song the
-  only way in; ADR-0031
+- 2026-10-10 — #58 parts A–C built: Assorted Hymns stored, added from From Text,
+  listed, removed and restored by merge; the sample's release renamed
+  `sample-1`. Shaped with the maintainer: Assorted Hymns is a real book, one per
+  device, mixed languages (`mul`), each song's language in the package, stable
+  numbers shown in language-then-title order, From Text's one song the only way
+  in; ADR-0031
 - 2026-10-08 — Docs brought up to date: README rewritten (the beta, features,
   commands); arc42, SDDs, DESIGN.md, CLAUDE.md and the agents' files audited
   against the code; this file trimmed to its rules
