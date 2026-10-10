@@ -968,6 +968,11 @@ registry, the registry transaction the commit. With no Assorted Hymns yet, it is
 made with the song as number 1 and `next_number` 2. The Operator then shows the
 song.
 
+Assorted Hymns has no container, so its `sources` are empty and its
+`content_hash` is the first song's hash, kept through every add and remove. It
+names the book, not its songs: nothing compares it but the backup reader's check
+of its shape (SDD-0006 §3.4).
+
 ### Removing a song
 
 Assorted Hymns' row in the Library opens a sheet of its songs, in the order
