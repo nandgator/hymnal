@@ -30,7 +30,7 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 
 **Beta**: built and live at
 [hymnal.sagaveracity.com](https://hymnal.sagaveracity.com) (ADR-0030) once
-`main` is pushed; the sample is released as `sample-2` (SDD-0004 §16). #50, the
+`main` is pushed; the sample is released as `sample-1` (SDD-0004 §16). #50, the
 real-device pass, waits on the maintainer's devices; the beta may go before it,
 iOS marked untested. The maintainer's reviews of 2026-10-07 and 10-08 are done.
 
@@ -146,7 +146,7 @@ only, here:
 - 2026-10-07 — Withdrawn by the maintainer: the source check (ADR-0029 point 4),
   from the app and the CLI
 - 2026-10-07 — #43 done: the sample (28 Otterbein hymns, 2 Malayalam songs),
-  rights in `docs/sample/RIGHTS.md`, released as `sample-2`, fetched by the
+  rights in `docs/sample/RIGHTS.md`, released as `sample-1`, fetched by the
   deploy against `sample/SHA256SUMS`, offered as Try the Sample (SDD-0004 §16)
 - 2026-10-07 — Fixed: a Safari private window (`getDirectory()` UnknownError)
   holds books in memory; WebKit e2e runs locally in podman
