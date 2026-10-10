@@ -44,12 +44,12 @@ import {
 } from "./pool-init.ts";
 import {
   type BookRow,
-  indexPackage,
   listBooks,
   REGISTRY_FILE,
   type RegistryContext,
   type RemovedFromAssorted,
   reconcile,
+  registerHeld,
   removeAssortedSong,
   removeBook,
   startRegistry,
@@ -531,8 +531,7 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     // Registering is best effort: a registry fault never fails a book that opens.
     if (ctx) {
       try {
-        const row = listBooks(ctx).find((book) => book.file === filename);
-        if (row?.state !== "ok") await indexPackage(ctx, filename, "loaded");
+        await registerHeld(ctx, filename);
       } catch (error) {
         console.warn(`${id}: not registered:`, error);
       }

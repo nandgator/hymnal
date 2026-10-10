@@ -678,6 +678,15 @@ export async function indexPackage(
   return row;
 }
 
+/**
+ * A book that opens is registered if its row is missing or not `ok`
+ * (SDD-0004 §13, part 3).
+ */
+export async function registerHeld(ctx: RegistryContext, file: string): Promise<void> {
+  const row = listBooks(ctx).find((book) => book.file === file);
+  if (row?.state !== "ok") await indexPackage(ctx, file, "loaded");
+}
+
 function mergeIntoPackage(ctx: RegistryContext, file: string, sources: readonly string[]) {
   const version = ctx.files.open(file, (sql) => packageVersion(sql));
   // An old shipped package is replaced, not written to; its sources are the registry's alone.

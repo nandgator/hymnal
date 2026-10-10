@@ -19,6 +19,7 @@ import {
   openRegistry,
   type RegistryContext,
   reconcile,
+  registerHeld,
   removeAssortedSong,
   removeBook,
 } from "../src/persistence/registry.ts";
@@ -390,6 +391,18 @@ describe("reconcile and Assorted Hymns", () => {
       { key: first.key, kind: "assorted", state: "ok", file: `/${first.key}.2.sqlite3` },
     ]);
     expect(files.list()).toEqual([`/${first.key}.2.sqlite3`]);
+  });
+});
+
+describe("registering a book that opens", () => {
+  it("keeps the kind of an Assorted Hymns row that was listed unreadable", async () => {
+    const { ctx } = setup();
+    const added = await addAssortedSong(ctx, newKey, await withHash(hymn(1)), "en", "Latn");
+    if (!added.ok) throw new Error("not added");
+    const file = `/${added.key}.1.sqlite3`;
+    ctx.registry.run("UPDATE book SET state = 'unreadable' WHERE key = ?", [added.key]);
+    await registerHeld(ctx, file);
+    expect(listBooks(ctx)).toMatchObject([{ key: added.key, kind: "assorted", state: "ok" }]);
   });
 });
 
