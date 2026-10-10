@@ -684,7 +684,7 @@ export async function indexPackage(
  */
 export async function registerHeld(ctx: RegistryContext, file: string): Promise<void> {
   const row = listBooks(ctx).find((book) => book.file === file);
-  if (row?.state !== "ok") await indexPackage(ctx, file, "loaded");
+  if (row?.state !== "ok") await indexPackage(ctx, file, row?.kind ?? "loaded");
 }
 
 function mergeIntoPackage(ctx: RegistryContext, file: string, sources: readonly string[]) {
