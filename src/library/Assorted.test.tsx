@@ -84,6 +84,8 @@ interface Setup {
   add?: AssortedResult;
   removed?: (number: number) => RemovedFromAssorted;
   songs?: typeof SONGS;
+  /** Holds Add Song's answer until it is released: the sheet can be closed meanwhile. */
+  gate?: Promise<void>;
 }
 
 function setup(options: Setup = {}) {
@@ -100,10 +102,10 @@ function setup(options: Setup = {}) {
     }),
     openBook: vi.fn(async () => ({ state: "ready" as const })),
     storageMode: vi.fn(async () => "opfs" as const),
-    addToAssorted: vi.fn(
-      async (): Promise<AssortedResult> =>
-        options.add ?? { ok: true, key: "as1", number: 8, created: false },
-    ),
+    addToAssorted: vi.fn(async (): Promise<AssortedResult> => {
+      await options.gate;
+      return options.add ?? { ok: true, key: "as1", number: 8, created: false };
+    }),
     removeAssortedSong: vi.fn(async (number: number): Promise<RemovedFromAssorted> => {
       if (options.removed) return options.removed(number);
       songs = songs.filter((song) => song.number !== number);
@@ -174,8 +176,8 @@ const typeText = (dialog: Dialog, value: string) =>
   fireEvent.input(dialog.getByLabelText("Song text"), { target: { value } });
 
 /** From Text to the review of the one song. */
-const toReview = async (s: ReturnType<typeof setup>) => {
-  s.view();
+const toReview = async (s: ReturnType<typeof setup>, live: { outputLive?: boolean } = {}) => {
+  s.view(live);
   const dialog = await openText();
   typeText(dialog, ONE_SONG);
   chooseLanguage(dialog);
@@ -447,5 +449,84 @@ describe("Library: the Assorted Hymns row and its sheet", () => {
     fireEvent.click(dialog.getByRole("button", { name: "Remove Book" }));
     await waitFor(() => expect(s.admin.removeBook).toHaveBeenCalledWith("as1"));
     expect(s.userState.dropRecents).toHaveBeenCalledWith("as1");
+  });
+});
+
+describe("Assorted Hymns while the Output is live, and a review closed mid-add", () => {
+  it("while live, Add Song adds the song but does not present it: the notice says so", async () => {
+    const s = setup();
+    const review = await toReview(s, { outputLive: true });
+    fireEvent.click(review.getByRole("button", { name: "Add Song" }));
+    await waitFor(() =>
+      expect(s.onNotice).toHaveBeenCalledWith("Amazing Grace was added to Assorted Hymns as 8."),
+    );
+    expect(s.admin.addToAssorted).toHaveBeenCalled();
+    expect(s.onOpenSong).not.toHaveBeenCalled();
+    // The review sheet is closed: nothing is left to press.
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Add Song" })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("while live, Open Song in the review is a deliberate tap and shows the song as the Finder does", async () => {
+    const s = setup({ review: reviewOf({ assorted: { key: "as1", next: 8, has: 4 } }) });
+    const review = await toReview(s, { outputLive: true });
+    fireEvent.click(review.getByRole("button", { name: "Open Song" }));
+    expect(s.onOpenSong).toHaveBeenCalledWith("as1", 4);
+    expect(s.onNotice).not.toHaveBeenCalled();
+  });
+
+  it("while live, a song opened from the sheet is shown the same way", async () => {
+    const s = setup();
+    s.view({ outputLive: true });
+    fireEvent.click(await screen.findByRole("button", { name: /^Assorted Hymns/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Rock of Ages" }));
+    expect(s.onOpenSong).toHaveBeenCalledWith("as1", 2);
+  });
+
+  it("a review closed while the song is written says it was added, and does not present it", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const s = setup({ gate });
+    const review = await toReview(s);
+    fireEvent.click(review.getByRole("button", { name: "Add Song" }));
+    fireEvent.click(await review.findByRole("button", { name: "Close" }));
+    release();
+    await waitFor(() =>
+      expect(s.onNotice).toHaveBeenCalledWith("Amazing Grace was added to Assorted Hymns as 8."),
+    );
+    expect(s.onOpenSong).not.toHaveBeenCalled();
+  });
+
+  it("a review closed while the song is written says why it was not added, when it fails", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const s = setup({ gate, add: { ok: false, reason: "failed", message: "disk full" } });
+    const review = await toReview(s);
+    fireEvent.click(review.getByRole("button", { name: "Add Song" }));
+    fireEvent.click(await review.findByRole("button", { name: "Close" }));
+    release();
+    await waitFor(() =>
+      expect(s.onNotice).toHaveBeenCalledWith("Amazing Grace: Couldn’t add the song: disk full"),
+    );
+    expect(s.onOpenSong).not.toHaveBeenCalled();
+  });
+});
+
+describe("Library footer", () => {
+  it("says Assorted Hymns has no file once it exists, and not before", async () => {
+    setup({ rows: [shipped, loadedRow] }).view();
+    await screen.findByRole("list", { name: "Books" });
+    expect(screen.queryByText(/Assorted Hymns has no file/)).not.toBeInTheDocument();
+  });
+  it("adds the sentence once Assorted Hymns is held", async () => {
+    setup().view();
+    expect(
+      await screen.findByText(/Assorted Hymns has no file: Back Up keeps it\./),
+    ).toBeInTheDocument();
   });
 });
