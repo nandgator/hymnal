@@ -1,6 +1,6 @@
 # SDD-0004 — Loading books
 
-- **Status:** Accepted; built (parts 1 to 6, §13); §17 to build (Board #58)
+- **Status:** Accepted; built (parts 1 to 6, §13); §17 built (Board #58)
 - **Date:** 2026-10-02
 - **Decisions:** [ADR-0026](../decisions/0026-songs-leave-the-repository.md)
   (songs leave the repository),
