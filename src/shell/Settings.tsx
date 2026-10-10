@@ -52,6 +52,7 @@ import { Menu } from "./Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "./media.ts";
 import { createOutputScreens, type OutputScreens } from "./outputScreens.ts";
 import { isPaneShown, PANES, type PaneId } from "./panes.ts";
+import { Segmented } from "./Segmented.tsx";
 import { saveFile } from "./saveFile.ts";
 import { selectGlide } from "./selectGlide.ts";
 import { easeThemeChange, revealWithin, shownTheme } from "./theme.ts";
@@ -350,56 +351,6 @@ export function Settings(props: SettingsProps) {
   const glideSection = (el: HTMLElement) =>
     onCleanup(glideList(el, { rows: "label.settings-row, button.settings-link" }).stop);
 
-  // A segmented button on native radios (MD3). Its hover highlight and its
-  // selected pill each glide from segment to segment.
-  const glideSegments = (el: HTMLElement, current: () => string) => {
-    const glide = glideList(el, {
-      rows: ".segment",
-      current: ".segment-input:checked",
-      target: (input) => input.closest<HTMLElement>(".segment"),
-    });
-    onCleanup(glide.stop);
-    // A radio's checked state is a property: tell the pill when it changes.
-    createEffect(() => {
-      current();
-      queueMicrotask(() => glide.select?.sync());
-    });
-  };
-  const segmented = <T extends string>(
-    legend: string,
-    name: string,
-    options: { value: T; label: string }[],
-    current: () => T,
-    choose: (value: T) => void,
-    tight = false,
-  ) => (
-    <fieldset
-      class="segmented"
-      data-keep-motion=""
-      classList={{ "segmented-tight": tight }}
-      ref={(el) => glideSegments(el, current)}
-    >
-      <legend class="visually-hidden">{legend}</legend>
-      <For each={options}>
-        {(option) => (
-          <label class="segment" data-label={option.label}>
-            <input
-              type="radio"
-              name={`${id}-${name}`}
-              class="segment-input"
-              checked={current() === option.value}
-              onChange={() => choose(option.value)}
-            />
-            <span class="segment-face">
-              <span class="segment-check icon icon-check" aria-hidden="true" />
-              {option.label}
-            </span>
-          </label>
-        )}
-      </For>
-    </fieldset>
-  );
-
   // The Output screen (ADR-0028): Automatic, or one of the detected screens;
   // a remembered one that is not attached stays listed, marked.
   const screens = props.screens ?? createOutputScreens();
@@ -526,13 +477,14 @@ export function Settings(props: SettingsProps) {
         </h3>
         <div class="settings-row">
           <span class="settings-label">Theme</span>
-          {segmented(
-            "Theme",
-            "theme",
-            THEMES,
-            () => preferences().theme,
-            (theme) => update({ ...preferences(), theme }),
-          )}
+          {
+            <Segmented
+              legend={"Theme"}
+              options={THEMES}
+              value={preferences().theme}
+              onChange={(theme) => update({ ...preferences(), theme })}
+            />
+          }
         </div>
         <div class="settings-row">
           <span class="settings-label">Text size</span>
@@ -626,14 +578,15 @@ export function Settings(props: SettingsProps) {
             {SETTING_COPY.goLive.title}
             <span class="settings-supporting">{SETTING_COPY.goLive.hint}</span>
           </span>
-          {segmented(
-            SETTING_COPY.goLive.title,
-            "go-live",
-            GO_LIVES,
-            () => goLiveOf(preferences()),
-            (goLive) => update({ ...preferences(), goLive }),
-            true,
-          )}
+          {
+            <Segmented
+              legend={SETTING_COPY.goLive.title}
+              options={GO_LIVES}
+              value={goLiveOf(preferences())}
+              onChange={(goLive) => update({ ...preferences(), goLive })}
+              tight
+            />
+          }
         </div>
         {/* The screen is chosen only for a window: This Screen has none. */}
         <Show when={screens.supported}>
@@ -730,13 +683,14 @@ export function Settings(props: SettingsProps) {
               {SETTING_COPY.highlight.hint} ({keyHint("highlight")} switches)
             </span>
           </span>
-          {segmented(
-            SETTING_COPY.highlight.title,
-            "highlight",
-            HIGHLIGHTS,
-            () => highlightOf(preferences()),
-            (highlight) => update({ ...preferences(), highlight }),
-          )}
+          {
+            <Segmented
+              legend={SETTING_COPY.highlight.title}
+              options={HIGHLIGHTS}
+              value={highlightOf(preferences())}
+              onChange={(highlight) => update({ ...preferences(), highlight })}
+            />
+          }
         </div>
         {/* The layout is a choice, so each layout's own settings sit under
             it: only the chosen one's shows, and one with none shows nothing.
@@ -747,13 +701,14 @@ export function Settings(props: SettingsProps) {
             {SETTING_COPY.layout.title}
             <span class="settings-supporting">{SETTING_COPY.layout.hint}</span>
           </span>
-          {segmented(
-            SETTING_COPY.layout.title,
-            "layout",
-            LAYOUTS,
-            () => (wholeSongOf(preferences()) ? "whole" : "part"),
-            (layout) => update({ ...preferences(), wholeSong: layout === "whole" }),
-          )}
+          {
+            <Segmented
+              legend={SETTING_COPY.layout.title}
+              options={LAYOUTS}
+              value={wholeSongOf(preferences()) ? "whole" : "part"}
+              onChange={(layout) => update({ ...preferences(), wholeSong: layout === "whole" })}
+            />
+          }
         </div>
         <Disclosure open={!wholeSongOf(preferences())}>
           <label class="settings-row">
@@ -793,13 +748,14 @@ export function Settings(props: SettingsProps) {
               {SETTING_COPY.bandSize.title}
               <span class="settings-supporting">{SETTING_COPY.bandSize.hint}</span>
             </span>
-            {segmented(
-              SETTING_COPY.bandSize.title,
-              "band-size",
-              BAND_SIZES,
-              () => bandSizeOf(preferences()),
-              (bandSize) => update({ ...preferences(), bandSize }),
-            )}
+            {
+              <Segmented
+                legend={SETTING_COPY.bandSize.title}
+                options={BAND_SIZES}
+                value={bandSizeOf(preferences())}
+                onChange={(bandSize) => update({ ...preferences(), bandSize })}
+              />
+            }
           </div>
         </Disclosure>
         <div class="settings-group">
@@ -842,7 +798,7 @@ export function Settings(props: SettingsProps) {
         </div>
       </section>
 
-      <section class="settings-section" aria-labelledby={`${id}-backup`}>
+      <section class="settings-section" id="settings-backup" aria-labelledby={`${id}-backup`}>
         <h3 id={`${id}-backup`} class="settings-heading">
           Backup
         </h3>
