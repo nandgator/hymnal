@@ -372,7 +372,9 @@ describe("Finder", () => {
     const snippet = row.querySelector(".finder-snippet");
     expect(snippet?.textContent).toMatch(/^—\s*A different line$/);
     expect(snippet?.classList.contains("list-row-supporting")).toBe(true);
-    expect(snippet?.parentElement).toBe(row.querySelector(".finder-title")?.parentElement);
+    expect(snippet?.parentElement?.parentElement).toBe(
+      row.querySelector(".finder-title")?.parentElement,
+    );
   });
 
   it("reports no matches for a lyric search with no results", async () => {

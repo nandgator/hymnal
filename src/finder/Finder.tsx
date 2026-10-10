@@ -200,7 +200,13 @@ export function Finder(props: FinderProps) {
 
   // Which other books' groups More in has opened; a new search closes them.
   const [expanded, setExpanded] = createSignal<ReadonlySet<string>>(new Set());
-  createEffect(on(lyricQuery, () => setExpanded(new Set<string>())));
+  createEffect(
+    on(
+      () => lyricResults.latest,
+      () => setExpanded(new Set<string>()),
+      { defer: true },
+    ),
+  );
 
   const commandRows = createMemo((): Row[] =>
     (props.commands ?? [])
@@ -308,9 +314,13 @@ export function Finder(props: FinderProps) {
     shown()
       .map((key) => rowOf(key)?.group)
       .find((ref) => ref?.id === group)?.title ?? "";
-  const headingId = (group: string) => `${listId}-g-${group.replace(/\W/g, "_")}`;
+  // By position, so ids cannot collide whatever the book keys hold.
+  const headingId = (group: string) => `${listId}-g-${groupIds().indexOf(group)}`;
+  // A group with no title (a number's suggestions, still up for a moment as words are
+  // typed) gets neither a heading nor a group of its own.
+  const titled = (group: string) => group === COMMANDS_GROUP.id || groupTitle(group) !== "";
   const groupAria = (group: string) =>
-    !grouped()
+    !grouped() || !titled(group)
       ? { role: "presentation" as const }
       : group === COMMANDS_GROUP.id
         ? { role: "group" as const, "aria-label": COMMANDS_GROUP.title }
@@ -323,7 +333,9 @@ export function Finder(props: FinderProps) {
       : props.bookTitle;
 
   const choose = () => {
-    const row = rows()[active() ?? 0];
+    // The highlight may point past a list that has just shrunk: the last row is taken.
+    const list = rows();
+    const row = list[Math.min(active() ?? 0, list.length - 1)];
     if (row) return pick(row);
     // A number with no suggestion still opens — Presenter reports it if no
     // such hymn exists.
@@ -458,7 +470,7 @@ export function Finder(props: FinderProps) {
             // With several books, each source is a group under its heading; with one, the
             // wrapper is no more than a wrapper.
             <div class="finder-group" {...groupAria(group)}>
-              <Show when={grouped() && group !== COMMANDS_GROUP.id}>
+              <Show when={grouped() && titled(group) && group !== COMMANDS_GROUP.id}>
                 <div
                   class="finder-group-heading label-large on-surface-variant"
                   id={headingId(group)}
@@ -548,8 +560,10 @@ export function Finder(props: FinderProps) {
                                         <span class="finder-title">{titleCase(hymn().title)}</span>
                                         <Show when={hymn().snippet}>
                                           {(snippet) => (
-                                            <span class="finder-snippet list-row-supporting">
-                                              — {snippet()}
+                                            <span class="finder-snippet-box">
+                                              <span class="finder-snippet list-row-supporting">
+                                                — {snippet()}
+                                              </span>
                                             </span>
                                           )}
                                         </Show>
