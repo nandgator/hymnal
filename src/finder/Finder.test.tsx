@@ -51,11 +51,11 @@ const submit = (value: string) => {
 };
 
 describe("Finder", () => {
-  /** A book of `count` songs, numbered from 1, listed backwards so the order is not the list's own. */
+  /** A book of `count` songs, numbered from 1, listed as `listHymns` does: the Finder trusts that order. */
   const book = (count: number) =>
     Array.from({ length: count }, (_, i) => ({
-      number: count - i,
-      title: `Song Number ${count - i}`,
+      number: i + 1,
+      title: `Song Number ${i + 1}`,
     }));
   const songsList = () => screen.getByRole("region", { name: "Songs" });
 

@@ -116,16 +116,9 @@ export function Finder(props: FinderProps) {
   const hymns = () => (read.loading ? undefined : read());
   // The book from its start, by number, while nothing is typed: there is
   // always something to open (SDD-0001 §13).
-  // Assorted Hymns (its songs carry their own language) is listed in its own order
-  // (SDD-0004 §17); every other book is in number order.
-  const opening = createMemo(() => {
-    const all = hymns() ?? [];
-    const listed = all.some((hymn) => hymn.language !== undefined);
-    return (listed ? [...all] : [...all].sort((a, b) => a.number - b.number)).slice(
-      0,
-      OPENING_SONGS,
-    );
-  });
+  // The list is in the order the book gives (`listHymns`): by number, except Assorted Hymns,
+  // which lists its songs by language and title (SDD-0004 §17). The Finder keeps that order.
+  const opening = createMemo(() => (hymns() ?? []).slice(0, OPENING_SONGS));
   // How many recents there are, once known; the list reports it.
   const [recentCount, setRecentCount] = createSignal<number>();
   // Another book: its recents are not known yet, and nothing of the last one's shows.
