@@ -158,10 +158,3 @@ only, here:
   detached
 - 2026-10-06 — #52 done: Playwright smoke suite on three engines; found and
   fixed Firefox's `persist()` prompt stalling the first load
-- 2026-10-06 — #44–#49 done: the error screen and user-state checks; books in
-  memory where storage is refused; Back Up and Restore (`.hymnal`); a CSP and
-  defensive SQLite; About with diagnostics and Report a Problem
-- 2026-10-06 — Decided by the maintainer: the app does not police what users
-  load (ADR-0020); copyright gates only the sample it ships
-- 2026-10-05 — Loading a large book is about three times faster, with a
-  determinate bar (SDD-0004 §14)
