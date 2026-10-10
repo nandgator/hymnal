@@ -6,7 +6,12 @@ import {
   SCHEMA_V3_SQL,
   SCHEMA_VERSION,
 } from "../../scripts/content-schema.ts";
-import { asContainerShape } from "../domain/assorted.ts";
+import {
+  ASSORTED_ORIGIN,
+  asContainerShape,
+  isLanguageTag,
+  isScriptCode,
+} from "../domain/assorted.ts";
 import {
   BACKUP_FORMAT,
   BACKUP_VERSION,
@@ -414,8 +419,24 @@ async function readBack(sql: Sql, onProgress?: OnLoadProgress): Promise<RebuildR
   const [count] = sql.all("SELECT COUNT(*) AS n FROM hymnbook");
   if (count?.n !== 1) return fail("damaged", "it does not hold exactly one book");
   const head = readHead(sql, SCHEMA_VERSION);
-  const [extra] = sql.all("SELECT publisher, edition, isbn FROM hymnbook");
+  const [extra] = sql.all("SELECT publisher, edition, isbn, next_number FROM hymnbook");
   if (!head || !extra) return fail("damaged", "it has no readable book");
+  const assorted = head.origin === ASSORTED_ORIGIN;
+  // The version 4 fields are Assorted Hymns' alone (SDD-0004 §17): in any other book they are damage.
+  const [fields] = sql.all(
+    "SELECT COUNT(*) AS n FROM hymn WHERE language IS NOT NULL OR script IS NOT NULL",
+  );
+  if (!assorted && (extra.next_number !== null || (fields?.n as number) > 0)) {
+    return fail("damaged", "it holds a next number or a song language that only Assorted Hymns has");
+  }
+  // Whatever type the column holds, it is a safe integer from 1 or the book is damaged.
+  if (
+    assorted &&
+    extra.next_number !== null &&
+    !(Number.isSafeInteger(extra.next_number) && (extra.next_number as number) >= 1)
+  ) {
+    return fail("damaged", "its next number is not a whole number from 1");
+  }
   // Both come from the file and go back into the registry: a hash, or nothing.
   if (!SHA256_HEX.test(head.contentHash)) return fail("invalid", "its content hash is not a hash");
   const sources = [...new Set(head.sources.filter((h) => SHA256_HEX.test(h)))].slice(
@@ -424,6 +445,15 @@ async function readBack(sql: Sql, onProgress?: OnLoadProgress): Promise<RebuildR
   );
   // Through JSON, as a container's songs come: a field a package lacks is absent, not undefined.
   const hymns = JSON.parse(JSON.stringify(readHymns(sql, SCHEMA_VERSION))) as HymnSource[];
+  if (assorted) {
+    const bad = hymns.find((h) => !isLanguageTag(h.language) || !isScriptCode(h.script));
+    if (bad) return fail("invalid", `song ${bad.number} has no usable language and script`);
+  }
+  // The counter is lifted past every held number, as adding a song does (`addSong`): a lower one
+  // would reuse a number, and the larger of the two is safe.
+  const nextNumber = assorted
+    ? Math.max(head.nextNumber ?? 1, hymns.reduce((max, h) => Math.max(max, h.number), 0) + 1)
+    : null;
   const hymnbook: HymnbookSource = {
     format: CONTENT_FORMAT,
     id: head.origin,
@@ -436,7 +466,7 @@ async function readBack(sql: Sql, onProgress?: OnLoadProgress): Promise<RebuildR
     ...(optionalText(extra.edition) === undefined ? {} : { edition: optionalText(extra.edition) }),
     ...(optionalText(extra.isbn) === undefined ? {} : { isbn: optionalText(extra.isbn) }),
     hymnCount: hymns.length,
-    ...(head.nextNumber === null ? {} : { nextNumber: head.nextNumber }),
+    ...(nextNumber === null ? {} : { nextNumber }),
   };
   // Format 1 has no counter and no per-song language: they are Assorted Hymns' alone (SDD-0004 §17).
   const shaped = asContainerShape(hymnbook, hymns);
