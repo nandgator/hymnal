@@ -52,8 +52,9 @@ import { buildTextBook, type FieldProblems } from "./textbook.ts";
 const MEMORY_NOTE = "This window doesn’t keep books. They go when it closes, so keep the file.";
 const SAMPLE_FAILED =
   "The sample couldn’t be fetched. It comes from this site, so check the connection and try again.";
-const KEPT_NOTE =
-  "Books stay on this device. A loaded book has no copy anywhere else, so keep its file.";
+const KEPT_NOTE = "Books stay on this device.";
+/** Said only while a loaded book is held: Assorted Hymns has no file, and says so itself. */
+const KEEP_FILE_NOTE = "A loaded book has no copy anywhere else, so keep its file.";
 
 /** Said when a backup is picked together with books: it is restored on its own. */
 const BACKUP_ALONE = "Restore a backup on its own.";
@@ -1104,7 +1105,15 @@ export function Library(props: LibraryProps) {
       </Show>
       <Show when={modeKnown()}>
         <p class="lib-foot">
-          <Show when={inMemory()} fallback={KEPT_NOTE}>
+          <Show
+            when={inMemory()}
+            fallback={
+              <>
+                {KEPT_NOTE}
+                <Show when={rows().some((book) => book.kind === "loaded")}> {KEEP_FILE_NOTE}</Show>
+              </>
+            }
+          >
             {MEMORY_NOTE}
           </Show>
           <Show when={rows().some((book) => book.kind === "assorted")}>
