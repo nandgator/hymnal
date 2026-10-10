@@ -523,6 +523,23 @@ describe("Library footer", () => {
     await screen.findByRole("list", { name: "Books" });
     expect(screen.queryByText(/Assorted Hymns has no file/)).not.toBeInTheDocument();
   });
+  it("with only Assorted Hymns held, does not tell the person to keep a file", async () => {
+    setup({ rows: [assortedRow()] }).view();
+    expect(await screen.findByText(/Books stay on this device\./)).toBeInTheDocument();
+    expect(screen.queryByText(/keep its file/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Assorted Hymns has no file: Back Up keeps it\./)).toBeInTheDocument();
+  });
+  it("with only a loaded book held, says to keep its file and nothing of Assorted Hymns", async () => {
+    setup({ rows: [loadedRow] }).view();
+    expect(await screen.findByText(/A loaded book has no copy anywhere else/)).toBeInTheDocument();
+    expect(screen.queryByText(/Assorted Hymns has no file/)).not.toBeInTheDocument();
+  });
+  it("with both held, says both", async () => {
+    setup({ rows: [loadedRow, assortedRow()] }).view();
+    const foot = await screen.findByText(/Books stay on this device\./);
+    expect(foot).toHaveTextContent(/keep its file\./);
+    expect(foot).toHaveTextContent(/Assorted Hymns has no file: Back Up keeps it\./);
+  });
   it("adds the sentence once Assorted Hymns is held", async () => {
     setup().view();
     expect(
