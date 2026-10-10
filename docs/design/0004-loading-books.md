@@ -988,8 +988,8 @@ Wherever its songs are listed (that sheet, the Finder's browse), Assorted Hymns
 is ordered by the song's language tag (code point order), then by title with
 `Intl.Collator(language)`, then by number. Search ranks as for any book, and a
 number finds its song. Every other book stays in number order. In the Library
-its row sits first, above the language groups, labelled by its count of songs
-and no language.
+its row sits first, above the other books (in the order they were added),
+labelled by its count of songs and no language.
 
 ### Backup and restore
 
