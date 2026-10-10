@@ -45,6 +45,7 @@ vi.mock("./persistence/content-store.ts", () => {
       meta: {},
     }),
     searchLyrics: async () => [],
+    searchAll: async () => [],
   };
   const row: BookRow = {
     key: "mal-ymef-athmeeya-geethangal-16",

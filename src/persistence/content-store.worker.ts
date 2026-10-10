@@ -53,14 +53,11 @@ import {
   removeBook,
   startRegistry,
 } from "./registry.ts";
+import { type BookHits, type SearchResult, searchBook, searchBooks } from "./search.ts";
 
 export type { HymnSummary };
 
-export interface SearchResult {
-  number: number;
-  title: string;
-  snippet: string;
-}
+export type { BookHits, SearchResult };
 
 export type ContentStatus =
   | { state: "ready" }
@@ -87,6 +84,12 @@ export interface ContentStore {
   listHymns(id: HymnbookId): Promise<HymnSummary[]>;
   getHymn(id: HymnbookId, number: number): Promise<HymnSource>;
   searchLyrics(id: HymnbookId, query: string): Promise<SearchResult[]>;
+  /**
+   * `searchLyrics` over every held book whose state is `ok` (SDD-0001 §13.1): the book
+   * `currentKey` first, then the rest in the Library's order, each capped. A book with no
+   * match, or one that cannot be read, is left out.
+   */
+  searchAll(query: string, currentKey: HymnbookId): Promise<BookHits[]>;
 }
 
 /** A progress callback from the page, which a closed page or a released proxy must not break. */
@@ -103,8 +106,6 @@ function quiet(onProgress?: OnLoadProgress): OnLoadProgress | undefined {
 
 // opfs-sahpool requires absolute paths.
 const filenameFor = (id: HymnbookId) => `/${id}.sqlite3`;
-
-const SEARCH_LIMIT = 30;
 
 /** Books and the registry, for the Library and the dev hook (SDD-0004 §10). */
 export interface ContentAdmin {
@@ -611,46 +612,17 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     };
   }
 
-  /**
-   * Per-word prefix match, implicit AND (Board #8): each word becomes a
-   * quoted, prefix-matched FTS5 term (`"word"*`), so a query matches lines
-   * containing all the words regardless of order or completion. Quoting each
-   * term (not just escaping it) keeps FTS5 query-syntax characters in free
-   * text from breaking the query.
-   *
-   * hymn_fts is contentless (SDD-0001 §6, deliberately — no duplicated lyric
-   * text), so it can MATCH but returns NULL for every selected column,
-   * `snippet()` included. Title and snippet come from a join back to
-   * `hymn`/`line` instead — the snippet is the first line containing any of
-   * the query's words, since a multi-word query can match across lines.
-   *
-   * Capped at SEARCH_LIMIT: a common word (found by browser-testing this
-   * against the real corpus) matches hundreds of hymns, and `rank` ordering
-   * doesn't help a caller that renders every row.
-   */
+  /** Lyric search in one book: the match and its cap are `searchBook`'s (SDD-0001 §13). */
   async searchLyrics(id: HymnbookId, query: string): Promise<SearchResult[]> {
-    const db = this.#open(id);
-    const words = query.trim().split(/\s+/).filter(Boolean);
-    if (words.length === 0) return [];
+    return searchBook(sqlOf(this.#open(id)), query);
+  }
 
-    const quote = (word: string) => `"${word.replace(/"/g, '""')}"*`;
-    const matchQuery = words.map(quote).join(" ");
-    const likeClauses = words.map(() => "line.text LIKE '%' || ? || '%'").join(" OR ");
-
-    return this.#rows(
-      db,
-      `SELECT hymn.number AS number, hymn.title AS title,
-              (SELECT line.text FROM line
-               WHERE line.hymn_number = hymn.number AND (${likeClauses})
-               LIMIT 1) AS snippet
-       FROM hymn_fts JOIN hymn ON hymn.number = hymn_fts.rowid
-       WHERE hymn_fts MATCH ? ORDER BY rank LIMIT ${SEARCH_LIMIT}`,
-      [...words, matchQuery],
-    ).map((row) => ({
-      number: row.number as number,
-      title: row.title as string,
-      snippet: (row.snippet as string | null) ?? "",
-    }));
+  async searchAll(query: string, currentKey: HymnbookId): Promise<BookHits[]> {
+    const ctx = this.#liveCtx;
+    if (!ctx || query.trim() === "") return [];
+    return searchBooks(listBooks(ctx), currentKey, (book) =>
+      searchBook(sqlOf(this.#open(book.key)), query),
+    );
   }
 
   /** The book's file is the registry's current row for the key, so a Replace

@@ -10,6 +10,7 @@ import {
   Switch,
 } from "solid-js";
 import { SAMPLE_FILES } from "../config.ts";
+import { libraryOrder } from "../domain/assorted.ts";
 import type { LoadProgress } from "../domain/progress.ts";
 import { gzipContainer } from "../import/container.ts";
 import type { TextError } from "../import/songtext.ts";
@@ -272,11 +273,7 @@ export function Library(props: LibraryProps) {
 
   // Assorted Hymns' row sits first, above the rest (SDD-0004 §17).
   const rows = () => {
-    const all = props.books.rows() ?? [];
-    return [
-      ...all.filter((b) => b.kind === "assorted"),
-      ...all.filter((b) => b.kind !== "assorted"),
-    ];
+    return libraryOrder(props.books.rows() ?? []);
   };
   const stateOf = (book: BookRow): RowState =>
     book.state === "ok" && missing().has(book.key) ? "missing" : book.state;

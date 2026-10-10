@@ -26,6 +26,7 @@ function fakeStore(overrides: Partial<ContentStore> = {}): ContentStore {
       throw new Error(`no such hymn: ${number}`);
     },
     searchLyrics: async (): Promise<SearchResult[]> => [],
+    searchAll: async () => [],
     ...overrides,
   };
 }

@@ -213,3 +213,15 @@ export function followBook(
   }
   return out;
 }
+
+/**
+ * The Library's order of books (SDD-0004 §17): Assorted Hymns first, the rest
+ * as the registry lists them. The Library's rows and the Finder's groups
+ * (SDD-0001 §13.1) share it.
+ */
+export function libraryOrder<T extends { kind: string }>(books: readonly T[]): T[] {
+  return [
+    ...books.filter((b) => b.kind === "assorted"),
+    ...books.filter((b) => b.kind !== "assorted"),
+  ];
+}

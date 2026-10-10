@@ -39,6 +39,7 @@ export function getContentStore(): ContentStore {
       listHymns,
       getHymn: (id, number) => remote.getHymn(id, number),
       searchLyrics: (id, query) => remote.searchLyrics(id, query),
+      searchAll: (query, currentKey) => remote.searchAll(query, currentKey),
     } satisfies ContentStore;
   }
   return store;
@@ -146,6 +147,7 @@ export type {
   SkippedBook,
 } from "./backup.ts";
 export type {
+  BookHits,
   ContentAdmin,
   ContentStatus,
   ContentStore,

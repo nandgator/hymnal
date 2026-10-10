@@ -55,6 +55,7 @@ function fakeStore(overrides: Partial<ContentStore> = {}): ContentStore {
     listHymns: async () => [{ number: 7, title: "Test Hymn" }],
     getHymn: async () => HYMN,
     searchLyrics: async () => [],
+    searchAll: async () => [],
     ...overrides,
   };
 }
