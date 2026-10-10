@@ -201,6 +201,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
   afterEach(() => {
     mocks.recents = [];
     mocks.rows = [first()];
+    mocks.searchAll.mockImplementation(async () => []);
   });
 
   it("starts on the book of the newest recent that is still held", async () => {
@@ -376,6 +377,36 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       fireEvent.click(crumbs().getByRole("button", { name: /#2/ }));
       const again = within(await screen.findByRole("dialog", { name: "Go to a Song" }));
       expect(again.getByRole("combobox")).toHaveAccessibleDescription("Searching Mocked Hymnbook");
+    });
+
+    it("while live, a pick in another book from the command menu puts that song on the Output and records its book", async () => {
+      await fellowshipSongUp();
+      const output = new BroadcastChannel("hymnal-output");
+      const seen: { type: string; title?: string; hymnbookTitle?: string }[] = [];
+      output.onmessage = (event) => seen.push(event.data);
+      output.postMessage({ type: "hello", id: "test-output" });
+      await screen.findByRole("button", { name: "On Air" });
+      mocks.addRecent.mockClear();
+      mocks.searchAll.mockImplementation(async () => [
+        {
+          key: "mal-ymef-athmeeya-geethangal-16",
+          title: "Mocked Hymnbook",
+          results: [{ number: 2, title: "Mocked Hymn 2", snippet: "a line" }],
+        },
+      ]);
+      fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+      const search = within(await screen.findByRole("dialog", { name: "Search" }));
+      fireEvent.input(search.getByRole("combobox"), { target: { value: "line" } });
+      fireEvent.mouseDown(await search.findByRole("option", { name: /Mocked Hymn 2/ }));
+      await waitFor(() =>
+        expect(seen.some((m) => m.type === "content" && m.title === "Mocked Hymn 2")).toBe(true),
+      );
+      expect(seen.findLast((m) => m.type === "content")?.hymnbookTitle).toBe("Mocked Hymnbook");
+      await waitFor(() =>
+        expect(mocks.addRecent.mock.calls).toEqual([["mal-ymef-athmeeya-geethangal-16", 2]]),
+      );
+      output.postMessage({ type: "bye", id: "test-output" });
+      output.close();
     });
 
     it("a Finder closed without a pick leaves the search where the song is", async () => {
@@ -2311,6 +2342,38 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     // Still presenting, still fullscreen.
     expect(region()).not.toBeNull();
     expect(exitFullscreen).not.toHaveBeenCalled();
+  });
+
+  it("a match from another book, picked in the switcher, shows that song and records its book", async () => {
+    const mocked = { ...(mocks.rows[0] as BookRow) };
+    mocks.rows = [mocked, { ...mocked, key: "k1", title: "Hymns of Fellowship", addedAt: 2 }];
+    mocks.searchAll.mockImplementation(async () => [
+      {
+        key: "k1",
+        title: "Hymns of Fellowship",
+        results: [{ number: 2, title: "Own", snippet: "x" }],
+      },
+    ]);
+    try {
+      await songUp();
+      await presentHere();
+      mocks.addRecent.mockClear();
+      fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+      const switcher = within(await screen.findByRole("search", { name: "Switch song" }));
+      fireEvent.input(switcher.getByRole("combobox", { name: "Find a song" }), {
+        target: { value: "line" },
+      });
+      fireEvent.mouseDown(
+        within(await switcher.findByRole("group", { name: "Hymns of Fellowship" })).getByRole(
+          "option",
+        ),
+      );
+      await waitFor(() => expect(lit()).toContain("A line"));
+      await waitFor(() => expect(mocks.addRecent.mock.calls).toEqual([["k1", 2]]));
+      expect(region()).not.toBeNull();
+    } finally {
+      mocks.searchAll.mockImplementation(async () => []);
+    }
   });
 
   it("keeps a digit a stanza jump while presenting, never opening the switcher", async () => {

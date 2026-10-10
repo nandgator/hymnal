@@ -22,9 +22,9 @@ export interface PresentHereProps {
   bandSize: BandSize;
   /** The book the quick switcher searches: the song's own. */
   hymnbookId: HymnbookId;
-  /** Shows a song at once. */
   /** The books held: with several, the switcher groups its matches by book. */
   bookCount?: number;
+  /** Shows a song at once, in its book. */
   onSelect: (number: HymnNumber, book: HymnbookId) => void;
   /** Esc (with no switcher open) or F. */
   onLeave: () => void;

@@ -1391,11 +1391,25 @@ input[type="checkbox"].switch:disabled {
   max-width: 100%;
 }
 
-/* The space before the dash is its own padding: with none of the row left,
-   nothing of the line shows, not even the dash. */
-.finder-snippet {
+/* The line takes what the title leaves. When that is under two ems the whole
+   line, dash and ellipsis included, is hidden: a clipped sliver of either
+   would read as a stray mark. Its box is the container asked. */
+.finder-snippet-box {
   flex: 1 1 0;
-  padding-inline-start: 0.3em;
+  min-width: 0;
+  margin-inline-start: 0.3em;
+  container-type: inline-size;
+}
+
+.finder-snippet {
+  display: block;
+  padding-inline-end: 0;
+}
+
+@container (max-width: 2em) {
+  .finder-snippet {
+    visibility: hidden;
+  }
 }
 
 /* A short fact (the book list's song count) is kept whole: the title gives
