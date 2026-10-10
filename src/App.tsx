@@ -240,6 +240,8 @@ function Operator(props: Shared) {
   });
   // The first load's request to keep storage was refused (SDD-0004 §9).
   const [keepFile, setKeepFile] = createSignal(false);
+  // The same refusal, for the first song added to Assorted Hymns, which has no file to keep.
+  const [keepAssorted, setKeepAssorted] = createSignal(false);
   const [hymnNumber, setHymnNumber] = createSignal<HymnNumber>();
   const [hymn, setHymn] = createSignal<Hymn>();
 
@@ -655,6 +657,7 @@ function Operator(props: Shared) {
       updateDismissed: updateDismissed(),
       screen: screenNotice(),
       keepFile: keepFile(),
+      keepAssorted: keepAssorted(),
     });
   const restartApp = () =>
     restartIfAllowed({ ready: appUpdates.ready(), live: presence.live() }, appUpdates.restart);
@@ -664,6 +667,7 @@ function Operator(props: Shared) {
     const shown = notice();
     if (shown === "update") setUpdateDismissed(true);
     else if (shown === "keep-file") setKeepFile(false);
+    else if (shown === "keep-assorted") setKeepAssorted(false);
     else if (shown === "safari-hint") dismissHomeScreenHint();
     else if (isScreenNotice(shown)) {
       if (shown === "back") setGoneFrom(undefined);
@@ -676,6 +680,8 @@ function Operator(props: Shared) {
     if (isScreenNotice(shown)) return screenNoticeText(shown, placeLabel());
     if (shown === "keep-file")
       return "Your browser may clear stored books if space runs low. Keep the book file, so you can load it again.";
+    if (shown === "keep-assorted")
+      return "Your browser may clear stored songs if space runs low. Back up from Settings to keep Assorted Hymns.";
     if (shown === "safari-hint")
       return `Safari clears saved books after 7 days unused. Add Hymnal to your ${
         homeScreen === "home-screen" ? "Home Screen" : "Dock"
@@ -753,6 +759,17 @@ function Operator(props: Shared) {
       };
     if (picked === "keep-file")
       return { message: noticeMessage(), action: "Got It", onAction: () => setKeepFile(false) };
+    if (picked === "keep-assorted")
+      return {
+        message: noticeMessage(),
+        action: "Back Up",
+        onAction: () => {
+          setKeepAssorted(false);
+          openSettings("backup");
+        },
+        dismissLabel: "Got It",
+        onDismiss: () => setKeepAssorted(false),
+      };
     if (picked === "safari-hint")
       return { message: noticeMessage(), action: "Got It", onAction: dismissHomeScreenHint };
     return undefined;
@@ -914,11 +931,11 @@ function Operator(props: Shared) {
     setHymnPickerOpen(true);
   };
   // Settings, scrolled to a section once the sheet is up (About is its last).
-  const openSettings = (at?: "about") => {
+  const openSettings = (at?: "about" | "backup") => {
     openSheet(setSettingsOpen);
     if (at)
       requestAnimationFrame(() =>
-        document.getElementById(`settings-${at}`)?.scrollIntoView({ block: "start" }),
+        document.getElementById(`settings-${at}`)?.scrollIntoView?.({ block: "start" }),
       );
   };
   const openCommandMenu = () => {
@@ -983,9 +1000,11 @@ function Operator(props: Shared) {
         ? [{ label: "Restart to update", run: run(restartApp) }]
         : shownNotice === "keep-file"
           ? [{ label: "Dismiss the storage note", run: run(() => setKeepFile(false)) }]
-          : shownNotice === "safari-hint"
-            ? [{ label: "Dismiss the Home Screen note", run: run(dismissHomeScreenHint) }]
-            : []),
+          : shownNotice === "keep-assorted"
+            ? [{ label: "Dismiss the storage note", run: run(() => setKeepAssorted(false)) }]
+            : shownNotice === "safari-hint"
+              ? [{ label: "Dismiss the Home Screen note", run: run(dismissHomeScreenHint) }]
+              : []),
       {
         label: blanked() ? "Restore the Output" : "Blank the Output",
         hint: keyHint("blank"),
@@ -1450,7 +1469,9 @@ function Operator(props: Shared) {
                       setHymn(undefined);
                     }
                   }}
-                  onStorageRefused={() => setKeepFile(true)}
+                  onStorageRefused={(kind) =>
+                    kind === "assorted" ? setKeepAssorted(true) : setKeepFile(true)
+                  }
                   onNotice={setLibraryNote}
                   onRestore={restoreFile}
                 />

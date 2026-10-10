@@ -115,6 +115,9 @@ export function AssortedSheet(props: AssortedSheetProps) {
     </div>
   );
 
+  /** The page that asks, fixed to the song it was opened for: it outlasts `removing` while it slides away. */
+  const confirmPageFor = (song: AssortedSong) => () => confirm(song);
+
   return (
     <Sheet
       open={props.open}
@@ -129,10 +132,7 @@ export function AssortedSheet(props: AssortedSheetProps) {
               id: "remove",
               title: "Remove Song",
               // The song as it is asked: the page outlasts `removing` while it slides away.
-              content: (
-                (song: AssortedSong) => () =>
-                  confirm(song)
-              )(props.removing),
+              content: confirmPageFor(props.removing),
             }
           : undefined
       }

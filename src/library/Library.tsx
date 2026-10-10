@@ -84,7 +84,7 @@ export interface LibraryProps {
   /** End Live, from the Remove Book sheet that asks for it. */
   onEndLive?: () => void;
   /** The first load's request to keep storage was refused: say to keep the file. */
-  onStorageRefused?: () => void;
+  onStorageRefused?: (kind?: "assorted") => void;
   /** A word for the snackbar: a book that loaded but could not be put to use. */
   onNotice?: (message: string) => void;
   /** A single picked file is a backup (decided by its content): the restore sheet takes it
@@ -568,14 +568,17 @@ export function Library(props: LibraryProps) {
     setCommitting(false);
     setProgress(undefined);
     void result.persisted?.then((answer) => {
-      if (answer === "refused") props.onStorageRefused?.();
+      if (answer === "refused") props.onStorageRefused?.("assorted");
     });
-    if (reviewOpen()) {
+    if (reviewOpen() && !props.outputLive) {
       setReviewOpen(false);
       props.onChoose(result.key);
       props.onOpenSong?.(result.key, result.number);
     } else {
-      // The sheet was closed while it wrote: the person is elsewhere, and is told.
+      // The sheet was closed while it wrote, or the Output is live: nothing the Operator does
+      // elsewhere changes the Output unasked, so the song is added and not shown. Said instead.
+      setReviewOpen(false);
+      if (props.currentKey === undefined) props.onChoose(result.key);
       scrollTo(result.key);
       props.onNotice?.(
         `${current.title || "The song"} was added to Assorted Hymns as ${result.number}.`,
@@ -1103,6 +1106,10 @@ export function Library(props: LibraryProps) {
         <p class="lib-foot">
           <Show when={inMemory()} fallback={KEPT_NOTE}>
             {MEMORY_NOTE}
+          </Show>
+          <Show when={rows().some((book) => book.kind === "assorted")}>
+            {" "}
+            Assorted Hymns has no file: Back Up keeps it.
           </Show>
         </p>
       </Show>
