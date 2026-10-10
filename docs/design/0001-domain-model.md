@@ -1705,10 +1705,10 @@ workspace, the dock.
   audience never sees an empty screen mid-swap. Choosing a hymnbook (the
   header's picker or the Library) aims the Finder at it and opens the Finder
   (the picker over the hymn, if one is up); the crumb keeps the hymn's own book
-  until a hymn is picked. Deferred (PLAN Board #19): a hymnbook selector inside
-  the hymn picker, so book and hymn swap in one step. Hidden while one book is
-  installed; lyric search could later span all books, number search can't
-  (numbers are per book).
+  until a hymn is picked. Board #19, closed: a lyric result in another book
+  swaps book and song in one step (§13.1); a number in another book is the
+  header's picker, which aims the Finder at that book, then the number. No
+  selector inside the Finder: numbers are per book (ADR-0032).
 
 ### 16.5 Keyboard shortcuts
 

@@ -66,7 +66,6 @@ Ordered. Top unblocked item is next.
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                    | —                   |
 | 16  | Feedback and corrections from users — where collected: TBD                                                                                       | —                   |
 | 18  | Over-the-air update notices (as Supabase announces changes)                                                                                      | —                   |
-| 19  | Picker hymnbook scope: swap book + hymn in one step (SDD §16.4)                                                                                  | —                   |
 | 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                   | —                   |
 | 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                          | —                   |
 | 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                       | Phase 2             |
@@ -116,6 +115,9 @@ only, here:
 
 ## Log
 
+- 2026-10-10 — #19 closed by the maintainer: #38 swaps book and song in one step
+  for a lyric result; a number in another book goes through the header's picker
+  (SDD-0001 §16.4)
 - 2026-10-10 — #42 done: the unit suite runs in about 52 s, not 77 s.
   `App.test.tsx` is split by area over a shared testkit; the hint and notice
   waits use fake timers; 34 DOM-free files run in node without isolation (an
@@ -153,6 +155,5 @@ only, here:
   deploy against `sample/SHA256SUMS`, offered as Try the Sample (SDD-0004 §16)
 - 2026-10-07 — Fixed: a Safari private window (`getDirectory()` UnknownError)
   holds books in memory; WebKit e2e runs locally in podman
-- 2026-10-07 — #51 done: the flaky App tests wait on delivery, not the clock
 - 2026-10-07 — The origin is hymnal.sagaveracity.com (ADR-0030); the fork is
   detached
