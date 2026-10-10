@@ -36,8 +36,8 @@ iOS marked untested. The maintainer's reviews of 2026-10-07 and 10-08 are done.
 
 **Board #38 (search every book)**: shaped
 ([ADR-0032](decisions/0032-one-search-the-finder-searches-every-source.md),
-SDD-0001 §13.1). Parts: A, the worker's `searchAll`, timed first; B, the
-Finder's groups and a pick in another book; C, the e2e path.
+SDD-0001 §13.1). Parts: A, the worker's `searchAll`, timed first (done); B, the
+Finder's groups and a pick in another book (done); C, the e2e path.
 
 **Board #27 (song import, CLI)**: touches no UI. Target: _Hymns of Fellowship_,
 the second hymnbook; its draft stays in `imports/` until its rights are known
@@ -123,6 +123,11 @@ only, here:
 
 ## Log
 
+- 2026-10-10 — #38 part B built: the Finder's lyric path uses `searchAll`,
+  groups under book titles (current book all, others five then More in), a pick
+  hands `(number, book)` and `pickHymn` makes the book current and opens the
+  song; Present Here groups too (three a book); sources are a small list in
+  `src/finder/sources.ts`
 - 2026-10-10 — #38 moved up and shaped with the maintainer: the Finder is the
   one search, every book always, grouped by source (the current book first),
   each copy under its own book, a number still in the current book; later

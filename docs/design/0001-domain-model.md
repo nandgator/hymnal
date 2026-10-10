@@ -1040,6 +1040,16 @@ groups the same way.
 The shell's `chooseHymn` makes that book current and opens the song in one step
 (most of Board #19). While live it is a pick like any other Finder pick (§16).
 
+**As built.** Groups and headings show only when more than one book is held and
+words are typed; a number, or nothing typed, is the current book's alone, and
+the line under the field then names that book (it says _all books_ only for
+words). Under a heading the listbox holds `role="group"` wrappers, labelled by
+the heading (the actions' group by "Actions"); More in is an option. Opening a
+group keeps the highlight where it was. Present Here's switcher shows three
+songs a book (five when one book), without More in. The sources list is
+`src/finder/sources.ts`; `Finder` takes `bookCount` and
+`onSelect(number, book)`.
+
 **Sources.** The groups come from a list of sources, each searched on its own;
 books are the only source built. Arrangements (#23), the queue (#22),
 annotations and, perhaps, Settings' rows join as sources when they exist, each a
