@@ -965,11 +965,19 @@ describe("rebuilding a package (§3.4)", () => {
     }
   });
 
-  it("keeps the next number and each song's language and script of a version 4 package", async () => {
+  /** The package of Assorted Hymns: origin `assorted`, the only book that may hold the version 4 fields. */
+  const assortedBytes = (fill: (db: InstanceType<Sqlite3Static["oo1"]["DB"]>) => void = () => {}) =>
+    packageBytes((db) => {
+      db.exec("UPDATE hymnbook SET origin = 'assorted', next_number = 3");
+      db.exec("UPDATE hymn SET language = 'ml', script = 'Mlym'");
+      fill(db);
+    });
+
+  it("keeps the next number and each song's language and script of Assorted Hymns", async () => {
     const result = await rebuilt(
-      packageBytes((db) => {
+      assortedBytes((db) => {
         db.exec("UPDATE hymnbook SET next_number = 9");
-        db.exec("UPDATE hymn SET language = 'ml', script = 'Mlym' WHERE number = 1");
+        db.exec("UPDATE hymn SET language = 'en', script = 'Latn' WHERE number = 2");
       }),
     );
     expect(result.ok).toBe(true);
@@ -977,8 +985,40 @@ describe("rebuilding a package (§3.4)", () => {
     expect(result.read.book.hymnbook.nextNumber).toBe(9);
     expect(result.read.book.hymns.map((h) => [h.language, h.script])).toEqual([
       ["ml", "Mlym"],
-      [undefined, undefined],
+      ["en", "Latn"],
     ]);
+  });
+
+  it.each([
+    ["a next number", "UPDATE hymnbook SET next_number = 9"],
+    ["a song's language", "UPDATE hymn SET language = 'ml' WHERE number = 1"],
+    ["a song's script", "UPDATE hymn SET script = 'Mlym' WHERE number = 1"],
+  ])("refuses %s in any other book as damaged", async (_name, sql) => {
+    expect(await rebuilt(packageBytes((db) => db.exec(sql)))).toMatchObject({
+      ok: false,
+      reason: "damaged",
+    });
+  });
+
+  it.each([
+    ["a next number of 0", "UPDATE hymnbook SET next_number = 0", "damaged"],
+    ["a negative next number", "UPDATE hymnbook SET next_number = -3", "damaged"],
+    ["a fractional next number", "UPDATE hymnbook SET next_number = 2.5", "damaged"],
+    ["a next number past the safe integers", "UPDATE hymnbook SET next_number = 1e300", "damaged"],
+    ["a song with no language", "UPDATE hymn SET language = NULL WHERE number = 1", "invalid"],
+    ["a song with a bad script", "UPDATE hymn SET script = 'mlym' WHERE number = 1", "invalid"],
+  ])("refuses Assorted Hymns with %s", async (_name, sql, reason) => {
+    expect(await rebuilt(assortedBytes((db) => db.exec(sql)))).toMatchObject({
+      ok: false,
+      reason,
+    });
+  });
+
+  it("lifts a next number that is not past every held number, as adding a song does", async () => {
+    const result = await rebuilt(
+      assortedBytes((db) => db.exec("UPDATE hymnbook SET next_number = 1")),
+    );
+    expect(result.ok && result.read.book.hymnbook.nextNumber).toBe(3);
   });
 
   it("names both versions for a newer package, and calls one too old too old", async () => {
