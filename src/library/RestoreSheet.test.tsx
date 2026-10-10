@@ -154,6 +154,14 @@ describe("RestoreSheet: the review", () => {
     );
   });
 
+  it("says an unreadable Assorted Hymns on the device blocks the merge", () => {
+    expect(
+      whatItDoes(
+        book({ verdict: { kind: "conflict", replaceable: false, assortedUnreadable: true } }),
+      ),
+    ).toBe("Assorted Hymns on this device can’t be read, so this one can’t be merged");
+  });
+
   it("lets Restore be pressed for a merge, which changes the device's Assorted Hymns", async () => {
     setup(ok({ books: [book({ title: "Assorted Hymns", verdict: { kind: "merge", adds: 2 } })] }));
     expect(await screen.findByRole("button", { name: "Restore" })).toBeEnabled();

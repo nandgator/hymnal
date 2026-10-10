@@ -149,6 +149,7 @@ export function mergeSongs(
   incoming: readonly HymnSource[],
   incomingHashes: ReadonlyMap<number, string>,
 ): MergePlan {
+  // The backup's own retired numbers are not carried (SDD-0004 §17); recents on them are dropped.
   const held = new Map<string, number>();
   for (const [number, hash] of [...deviceHashes].sort((a, b) => a[0] - b[0])) {
     if (!held.has(hash)) held.set(hash, number);

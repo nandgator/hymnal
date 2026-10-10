@@ -381,7 +381,7 @@ export type BackupVerdict =
    * replace it from the backup. `replaceable` is false for a copy that needs a
    * newer app, which a file does not replace.
    */
-  | { kind: "conflict"; replaceable: boolean }
+  | { kind: "conflict"; replaceable: boolean; assortedUnreadable?: true }
   /** Another book has the same songs or a source of this one: nothing. */
   | { kind: "already-here-as"; book: BookRef }
   /**
@@ -407,7 +407,8 @@ export function backupVerdict(book: BackupBookFacts, held: readonly HeldBook[]):
   const device = assorted ? held.find((b) => b.kind === "assorted") : undefined;
   if (device) {
     // One that cannot be opened is not written to; there is nothing to merge into.
-    if (device.state !== "ok") return { kind: "conflict", replaceable: false };
+    if (device.state !== "ok")
+      return { kind: "conflict", replaceable: false, assortedUnreadable: true };
     const there = new Set(device.songs.values());
     const adds = new Set([...book.songs.values()].filter((hash) => !there.has(hash))).size;
     return adds === 0 ? { kind: "already-here" } : { kind: "merge", adds };

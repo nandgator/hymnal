@@ -107,7 +107,7 @@ default, since it may be the newer edit, and Merge loses nothing. A restored
 book keeps its key, so the backup's recents and position point at it. Assorted
 Hymns is restored or merged by its own table
 ([SDD-0004 §17](0004-loading-books.md#17-assorted-hymns)); the review says "Will
-be restored", "Already here" or "Will be merged into this device's: _n_ new
+be restored", "Already here" or "Will be merged into this device’s: _n_ new
 songs". Its `next_number` and its songs' `language` and `script` are read only
 from a package whose origin is `assorted`: in any other book they refuse that
 book as damaged. `next_number` must be a whole number from 1; one at or below a

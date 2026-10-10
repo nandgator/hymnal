@@ -77,7 +77,9 @@ export function whatItDoes(book: BackupReviewBook): string {
     case "restore":
       return verdict.over ? "Can’t be opened here. Restoring replaces it." : "Will be restored";
     case "conflict":
-      return "A different edition is here";
+      return verdict.assortedUnreadable
+        ? "Assorted Hymns on this device can’t be read, so this one can’t be merged"
+        : "A different edition is here";
     case "merge":
       return `Will be merged into this device’s: ${count(verdict.adds)} new ${verdict.adds === 1 ? "song" : "songs"}`;
   }

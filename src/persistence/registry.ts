@@ -586,6 +586,8 @@ export async function mergeIntoAssorted(
   ctx: RegistryContext,
   incoming: { hymns: readonly HymnSource[]; songHashes: ReadonlyMap<number, string> },
   onProgress?: OnLoadProgress,
+  /** Only works out the numbers (and how many would be added): nothing is written. */
+  dryRun = false,
 ): Promise<MergedIntoAssorted> {
   const now = readAssorted(ctx);
   if (now === null || now === "unreadable") {
@@ -595,7 +597,7 @@ export async function mergeIntoAssorted(
   // Hashed from the package itself, not the registry's copy, which is only an index.
   const deviceHashes = await hashesOf(now.hymns);
   const plan = mergeSongs(now, deviceHashes, incoming.hymns, incoming.songHashes);
-  if (plan.added === 0) return { key, numbers: plan.numbers, added: 0 };
+  if (plan.added === 0 || dryRun) return { key, numbers: plan.numbers, added: plan.added };
   const book = assortedBook(plan.hymns.length, plan.nextNumber);
   const shaped = asContainerShape(book, plan.hymns);
   const violations = validateCorpus(

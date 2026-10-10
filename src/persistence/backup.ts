@@ -797,11 +797,19 @@ export class BackupSession {
         if (now.kind === "already-here" || now.kind === "already-here-as") {
           // Nothing is written, but a recent on one of these songs points at the device's copy.
           if (assorted && now.kind === "already-here" && assortedRow(ctx)?.state === "ok") {
-            const merged = await mergeIntoAssorted(ctx, {
-              hymns: read.book.hymns,
-              songHashes: read.songHashes,
-            });
-            followed = { from: entry.key, to: merged.key, numbers: merged.numbers };
+            // Numbers only, written never; an unreadable package or songs that are not all
+            // there leave the recents unfollowed, they do not fail the book.
+            const merged = await mergeIntoAssorted(
+              ctx,
+              { hymns: read.book.hymns, songHashes: read.songHashes },
+              undefined,
+              true,
+            ).catch(() => undefined);
+            if (merged && merged.added === 0) {
+              followed = { from: entry.key, to: merged.key, numbers: merged.numbers };
+            } else {
+              followed = { from: entry.key, to: entry.key, numbers: new Map() };
+            }
           }
           done(now.kind);
           continue;
@@ -815,7 +823,11 @@ export class BackupSession {
             ctx,
             { hymns: read.book.hymns, songHashes: read.songHashes },
             report,
-          );
+          ).catch((error) => {
+            // Under the device's key these numbers could name other songs: they are dropped.
+            followed = { from: entry.key, to: entry.key, numbers: new Map() };
+            throw error;
+          });
           followed = { from: entry.key, to: merged.key, numbers: merged.numbers };
           done("merged");
         } else if (now.kind === "conflict") {

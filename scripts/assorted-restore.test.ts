@@ -190,7 +190,11 @@ describe("the restore table for Assorted Hymns (SDD-0004 §17)", () => {
       sources: [],
       songs: new Map([[1, "h1"]]),
     };
-    expect(backupVerdict(facts, held)).toEqual({ kind: "conflict", replaceable: false });
+    expect(backupVerdict(facts, held)).toEqual({
+      kind: "conflict",
+      replaceable: false,
+      assortedUnreadable: true,
+    });
   });
 });
 
@@ -396,8 +400,8 @@ describe("a crash mid-merge", () => {
     expect(done.ok && done.books.map((b) => [b.outcome, b.message])).toEqual([
       ["failed", "killed mid-write"],
     ]);
-    // Nothing of the merge is held, and the recent is not moved onto a song that is not there.
-    expect(done.ok && done.userState).toEqual(state);
+    // Nothing of the merge is held, and the backup's recents on its key are dropped, not kept: under a device key equal to it they could name other songs.
+    expect(done.ok && done.userState).toEqual({ version: 1, recents: [] });
     expect({ files: into.ctx.files.list(), pkg: packageOf(into) }).toEqual(before);
   });
 
