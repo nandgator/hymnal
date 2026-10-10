@@ -34,6 +34,11 @@ parts, user reviewing each → next Board item, repeat until the hymnal is built
 real-device pass, waits on the maintainer's devices; the beta may go before it,
 iOS marked untested. The maintainer's reviews of 2026-10-07 and 10-08 are done.
 
+**Board #38 (search every book)**: shaped
+([ADR-0032](decisions/0032-one-search-the-finder-searches-every-source.md),
+SDD-0001 §13.1). Parts: A, the worker's `searchAll`, timed first; B, the
+Finder's groups and a pick in another book; C, the e2e path.
+
 **Board #27 (song import, CLI)**: touches no UI. Target: _Hymns of Fellowship_,
 the second hymnbook; its draft stays in `imports/` until its rights are known
 (ADR-0018, ADR-0019, SDD-0002, SDD-0003). Parts 1–5 done; hand fixes are in the
@@ -60,6 +65,7 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                                                                                                                                                                      | Blocked by          |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| 38  | Search every book: the Finder is the one search, grouped by source (ADR-0032, SDD-0001 §13.1)                                                                                                             | —                   |
 | 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                                                                                  | another machine     |
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                                          | maintainer: devices |
 | 42  | Test suite speed (note): split App.test.tsx by area and use fake timers for its real waits; then isolate:false only for the DOM-free files, never globally (module-level state in channel.ts and friends) | —                   |
@@ -73,7 +79,6 @@ Ordered. Top unblocked item is next.
 | 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                                                                                | Phase 2             |
 | 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                                                                             | content             |
 | 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                                                                             | —                   |
-| 38  | Search across books: one query over every loaded book (SDD-0001 §16)                                                                                                                                      | —                   |
 | 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                                                                                    | —                   |
 
 14–15 sit past the scope guard below. 16–25 and 37–40 are notes, not scheduled:
@@ -118,6 +123,10 @@ only, here:
 
 ## Log
 
+- 2026-10-10 — #38 moved up and shaped with the maintainer: the Finder is the
+  one search, every book always, grouped by source (the current book first),
+  each copy under its own book, a number still in the current book; later
+  sources (arrangements, the queue, annotations) join as groups; ADR-0032
 - 2026-10-10 — #58 done, with an e2e on three engines: Assorted Hymns stored,
   added from From Text, listed, removed and restored by merge; the sample's
   release renamed `sample-1`. Shaped with the maintainer: Assorted Hymns is a

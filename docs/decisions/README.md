@@ -42,6 +42,7 @@ superseded in part says which part.
 | [0029](0029-others-build-their-books-the-format-is-the-contract.md) | Others build their books: the format is the contract              | Accepted; point 4 (the source check) withdrawn                                                    |
 | [0030](0030-security-a-local-first-threat-model.md)                 | Security: a local-first threat model                              | Accepted                                                                                          |
 | [0031](0031-assorted-hymns-the-persons-own-book.md)                 | Assorted Hymns: the person's own book of single songs             | Accepted                                                                                          |
+| [0032](0032-one-search-the-finder-searches-every-source.md)         | One search: the Finder searches every source                      | Accepted                                                                                          |
 
 ## Open questions
 

@@ -1008,6 +1008,48 @@ recents — calls `onSelect` with its number. The FTS5 matching and result-cap
 logic itself is worker code, not unit tested for the same reason as the rest of
 `content-store.worker.ts` (§10.5).
 
+### 13.1 Every book (Board #38)
+
+**Decided
+([ADR-0032](../decisions/0032-one-search-the-finder-searches-every-source.md)):
+the Finder is the one search, over every held book, its results grouped by
+source.** What follows replaces "the current book" in the lyric path above; the
+number path is unchanged and stays in the current book.
+
+**The worker.** `searchAll(query, currentKey)` runs `searchLyrics`'s match over
+every held book whose state is `ok`, each capped at `SEARCH_LIMIT`, and returns
+`{ key, title, results }[]`: the current book first, then the rest in the
+Library's order (Assorted Hymns first, SDD-0004 §17). A book with no match is
+left out. It is one message to the worker, not one per book. Before building the
+view, it is timed over the sample and the 1,631-song Malayalam book: if a query
+takes over 100 ms, the current book's group is sent first and the rest follow,
+so the first results never wait on the others.
+
+**The view.** Each group has a heading, the book's title. The current book's
+group shows its results as today; every other group shows its first five, and
+**More in _title_** shows the rest of that group in place. In the command menu
+the commands come first, as now. The line under the field says **Searching all
+books** when more than one book is held, and names the book when only one is.
+The arrow keys move through every group as one list, and Enter takes the
+highlighted result, the top one of the first group unless moved. A song held in
+two books is a result in each (ADR-0032). Present Here's compact Finder (§16.7)
+groups the same way.
+
+**Picking a result** hands its book with its number: `onSelect(number, key)`.
+The shell's `chooseHymn` makes that book current and opens the song in one step
+(most of Board #19). While live it is a pick like any other Finder pick (§16).
+
+**Sources.** The groups come from a list of sources, each searched on its own;
+books are the only source built. Arrangements (#23), the queue (#22),
+annotations and, perhaps, Settings' rows join as sources when they exist, each a
+group with its own heading, never merged into another source's order.
+
+**Testing.** Unit: `searchAll`'s order, its leaving out of empty and unreadable
+books, the cap per book. Component: the groups and their headings, More in, the
+line under the field, the arrow keys across groups, Enter, a pick in another
+book handing its key, the one-book case unchanged. E2E: two books loaded, a word
+in both found under each, a pick in the other book opens it.
+
 ## 14. Presenter
 
 Board #9. arc42 §5.2 decomposes Presenter into Sequence Engine (§5, pure),
