@@ -70,10 +70,20 @@ export interface Hymn {
 /** `hymnbook.json` as stored in a book directory: the book, plus its format (SDD-0002). */
 export interface HymnbookSource extends Hymnbook {
   format: number;
+  /**
+   * Assorted Hymns only (SDD-0004 §17): the next number to give. In memory and
+   * in the package, never in a container file: format 1 has no such field.
+   */
+  nextNumber?: number;
 }
 
 /** A hymn as stored in a book directory: the directory supplies `hymnbookId`. */
-export type HymnSource = Omit<Hymn, "hymnbookId">;
+export type HymnSource = Omit<Hymn, "hymnbookId"> & {
+  /** Assorted Hymns only: the song's BCP-47 tag. Never in a container file. */
+  language?: string;
+  /** Assorted Hymns only: the song's ISO 15924 code. Never in a container file. */
+  script?: string;
+};
 
 /** Derived from the sequence, never stored — see SDD-0001 §2.2. */
 export interface Occurrence {

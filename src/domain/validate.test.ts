@@ -166,6 +166,21 @@ describe("validateCorpus", () => {
     expect(validateCorpus(book, [file(1), file(2)])).toEqual([]);
   });
 
+  it("refuses a hymn language and script, and a book's next number: format 1 has none (SDD-0004 §17)", () => {
+    const withLanguage = {
+      file: "0001.json",
+      hymn: hymn({ number: 1, language: "ml", script: "Mlym" }),
+    };
+    const v = validateCorpus({ ...book, hymnCount: 1 }, [withLanguage]);
+    expect(v.map((x) => [x.rule, x.message])).toEqual([
+      ["unknown-field", "language is not a field of format 1"],
+      ["unknown-field", "script is not a field of format 1"],
+    ]);
+    expect(
+      validateCorpus({ ...book, hymnCount: 1, nextNumber: 2 }, [file(1)]).map((x) => x.rule),
+    ).toEqual(["unknown-field"]);
+  });
+
   it("includes per-hymn violations, labelled by hymn", () => {
     const bad = { file: "0002.json", hymn: hymn({ number: 2, sequence: [] }) };
     const v = validateCorpus(book, [file(1), bad]);

@@ -1,6 +1,12 @@
 import type { Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 import { Zip, ZipDeflate } from "fflate";
-import { SCHEMA_SQL, SCHEMA_V2_SQL, SCHEMA_VERSION } from "../../scripts/content-schema.ts";
+import {
+  SCHEMA_SQL,
+  SCHEMA_V2_SQL,
+  SCHEMA_V3_SQL,
+  SCHEMA_VERSION,
+} from "../../scripts/content-schema.ts";
+import { asContainerShape } from "../domain/assorted.ts";
 import {
   BACKUP_FORMAT,
   BACKUP_VERSION,
@@ -238,28 +244,32 @@ const families = new WeakMap<Sqlite3Static, Family[]>();
 
 /**
  * The schemas a package may have, made by running the app's own DDL (SQLite
- * writes the rows' text itself): the current one; version 2; and version 2 as
- * `PACKAGE_MIGRATIONS` leaves it, which is what a book migrated in place holds.
+ * writes the rows' text itself): the current one; versions 3 and 2 as they
+ * were written; and each of those as `PACKAGE_MIGRATIONS` leaves it at every
+ * later version, which is what a book migrated in place holds.
  */
 function schemaFamilies(sqlite3: Sqlite3Static): Family[] {
   let made = families.get(sqlite3);
   if (!made) {
-    const build = (ddl: string, migrate: boolean, version: number): Family => {
+    const build = (ddl: string, from: number, to: number): Family => {
       const db = hardened(sqlite3, new sqlite3.oo1.DB(":memory:"));
       try {
         db.exec(ddl);
         const sql = sqlOf(db);
-        if (migrate && !migratePackage(sql, 2))
+        if (to > from && !migratePackage(sql, from, to))
           throw new Error("the canonical schema did not migrate");
-        return { version, rows: schemaRows(sql) };
+        return { version: to, rows: schemaRows(sql) };
       } finally {
         db.close();
       }
     };
     made = [
-      build(SCHEMA_SQL, false, SCHEMA_VERSION),
-      build(SCHEMA_V2_SQL, true, SCHEMA_VERSION),
-      build(SCHEMA_V2_SQL, false, 2),
+      build(SCHEMA_SQL, SCHEMA_VERSION, SCHEMA_VERSION),
+      build(SCHEMA_V3_SQL, 3, 3),
+      build(SCHEMA_V3_SQL, 3, 4),
+      build(SCHEMA_V2_SQL, 2, 2),
+      build(SCHEMA_V2_SQL, 2, 3),
+      build(SCHEMA_V2_SQL, 2, 4),
     ];
     families.set(sqlite3, made);
   }
@@ -426,10 +436,13 @@ async function readBack(sql: Sql, onProgress?: OnLoadProgress): Promise<RebuildR
     ...(optionalText(extra.edition) === undefined ? {} : { edition: optionalText(extra.edition) }),
     ...(optionalText(extra.isbn) === undefined ? {} : { isbn: optionalText(extra.isbn) }),
     hymnCount: hymns.length,
+    ...(head.nextNumber === null ? {} : { nextNumber: head.nextNumber }),
   };
+  // Format 1 has no counter and no per-song language: they are Assorted Hymns' alone (SDD-0004 §17).
+  const shaped = asContainerShape(hymnbook, hymns);
   const violations = validateCorpus(
-    hymnbook,
-    hymns.map((hymn) => ({ file: hymnFileName(hymn.number), hymn })),
+    shaped.book,
+    shaped.hymns.map((hymn) => ({ file: hymnFileName(hymn.number), hymn })),
     onProgress && ((done, total) => onProgress({ phase: "checking", done, total })),
   );
   if (violations.length > 0) {
@@ -710,7 +723,7 @@ export class BackupSession {
   ): Promise<BackupCommit> {
     const ctx = await this.#registry();
     const sqlite3 = await this.#sqlite3();
-    const firstLoad = !listBooks(ctx).some((b) => b.kind === "loaded");
+    const firstLoad = !listBooks(ctx).some((b) => b.kind !== "shipped");
     const results: BackupBookResult[] = [];
     for (const { entry, title, verdict } of pending.books) {
       const done = (outcome: BackupBookResult["outcome"], message?: string) =>

@@ -25,6 +25,8 @@ import {
   rebuildPackage,
   writeBackup,
 } from "../src/persistence/backup.ts";
+import { migratePackage } from "../src/persistence/package-io.ts";
+import { sqlOf } from "../src/persistence/pool-files.ts";
 import {
   addBook,
   heldBooks,
@@ -37,7 +39,7 @@ import {
   mergeRestoredDoc,
   type UserStateDoc,
 } from "../src/persistence/user-state.ts";
-import { SCHEMA_SQL, SCHEMA_V2_SQL, SCHEMA_VERSION } from "./content-schema.ts";
+import { SCHEMA_SQL, SCHEMA_V2_SQL, SCHEMA_V3_SQL, SCHEMA_VERSION } from "./content-schema.ts";
 import {
   book,
   container,
@@ -734,16 +736,63 @@ function packageV2(): Uint8Array {
   }
 }
 
+/**
+ * A package of schema version 3, as the last app wrote it: the version 3 DDL,
+ * without the columns of version 4. `migrated` makes it as a version 2 book
+ * migrated in place to 3 holds it (SDD-0004 §7).
+ */
+function packageV3(migrated = false, h: HymnSource[] = hymns): Uint8Array {
+  const db = new wasm.oo1.DB(":memory:");
+  try {
+    if (migrated) {
+      db.exec(SCHEMA_V2_SQL);
+      expect(migratePackage(sqlOf(db), 2, 3)).toBe(true);
+    } else {
+      db.exec(SCHEMA_V3_SQL);
+    }
+    insertRows(
+      (sql, bind) => {
+        // The columns version 4 added are not in a version 3 package.
+        if (sql.includes("INTO hymnbook")) {
+          db.exec({
+            sql: sql.replace(", next_number)", ")").replace(/, \?\)$/, ")"),
+            bind: bind.slice(0, -1) as never,
+          });
+        } else if (sql.includes("INTO hymn (")) {
+          db.exec({
+            sql: sql.replace(", language, script)", ")").replace(/, \?, \?\)$/, ")"),
+            bind: bind.slice(0, -2) as never,
+          });
+        } else {
+          db.exec({ sql, bind: bind as never });
+        }
+      },
+      packageRows(book("origin-1", h.length), h, {
+        key: "key-1",
+        origin: "origin-1",
+        sources: ["a".repeat(64)],
+        contentHash: "c".repeat(64),
+        schemaVersion: 3,
+      }),
+    );
+    return wasm.capi.sqlite3_js_db_export(db.pointer as number);
+  } finally {
+    db.close();
+  }
+}
+
 const rebuilt = (bytes: Uint8Array) => rebuildPackage(wasm, bytes);
 
 describe("the schema is pinned", () => {
-  it("keeps SCHEMA_SQL and SCHEMA_V2_SQL byte for byte", async () => {
+  it("keeps SCHEMA_SQL, SCHEMA_V3_SQL and SCHEMA_V2_SQL byte for byte", async () => {
     const pins = {
-      SCHEMA_SQL: "d4014c7ff6c520bb2b976301c0a35682b49df71eb385034dd4412f1021562668",
+      SCHEMA_SQL: "7f13916dfd3af76b52da97e2ac8a65c30a94bd46cbad441c4d2c40f75a2e4585",
+      SCHEMA_V3_SQL: "d4014c7ff6c520bb2b976301c0a35682b49df71eb385034dd4412f1021562668",
       SCHEMA_V2_SQL: "6ce9e75062cb904ae124e8cbc781561f030e2ce6af6da0afc0198c6265dc8da2",
     };
     const found = {
       SCHEMA_SQL: await sha256Hex(strToU8(SCHEMA_SQL)),
+      SCHEMA_V3_SQL: await sha256Hex(strToU8(SCHEMA_V3_SQL)),
       SCHEMA_V2_SQL: await sha256Hex(strToU8(SCHEMA_V2_SQL)),
     };
     // A backup's book is matched against this text exactly, so an edit, even to
@@ -879,6 +928,56 @@ describe("rebuilding a package (§3.4)", () => {
     expect(result.read.book.hymns.map((h) => h.parts.map((p) => p.id))).toEqual([
       ["s1", "c", "s2"],
       ["s1", "c", "s2"],
+    ]);
+  });
+
+  it.each([
+    ["version 3 as it was written", () => packageV3()],
+    ["version 3 as a version 2 book migrated in place holds it", () => packageV3(true)],
+  ])("restores a %s", async (_name, make) => {
+    const result = await rebuilt(make());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.read.sources).toEqual(["a".repeat(64)]);
+    expect(result.read.book.hymns).toEqual(hymns.map((h) => JSON.parse(JSON.stringify(h))));
+    expect(result.read.book.hymnbook.nextNumber).toBeUndefined();
+    expect(result.read.songHashes.get(1)).toBe(await songHash(hymn(1)));
+  });
+
+  it("refuses a version 3 package that says it is version 4", async () => {
+    const claims4 = packageV3();
+    const db = new wasm.oo1.DB(":memory:");
+    try {
+      const copy = wasm.wasm.allocFromTypedArray(claims4);
+      wasm.capi.sqlite3_deserialize(
+        db.pointer as number,
+        "main",
+        copy,
+        claims4.length,
+        claims4.length,
+        wasm.capi.SQLITE_DESERIALIZE_FREEONCLOSE | wasm.capi.SQLITE_DESERIALIZE_RESIZEABLE,
+      );
+      db.exec("UPDATE hymnbook SET schema_version = 4");
+      const lied = wasm.capi.sqlite3_js_db_export(db.pointer as number);
+      expect(await rebuilt(lied)).toMatchObject({ ok: false, reason: "damaged" });
+    } finally {
+      db.close();
+    }
+  });
+
+  it("keeps the next number and each song's language and script of a version 4 package", async () => {
+    const result = await rebuilt(
+      packageBytes((db) => {
+        db.exec("UPDATE hymnbook SET next_number = 9");
+        db.exec("UPDATE hymn SET language = 'ml', script = 'Mlym' WHERE number = 1");
+      }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.read.book.hymnbook.nextNumber).toBe(9);
+    expect(result.read.book.hymns.map((h) => [h.language, h.script])).toEqual([
+      ["ml", "Mlym"],
+      [undefined, undefined],
     ]);
   });
 

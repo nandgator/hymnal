@@ -27,8 +27,8 @@ export interface PackageRows {
 
 export const INSERTS = {
   hymnbook:
-    "INSERT INTO hymnbook (id, origin, title, language, script, publisher, edition, isbn, schema_version, content_hash, sources) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-  hymn: "INSERT INTO hymn (number, title, author, tune, meter) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO hymnbook (id, origin, title, language, script, publisher, edition, isbn, schema_version, content_hash, sources, next_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  hymn: "INSERT INTO hymn (number, title, author, tune, meter, language, script) VALUES (?, ?, ?, ?, ?, ?, ?)",
   part: "INSERT INTO part (hymn_number, id, position, kind, label) VALUES (?, ?, ?, ?, ?)",
   line: "INSERT INTO line (hymn_number, part_id, idx, text) VALUES (?, ?, ?, ?)",
   sequenceEntry: "INSERT INTO sequence_entry (hymn_number, idx, part_id) VALUES (?, ?, ?)",
@@ -39,6 +39,8 @@ export const INSERTS = {
  * The rows a package holds (SDD-0004 §7), the one builder `build:content`
  * and the worker both insert, so the two cannot disagree. Input must already
  * be validated. Parts are numbered by position in the order the file has them.
+ * `book.nextNumber` and a hymn's `language` and `script` are Assorted Hymns'
+ * (SDD-0004 §17): no container sets them, so they are null in every other book.
  */
 export function packageRows(
   book: HymnbookSource,
@@ -58,6 +60,7 @@ export function packageRows(
       identity.schemaVersion,
       identity.contentHash,
       JSON.stringify(identity.sources),
+      book.nextNumber ?? null,
     ],
     hymn: [],
     part: [],
@@ -67,7 +70,15 @@ export function packageRows(
   };
   for (const hymn of hymns) {
     const { author, tune, meter } = hymn.meta ?? {};
-    rows.hymn.push([hymn.number, hymn.title, author ?? null, tune ?? null, meter ?? null]);
+    rows.hymn.push([
+      hymn.number,
+      hymn.title,
+      author ?? null,
+      tune ?? null,
+      meter ?? null,
+      hymn.language ?? null,
+      hymn.script ?? null,
+    ]);
     hymn.parts.forEach((part, position) => {
       rows.part.push([hymn.number, part.id, position, part.kind, part.label ?? null]);
       part.lines.forEach((text, idx) => {

@@ -104,6 +104,8 @@ export interface PackageHead {
   contentHash: string;
   sources: string[];
   songs: number;
+  /** Assorted Hymns only (version 4): the next number to give. */
+  nextNumber: number | null;
 }
 
 /** What a package says about itself; a version 2 one has no origin or sources. */
@@ -111,8 +113,10 @@ export function readHead(sql: Sql, version: number): PackageHead | null {
   try {
     const [row] = sql.all(
       version >= 3
-        ? "SELECT id, origin, title, language, script, content_hash, sources FROM hymnbook"
-        : "SELECT id, id AS origin, title, language, script, content_hash, '[]' AS sources FROM hymnbook",
+        ? `SELECT id, origin, title, language, script, content_hash, sources, ${
+            version >= 4 ? "next_number" : "NULL AS next_number"
+          } FROM hymnbook`
+        : "SELECT id, id AS origin, title, language, script, content_hash, '[]' AS sources, NULL AS next_number FROM hymnbook",
     );
     const [count] = sql.all("SELECT COUNT(*) AS n FROM hymn");
     if (!row) return null;
@@ -131,6 +135,7 @@ export function readHead(sql: Sql, version: number): PackageHead | null {
       contentHash: row.content_hash as string,
       sources: Array.isArray(sources) ? sources.filter((s) => typeof s === "string") : [],
       songs: (count?.n as number | undefined) ?? 0,
+      nextNumber: typeof row.next_number === "number" ? row.next_number : null,
     };
   } catch {
     return null;
@@ -150,7 +155,8 @@ export function readTitle(sql: Sql): string | null {
 /**
  * Every song of a package, parts in printed order (SDD-0004 §4), so a hash of
  * it equals the hash of the container's song. A version 2 package has no
- * position: its rowid order stands in for it.
+ * position: its rowid order stands in for it. A song's `language` and `script`
+ * (version 4) are Assorted Hymns' and are present only when set.
  */
 export function readHymns(sql: Sql, version: number): HymnSource[] {
   const order = version >= 3 ? "position" : "rowid";
@@ -185,10 +191,16 @@ export function readHymns(sql: Sql, version: number): HymnSource[] {
     sequence.set(r.hymn_number as number, list);
   }
   return sql
-    .all("SELECT number, title, author, tune, meter FROM hymn ORDER BY number")
+    .all(
+      `SELECT number, title, author, tune, meter${
+        version >= 4 ? ", language, script" : ""
+      } FROM hymn ORDER BY number`,
+    )
     .map((r) => ({
       number: r.number as number,
       title: r.title as string,
+      ...(typeof r.language === "string" ? { language: r.language } : {}),
+      ...(typeof r.script === "string" ? { script: r.script } : {}),
       parts: parts.get(r.number as number) ?? [],
       sequence: sequence.get(r.number as number) ?? [],
       meta: {
@@ -201,12 +213,13 @@ export function readHymns(sql: Sql, version: number): HymnSource[] {
 
 /**
  * Migrates a package in place, step by step, in one transaction. A failure
- * leaves the file as it was and returns false (SDD-0004 §7).
+ * leaves the file as it was and returns false (SDD-0004 §7). `to` stops short of
+ * the app's version, to make an older schema as a book migrated then holds it.
  */
-export function migratePackage(sql: Sql, from: number): boolean {
+export function migratePackage(sql: Sql, from: number, to = SCHEMA_VERSION): boolean {
   try {
     transaction(sql, () => {
-      for (let v = from; v < SCHEMA_VERSION; v++) {
+      for (let v = from; v < to; v++) {
         const steps = PACKAGE_MIGRATIONS[v];
         if (!steps) throw new Error(`no migration from version ${v}`);
         for (const step of steps) sql.exec(step);

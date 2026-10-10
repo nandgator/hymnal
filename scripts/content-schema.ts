@@ -1,8 +1,10 @@
 /**
  * 2: the chorus, once the refrain (ADR-0025).
  * 3: `hymnbook.origin` and `sources`, `part.position` (SDD-0004 §7).
+ * 4: `hymnbook.next_number`, `hymn.language` and `script`, for Assorted Hymns
+ *    (SDD-0004 §17).
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /**
  * Migrations in place, keyed by the version they start from (SDD-0004 §7).
@@ -19,6 +21,12 @@ export const PACKAGE_MIGRATIONS: Readonly<Record<number, readonly string[]>> = {
        WHERE p.hymn_number = part.hymn_number AND p.rowid < part.rowid)`,
     "CREATE UNIQUE INDEX part_position ON part (hymn_number, position)",
     "UPDATE hymnbook SET schema_version = 3",
+  ],
+  3: [
+    "ALTER TABLE hymnbook ADD COLUMN next_number INTEGER",
+    "ALTER TABLE hymn ADD COLUMN language TEXT",
+    "ALTER TABLE hymn ADD COLUMN script TEXT",
+    "UPDATE hymnbook SET schema_version = 4",
   ],
 };
 
@@ -40,6 +48,71 @@ export const FTS_TOKENCHARS = "ാിീുൂൃൄെേൈൊോൌ്‌‍"
  * scripts/backup.test.ts.
  */
 export const SCHEMA_SQL = `
+CREATE TABLE hymnbook (
+  id             TEXT PRIMARY KEY,    -- the key
+  origin         TEXT NOT NULL,       -- the id the file declared
+  title          TEXT NOT NULL,
+  language       TEXT NOT NULL,
+  script         TEXT NOT NULL,
+  publisher      TEXT,
+  edition        TEXT,
+  isbn           TEXT,
+  schema_version INTEGER NOT NULL,
+  content_hash   TEXT NOT NULL,
+  sources        TEXT NOT NULL,       -- JSON array of container file hashes
+  next_number    INTEGER              -- Assorted Hymns only: the next number to give
+) STRICT;
+
+CREATE TABLE hymn (
+  number  INTEGER PRIMARY KEY,
+  title   TEXT NOT NULL,
+  author  TEXT,
+  tune    TEXT,
+  meter   TEXT,
+  language TEXT,                      -- Assorted Hymns only: the song's BCP-47 tag
+  script   TEXT                       -- Assorted Hymns only: the song's ISO 15924 code
+) STRICT;
+
+CREATE TABLE part (
+  hymn_number INTEGER NOT NULL REFERENCES hymn(number),
+  id          TEXT NOT NULL,
+  position    INTEGER NOT NULL,   -- printed order, as the file has the parts
+  kind        TEXT NOT NULL CHECK (kind IN ('intro','stanza','pre-chorus','chorus','post-chorus','bridge','outro','tag')),
+  label       TEXT,
+  PRIMARY KEY (hymn_number, id),
+  UNIQUE (hymn_number, position)
+) STRICT;
+
+CREATE TABLE line (
+  hymn_number INTEGER NOT NULL,
+  part_id     TEXT    NOT NULL,
+  idx         INTEGER NOT NULL,
+  text        TEXT    NOT NULL,
+  PRIMARY KEY (hymn_number, part_id, idx),
+  FOREIGN KEY (hymn_number, part_id) REFERENCES part(hymn_number, id)
+) STRICT;
+
+CREATE TABLE sequence_entry (
+  hymn_number INTEGER NOT NULL,
+  idx         INTEGER NOT NULL,
+  part_id     TEXT    NOT NULL,
+  PRIMARY KEY (hymn_number, idx),
+  FOREIGN KEY (hymn_number, part_id) REFERENCES part(hymn_number, id)
+) STRICT;
+
+CREATE VIRTUAL TABLE hymn_fts USING fts5(
+  title,
+  body,
+  content = '',
+  tokenize = 'unicode61 tokenchars ''${FTS_TOKENCHARS}'''
+);
+`;
+
+/**
+ * Package schema version 3 as it was written, kept so a backup's older packages
+ * can be recognised exactly (SDD-0006 §3.4); `PACKAGE_MIGRATIONS` takes it to 4.
+ */
+export const SCHEMA_V3_SQL = `
 CREATE TABLE hymnbook (
   id             TEXT PRIMARY KEY,    -- the key
   origin         TEXT NOT NULL,       -- the id the file declared
@@ -99,7 +172,7 @@ CREATE VIRTUAL TABLE hymn_fts USING fts5(
 
 /**
  * Package schema version 2 as it was written, kept so a backup's older packages
- * can be recognised exactly (SDD-0006 §3.4); `PACKAGE_MIGRATIONS` takes it to 3.
+ * can be recognised exactly (SDD-0006 §3.4); `PACKAGE_MIGRATIONS` takes it to 3 and on.
  */
 export const SCHEMA_V2_SQL = `
 CREATE TABLE hymnbook (
