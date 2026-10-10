@@ -434,19 +434,18 @@ interface AssortedNow {
   contentHash: string;
 }
 
-function readAssorted(ctx: RegistryContext): AssortedNow | null {
+/** The book as it is now, null if the device has none, "unreadable" if it has one that cannot be written to. */
+function readAssorted(ctx: RegistryContext): AssortedNow | null | "unreadable" {
   const row = assortedRow(ctx);
   if (!row) return null;
-  if (row.state !== "ok") {
-    throw new Error(`${row.title} cannot be opened (${row.state}); it is not written to`);
-  }
+  if (row.state !== "ok") return "unreadable";
   const read = ctx.files.open(row.file, (sql) => {
     const version = packageVersion(sql);
     if (version !== SCHEMA_VERSION) return null;
     const head = readHead(sql, version);
     return head && { head, hymns: readHymns(sql, version) };
   });
-  if (!read) throw new Error(`${row.title} is not at the schema this app writes`);
+  if (!read) return "unreadable";
   return {
     row,
     // Through JSON, as a container's songs come: a field a package lacks is absent, not undefined.
@@ -456,13 +455,18 @@ function readAssorted(ctx: RegistryContext): AssortedNow | null {
   };
 }
 
-/** The number the next song added to Assorted Hymns will get, and the one already holding `hash`. */
+/**
+ * The number the next song added to Assorted Hymns will get, and the one
+ * already holding `hash`. `next` is null when the device has an Assorted Hymns
+ * that cannot be opened: nothing is added to it.
+ */
 export function assortedStatus(
   ctx: RegistryContext,
   hash?: string,
-): { key: string | null; next: number; has: number | null } {
+): { key: string | null; next: number | null; has: number | null } {
   const row = assortedRow(ctx);
-  if (row?.state !== "ok") return { key: row?.key ?? null, next: 1, has: null };
+  if (!row) return { key: null, next: 1, has: null };
+  if (row.state !== "ok") return { key: row.key, next: null, has: null };
   const held = hash
     ? ctx.registry.all("SELECT number FROM song WHERE book_key = ? AND hash = ? ORDER BY number", [
         row.key,
@@ -486,7 +490,9 @@ export function assortedStatus(
 export type AddedToAssorted =
   | { ok: true; key: string; number: number; created: boolean }
   | { ok: false; reason: "already-here"; key: string; number: number }
-  | { ok: false; reason: "invalid"; message: string };
+  | { ok: false; reason: "invalid"; message: string }
+  /** The device's Assorted Hymns cannot be opened: it is not written to. */
+  | { ok: false; reason: "unreadable"; key: string };
 
 /**
  * Adds one song (a reviewed one-song book) to Assorted Hymns, making the book
@@ -509,13 +515,17 @@ export async function addAssortedSong(
   if (!isScriptCode(script)) {
     return { ok: false, reason: "invalid", message: `${script} is not a script code` };
   }
-  const now = readAssorted(ctx);
+  const held = readAssorted(ctx);
+  if (held === "unreadable") {
+    return { ok: false, reason: "unreadable", key: assortedRow(ctx)?.key ?? "" };
+  }
+  const now = held;
   const status = assortedStatus(ctx, song.hash);
   if (now && status.has !== null) {
     return { ok: false, reason: "already-here", key: now.row.key, number: status.has };
   }
   const plan = addSong(
-    now && { hymns: now.hymns, nextNumber: Math.max(now.nextNumber ?? 1, status.next) },
+    now && { hymns: now.hymns, nextNumber: Math.max(now.nextNumber ?? 1, status.next ?? 1) },
     song.hymn,
     language,
     script,
@@ -567,7 +577,11 @@ export async function removeAssortedSong(
   number: number,
   onProgress?: OnLoadProgress,
 ): Promise<RemovedFromAssorted> {
-  const now = readAssorted(ctx);
+  const held = readAssorted(ctx);
+  if (held === "unreadable") {
+    throw new Error("Assorted Hymns cannot be opened, so no song is removed from it");
+  }
+  const now = held;
   const present = now?.hymns.some((h) => h.number === number);
   if (!now || !present) return { removed: false };
   const key = now.row.key;
@@ -576,7 +590,7 @@ export async function removeAssortedSong(
     removeBook(ctx, key);
     return { removed: true, key, bookRemoved: true };
   }
-  const next = Math.max(now.nextNumber ?? 1, assortedStatus(ctx).next);
+  const next = Math.max(now.nextNumber ?? 1, assortedStatus(ctx).next ?? 1);
   const hashes = await hashesOf(left);
   await replaceBook(
     ctx,

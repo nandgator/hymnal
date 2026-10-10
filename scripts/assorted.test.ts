@@ -7,6 +7,7 @@ import type { HymnSource } from "../src/domain/types.ts";
 import { removeAssortedSongAndRecents } from "../src/persistence/books.ts";
 import { LoadSession } from "../src/persistence/load.ts";
 import {
+  listSummaries,
   migratePackage,
   packageVersion,
   readHead,
@@ -377,20 +378,133 @@ describe("reconcile and Assorted Hymns", () => {
     expect(files.list()).toHaveLength(1);
   });
 
-  it("finishes a crashed add: the higher copy with no row takes the row, and the old file goes", async () => {
-    const { ctx, files } = setup();
-    const first = await addAssortedSong(ctx, newKey, await withHash(hymn(1)), "en", "Latn");
-    if (!first.ok) throw new Error("not added");
-    // The copy an add wrote and never committed.
-    files.put(`/${first.key}.2.sqlite3`, first.key);
-    files.open(`/${first.key}.2.sqlite3`, (sql) =>
-      sql.run("UPDATE hymnbook SET origin = 'assorted'"),
-    );
+  /**
+   * The state a crashed write leaves: `held` is the registry's row and its file; `ahead` is the
+   * higher-generation file the write finished and never committed. Both are made by the real
+   * operations, over one key, in two pools.
+   */
+  async function crashed(
+    prior: (ctx: RegistryContext) => Promise<void>,
+    latest: (ctx: RegistryContext) => Promise<void>,
+  ) {
+    const key = () => "crash-key";
+    const ahead = setup();
+    await prior(ahead.ctx);
+    await latest(ahead.ctx);
+    const aheadFile = listBooks(ahead.ctx)[0]?.file as string;
+    const held = setup();
+    await prior(held.ctx);
+    const db = ahead.files.dbs.get(aheadFile);
+    if (!db) throw new Error("no file ahead");
+    held.files.dbs.set(aheadFile, db);
+    return { ...held, aheadFile, key };
+  }
+  const add = (n: number) => async (ctx: RegistryContext) => {
+    await addAssortedSong(ctx, () => "crash-key", await withHash(hymn(n)), "en", "Latn");
+  };
+
+  it("finishes a crashed add: the copy that holds the song takes the row and the song survives", async () => {
+    const { ctx, files, aheadFile } = await crashed(add(1), add(2));
+    expect(listBooks(ctx)[0]).toMatchObject({ file: "/crash-key.1.sqlite3", songs: 1 });
     await reconcile(ctx);
     expect(listBooks(ctx)).toMatchObject([
-      { key: first.key, kind: "assorted", state: "ok", file: `/${first.key}.2.sqlite3` },
+      { key: "crash-key", kind: "assorted", state: "ok", file: aheadFile, songs: 2 },
     ]);
-    expect(files.list()).toEqual([`/${first.key}.2.sqlite3`]);
+    expect(files.list()).toEqual([aheadFile]);
+    expect(ctx.registry.all("SELECT number FROM song ORDER BY number")).toEqual([
+      { number: 1 },
+      { number: 2 },
+    ]);
+    files.open(aheadFile, (sql) => {
+      expect(readHymns(sql, SCHEMA_VERSION).map((h) => h.title)).toEqual(["Song 1", "Song 2"]);
+    });
+  });
+
+  it("finishes a crashed remove: the song stays removed and its number stays retired", async () => {
+    const { ctx, files, aheadFile } = await crashed(
+      async (c) => {
+        for (const n of [1, 2, 3]) await add(n)(c);
+      },
+      async (c) => {
+        await removeAssortedSong(c, 2);
+      },
+    );
+    expect(listBooks(ctx)[0]?.songs).toBe(3);
+    await reconcile(ctx);
+    expect(listBooks(ctx)).toMatchObject([{ kind: "assorted", file: aheadFile, songs: 2 }]);
+    expect(files.list()).toEqual([aheadFile]);
+    expect(ctx.registry.all("SELECT number FROM song ORDER BY number")).toEqual([
+      { number: 1 },
+      { number: 3 },
+    ]);
+    const next = await addAssortedSong(ctx, newKey, await withHash(hymn(4)), "en", "Latn");
+    expect(next).toMatchObject({ ok: true, number: 4 });
+  });
+});
+
+describe.each(BACKENDS)("listing Assorted Hymns' songs (%s)", (backend) => {
+  it("lists by language, then title in that language, then number; other books by number", async () => {
+    const { ctx, files } = setupOn(backend);
+    const songs: [string, string][] = [
+      ["ml", "b"],
+      ["en", "Zed"],
+      ["sv", "Ärlig"],
+      ["sv", "Zebra"],
+      ["en", "Alpha"],
+    ];
+    for (const [i, [language, title]] of songs.entries()) {
+      const song = { ...hymn(i + 1), title };
+      await addAssortedSong(ctx, newKey, await withHash(song), language, "Latn");
+    }
+    const row = listBooks(ctx)[0];
+    const listed = files.open(row?.file as string, (sql) => listSummaries(sql, true));
+    expect(listed.map((x) => [x.language, x.title, x.number])).toEqual([
+      ["en", "Alpha", 5],
+      ["en", "Zed", 2],
+      ["ml", "b", 1],
+      ["sv", "Zebra", 4],
+      ["sv", "Ärlig", 3],
+    ]);
+    files.put("/other.1.sqlite3", "other", [hymn(2), hymn(1)]);
+    expect(files.open("/other.1.sqlite3", (sql) => listSummaries(sql, false))).toEqual([
+      { number: 1, title: "Song 1" },
+      { number: 2, title: "Song 2" },
+    ]);
+  });
+});
+
+describe.each(BACKENDS)("an Assorted Hymns that cannot be opened (%s)", (backend) => {
+  async function broken() {
+    const made = setupOn(backend);
+    const added = await addAssortedSong(made.ctx, newKey, await withHash(hymn(1)), "en", "Latn");
+    if (!added.ok) throw new Error("not added");
+    made.ctx.registry.run("UPDATE book SET state = 'unreadable' WHERE key = ?", [added.key]);
+    return { ...made, key: added.key };
+  }
+
+  it("has no next number, so the review can say nothing is added", async () => {
+    const { ctx, key } = await broken();
+    expect(assortedStatus(ctx, await songHash(hymn(2)))).toEqual({ key, next: null, has: null });
+    const review = await loadSession(ctx).review(oneSong(2));
+    expect(review.assorted).toEqual({ key, next: null, has: null });
+  });
+
+  it("is not added to: a distinct reason, and nothing is written", async () => {
+    const { ctx, files, key } = await broken();
+    expect(await addAssortedSong(ctx, newKey, await withHash(hymn(2)), "en", "Latn")).toEqual({
+      ok: false,
+      reason: "unreadable",
+      key,
+    });
+    const s = loadSession(ctx);
+    const review = await s.review(oneSong(2));
+    expect(await s.addToAssorted(review.token, "en", "Latn")).toMatchObject({
+      ok: false,
+      reason: "unreadable",
+      key,
+    });
+    expect(files.list()).toEqual([`/${key}.1.sqlite3`]);
+    await expect(removeAssortedSong(ctx, 1)).rejects.toThrow(/cannot be opened/);
   });
 });
 

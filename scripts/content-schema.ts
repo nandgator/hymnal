@@ -172,7 +172,7 @@ CREATE VIRTUAL TABLE hymn_fts USING fts5(
 
 /**
  * Package schema version 2 as it was written, kept so a backup's older packages
- * can be recognised exactly (SDD-0006 §3.4); `PACKAGE_MIGRATIONS` takes it to 3 and on.
+ * can be recognised exactly (SDD-0006 §3.4); `PACKAGE_MIGRATIONS` takes it to 3 and later.
  */
 export const SCHEMA_V2_SQL = `
 CREATE TABLE hymnbook (

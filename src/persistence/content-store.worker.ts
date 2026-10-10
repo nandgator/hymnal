@@ -3,7 +3,6 @@ import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
 import * as Comlink from "comlink";
 import { SCHEMA_VERSION } from "../../scripts/content-schema.ts";
 import { SHIPPED_BOOK_IDS } from "../config.ts";
-import { assortedOrder } from "../domain/assorted.ts";
 import { hasZipMagic, isBackup, MAX_BACKUP_BYTES } from "../domain/backup.ts";
 import type { OnLoadProgress } from "../domain/progress.ts";
 import type {
@@ -32,7 +31,7 @@ import {
   LoadSession,
 } from "./load.ts";
 import { createMemoryPool } from "./memory-pool.ts";
-import type { Value } from "./package-io.ts";
+import { type HymnSummary, listSummaries, type Value } from "./package-io.ts";
 import { type PackagePool, PoolFiles, sqlOf } from "./pool-files.ts";
 import {
   choosePool,
@@ -55,13 +54,7 @@ import {
   startRegistry,
 } from "./registry.ts";
 
-export interface HymnSummary {
-  number: number;
-  title: string;
-  /** Assorted Hymns only: the song's own language and script (SDD-0004 §17). */
-  language?: string;
-  script?: string;
-}
+export type { HymnSummary };
 
 export interface SearchResult {
   number: number;
@@ -563,21 +556,7 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     const assorted = this.#liveCtx
       ? listBooks(this.#liveCtx).some((book) => book.key === id && book.kind === "assorted")
       : false;
-    if (assorted) {
-      // Language, then title in that language's collation, then number (SDD-0004 §17).
-      return assortedOrder(
-        this.#rows(db, "SELECT number, title, language, script FROM hymn").map((row) => ({
-          number: row.number as number,
-          title: row.title as string,
-          ...(typeof row.language === "string" ? { language: row.language } : {}),
-          ...(typeof row.script === "string" ? { script: row.script } : {}),
-        })),
-      );
-    }
-    return this.#rows(db, "SELECT number, title FROM hymn ORDER BY number").map((row) => ({
-      number: row.number as number,
-      title: row.title as string,
-    }));
+    return listSummaries(sqlOf(db), assorted);
   }
 
   async getHymn(id: HymnbookId, number: number): Promise<HymnSource> {

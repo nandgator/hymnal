@@ -53,8 +53,9 @@ export interface LoadReview {
    * Assorted Hymns. `next` is the number it will get; `has` the number of the same
    * song (by hash) already there, in which case it is "already here as n" and not
    * added; `key` is the Assorted Hymns book, null if the device has none yet.
+   * `next` is null when the device's Assorted Hymns cannot be opened: no song can be added.
    */
-  assorted?: { key: string | null; next: number; has: number | null };
+  assorted?: { key: string | null; next: number | null; has: number | null };
 }
 
 /** The result of adding a reviewed one-song book to Assorted Hymns. */
@@ -62,7 +63,7 @@ export type AssortedResult =
   | { ok: true; key: string; number: number; created: boolean; firstLoad?: true }
   | {
       ok: false;
-      reason: "no-review" | "not-one-song" | "already-here" | "invalid" | "failed";
+      reason: "no-review" | "not-one-song" | "already-here" | "invalid" | "unreadable" | "failed";
       message: string;
       /** For `already-here`: the book and the number the song has there. */
       key?: string;
@@ -327,6 +328,14 @@ export class LoadSession {
             message: `already in Assorted Hymns as ${added.number}`,
             key: added.key,
             number: added.number,
+          };
+        }
+        if (added.reason === "unreadable") {
+          return {
+            ok: false,
+            reason: "unreadable",
+            message: "Assorted Hymns cannot be opened, so no song is added to it",
+            key: added.key,
           };
         }
         return { ok: false, reason: "invalid", message: added.message };

@@ -1,4 +1,5 @@
 import { PACKAGE_MIGRATIONS, SCHEMA_SQL, SCHEMA_VERSION } from "../../scripts/content-schema.ts";
+import { assortedOrder } from "../domain/assorted.ts";
 import { type InsertOptions, insertRows, type PackageRows } from "../domain/package-rows.ts";
 import type { HymnSource, Part, PartKind } from "../domain/types.ts";
 
@@ -249,4 +250,33 @@ export function writePackage(
 /** Records the container hashes a package has matched. */
 export function writeSources(sql: Sql, sources: readonly string[]): void {
   transaction(sql, () => sql.run("UPDATE hymnbook SET sources = ?", [JSON.stringify(sources)]));
+}
+
+export interface HymnSummary {
+  number: number;
+  title: string;
+  /** Assorted Hymns only: the song's own language and script (SDD-0004 §17). */
+  language?: string;
+  script?: string;
+}
+
+/**
+ * A book's songs for a list. Number order, except Assorted Hymns: by the
+ * song's language, then its title in that language's collation, then number.
+ */
+export function listSummaries(sql: Sql, assorted: boolean): HymnSummary[] {
+  if (assorted) {
+    return assortedOrder(
+      sql.all("SELECT number, title, language, script FROM hymn").map((row) => ({
+        number: row.number as number,
+        title: row.title as string,
+        ...(typeof row.language === "string" ? { language: row.language } : {}),
+        ...(typeof row.script === "string" ? { script: row.script } : {}),
+      })),
+    );
+  }
+  return sql.all("SELECT number, title FROM hymn ORDER BY number").map((row) => ({
+    number: row.number as number,
+    title: row.title as string,
+  }));
 }
