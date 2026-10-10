@@ -381,6 +381,60 @@ describe("the backup's recents and position follow the merge (SDD-0004 §17)", (
   });
 });
 
+describe("an already-here Assorted Hymns whose device copy has changed since the review", () => {
+  const state = {
+    version: 1,
+    recents: [
+      { hymnbookId: "assorted-a", hymnNumber: 1, viewedAt: 5 },
+      { hymnbookId: "other", hymnNumber: 1, viewedAt: 4 },
+    ],
+  };
+
+  async function reviewed() {
+    const from = store();
+    await addAll(from.ctx, "assorted-a", [[1], [2]]);
+    const into = setup();
+    await addAll(into.ctx, "assorted-b", [[1], [2]]);
+    const { s, review } = await reviewOf(into, (await backupOf(from, state)).bytes);
+    expect(review.books[0]?.verdict).toEqual({ kind: "already-here" });
+    return { into, s, review, file: listBooks(into.ctx)[0]?.file as string };
+  }
+
+  it("is not failed when the device package can no longer be read: nothing is written, the recents are dropped", async () => {
+    const { into, s, review, file } = await reviewed();
+    // The registry still says ok; the package says a version this app cannot merge into.
+    into.ctx.files.open(file, (sql) => sql.exec("UPDATE hymnbook SET schema_version = 3"));
+    const files = into.ctx.files.list();
+    const done = await s.commit(review.token);
+    expect(done.ok && done.books.map((b) => b.outcome)).toEqual(["already-here"]);
+    expect(done.ok && done.userState).toEqual({
+      version: 1,
+      recents: [{ hymnbookId: "other", hymnNumber: 1, viewedAt: 4 }],
+    });
+    expect(into.ctx.files.list()).toEqual(files);
+  });
+
+  it("writes nothing when the package lacks a song the registry says is there, and drops the recents", async () => {
+    const { into, s, review, file } = await reviewed();
+    // A stale verdict: the registry's index still has the song, the package no longer does.
+    into.ctx.files.open(file, (sql) => {
+      for (const t of ["sequence_entry", "line", "part"]) {
+        sql.exec(`DELETE FROM ${t} WHERE hymn_number = 1`);
+      }
+      sql.exec("DELETE FROM hymn WHERE number = 1");
+    });
+    const files = into.ctx.files.list();
+    const done = await s.commit(review.token);
+    expect(done.ok && done.books.map((b) => b.outcome)).toEqual(["already-here"]);
+    expect(done.ok && done.userState).toEqual({
+      version: 1,
+      recents: [{ hymnbookId: "other", hymnNumber: 1, viewedAt: 4 }],
+    });
+    expect(into.ctx.files.list()).toEqual(files);
+    expect(listBooks(into.ctx)[0]?.songs).toBe(2);
+  });
+});
+
 describe("a crash mid-merge", () => {
   it("leaves the device's Assorted Hymns as it was when the package cannot be written", async () => {
     const from = store();
