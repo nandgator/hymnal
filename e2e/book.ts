@@ -1,8 +1,13 @@
 import { gzipSync } from "node:zlib";
 
+export interface TestSong {
+  title: string;
+  lines: string[];
+}
+
 // A small invented book: nothing here is a real hymn, and no lyrics from the
 // maintainer's books ever go in the repository (ADR-0026).
-const SONGS = [
+const SONGS: TestSong[] = [
   {
     title: "Lantern Morning",
     lines: ["The lantern burns at break of day", "and shadows leave the hill"],
@@ -17,37 +22,46 @@ const SONGS = [
   },
 ];
 
-const hymns = SONGS.map((song, index) => ({
-  number: index + 1,
-  title: song.title,
-  parts: [
-    { id: "s1", kind: "stanza", label: "1", lines: song.lines },
-    { id: "s2", kind: "stanza", label: "2", lines: ["Sing it once", "and sing it twice"] },
-  ],
-  sequence: [{ partId: "s1" }, { partId: "s2" }],
-  meta: {},
-}));
+/** A book as a file the picker accepts (SDD-0002 §1); songs are numbered from 1. */
+export function makeBook(id: string, title: string, songs: TestSong[]) {
+  const hymns = songs.map((song, index) => ({
+    number: index + 1,
+    title: song.title,
+    parts: [
+      { id: "s1", kind: "stanza", label: "1", lines: song.lines },
+      {
+        id: "s2",
+        kind: "stanza",
+        label: "2",
+        lines: ["Sing it once", "and sing it twice"],
+      },
+    ],
+    sequence: [{ partId: "s1" }, { partId: "s2" }],
+    meta: {},
+  }));
+  return {
+    name: `${id}.hymnbook.json.gz`,
+    mimeType: "application/gzip",
+    buffer: gzipSync(
+      Buffer.from(
+        JSON.stringify({
+          hymnbook: {
+            format: 1,
+            id,
+            title,
+            language: "en",
+            script: "Latn",
+            hymnCount: hymns.length,
+          },
+          hymns,
+        }),
+      ),
+    ),
+  };
+}
 
 export const BOOK_TITLE = "Demo Book";
 export const BOOK_FILE = "demo.hymnbook.json.gz";
 
 /** The book as a file the picker accepts (SDD-0002 §1). */
-export const bookFile = {
-  name: BOOK_FILE,
-  mimeType: "application/gzip",
-  buffer: gzipSync(
-    Buffer.from(
-      JSON.stringify({
-        hymnbook: {
-          format: 1,
-          id: "demo",
-          title: BOOK_TITLE,
-          language: "en",
-          script: "Latn",
-          hymnCount: hymns.length,
-        },
-        hymns,
-      }),
-    ),
-  ),
-};
+export const bookFile = makeBook("demo", BOOK_TITLE, SONGS);
