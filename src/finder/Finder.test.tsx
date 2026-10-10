@@ -59,6 +59,29 @@ describe("Finder", () => {
     }));
   const songsList = () => screen.getByRole("region", { name: "Songs" });
 
+  it("with nothing typed, shows Assorted Hymns in the order the book lists them, not by number", async () => {
+    const assorted = [
+      { number: 7, title: "Amazing", language: "en", script: "Latn" },
+      { number: 2, title: "Zion Song", language: "en", script: "Latn" },
+      { number: 5, title: "മഹത്വം", language: "ml", script: "Mlym" },
+    ];
+    render(() => (
+      <Finder
+        hymnbookId="assorted"
+        store={fakeStore({ listHymns: async () => assorted })}
+        userState={fakeUserState()}
+        onSelect={vi.fn()}
+      />
+    ));
+    await screen.findByRole("heading", { name: "Songs" });
+    const rows = within(songsList()).getAllByRole("button");
+    expect(rows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining("Amazing"),
+      expect.stringContaining("Zion Song"),
+      expect.stringContaining("മഹത്വം"),
+    ]);
+  });
+
   it("with nothing typed, shows the book's first songs by number, not an empty recents line", async () => {
     render(() => (
       <Finder
