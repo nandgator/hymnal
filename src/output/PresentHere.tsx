@@ -23,7 +23,9 @@ export interface PresentHereProps {
   /** The book the quick switcher searches: the song's own. */
   hymnbookId: HymnbookId;
   /** Shows a song at once. */
-  onSelect: (number: HymnNumber) => void;
+  /** The books held: with several, the switcher groups its matches by book. */
+  bookCount?: number;
+  onSelect: (number: HymnNumber, book: HymnbookId) => void;
   /** Esc (with no switcher open) or F. */
   onLeave: () => void;
   /** The view threw and went blank (SDD-0001 §16.9). */
@@ -168,10 +170,11 @@ export function PresentHere(props: PresentHereProps) {
             <Finder
               compact
               hymnbookId={props.hymnbookId}
+              bookCount={props.bookCount}
               initialQuery={open().query}
-              onSelect={(number) => {
+              onSelect={(number, book) => {
                 closeSwitcher();
-                props.onSelect(number);
+                props.onSelect(number, book);
               }}
             />
           </div>

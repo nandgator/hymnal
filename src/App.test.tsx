@@ -16,6 +16,13 @@ const mocks = vi.hoisted(() => ({
   fallback: (() => {}) as () => void,
   /** Whether removing a song of Assorted Hymns takes its last one, and so the book. */
   assortedLast: true,
+  /** What the Finder's lyric search finds across the books. */
+  searchAll: vi.fn(
+    async (
+      _query: string,
+      _currentKey: string,
+    ): Promise<import("./persistence/search.ts").BookHits[]> => [],
+  ),
 }));
 
 vi.mock("./persistence/content-store.ts", () => {
@@ -45,7 +52,7 @@ vi.mock("./persistence/content-store.ts", () => {
       meta: {},
     }),
     searchLyrics: async () => [],
-    searchAll: async () => [],
+    searchAll: (query, currentKey) => mocks.searchAll(query, currentKey),
   };
   const row: BookRow = {
     key: "mal-ymef-athmeeya-geethangal-16",
@@ -335,6 +342,40 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       await waitFor(() =>
         expect(mocks.addRecent.mock.calls).toEqual([["mal-ymef-athmeeya-geethangal-16", 2]]),
       );
+    });
+
+    it("a lyric match in another book makes that book current and opens the song in one step", async () => {
+      await fellowshipSongUp();
+      mocks.addRecent.mockClear();
+      mocks.searchAll.mockImplementation(async () => [
+        {
+          key: "k1",
+          title: "Hymns of Fellowship",
+          results: [{ number: 1, title: "Own", snippet: "x" }],
+        },
+        {
+          key: "mal-ymef-athmeeya-geethangal-16",
+          title: "Mocked Hymnbook",
+          results: [{ number: 2, title: "Mocked Hymn 2", snippet: "a line" }],
+        },
+      ]);
+      fireEvent.click(crumbs().getByRole("button", { name: /#1/ }));
+      const picker = within(await screen.findByRole("dialog", { name: "Go to a Song" }));
+      fireEvent.input(picker.getByRole("combobox", { name: "Find a song" }), {
+        target: { value: "line" },
+      });
+      expect(picker.getByRole("combobox")).toHaveAccessibleDescription("Searching all books");
+      const mocked = await picker.findByRole("group", { name: "Mocked Hymnbook" });
+      fireEvent.mouseDown(within(mocked).getByRole("option", { name: /Mocked Hymn 2/ }));
+      await screen.findByRole("button", { name: /#2\s*Mocked Hymn 2/ });
+      expect(crumbs().getByRole("button", { name: /Mocked Hymnbook/ })).toBeInTheDocument();
+      await waitFor(() =>
+        expect(mocks.addRecent.mock.calls).toEqual([["mal-ymef-athmeeya-geethangal-16", 2]]),
+      );
+      // The Finder is aimed at the new book, which is the song's.
+      fireEvent.click(crumbs().getByRole("button", { name: /#2/ }));
+      const again = within(await screen.findByRole("dialog", { name: "Go to a Song" }));
+      expect(again.getByRole("combobox")).toHaveAccessibleDescription("Searching Mocked Hymnbook");
     });
 
     it("a Finder closed without a pick leaves the search where the song is", async () => {

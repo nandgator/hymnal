@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-lib
 import { createSignal } from "solid-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { HymnbookId, HymnNumber, HymnSource } from "../domain/types.ts";
-import type { ContentStore, SearchResult } from "../persistence/content-store.ts";
+import type { BookHits, ContentStore, SearchResult } from "../persistence/content-store.ts";
 import type { RecentEntry, UserState } from "../persistence/user-state.ts";
 import { Finder, OPENING_SONGS } from "./Finder.tsx";
 
@@ -15,7 +15,7 @@ const HYMN_42: HymnSource = {
 };
 
 function fakeStore(overrides: Partial<ContentStore> = {}): ContentStore {
-  return {
+  const store: ContentStore = {
     ensureInstalled: async () => ({ state: "ready" }),
     getHymnbook: async () => {
       throw new Error("not used");
@@ -26,9 +26,14 @@ function fakeStore(overrides: Partial<ContentStore> = {}): ContentStore {
       throw new Error(`no such hymn: ${number}`);
     },
     searchLyrics: async (): Promise<SearchResult[]> => [],
-    searchAll: async () => [],
+    // One book held: all books is the current one, searched as searchLyrics does.
+    searchAll: async (query, key) => {
+      const results = await store.searchLyrics(key, query);
+      return results.length ? [{ key, title: key, results }] : [];
+    },
     ...overrides,
   };
+  return store;
 }
 
 function fakeUserState(overrides: Partial<UserState> = {}): UserState {
@@ -114,7 +119,7 @@ describe("Finder", () => {
     ));
     await screen.findByRole("heading", { name: "Songs" });
     fireEvent.click(within(songsList()).getByRole("button", { name: /Song Number 2/ }));
-    expect(onSelect).toHaveBeenCalledWith(2);
+    expect(onSelect).toHaveBeenCalledWith(2, "book");
   });
 
   it("puts the songs below Recents when there are recents", async () => {
@@ -310,7 +315,7 @@ describe("Finder", () => {
 
     submit("42");
 
-    expect(onSelect).toHaveBeenCalledWith(42);
+    expect(onSelect).toHaveBeenCalledWith(42, "book");
   });
 
   it("searches lyrics for non-numeric input and hands the picked result to onSelect", async () => {
@@ -334,7 +339,7 @@ describe("Finder", () => {
 
     expect(searchLyrics).toHaveBeenCalledWith("book", "grace");
     fireEvent.mouseDown(await screen.findByRole("option", { name: /Forty-Second Hymn/ }));
-    expect(onSelect).toHaveBeenCalledWith(42);
+    expect(onSelect).toHaveBeenCalledWith(42, "book");
   });
 
   it("shows a result's snippet only when it adds something beyond the title", async () => {
@@ -402,7 +407,7 @@ describe("Finder", () => {
     const rows = await screen.findAllByRole("button", { name: /Forty-Second Hymn/ });
     expect(rows[0]?.querySelector(".recents-when")).not.toBeNull();
     fireEvent.click(rows[0] as HTMLElement);
-    expect(onSelect).toHaveBeenCalledWith(42);
+    expect(onSelect).toHaveBeenCalledWith(42, "book");
   });
 
   it("offers a way back to hymnbook selection", async () => {
@@ -450,7 +455,7 @@ describe("Finder", () => {
     fireEvent.keyDown(find(), { key: "ArrowDown" });
     expect(options[1]).toHaveAttribute("aria-selected", "true");
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
-    expect(onSelect).toHaveBeenCalledWith(42);
+    expect(onSelect).toHaveBeenCalledWith(42, "book");
   });
 
   it("searches lyrics as typing pauses, without Enter", async () => {
@@ -548,7 +553,7 @@ describe("Finder", () => {
     // The row lands under a still pointer: enter fires, move doesn't.
     fireEvent.mouseEnter(second);
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
-    expect(onSelect).toHaveBeenCalledWith(121);
+    expect(onSelect).toHaveBeenCalledWith(121, "book");
 
     // Moving the pointer does move the highlight.
     fireEvent.mouseMove(second);
@@ -558,7 +563,7 @@ describe("Finder", () => {
     fireEvent.mouseLeave(screen.getByRole("listbox"));
     expect(screen.queryByRole("option", { selected: true })).toBeNull();
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
-    expect(onSelect).toHaveBeenLastCalledWith(121);
+    expect(onSelect).toHaveBeenLastCalledWith(121, "book");
   });
 
   it("as the command menu, lists actions ahead of hymns, matched by word starts (SDD-0001 §16.5)", async () => {
@@ -592,6 +597,202 @@ describe("Finder", () => {
     await screen.findByRole("option", { name: /Forty-Second/ });
     expect(screen.queryByRole("option", { name: /Output/ })).not.toBeInTheDocument();
     fireEvent.submit(box.closest("form") as HTMLFormElement);
-    expect(onSelect).toHaveBeenCalledWith(42);
+    expect(onSelect).toHaveBeenCalledWith(42, "book");
+  });
+
+  describe("every book (SDD-0001 §13.1)", () => {
+    /** `count` results numbered from `from`, each titled by its book. */
+    const hits = (title: string, count: number, from = 1): SearchResult[] =>
+      Array.from({ length: count }, (_, i) => ({
+        number: from + i,
+        title: `${title} Song ${from + i}`,
+        snippet: `${title} line ${from + i}`,
+      }));
+
+    /** Three books held: the current one with eight matches, another with seven, a third with a song the first has too. */
+    const allHits = (): BookHits[] => [
+      { key: "cur", title: "Current Book", results: hits("Current", 8) },
+      { key: "two", title: "Second Book", results: hits("Second", 7) },
+      {
+        key: "three",
+        title: "Third Book",
+        results: [{ number: 1, title: "Current Song 1", snippet: "a line" }],
+      },
+    ];
+    const threeBooks = () => {
+      const searchAll = vi.fn(async (_query: string, _key: string) => allHits());
+      return { searchAll, store: fakeStore({ searchAll }) };
+    };
+    const oneBook = () =>
+      fakeStore({
+        searchAll: async () => [{ key: "cur", title: "Current Book", results: hits("Current", 8) }],
+      });
+
+    const renderMany = (
+      props: Partial<Parameters<typeof Finder>[0]> = {},
+      store = threeBooks().store,
+    ) => {
+      const onSelect = vi.fn();
+      render(() => (
+        <Finder
+          hymnbookId="cur"
+          bookTitle="Current Book"
+          bookCount={3}
+          store={store}
+          userState={fakeUserState()}
+          onSelect={onSelect}
+          {...props}
+        />
+      ));
+      return onSelect;
+    };
+    const type = async (value: string) => {
+      fireEvent.input(find(), { target: { value } });
+      await screen.findAllByRole("option");
+    };
+    const group = (name: string) => within(screen.getByRole("group", { name }));
+    const options = () => screen.getAllByRole("option");
+    const selected = () => options().findIndex((option) => option.ariaSelected === "true");
+
+    it("groups the matches under their books' titles, the current book first", async () => {
+      renderMany();
+      await type("line");
+      const groups = screen.getAllByRole("group");
+      expect(groups).toHaveLength(3);
+      expect(groups.map((g) => g.getAttribute("aria-labelledby")?.length)).not.toContain(0);
+      expect(groups.map((g) => g.firstElementChild?.textContent)).toEqual([
+        "Current Book",
+        "Second Book",
+        "Third Book",
+      ]);
+      // The listbox holds only groups, and each option sits in one.
+      for (const option of options()) expect(option.closest('[role="group"]')).not.toBeNull();
+    });
+
+    it("shows every result of the current book and the first five of another, then More in", async () => {
+      renderMany();
+      await type("line");
+      expect(group("Current Book").getAllByRole("option")).toHaveLength(8);
+      const second = group("Second Book").getAllByRole("option");
+      expect(second).toHaveLength(6);
+      expect(second[5]).toHaveTextContent("More in Second Book");
+      // A book with five or fewer has no More in.
+      expect(group("Third Book").getAllByRole("option")).toHaveLength(1);
+    });
+
+    it("More in opens that group in place, and a new search closes it", async () => {
+      renderMany();
+      await type("line");
+      fireEvent.mouseDown(group("Second Book").getByRole("option", { name: /More in/ }));
+      expect(group("Second Book").getAllByRole("option")).toHaveLength(7);
+      expect(group("Second Book").queryByText(/More in/)).not.toBeInTheDocument();
+      // The highlight stays where the top match is.
+      expect(selected()).toBe(0);
+      fireEvent.input(find(), { target: { value: "lines" } });
+      await waitFor(() => expect(group("Second Book").getAllByRole("option")).toHaveLength(6));
+    });
+
+    it("the arrow keys move through every group as one list, More in included, and Enter opens it", async () => {
+      renderMany();
+      await type("line");
+      expect(selected()).toBe(0);
+      // Down past the current book's eight lands in the next group.
+      for (let i = 0; i < 8; i++) fireEvent.keyDown(find(), { key: "ArrowDown" });
+      expect(options()[8]).toHaveTextContent("Second Song 1");
+      expect(selected()).toBe(8);
+      // Five more reach More in.
+      for (let i = 0; i < 5; i++) fireEvent.keyDown(find(), { key: "ArrowDown" });
+      expect(options()[13]).toHaveTextContent("More in Second Book");
+      expect(find()).toHaveAttribute("aria-activedescendant", options()[13].id);
+      fireEvent.submit(find().closest("form") as HTMLFormElement);
+      expect(group("Second Book").getAllByRole("option")).toHaveLength(7);
+      // The highlight is on the first song that was hidden.
+      expect(options()[13]).toHaveTextContent("Second Song 6");
+      expect(selected()).toBe(13);
+    });
+
+    it("Enter takes the top of the first group unless moved, and a pick in another book hands its key", async () => {
+      const onSelect = renderMany();
+      await type("line");
+      fireEvent.submit(find().closest("form") as HTMLFormElement);
+      expect(onSelect).toHaveBeenLastCalledWith(1, "cur");
+
+      fireEvent.mouseDown(group("Second Book").getAllByRole("option")[2]);
+      expect(onSelect).toHaveBeenLastCalledWith(3, "two");
+    });
+
+    it("shows a song held in two books under each, each handing its own book", async () => {
+      const onSelect = renderMany();
+      await type("line");
+      expect(screen.getAllByRole("option", { name: /Current Song 1/ })).toHaveLength(2);
+      fireEvent.mouseDown(group("Third Book").getByRole("option", { name: /Current Song 1/ }));
+      expect(onSelect).toHaveBeenLastCalledWith(1, "three");
+    });
+
+    it("searches with the current book's key", async () => {
+      const { searchAll, store } = threeBooks();
+      renderMany({}, store);
+      await type("line");
+      expect(searchAll).toHaveBeenCalledWith("line", "cur");
+    });
+
+    it("says it searches all books while words are typed, and names the book for a number or nothing", async () => {
+      renderMany();
+      expect(find()).toHaveAccessibleDescription("Searching Current Book");
+      await type("line");
+      expect(find()).toHaveAccessibleDescription("Searching all books");
+      fireEvent.input(find(), { target: { value: "12" } });
+      expect(find()).toHaveAccessibleDescription("Searching Current Book");
+    });
+
+    it("a number is the current book's alone: suggested from it, no other book searched", async () => {
+      const { searchAll, store } = threeBooks();
+      const onSelect = renderMany({}, store);
+      fireEvent.input(find(), { target: { value: "42" } });
+      await screen.findByRole("option", { name: /Forty-Second Hymn/ });
+      expect(screen.queryByRole("group")).not.toBeInTheDocument();
+      fireEvent.submit(find().closest("form") as HTMLFormElement);
+      expect(onSelect).toHaveBeenCalledWith(42, "cur");
+      expect(searchAll).not.toHaveBeenCalled();
+    });
+
+    it("in the command menu the actions come first, in a group of their own", async () => {
+      const blank = vi.fn();
+      renderMany({ commands: [{ label: "Blank Line", run: blank }] });
+      const box = screen.getByRole("combobox", { name: "Find a song or action" });
+      fireEvent.input(box, { target: { value: "line" } });
+      await screen.findAllByRole("option", { name: /Current Song 1/ });
+      expect(options()[0]).toHaveTextContent("Blank Line");
+      expect(screen.getAllByRole("group")[0]).toHaveAccessibleName("Actions");
+      expect(screen.getAllByRole("group")[1]).toHaveAccessibleName("Current Book");
+      fireEvent.submit(box.closest("form") as HTMLFormElement);
+      expect(blank).toHaveBeenCalled();
+    });
+
+    it("with one book held there are no groups or More in, and a pick names that book", async () => {
+      const onSelect = renderMany({ bookCount: 1 }, oneBook());
+      await type("line");
+      expect(screen.queryByRole("group")).not.toBeInTheDocument();
+      expect(options()).toHaveLength(8);
+      expect(screen.queryByText(/More in/)).not.toBeInTheDocument();
+      expect(find()).toHaveAccessibleDescription("Searching Current Book");
+      fireEvent.mouseDown(options()[1]);
+      expect(onSelect).toHaveBeenCalledWith(2, "cur");
+    });
+
+    it("the quick switcher groups the same way, with a few songs from each book", async () => {
+      renderMany({ compact: true, bookTitle: undefined });
+      await type("line");
+      expect(group("Current Book").getAllByRole("option")).toHaveLength(3);
+      expect(group("Second Book").getAllByRole("option")).toHaveLength(3);
+      expect(screen.queryByText(/More in/)).not.toBeInTheDocument();
+    });
+
+    it("the quick switcher shows five songs from the one book when only one is held", async () => {
+      renderMany({ compact: true, bookCount: 1 }, oneBook());
+      await type("line");
+      expect(screen.queryByRole("group")).not.toBeInTheDocument();
+      expect(options()).toHaveLength(5);
+    });
   });
 });

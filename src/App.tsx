@@ -891,6 +891,15 @@ function Operator(props: Shared) {
       setSection("present");
     });
 
+  // A pick in the Finder: the song's book becomes the current one and the song opens, in
+  // one step (SDD-0001 §13.1). While live it is a pick like any other: the Presenter swaps
+  // the song in place and the Output follows (§16.4); a deliberate pick is asked for.
+  const pickHymn = (number: HymnNumber, book: HymnbookId) =>
+    batch(() => {
+      if (book !== currentKey()) setCurrentKey(book);
+      chooseHymn(number, book);
+    });
+
   // "Find a song", from anywhere: Present, plus the picker over the current
   // hymn if one is up. With none, Present already is the Finder, and a
   // picker on top would only duplicate it.
@@ -1482,7 +1491,8 @@ function Operator(props: Shared) {
                     recentsVersion={recentsVersion()}
                     hymnbookId={currentKey() as string}
                     bookTitle={hymnbook()?.title}
-                    onSelect={chooseHymn}
+                    bookCount={installed().length}
+                    onSelect={pickHymn}
                   />
                 )}
               </Match>
@@ -1544,8 +1554,9 @@ function Operator(props: Shared) {
               recentsVersion={recentsVersion()}
               hymnbookId={currentKey() as string}
               bookTitle={hymnbook()?.title}
+              bookCount={installed().length}
               current={hymnNumber()}
-              onSelect={chooseHymn}
+              onSelect={pickHymn}
             />
           </Show>
         </Sheet>
@@ -1562,12 +1573,13 @@ function Operator(props: Shared) {
             recentsVersion={recentsVersion()}
             hymnbookId={currentKey() as string}
             bookTitle={hymnbook()?.title}
+            bookCount={installed().length}
             current={hymnNumber()}
-            onSelect={(number) => {
+            onSelect={(number, book) => {
               // Closing it and choosing are one step: the scope must not be put back first.
               batch(() => {
                 setCommandMenuOpen(false);
-                chooseHymn(number);
+                pickHymn(number, book);
               });
             }}
             commands={commands().map((command) => ({
@@ -1700,7 +1712,8 @@ function Operator(props: Shared) {
           highlight={highlightOf(preferences.preferences())}
           bandSize={bandSizeOf(preferences.preferences())}
           hymnbookId={(presentedKey() ?? currentKey()) as string}
-          onSelect={(number) => chooseHymn(number, presentedKey() ?? currentKey())}
+          bookCount={installed().length}
+          onSelect={pickHymn}
           onLeave={leavePresentingHere}
           onFailed={() => setOutputFailed("here")}
           startWithSwitcher={!hymnNumber()}

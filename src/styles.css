@@ -1336,6 +1336,28 @@ input[type="checkbox"].switch:disabled {
   cursor: pointer;
 }
 
+/* A book's results under its title, when several books are searched
+   (SDD-0001 §13.1). With one book the wrapper is not there to the eye. The
+   heading is one ellipsized line, its line-height leaving Malayalam
+   conjuncts room inside the clip. */
+.finder-group[role="presentation"] {
+  display: contents;
+}
+
+.finder-group-heading {
+  padding: var(--space-md) var(--space-md) var(--space-xxs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.6;
+}
+
+/* More in a book: an action among the songs, in the accent. */
+.finder-more {
+  color: var(--md-sys-color-primary);
+  font-weight: 500;
+}
+
 .finder-number {
   flex: none;
   min-width: 3.5rem;
@@ -5997,6 +6019,11 @@ fieldset.book-main {
 .present-switcher [role="listbox"] {
   overflow: clip;
   overflow-clip-margin: 0.5rem;
+}
+
+.present-switcher .finder-group-heading {
+  padding: 0.25rem var(--space-md) 0;
+  font-size: 0.8125rem;
 }
 
 .present-switcher .finder-scope {
