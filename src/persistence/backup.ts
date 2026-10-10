@@ -435,13 +435,14 @@ async function readBack(sql: Sql, onProgress?: OnLoadProgress): Promise<RebuildR
       "it holds a next number or a song language that only Assorted Hymns has",
     );
   }
-  // Whatever type the column holds, it is a safe integer from 1 or the book is damaged.
+  // The column is STRICT INTEGER, so only whole numbers reach here; one below 1, or past what a
+  // number holds exactly (SQLite's are 64-bit), means the book is damaged.
   if (
     assorted &&
     extra.next_number !== null &&
     !(Number.isSafeInteger(extra.next_number) && (extra.next_number as number) >= 1)
   ) {
-    return fail("damaged", "its next number is not a whole number from 1");
+    return fail("damaged", "its next number is below 1 or too large");
   }
   // Both come from the file and go back into the registry: a hash, or nothing.
   if (!SHA256_HEX.test(head.contentHash)) return fail("invalid", "its content hash is not a hash");

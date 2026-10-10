@@ -1003,8 +1003,11 @@ describe("rebuilding a package (§3.4)", () => {
   it.each([
     ["a next number of 0", "UPDATE hymnbook SET next_number = 0", "damaged"],
     ["a negative next number", "UPDATE hymnbook SET next_number = -3", "damaged"],
-    ["a fractional next number", "UPDATE hymnbook SET next_number = 2.5", "damaged"],
-    ["a next number past the safe integers", "UPDATE hymnbook SET next_number = 1e300", "damaged"],
+    [
+      "a next number past the safe integers",
+      "UPDATE hymnbook SET next_number = 9007199254740993",
+      "damaged",
+    ],
     ["a song with no language", "UPDATE hymn SET language = NULL WHERE number = 1", "invalid"],
     ["a song with a bad script", "UPDATE hymn SET script = 'mlym' WHERE number = 1", "invalid"],
   ])("refuses Assorted Hymns with %s", async (_name, sql, reason) => {
