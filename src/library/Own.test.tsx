@@ -228,16 +228,24 @@ const toReview = async (s: ReturnType<typeof setup>, live: { outputLive?: boolea
   return review;
 };
 
+/** Opens Add to and picks a book by its name, as a person does. */
+const chooseBook = (dialog: Dialog, name: string) => {
+  fireEvent.click(dialog.getByRole("combobox", { name: "Add to" }));
+  fireEvent.click(dialog.getByRole("option", { name }));
+};
+
 describe("From Text: one form (ADR-0033 §4)", () => {
-  const options = (dialog: Dialog) =>
-    within(dialog.getByRole("combobox", { name: "Add to" })).getAllByRole("option");
+  const options = (dialog: Dialog) => {
+    fireEvent.click(dialog.getByRole("combobox", { name: "Add to" }));
+    return within(dialog.getByRole("listbox", { name: "Add to" })).getAllByRole("option");
+  };
 
   it("is one form: Add to a book, language, text and Advanced; no modes, no id", async () => {
     setup().view();
     const dialog = await openText();
     typeText(dialog, ONE_SONG);
     expect(dialog.queryByRole("radio")).not.toBeInTheDocument();
-    expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveValue("as1");
+    expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveAttribute("data-value", "as1");
     expect(dialog.queryByLabelText("Book name")).not.toBeInTheDocument();
     expect(dialog.queryByLabelText("Id")).not.toBeInTheDocument();
     expect(dialog.getByText("Advanced")).toBeInTheDocument();
@@ -268,7 +276,10 @@ describe("From Text: one form (ADR-0033 §4)", () => {
     setup({ rows: [shipped] }).view();
     const dialog = await openText();
     expect(options(dialog).map((o) => o.textContent)).toEqual(["Assorted Hymns", "New book…"]);
-    expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveValue("default");
+    expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveAttribute(
+      "data-value",
+      "default",
+    );
   });
 
   it("defaults to the book last added to on this device", async () => {
@@ -280,21 +291,19 @@ describe("From Text: one form (ADR-0033 §4)", () => {
       ],
     }).view({ textBook: "c1" });
     const dialog = await openText();
-    expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveValue("c1");
+    expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveAttribute("data-value", "c1");
   });
 
   it("falls back to Assorted Hymns when the remembered book is gone", async () => {
     setup().view({ textBook: "gone" });
     const dialog = await openText();
-    expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveValue("as1");
+    expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveAttribute("data-value", "as1");
   });
 
   it("New book… shows one more field, the name, filled with a suggestion", async () => {
     setup().view();
     const dialog = await openText();
-    fireEvent.change(dialog.getByRole("combobox", { name: "Add to" }), {
-      target: { value: "new" },
-    });
+    chooseBook(dialog, "New book…");
     expect(dialog.getByLabelText("Book name")).toHaveValue("My Songs");
     expect(dialog.queryByLabelText("Id")).not.toBeInTheDocument();
   });
@@ -304,9 +313,7 @@ describe("From Text: one form (ADR-0033 §4)", () => {
       rows: [shipped, assortedRow(), assortedRow({ key: "c1", origin: "own", title: "My Songs" })],
     }).view();
     const dialog = await openText();
-    fireEvent.change(dialog.getByRole("combobox", { name: "Add to" }), {
-      target: { value: "new" },
-    });
+    chooseBook(dialog, "New book…");
     expect(dialog.getByLabelText("Book name")).toHaveValue("My Songs 2");
   });
 
@@ -333,9 +340,7 @@ describe("From Text: one form (ADR-0033 §4)", () => {
   it("an error goes the moment its field is edited, and only that one", async () => {
     setup().view();
     const dialog = await openText();
-    fireEvent.change(dialog.getByRole("combobox", { name: "Add to" }), {
-      target: { value: "new" },
-    });
+    chooseBook(dialog, "New book…");
     fireEvent.input(dialog.getByLabelText("Book name"), { target: { value: "" } });
     fireEvent.click(dialog.getByRole("button", { name: "Review" }));
     expect(await dialog.findByText("Give the book a name.")).toBeInTheDocument();
@@ -397,9 +402,7 @@ describe("From Text: one form (ADR-0033 §4)", () => {
     const s = setup();
     s.view();
     const dialog = await openText();
-    fireEvent.change(dialog.getByRole("combobox", { name: "Add to" }), {
-      target: { value: "new" },
-    });
+    chooseBook(dialog, "New book…");
     typeText(dialog, "Amazing Grace\n\nAmazing grace!\n");
     chooseLanguage(dialog);
     fireEvent.click(dialog.getByRole("button", { name: "Review Song" }));
@@ -420,9 +423,7 @@ describe("From Text: one form (ADR-0033 §4)", () => {
     s.view();
     const dialog = await openText();
     typeText(dialog, ONE_SONG);
-    fireEvent.change(dialog.getByRole("combobox", { name: "Add to" }), {
-      target: { value: "new" },
-    });
+    chooseBook(dialog, "New book…");
     fireEvent.input(dialog.getByLabelText("Book name"), { target: { value: "Camp Songs" } });
     chooseLanguage(dialog);
     fireEvent.click(dialog.getByRole("button", { name: "Review Song" }));

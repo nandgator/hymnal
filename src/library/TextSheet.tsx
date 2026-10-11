@@ -11,6 +11,7 @@ import {
 } from "solid-js";
 import { ASSORTED_ORIGIN } from "../domain/own.ts";
 import type { TextError } from "../import/songtext.ts";
+import { Select, type SelectOption } from "../shell/Select.tsx";
 import { Sheet } from "../shell/Sheet.tsx";
 import { count } from "./books.ts";
 import { suggestLanguage } from "./detectLanguage.ts";
@@ -274,14 +275,6 @@ export function TextSheet(props: TextSheetProps) {
     setChangingScript(false);
   };
 
-  // The options are made after the select; its value follows the choice once they are there.
-  const [choiceSelect, setChoiceSelect] = createSignal<HTMLSelectElement>();
-  createEffect(() => {
-    const select = choiceSelect();
-    const value = props.choice;
-    props.books.length;
-    if (select) select.value = value;
-  });
   const choose = (value: string) => {
     d.setChoice(value);
     // Where the songs go changes which numbers are free: the text's errors are stale.
@@ -290,6 +283,13 @@ export function TextSheet(props: TextSheetProps) {
       d.setTitle(suggestBookTitle(props.books.map((b) => b.title)));
     }
   };
+
+  /** Assorted Hymns until it is held, each book, then a new one. */
+  const choices = (): SelectOption[] => [
+    ...(hasAssorted() ? [] : [{ value: CHOICE_DEFAULT, label: "Assorted Hymns" }]),
+    ...props.books.map((b) => ({ value: b.key, label: b.title })),
+    { value: CHOICE_NEW, label: "New book…" },
+  ];
 
   const songs = () => d.songs();
   const reviewLabel = () =>
@@ -322,21 +322,13 @@ export function TextSheet(props: TextSheetProps) {
           <label class="field-label" for="book-choice">
             Add to
           </label>
-          <div class="select-box">
-            <select
-              ref={setChoiceSelect}
-              id="book-choice"
-              class="field-input field-select"
-              onChange={(e) => choose(e.currentTarget.value)}
-            >
-              <Show when={!hasAssorted()}>
-                <option value={CHOICE_DEFAULT}>Assorted Hymns</option>
-              </Show>
-              <For each={props.books}>{(b) => <option value={b.key}>{b.title}</option>}</For>
-              <option value={CHOICE_NEW}>New book…</option>
-            </select>
-            <span class="icon icon-expand select-chevron" aria-hidden="true" />
-          </div>
+          <Select
+            id="book-choice"
+            label="Add to"
+            options={choices()}
+            value={props.choice}
+            onChange={choose}
+          />
         </div>
 
         <Show when={newBook()}>

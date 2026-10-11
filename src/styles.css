@@ -2363,7 +2363,7 @@ input[type="checkbox"].switch:disabled {
    and below its rows; the rows paint no hover or selection fill of their
    own (the rules after the layers). */
 .menu-popover,
-.lang-list,
+.pick-list,
 .segmented {
   /* Custom properties inherit: a list in a section would take its radius. */
   --glide-radius: 0;
@@ -5704,20 +5704,28 @@ fieldset.book-main {
   flex-direction: column;
   gap: var(--space-xxs);
 }
-.lang-box {
+.pick-box {
   position: relative;
 }
-.lang-input {
+.pick-input {
   padding-inline-end: 2.75rem;
   text-overflow: ellipsis;
 }
-.lang-chevron {
+.pick-chevron {
   position: absolute;
   inset-block: 0;
   inset-inline-end: var(--space-md);
   margin-block: auto;
   pointer-events: none;
   color: var(--md-sys-color-on-surface-variant);
+}
+.pick-trigger {
+  display: block;
+  overflow: hidden;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
 }
 .lang-other {
   display: flex;
@@ -5728,7 +5736,7 @@ fieldset.book-main {
 .lang-other .field-input {
   flex: 1 1 14rem;
 }
-.lang-list {
+.pick-list {
   position: fixed;
   inset: auto;
   z-index: 5;
@@ -5747,13 +5755,13 @@ fieldset.book-main {
   animation: menu-in var(--motion-short) var(--motion-emphasized);
   transform-origin: top left;
 }
-.lang-list-above {
+.pick-list-above {
   transform-origin: bottom left;
 }
 /* A soft blur and fade at an edge, only where more scrolls into view. The
    strips are sticky and masked, so the list's own shadow is not clipped. */
-.lang-list::before,
-.lang-list::after {
+.pick-list::before,
+.pick-list::after {
   position: sticky;
   z-index: 2;
   display: none;
@@ -5762,20 +5770,20 @@ fieldset.book-main {
   content: "";
   backdrop-filter: blur(3px);
 }
-.lang-list::before {
+.pick-list::before {
   background: linear-gradient(to bottom, var(--md-sys-color-surface-container-high), transparent);
   mask-image: linear-gradient(to bottom, #000 30%, transparent);
   top: calc(-1 * var(--space-xs));
   margin-bottom: -1.75rem;
 }
-.lang-list::after {
+.pick-list::after {
   background: linear-gradient(to top, var(--md-sys-color-surface-container-high), transparent);
   mask-image: linear-gradient(to top, #000 30%, transparent);
   bottom: calc(-1 * var(--space-xs));
   margin-top: -1.75rem;
 }
-.lang-list:is([data-fade="top"], [data-fade="both"])::before,
-.lang-list:is([data-fade="bottom"], [data-fade="both"])::after {
+.pick-list:is([data-fade="top"], [data-fade="both"])::before,
+.pick-list:is([data-fade="bottom"], [data-fade="both"])::after {
   display: block;
 }
 
@@ -5789,24 +5797,7 @@ fieldset.book-main {
 .sheet:has(.textsheet) .sheet-content {
   scrollbar-gutter: stable;
 }
-.select-box {
-  position: relative;
-}
-.field-select {
-  appearance: none;
-  padding-inline-end: 2.75rem;
-  text-overflow: ellipsis;
-  cursor: pointer;
-}
-.select-chevron {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-end: var(--space-md);
-  margin-block: auto;
-  pointer-events: none;
-  color: var(--md-sys-color-on-surface-variant);
-}
-.lang-row {
+.pick-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0 var(--space-xs);
@@ -5817,19 +5808,19 @@ fieldset.book-main {
   font-size: 0.9375rem;
   cursor: pointer;
 }
-.lang-row[data-current] {
+.pick-row[data-current] {
   background-color: var(--md-sys-color-secondary-container);
   color: var(--md-sys-color-on-secondary-container);
   font-weight: 500;
 }
-[data-select-glide] > .lang-row[data-current] {
+[data-select-glide] > .pick-row[data-current] {
   background-color: transparent;
 }
 .lang-english {
   color: var(--md-sys-color-on-surface-variant);
   font-size: 0.8125rem;
 }
-.lang-row-other {
+.pick-row-other {
   border-top: 1px solid var(--md-sys-color-outline-variant);
   color: var(--md-sys-color-on-surface-variant);
 }

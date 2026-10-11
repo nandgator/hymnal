@@ -51,7 +51,8 @@ async function addSong(
   await page.getByRole("button", { name: "From Text" }).click();
   const dialog = page.getByRole("dialog", { name: "From Text" });
   if (newBook) {
-    await dialog.getByLabel("Add to").selectOption({ label: "New book…" });
+    await dialog.getByRole("combobox", { name: "Add to" }).click();
+    await dialog.getByRole("option", { name: "New book…" }).click();
     await dialog.getByLabel("Book name").fill(newBook);
   }
   await dialog.getByLabel("Song text").fill(text);
@@ -160,8 +161,11 @@ test("a new book: named in the form, then offered the next time", async ({ page 
   await openLibrary(page);
   await page.getByRole("button", { name: "From Text" }).click();
   const dialog = page.getByRole("dialog", { name: "From Text" });
-  await expect(dialog.getByLabel("Add to")).toHaveValue(/.+/);
-  await expect(dialog.getByLabel("Add to").locator("option:checked")).toHaveText("Harbor Songs");
+  await expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveAttribute(
+    "data-value",
+    /.+/,
+  );
+  await expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveText("Harbor Songs");
   await dialog.getByLabel("Song text").fill(`${MALAYALAM_TITLE}\n\nപ്രഭാതത്തിൽ ദീപം തെളിയുന്നു`);
   await expect(dialog.getByText("Looks like Malayalam")).toBeVisible();
   await dialog.getByRole("button", { name: "Review Song" }).click();

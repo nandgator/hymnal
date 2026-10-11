@@ -856,14 +856,17 @@ view is close enough to the frame to need a smaller unit.
     filled one in the empty card. It opens the **text sheet** ("From Text"), a
     tall sheet that is **one form with no modes**. A short lead line ("Paste
     songs or open .txt files. You review them before anything is saved, and
-    nothing leaves this device."), then **Add to**, a select of the person's
-    books in the Library's order with **New book…** last. It offers the book
-    last added to on this device, else Assorted Hymns (offered even before it is
-    made). **New book…** adds one field, **Book name**, filled with a suggestion
-    ("My Songs", "My Songs 2" when taken). Then filled fields (the search
-    field's fill, a 2px `primary` ring on focus): the **language**, labelled
-    "Song's language" ("Songs' language" for several), a searchable picker of
-    languages by name, each in its own name and in English ("മലയാളം —
+    nothing leaves this device."), then **Add to**, a field with the same
+    chevron and the same list as the language (one popover, one set of rows,
+    never a native select) of the person's books in the Library's order with
+    **New book…** last; it has nothing to search, so it is a button that shows
+    the choice. A click toggles it, Enter, Space or the down arrow opens it. It
+    offers the book last added to on this device, else Assorted Hymns (offered
+    even before it is made). **New book…** adds one field, **Book name**, filled
+    with a suggestion ("My Songs", "My Songs 2" when taken). Then filled fields
+    (the search field's fill, a 2px `primary` ring on focus): the **language**,
+    labelled "Song's language" ("Songs' language" for several), a searchable
+    picker of languages by name, each in its own name and in English ("മലയാളം —
     Malayalam"), grouped Common then All languages. Its list is a popover in the
     top layer, placed from the field's rect in the menu's surface with its
     shadow; it is clamped to the card's box (its room ends 16px short of the

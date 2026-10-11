@@ -1,6 +1,5 @@
-import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js";
-import { type GlideList, glideList } from "../shell/glideList.ts";
-import { placeMenu } from "../shell/menuPlacement.ts";
+import { createMemo, createSignal, For, Show } from "solid-js";
+import { PickList } from "../shell/PickList.tsx";
 import {
   COMMON_CODES,
   filterLanguages,
@@ -32,7 +31,7 @@ interface Entry {
  * A searchable list of languages by name, each in its own name and in English
  * ("മലയാളം — Malayalam"), with "Other…" to type a code. The list is a popover
  * in the top layer, placed from the field's rect like the app's menus, so it
- * floats over the sheet and never changes its size or adds a scrollbar. Arrow keys move, Enter picks, Escape closes.
+ * floats over the sheet (PickList). Arrow keys move, Enter picks, Escape closes.
  */
 export function LanguagePicker(props: LanguagePickerProps) {
   const [open, setOpen] = createSignal(false);
@@ -48,7 +47,6 @@ export function LanguagePicker(props: LanguagePickerProps) {
   let openAtPress = false;
   let list: HTMLDivElement | undefined;
   let box: HTMLDivElement | undefined;
-  let glide: GlideList | undefined;
 
   // Nothing typed: Common first, then every language. Typed: the matches among all of them.
   const shown = createMemo((): Entry[] => {
@@ -76,19 +74,6 @@ export function LanguagePicker(props: LanguagePickerProps) {
     const entry = shown()[at];
     return entry ? optionId(entry.o.code, entry.group) : optionId("");
   };
-  // The highlight is Enter's target, as well as the pointer's: the one layer
-  // follows the active row, so the arrow keys and typing move it too.
-  createEffect(() => {
-    active();
-    shown();
-    if (!open()) return;
-    // After the rows have settled: a microtask on, the DOM is what to mark.
-    queueMicrotask(() =>
-      glide?.hover.show(
-        list?.querySelector<HTMLElement>('.lang-row[aria-selected="true"]') ?? null,
-      ),
-    );
-  });
   const held = () => (props.value && !other() ? languageOption(props.value) : undefined);
 
   const close = () => {
@@ -126,52 +111,6 @@ export function LanguagePicker(props: LanguagePickerProps) {
     setOpen(true);
   };
 
-  // Under the field, or above it when there is no room below; scrolls inside
-  // its own max-height. Repositioned as the rows change and as the page moves.
-  const place = () => {
-    if (!list || !box) return;
-    list.style.maxHeight = "";
-    const at = box.getBoundingClientRect();
-    const own = list.getBoundingClientRect();
-    // Floating in the top layer, but kept inside the sheet's card: its room ends a margin short of
-    // the card's edges (the page's, where there is no card), so it never runs past the card.
-    const card = box.closest("dialog")?.getBoundingClientRect();
-    const top = card ? card.top : 0;
-    const spot = placeMenu({
-      trigger: { left: at.left, right: at.right, top: at.top - top, bottom: at.bottom - top },
-      menu: { w: at.width, h: list.scrollHeight + (own.height - list.clientHeight) },
-      viewport: { w: window.innerWidth, h: card ? card.height : window.innerHeight },
-      align: "start",
-      margin: card ? 16 : 8,
-    });
-    spot.top += top;
-    list.style.width = `${at.width}px`;
-    list.style.top = `${spot.top}px`;
-    list.style.left = `${spot.left}px`;
-    if (spot.maxHeight !== undefined) list.style.maxHeight = `${spot.maxHeight}px`;
-    list.classList.toggle("lang-list-above", spot.above);
-    fade();
-  };
-  // A soft fade at an edge only while there is more to scroll that way.
-  const fade = () => {
-    if (!list) return;
-    const above = list.scrollTop > 1;
-    const below = list.scrollTop + list.clientHeight < list.scrollHeight - 1;
-    list.dataset.fade = above && below ? "both" : above ? "top" : below ? "bottom" : "none";
-  };
-  createEffect(() => {
-    if (!open()) return;
-    shown();
-    queueMicrotask(place);
-    const again = () => place();
-    document.addEventListener("scroll", again, true);
-    window.addEventListener("resize", again);
-    onCleanup(() => {
-      document.removeEventListener("scroll", again, true);
-      window.removeEventListener("resize", again);
-    });
-  });
-
   return (
     <div class="lang">
       <Show
@@ -198,11 +137,11 @@ export function LanguagePicker(props: LanguagePickerProps) {
           </div>
         }
       >
-        <div class="lang-box" ref={box}>
+        <div class="pick-box" ref={box}>
           <input
             ref={field}
             id={props.id}
-            class="field-input lang-input"
+            class="field-input pick-input"
             type="text"
             role="combobox"
             aria-expanded={open()}
@@ -256,24 +195,16 @@ export function LanguagePicker(props: LanguagePickerProps) {
               }
             }}
           />
-          <span class="icon icon-expand lang-chevron" aria-hidden="true" />
+          <span class="icon icon-expand pick-chevron" aria-hidden="true" />
         </div>
         <Show when={open()}>
-          <div
-            class="lang-list"
+          <PickList
             id={listId}
-            role="listbox"
-            aria-label="Languages"
-            popover={"showPopover" in HTMLElement.prototype ? "manual" : undefined}
-            onScroll={fade}
-            ref={(el) => {
+            label="Languages"
+            box={() => box}
+            track={() => [active(), shown()]}
+            listRef={(el) => {
               list = el;
-              queueMicrotask(() => {
-                if (typeof el.showPopover === "function" && el.isConnected) el.showPopover();
-                place();
-              });
-              glide = glideList(el, { rows: ".lang-row", current: ".lang-row[data-current]" });
-              onCleanup(glide.stop);
             }}
           >
             <For each={shown()}>
@@ -289,7 +220,7 @@ export function LanguagePicker(props: LanguagePickerProps) {
                     id={optionId(entry.o.code, entry.group)}
                     role="option"
                     tabIndex={-1}
-                    class="lang-row"
+                    class="pick-row"
                     aria-selected={active() === i()}
                     data-current={entry.o.code === props.value ? "" : undefined}
                     onPointerMove={() => setActive(i())}
@@ -314,7 +245,7 @@ export function LanguagePicker(props: LanguagePickerProps) {
               id={optionId("")}
               role="option"
               tabIndex={-1}
-              class="lang-row lang-row-other"
+              class="pick-row pick-row-other"
               aria-selected={active() === shown().length}
               onPointerMove={() => setActive(shown().length)}
               onMouseDown={(e) => e.preventDefault()}
@@ -322,7 +253,7 @@ export function LanguagePicker(props: LanguagePickerProps) {
             >
               Other…
             </div>
-          </div>
+          </PickList>
         </Show>
       </Show>
     </div>
