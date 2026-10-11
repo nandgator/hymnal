@@ -851,36 +851,47 @@ view is close enough to the frame to need a smaller unit.
     yours has no Load Again, since a file would replace it with a book.
   - **The footer** says where the books live. Once a book of yours is held it
     adds "Your books have no file: Back Up keeps them."
-  - **From Text** (Board #34; SDD-0004 §9) is a text button left of Load Books
-    (its icon dropped under 600px), and a tonal button under the filled one in
-    the empty card. It opens the **text sheet** ("From Text"), a tall sheet of
-    the review's kind: a short lead line, then a segmented button **Add it to**:
-    **Assorted Hymns** (the default) or **A New Book**, the Settings segmented
-    button's own component, for one song or several. With Assorted Hymns chosen
-    the book's Title and the Song number are not there; the language reads
-    "Song's language" ("Songs' language" for several) and the button **Review
-    the Song** (**Review the Songs**). Then filled fields (the search field's
-    fill, a 2px `primary` ring on focus), the title; the **language**, a
-    searchable picker of languages by name, each in its own name and in English
-    ("മലയാളം — Malayalam"), grouped Common then All languages, in the menu's
-    surface and rows, a popover floating over the sheet from the field's
-    position, ending in **Other…** to type a code; a suggestion from the song
-    text ("Looks like …") fills it until the person picks; once a language is
-    set, a quiet line, "Script: Malayalam (Mlym) · Change", the script derived
-    from the language and a field ("Script code", with Done) only after Change;
-    then the song text area in the hymn face (with **Open .txt Files**, several
-    at once). The optional song number sits under an **Advanced** disclosure,
-    for a new book, which opens by itself when it is asked for. The area scrolls
-    inside itself (at most 40% of the height, resizable); one filled button,
-    **Review the Song(s)**, is pinned at the bottom as the review's is. **Every
-    error is a field error**: the field gets the `error` outline and its helper
-    text turns `error`, under the field. Parse errors are listed under the song
-    text, one line each, "Line 12: message"; "There is no song text." is that
-    field's error too. No callout, no table. The first field in error is
-    scrolled into view (and focused, except the language). The review that
-    follows is the same sheet, with no source check (withdrawn, ADR-0029 point
-    4); a refusal there offers **Edit the Text** in place of Choose Another
-    File.
+  - **From Text** (Board #34, #61; SDD-0004 §9, §17) is a text button left of
+    Load Books (its icon dropped under 600px), and a tonal button under the
+    filled one in the empty card. It opens the **text sheet** ("From Text"), a
+    tall sheet that is **one form with no modes**. A short lead line ("Paste
+    songs or open .txt files. You review them before anything is saved, and
+    nothing leaves this device."), then **Add to**, a select of the person's
+    books in the Library's order with **New book…** last. It offers the book
+    last added to on this device, else Assorted Hymns (offered even before it is
+    made). **New book…** adds one field, **Book name**, filled with a suggestion
+    ("My Songs", "My Songs 2" when taken). Then filled fields (the search
+    field's fill, a 2px `primary` ring on focus): the **language**, labelled
+    "Song's language" ("Songs' language" for several), a searchable picker of
+    languages by name, each in its own name and in English ("മലയാളം —
+    Malayalam"), grouped Common then All languages. Its list is a popover in the
+    top layer, placed from the field's rect in the menu's surface with its
+    shadow; it flips above the field when there is no room below, scrolls inside
+    its own maximum height with a soft fade at an edge only while more scrolls
+    that way, and never changes the card's size. A click on the field or its
+    chevron toggles it, Escape closes the list and not the sheet, a tap outside
+    closes it. It ends in **Other…** to type a code. A suggestion from the song
+    text ("Looks like …") fills the language until the person picks. Once a
+    language is set, a quiet line, "Script: Malayalam (Mlym) · Change", the
+    script derived from the language and a field ("Script code", with Done) only
+    after Change; a code typed by hand is checked as it is typed (four letters
+    and a script the device knows) and set in its usual case. Then the song text
+    area in the hymn face (with **Open .txt Files**, several at once) and its
+    hint, "12 lines, 2 songs. Songs are separated by a --- line, as several
+    files are." The optional song number sits under **Advanced**. One filled
+    button, **Review** (**Review Song**, **Review 3 Songs**), is pinned at the
+    bottom as the review's is. **The card is one size**: a fixed height (the
+    tallest state, within 88% of the screen), the form scrolling inside it with
+    a stable scrollbar gutter, so it does not change when the destination
+    changes, Advanced opens or the list opens. **Every error is a field error**:
+    the field gets the `error` outline and its helper text turns `error`, under
+    the field, and it **goes the moment that field is edited**; a new error
+    shows again only on the next Review. Parse errors are listed under the song
+    text, one line each, "Line 12: message", and go when the text is edited. No
+    callout, no table. The first field in error is scrolled into view (and
+    focused, except the language). The review that follows is the same sheet,
+    with no source check (withdrawn, ADR-0029 point 4); a refusal there offers
+    **Edit the Text** in place of Choose Another File. File.
   - **The review of songs for a book of yours** is titled **Add Song** (**Add
     Songs**). It shows the song's own title (the book's, for a new book), its
     language and script, no Origin or File facts, and one panel: "Becomes song 8

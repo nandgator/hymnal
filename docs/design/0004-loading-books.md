@@ -962,12 +962,15 @@ review know it without opening the package.
 
 ### Adding songs
 
-From Text (ADR-0029) parses the text. The sheet has no modes beyond where the
-songs go: **Assorted Hymns** (the default book) or **A New Book**, which asks
-for a title and makes a book of yours. The language and script asked for are
-given to every song that has none of its own. One song or many go to the book
-chosen. A book already made can be added to by key (`addToOwn` takes a key, the
-default, or a new title); the form offers a picker of the books in #61.
+From Text (ADR-0029) parses the text. The sheet is one form with no modes: **Add
+to** a picker of your books in the Library's order with **New book…** last
+(which asks for a name, filled with a suggestion), defaulting to the book last
+added to on this device (the preference `textBook`), else Assorted Hymns. The
+language and script asked for are given to every song that has none of its own.
+One song or many go to the book chosen, and a song with no number takes the
+book's next number (1 in a new book), counting up and skipping numbers the text
+writes. A book is added to by key (`addToOwn` takes a key, the default, or a new
+title).
 
 The songs are reviewed as a book is (ADR-0027), as a container the person never
 sees. Each book of yours answers the review with a status: its next number, the

@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { books, openFinder, watchErrors } from "./helpers.ts";
 
-// Assorted Hymns, end to end (SDD-0004 §17, Board #58): paste a song, add it,
+// Your books, end to end (SDD-0004 §17, Board #58): paste a song, add it,
 // find it, present it, remove it. Both songs are invented.
 const MALAYALAM_TITLE = "പ്രഭാത ദീപം";
 const MALAYALAM_TEXT = `1. ${MALAYALAM_TITLE}
@@ -9,7 +9,7 @@ const MALAYALAM_TEXT = `1. ${MALAYALAM_TITLE}
 പ്രഭാതത്തിൽ ദീപം തെളിയുന്നു
 മലമുകളിൽ നിഴൽ മായുന്നു`;
 const ENGLISH_TITLE = "Harbor Lantern";
-const ENGLISH_TEXT = `1. ${ENGLISH_TITLE}
+const ENGLISH_TEXT = `${ENGLISH_TITLE}
 
 The lantern glows above the quay
 and gulls go wheeling home`;
@@ -46,21 +46,26 @@ async function addSong(
   text: string,
   title: string,
   language: { search: string } | { suggested: string },
+  newBook?: string,
 ): Promise<void> {
   await page.getByRole("button", { name: "From Text" }).click();
   const dialog = page.getByRole("dialog", { name: "From Text" });
+  if (newBook) {
+    await dialog.getByLabel("Add to").selectOption({ label: "New book…" });
+    await dialog.getByLabel("Book name").fill(newBook);
+  }
   await dialog.getByLabel("Song text").fill(text);
   if ("search" in language) {
     const box = dialog.getByRole("combobox", { name: "Song’s language" });
     await box.click();
     await box.fill(language.search);
-    await page.getByRole("option").first().click();
+    await page.getByRole("listbox", { name: "Languages" }).getByRole("option").first().click();
   } else {
     await expect(dialog.getByText(`Looks like ${language.suggested}`)).toBeVisible();
   }
-  await dialog.getByRole("button", { name: "Review the Song" }).click();
+  await dialog.getByRole("button", { name: "Review Song" }).click();
   const review = page.getByRole("dialog", { name: "Add Song" });
-  await expect(review.getByRole("heading", { name: title })).toBeVisible();
+  await expect(review.getByRole("heading", { name: newBook ?? title }).first()).toBeVisible();
   await review.getByRole("button", { name: "Add Song" }).click();
   await expect(review).toBeHidden();
 }
@@ -132,12 +137,38 @@ test("Assorted Hymns: add two songs, find, present, remove", async ({ page }) =>
 
   // The last song takes the book with it.
   await sheet.getByRole("button", { name: `Remove ${MALAYALAM_TITLE}` }).click();
-  await expect(page.getByText(/Assorted Hymns goes with it/)).toBeVisible();
+  await expect(page.getByText(/the last one: the book goes with it/)).toBeVisible();
   await page.getByRole("button", { name: "Remove Song" }).click();
   await expect(sheet).toBeHidden();
   await expect(assortedRow(page)).toHaveCount(0);
   // Nothing is left: the Library is as it was on first load.
   await expect(page.getByRole("heading", { name: "Bring a songbook" })).toBeVisible();
+
+  expect(errors).toEqual([]);
+});
+
+test("a new book: named in the form, then offered the next time", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Bring a songbook" })).toBeVisible();
+
+  await addSong(page, ENGLISH_TEXT, ENGLISH_TITLE, { search: "English" }, "Harbor Songs");
+  await expect(page.getByRole("heading", { name: `${ENGLISH_TITLE} #1` })).toBeVisible();
+  await dismissStorageNotice(page);
+
+  // The book added to is the one the form offers next, and a song with no number takes the next.
+  await openLibrary(page);
+  await page.getByRole("button", { name: "From Text" }).click();
+  const dialog = page.getByRole("dialog", { name: "From Text" });
+  await expect(dialog.getByLabel("Add to")).toHaveValue(/.+/);
+  await expect(dialog.getByLabel("Add to").locator("option:checked")).toHaveText("Harbor Songs");
+  await dialog.getByLabel("Song text").fill(`${MALAYALAM_TITLE}\n\nപ്രഭാതത്തിൽ ദീപം തെളിയുന്നു`);
+  await expect(dialog.getByText("Looks like Malayalam")).toBeVisible();
+  await dialog.getByRole("button", { name: "Review Song" }).click();
+  const review = page.getByRole("dialog", { name: "Add Song" });
+  await expect(review.getByText(/Becomes song 2 in Harbor Songs/)).toBeVisible();
+  await review.getByRole("button", { name: "Add Song" }).click();
+  await expect(page.getByRole("heading", { name: `${MALAYALAM_TITLE} #2` })).toBeVisible();
 
   expect(errors).toEqual([]);
 });
