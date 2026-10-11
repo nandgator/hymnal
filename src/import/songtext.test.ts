@@ -448,3 +448,91 @@ describe("the book", () => {
     expect(validateCorpus(book.hymnbook, book.files)).toEqual([]);
   });
 });
+
+describe("pasted plain lyrics", () => {
+  const hymn = [
+    "Amazing grace! (how sweet the sound)",
+    "   That sav'd a wretch like me!",
+    "I once was lost, but now am found,",
+    "   Was blind, but now I see.",
+    "",
+    "'Twas grace that taught my heart to fear,",
+    "   And grace my fears reliev'd;",
+  ].join("\n");
+  const withNext = (text: string, next: number) => {
+    const r = parseSongText(text, { next });
+    if (!r.ok) throw new Error(JSON.stringify(r.errors));
+    return r.songs;
+  };
+
+  it("takes the first line as the title and as the first line of stanza 1", () => {
+    const [song] = withNext(hymn, 7);
+    expect(song.number).toBe(7);
+    expect(song.title).toBe("Amazing grace! (how sweet the sound)");
+    expect(song.parts[0]).toMatchObject({ kind: "stanza", label: "1" });
+    expect(song.parts[0].lines).toEqual([
+      "Amazing grace! (how sweet the sound)",
+      "That sav'd a wretch like me!",
+      "I once was lost, but now am found,",
+      "Was blind, but now I see.",
+    ]);
+    expect(song.parts[1]).toMatchObject({ label: "2" });
+    expect(song.parts[1].lines[1]).toBe("And grace my fears reliev'd;");
+  });
+
+  it("trims trailing , ; : from the title only", () => {
+    const [song] = withNext("Come, thou fount,\nof every blessing", 1);
+    expect(song.title).toBe("Come, thou fount");
+    expect(song.parts[0].lines[0]).toBe("Come, thou fount,");
+  });
+
+  it("reads a leading number as the song's number", () => {
+    const song = ok("12 Amazing grace\nhow sweet the sound").songs[0];
+    expect(song.number).toBe(12);
+    expect(song.title).toBe("Amazing grace");
+    expect(song.parts[0].lines).toEqual(["Amazing grace", "how sweet the sound"]);
+  });
+
+  it("keeps the strict reading when the second line is shaped like a detail", () => {
+    expect(errors("Amazing grace\nComposer: X\nline", 1)).toEqual([
+      { line: 2, message: '"Composer: X" is not a detail (Author, Tune, Meter or Sequence)' },
+      { line: 3, message: '"line" is not a detail (Author, Tune, Meter or Sequence)' },
+    ]);
+    const song = ok("1. Amazing grace\nAuthor: J N\n\nline").songs[0];
+    expect(song.meta).toEqual({ author: "J N" });
+    expect(song.parts[0].lines).toEqual(["line"]);
+  });
+
+  it("keeps a blank line after the title as the strict path", () => {
+    expect(ok("1. T\n\nx").songs[0].parts[0].lines).toEqual(["x"]);
+  });
+
+  it("numbers songs from next, skipping numbers written anywhere", () => {
+    const songs = withNext("A\nline a\n---\n2 B\nline b\n---\nC\nline c\n---\n5 D\nline d", 1);
+    expect(songs.map((s) => [s.number, s.title])).toEqual([
+      [1, "A"],
+      [2, "B"],
+      [3, "C"],
+      [5, "D"],
+    ]);
+  });
+
+  it("numbers from next when nothing is written", () => {
+    const songs = withNext("A\nline a\n---\nB\nline b", 10);
+    expect(songs.map((s) => s.number)).toEqual([10, 11]);
+  });
+
+  it("lets number win over next for a single song, and still errors without either", () => {
+    const r = parseSongText("A\nline", { number: 4, next: 9 });
+    expect(r.ok && r.songs[0].number).toBe(4);
+    expect(errors("A\nline")).toEqual([
+      { line: 1, message: "no number: write one on the title line or give it" },
+    ]);
+  });
+
+  it("still errors on a duplicate explicit number with next", () => {
+    const r = parseSongText("3 A\nline\n---\n3 B\nline\n---\nC\nline", { next: 1 });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors).toEqual([{ line: 4, message: "number 3 is also used on line 1" }]);
+  });
+});

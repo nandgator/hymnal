@@ -26,9 +26,25 @@ export type ParseResult =
   | { ok: false; errors: TextError[] };
 
 export interface ParseOptions {
-  /** The number of a single song whose first line has none. */
+  /**
+   * The number of a single song whose first line has none. It wins over `next`
+   * for that song; with several songs it is not used.
+   */
   number?: number;
+  /**
+   * Numbers for songs whose first line has none, counting up from here and
+   * skipping every number written explicitly anywhere in the text (so explicit
+   * numbers win and nothing collides). Without it, a song with no number is an
+   * error, unless `number` gives the single song's.
+   */
+  next?: number;
 }
+
+/** The number and the rest of a song's first line (§2.1). */
+const TITLE_NUMBER = /^(\d+)(?:\s*[.)]\s*|\s+|$)(.*)$/;
+
+/** A detail-shaped line: a short label of letters, spaces and hyphens, then a colon (§2.2). */
+const isDetailShaped = (text: string) => /^[A-Za-z-]+(?: [A-Za-z-]+){0,2}\s*:/.test(text);
 
 /** The label word of a block's first line → its kind (§2.3). */
 const LABEL_TABLE: Record<string, PartKind> = {
@@ -127,9 +143,26 @@ export function parseSongText(input: string, options: ParseOptions = {}): ParseR
 
   const single = songs.length === 1;
   const numbers = new Map<number, number>();
+  // Numbers written on a first line, so that `next` skips them.
+  const written = new Set<number>();
+  for (const song of songs) {
+    const first = song.find((l) => l.text !== "");
+    const n = first && TITLE_NUMBER.exec(first.text);
+    if (n) written.add(Number(n[1]));
+  }
+  let counter = options.next;
+  if (counter !== undefined && !(Number.isSafeInteger(counter) && counter >= 1)) {
+    err(1, "the next number must be a whole number, 1 or more");
+    counter = undefined;
+  }
+  const allocate = (): number | undefined => {
+    if (counter === undefined) return undefined;
+    while (written.has(counter)) counter++;
+    return counter++;
+  };
   const result: HymnSource[] = [];
   for (const song of songs) {
-    const hymn = parseSong(song, single, options, errors, notes, numbers);
+    const hymn = parseSong(song, single, options, allocate, errors, notes, numbers);
     if (hymn) result.push(hymn);
   }
 
@@ -143,6 +176,7 @@ function parseSong(
   all: Line[],
   single: boolean,
   options: ParseOptions,
+  allocate: () => number | undefined,
   errors: TextError[],
   notes: TextNote[],
   numbers: Map<number, number>,
@@ -150,13 +184,13 @@ function parseSong(
   const err = (line: number, message: string) => errors.push({ line, message });
   const start = all.findIndex((l) => l.text !== "");
   const title = all[start];
-  const body = all.slice(start + 1);
+  let body = all.slice(start + 1);
   const before = errors.length;
 
   // 2.1 The title line.
   let number: number | undefined;
   let name = title.text;
-  const m = /^(\d+)(?:\s*[.)]\s*|\s+|$)(.*)$/.exec(title.text);
+  const m = TITLE_NUMBER.exec(title.text);
   if (m) {
     number = Number(m[1]);
     name = m[2].trim();
@@ -171,7 +205,18 @@ function parseSong(
       err(title.no, "the number must be a whole number, 1 or more");
     }
   } else {
+    number = allocate(); // from `next`, free by construction
+  }
+  if (number === undefined) {
     err(title.no, single ? "no number: write one on the title line or give it" : "no number");
+  }
+  // A title line directly followed by a line that is no detail is the first
+  // lyric line as well: pasted lyrics have no separate title line.
+  const lenient =
+    name !== "" && body.length > 0 && body[0].text !== "" && !isDetailShaped(body[0].text);
+  if (lenient) {
+    body = [{ no: title.no, text: name }, ...body];
+    name = name.replace(/[,;:]+$/, "").trimEnd();
   }
   if (name === "") err(title.no, "the title is empty");
 
@@ -180,7 +225,7 @@ function parseSong(
   let sequence: { text: string; line: number } | undefined;
   let i = 0;
   const seen = new Set<string>();
-  for (; i < body.length && body[i].text !== ""; i++) {
+  for (; !lenient && i < body.length && body[i].text !== ""; i++) {
     const line = body[i];
     const d = /^([^:]+):(.*)$/.exec(line.text);
     const key = d?.[1].trim().toLowerCase();
@@ -218,6 +263,14 @@ function parseSong(
   let seenBlock = false;
   for (const b of blocks) {
     const first = b[0];
+    // In the lenient case the first line is lyrics, whatever it looks like.
+    if (lenient && b === blocks[0]) {
+      const draft: Draft = { kind: "stanza", lines: b.map((l) => l.text), first: first.no };
+      drafts.push(draft);
+      order.push(draft);
+      seenBlock = true;
+      continue;
+    }
     const isSequence = /^sequence\s*:/i.test(first.text);
     if (!isSequence) seenBlock = true;
     if (/^sequence\s*:/i.test(first.text)) {

@@ -43,18 +43,29 @@ The first line of a song (comments aside) is its number and title:
 
 The number is the hymn's number as printed: digits, a value of 1 or more.
 Numbers are unique in the file. The title is the rest of the line, as written;
-it must not be empty. There is no first-line fallback: the author writes the
-title.
+it must not be empty.
+
+If the line after the title line is not blank and is not a detail (section 2.2),
+the song is plain lyrics, as copied from the web. Then the title line is also
+the first line of the first block, and the title is that line with a trailing
+`,`, `;` or `:` removed. A number in front of it is still the number, and is not
+part of the title or the lyric line. Otherwise the author writes the title on a
+line of its own.
 
 When the file holds one song and its first line has no number, the number is
-asked for at the call (the app's field, the command line's `--number`). In a
-book, every song must carry a number. A title that starts with digits and a
-space, such as `1 2 3 Jesus Loves Me`, is read as number 1; write the number
-explicitly.
+asked for at the call (the app's field, the command line's `--number`). A caller
+may instead give a first number (`next`, used by the app): a song with no number
+then takes the next number from there that no song in the file writes. In the
+command line, every song in a book must carry a number. A title that starts with
+digits and a space, such as `1 2 3 Jesus Loves Me`, is read as number 1; write
+the number explicitly.
 
 ### 2.2 Details
 
-Directly after the title, with no blank line between, lines of the form
+Directly after the title, with no blank line between, lines that look like
+`Key: value`, where the key is up to three words of letters and hyphens, are
+details. Any other line there makes the song plain lyrics (section 2.1). The
+details are lines of the form
 
 ```text
 Author: John Newton
@@ -65,8 +76,10 @@ Meter: 8.6.8.6
 set `meta.author`, `meta.tune` and `meta.meter`. The key is matched without
 regard to case; the value is the rest of the line, trimmed, and must not be
 empty. Each key appears at most once. All are optional. The details end at the
-first blank line. A line in this position that is not one of these keys, or
-`Sequence:` (section 2.5), is an error: **no other key is accepted.**
+first blank line. A line in this position that looks like a detail but is not
+one of these keys, or `Sequence:` (section 2.5), is an error: **no other key is
+accepted.** Once one detail is read, every line up to the blank line must be
+one.
 
 ### 2.3 Blocks and labels
 
