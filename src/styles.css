@@ -5874,11 +5874,19 @@ fieldset.book-main {
   cursor: pointer;
 }
 
+/* The chevron's drawn glyph starts at 337/960 of its 1.25rem box, so the box
+   is pulled that far left (--advanced-inset) to put the glyph on the labels'
+   edge; the summary bleeds a further 0.5rem left as padding, which keeps the
+   hit target at least as wide as before and gives the focus ring room. */
 .advanced-summary {
+  --advanced-inset: calc(1.25rem * 337 / 960);
   display: inline-flex;
   gap: var(--space-xxs);
   align-items: center;
   min-height: 2.5rem;
+  margin-inline-start: calc(-1 * (var(--advanced-inset) + 0.5rem));
+  padding-inline: 0.5rem 0.25rem;
+  border-radius: var(--shape-sm);
   color: var(--md-sys-color-on-surface-variant);
   font-size: 0.875rem;
   font-weight: 500;
