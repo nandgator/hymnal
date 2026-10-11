@@ -5784,36 +5784,48 @@ fieldset.book-main {
   transform-origin: bottom left;
 }
 /* A soft blur and fade at an edge, only where more scrolls into view. The
-   strips are sticky and masked, so the list's own shadow is not clipped. Each
-   reaches the list's padding and a little past it (--pick-fade-reach): the
-   list's height is fractional while its scrollport, which a sticky box is held
-   to, is rounded, so a strip that stops exactly at the padding leaves the last
-   device pixel row of the list uncovered and a sharp sliver of the next row
-   shows there (Chromium at a fractional scale, and Firefox). */
+   strips are sticky, so the list's own shadow is not clipped. Each reaches the
+   list's padding and a little past it (--pick-fade-reach): the list's height is
+   fractional while its scrollport, which a sticky box is held to, is rounded,
+   so a strip that stops exactly at the padding leaves the last device pixel
+   row of the list uncovered and a sharp sliver of the next row shows there
+   (Chromium at a fractional scale). The outer --pick-fade-solid of what shows
+   is the list's own surface, opaque, and the fade starts from it: Firefox does
+   not blur a backdrop behind a sticky strip in a scroller, so a faded row would
+   show there sharp, and no engine may rely on the blur at the edge. No mask:
+   the gradient is the fade. */
 .pick-list {
   --pick-fade-reach: 4px;
+  --pick-fade-solid: 8px;
+  --pick-fade-edge: calc(var(--space-xs) + var(--pick-fade-reach) + var(--pick-fade-solid));
 }
 .pick-list::before,
 .pick-list::after {
   position: sticky;
   z-index: 2;
   display: none;
-  height: calc(1.75rem + var(--pick-fade-reach));
+  height: calc(1.75rem + var(--pick-fade-reach) + var(--pick-fade-solid));
   pointer-events: none;
   content: "";
   backdrop-filter: blur(3px);
 }
 .pick-list::before {
-  background: linear-gradient(to bottom, var(--md-sys-color-surface-container-high), transparent);
-  mask-image: linear-gradient(to bottom, #000 30%, transparent);
+  background: linear-gradient(
+    to bottom,
+    var(--md-sys-color-surface-container-high) var(--pick-fade-edge),
+    transparent
+  );
   top: calc(-1 * var(--space-xs) - var(--pick-fade-reach));
-  margin-bottom: calc(-1.75rem - var(--pick-fade-reach));
+  margin-bottom: calc(-1.75rem - var(--pick-fade-reach) - var(--pick-fade-solid));
 }
 .pick-list::after {
-  background: linear-gradient(to top, var(--md-sys-color-surface-container-high), transparent);
-  mask-image: linear-gradient(to top, #000 30%, transparent);
+  background: linear-gradient(
+    to top,
+    var(--md-sys-color-surface-container-high) var(--pick-fade-edge),
+    transparent
+  );
   bottom: calc(-1 * var(--space-xs) - var(--pick-fade-reach));
-  margin-top: calc(-1.75rem - var(--pick-fade-reach));
+  margin-top: calc(-1.75rem - var(--pick-fade-reach) - var(--pick-fade-solid));
 }
 .pick-list:is([data-fade="top"], [data-fade="both"])::before,
 .pick-list:is([data-fade="bottom"], [data-fade="both"])::after {
