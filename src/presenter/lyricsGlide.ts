@@ -1,15 +1,16 @@
 // The Lyrics list's current-part tint, and the scroll that centres it.
 //
-// The tint is one layer (`.seq-tint`, behind the text) that slides and
-// resizes from the old part to the new one, its leading edge arriving before
-// its trailing edge (it stretches over the new part, then lets go of the
-// old), landing together with the scroll as ONE motion: a single Web
-// Animation is the clock, and the scroll reads its eased progress each
-// frame, so the two can never drift apart (and a paused, seeked animation
-// moves both). A step far from where the tint is (a wrap, Home, End, a distant part) is a
-// sweep: the same glide, a little longer by the distance, so the card is seen
-// travelling and the text streams under it. A list shown anew, and reduced
-// motion, show the end state. The text's colour change
+// A step that scrolls moves only the scroll: the card stays on its part, in the
+// list's own coordinates, so it never slides across text that is itself
+// moving. The old part's card (a ghost, left where it was) fades out as the new
+// part's fades in, both riding the scroll. One Web Animation is the clock (the
+// new card's fade), and the scroll reads its eased progress each frame, so the
+// two can never drift apart (and a paused, seeked animation moves both). A
+// step far from where the card is (a wrap, Home, End, a distant part) is the
+// same, a little longer by the distance (a sweep). A step with next to no
+// scroll has no moving text to cross, so the card glides on its own, its
+// leading edge arriving before its trailing edge. A list shown anew, and
+// reduced motion, show the end state. The text's colour change
 // keeps to the tint: it eases with the glide (styles.css),
 // and goes at once when the tint snaps (`data-tint` on the list).
 
@@ -25,7 +26,9 @@ import {
   shownBox,
 } from "./glideGeometry.ts";
 
-export type TintMode = "snap" | "glide";
+// "carry": the card stays on its part and cross-fades with the old one's ghost
+// while the scroll moves it into place.
+export type TintMode = "snap" | "glide" | "carry";
 export type ScrollMode = "snap" | "glide";
 
 export interface GlidePlan {
@@ -46,7 +49,14 @@ export interface GlideInput {
   viewport: number;
   // Back to Current: the scroll glides however far it is.
   back?: boolean;
+  // A cross-fade is still under way: the next step carries too, so the card
+  // never jumps back to full strength.
+  carrying?: boolean;
 }
+
+// Less scroll than this and the card glides on its own: there is no moving
+// text for it to cross.
+export const CARRY_MIN_SCROLL = 8;
 
 /** What a step does: glide (a far jump sweeps, longer) or snap. Pure, for tests. */
 export function planGlide(input: GlideInput): GlidePlan {
@@ -56,6 +66,9 @@ export function planGlide(input: GlideInput): GlidePlan {
   // A card that has not moved has nothing to sweep: a far scroll just lands
   // (Back to Current glides it instead).
   if (input.tintTravel === 0 && farScroll) return { tint: "glide", scroll: "snap" };
+  if (input.tintTravel > 0 && (input.scrollTravel >= CARRY_MIN_SCROLL || input.carrying)) {
+    return { tint: "carry", scroll: "glide" };
+  }
   return { tint: "glide", scroll: "glide" };
 }
 
@@ -93,6 +106,10 @@ interface ListState {
   scrollTo: number | null;
   anim: Animation | null;
   stopScroll: (() => void) | null;
+  // The last step cross-faded, and may be fading still.
+  carry: boolean;
+  // Old cards fading out where they were.
+  ghosts: Set<HTMLElement>;
   // The list was hidden at the last step: centre it, unanimated, on show.
   centrePending: boolean;
   // The size observer, and the block it watches besides the list: the
@@ -110,6 +127,8 @@ const stateOf = (list: HTMLElement): ListState => {
       scrollTo: null,
       anim: null,
       stopScroll: null,
+      carry: false,
+      ghosts: new Set(),
       centrePending: false,
       observer: null,
       watched: null,
@@ -198,9 +217,42 @@ export function edgeBoxes(
 }
 
 const tintOf = (list: HTMLElement) =>
-  list.querySelector<HTMLElement>(":scope > .seq-tint") ?? undefined;
+  list.querySelector<HTMLElement>(":scope > .seq-tint:not(.seq-ghost)") ?? undefined;
+
+function clearGhosts(state: ListState) {
+  for (const ghost of state.ghosts) ghost.remove();
+  state.ghosts.clear();
+}
+
+// The card as it is now, left behind where it is to fade out: a copy at its
+// place and strength, in the list's coordinates, so it rides the scroll.
+function leaveGhost(
+  state: ListState,
+  tint: HTMLElement,
+  at: Box,
+  strength: number,
+  timing: { duration: number; easing: string },
+) {
+  const ghost = tint.cloneNode(false) as HTMLElement;
+  ghost.classList.add("seq-ghost");
+  ghost.removeAttribute("style");
+  paint(ghost, at);
+  tint.after(ghost);
+  state.ghosts.add(ghost);
+  const gone = () => {
+    ghost.remove();
+    state.ghosts.delete(ghost);
+  };
+  if (typeof ghost.animate !== "function") return gone();
+  const fade = ghost.animate([{ opacity: strength }, { opacity: 0 }], {
+    ...timing,
+    fill: "forwards",
+  });
+  onSettle(fade, gone);
+}
 
 function stop(state: ListState) {
+  state.carry = false;
   state.stopScroll?.();
   state.stopScroll = null;
   state.anim?.cancel();
@@ -305,6 +357,7 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean; back?:
   watchCurrent(state, targets?.block ?? null);
   if (!targets) {
     stop(state);
+    clearGhosts(state);
     state.box = null;
     state.scrollTo = null;
     if (tint) paint(tint, null);
@@ -331,8 +384,23 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean; back?:
     scrollTravel: Math.abs(scrollTo - list.scrollTop),
     viewport: list.clientHeight,
     back: options.back,
+    carrying: state.carry,
   });
+  const timing = glideTiming(list);
+  const scrolling = Math.abs(scrollTo - scrolledFrom);
+  const duration = options.back
+    ? backDuration(timing.duration, scrolling, list.clientHeight)
+    : sweepDuration(
+        timing.duration,
+        Math.max(Math.abs(to.y - (from ?? to).y), scrolling),
+        list.clientHeight,
+      );
+  // The card as it was is left to fade where it stood, at the strength it
+  // has (read before the old glide is let go).
+  const strength = tint ? Number.parseFloat(getComputedStyle(tint).opacity) : 1;
+  if (plan.tint === "snap") clearGhosts(state);
   stop(state);
+  state.carry = plan.tint === "carry";
   state.box = to;
   state.scrollTo = scrollTo;
   if (tint) paint(tint, to);
@@ -348,15 +416,7 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean; back?:
     return;
   }
 
-  const timing = glideTiming(list);
   const { easing } = timing;
-  const duration = options.back
-    ? backDuration(timing.duration, Math.abs(scrollTo - scrolledFrom), list.clientHeight)
-    : sweepDuration(
-        timing.duration,
-        Math.max(Math.abs(to.y - start.y), Math.abs(scrollTo - scrolledFrom)),
-        list.clientHeight,
-      );
   // A snapped tint with a gliding scroll still needs the clock: it holds
   // still (start equals end). The effect's easing stays the clock the
   // scroll reads; the edges' own timing is in the keyframes.
@@ -365,11 +425,18 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean; back?:
     ease && !sameBox(start, to)
       ? edgeBoxes(start, to, ease, EDGE_STEPS, { from: scrolledFrom, to: scrollTo })
       : [start, to];
-  const anim = tint.animate(
-    boxes.map((b, i) => ({ ...frame(b), offset: i / (boxes.length - 1) })),
-    { duration, easing },
-  );
+  // Carried, the card does not move: it fades in on its part, on the clock.
+  const anim =
+    plan.tint === "carry"
+      ? tint.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing })
+      : tint.animate(
+          boxes.map((b, i) => ({ ...frame(b), offset: i / (boxes.length - 1) })),
+          { duration, easing },
+        );
   state.anim = anim;
+  if (plan.tint === "carry" && from) {
+    leaveGhost(state, tint, from, Number.isNaN(strength) ? 1 : strength, { ...timing, duration });
+  }
   const settle = () => {
     if (state.anim === anim) state.anim = null;
   };
@@ -430,6 +497,7 @@ export function watchTint(list: HTMLElement): () => void {
     state.observer = null;
     state.watched = null;
     stop(state);
+    clearGhosts(state);
     states.delete(list);
   };
 }

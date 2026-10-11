@@ -35,9 +35,8 @@ describe("planGlide", () => {
       tint: "carry",
       scroll: "glide",
     });
-    // A card that does not move, or a far jump, has nothing to carry.
+    // A card that does not move has nothing to carry.
     expect(planGlide({ ...base, tintTravel: 0, carrying: true }).tint).toBe("glide");
-    expect(planGlide({ ...base, tintTravel: 2400, carrying: true }).tint).toBe("glide");
   });
 
   it("keeps a line step's tint where it is, with a gliding scroll", () => {
@@ -52,8 +51,10 @@ describe("planGlide", () => {
     expect(planGlide({ ...base, reduced: true })).toEqual({ tint: "snap", scroll: "snap" });
   });
 
-  it("sweeps a far tint jump (a wrap): the card and the list glide together", () => {
-    expect(planGlide({ ...base, tintTravel: 2400 })).toEqual({ tint: "glide", scroll: "glide" });
+  it("sweeps a far tint jump (a wrap): the card is carried and the list glides", () => {
+    expect(planGlide({ ...base, tintTravel: 2400 })).toEqual({ tint: "carry", scroll: "glide" });
+    // No scroll to ride, far or not: the card glides on its own.
+    expect(planGlide({ ...base, tintTravel: 2400, scrollTravel: 0 }).tint).toBe("glide");
   });
 
   it("lands a far scroll under a card that has not moved (nothing eases)", () => {
@@ -89,7 +90,7 @@ describe("planGlide", () => {
       scroll: "glide",
     });
     expect(planGlide({ ...base, tintTravel: 1200, scrollTravel: 3000 })).toEqual({
-      tint: "glide",
+      tint: "carry",
       scroll: "glide",
     });
   });
@@ -496,10 +497,12 @@ describe("glideLyrics", () => {
       glideLyrics(list, { still: true });
       current(1);
       glideLyrics(list, { still: false });
-      expect(anims).toHaveLength(1);
+      // The new card's fade is the clock; the old card's fades beside it.
+      expect(anims).toHaveLength(2);
       const { keyframes, options } = calls[0];
-      expect(keyframes).toHaveLength(25);
-      expect(keyframes.some((k) => "opacity" in k)).toBe(false);
+      expect(keyframes.map((k) => k.opacity)).toEqual([0, 1]);
+      expect(keyframes.some((k) => "transform" in k)).toBe(false);
+      expect(calls[1].options.duration).toBe(options.duration);
       expect(options.duration).toBeGreaterThan(250);
       expect(options.duration).toBeLessThanOrEqual(400);
       // Scroll 0 to 750 (the last block is centred) rides the progress.
