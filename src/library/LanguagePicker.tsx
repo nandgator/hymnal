@@ -202,6 +202,7 @@ export function LanguagePicker(props: LanguagePickerProps) {
             id={listId}
             label="Languages"
             box={() => box}
+            onDismiss={close}
             track={() => [active(), shown()]}
             listRef={(el) => {
               list = el;

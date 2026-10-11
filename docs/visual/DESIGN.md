@@ -827,28 +827,21 @@ view is close enough to the frame to need a smaller unit.
     has a sentence under it. Remove is in its menu.
   - **The menu** is the Menu component with its list kept for one item:
     **Remove…** with "Drops the book and its Recents". A shipped book's is
-    disabled, "Shipped with the app".
+    disabled, "Shipped with the app". A book of yours has **Rename…** ("Gives
+    the book a new title") above it.
   - **Your books** (Board #58, #60; SDD-0004 §17, ADR-0033) are the books the
     person makes: Assorted Hymns, the default, and any number of others. Their
     rows sit first, above every other row, in the order added. A row is the same
     row, with no language and no Shipped or Loaded tag: its title, and the meta
-    line `Current · N songs`. Its tap does not choose the book: it opens **the
-    book's sheet**, a tall sheet titled by the book, a tonal **Rename** at its
-    head, and its songs in the order the book lists them (language, then title,
-    then number). Each song is a row of a 40px tile holding its number, the
-    title in the hymn face (two lines, then an ellipsis) with the song's
-    language under it, and a text **Remove**; a tap on the song itself opens it
-    in the Operator. **Rename** slides a second page into the same sheet (the
-    header reads Back): a Title field and a filled **Rename Book**, disabled
-    while the title is empty or unchanged; a refusal is the field's error.
-    Remove does not act: it slides a page, **Remove Song**, which is the book's
-    removal sheet for one song: the title, "This removes" with the song (or, for
-    the last one, "the last one: the book goes with it") and its Recents, a note
-    that its number is retired and never given to another song, and a red
-    **Remove Song**. A song on the Output is refused until End Live, as a book
-    is. Removing the last song takes the book and closes the sheet. The ⋯ menu
-    removes the whole book like any other, naming no language. A damaged book of
-    yours has no Load Again, since a file would replace it with a book.
+    line `Current · N songs`. Its tap is any book's: it makes the book current
+    and the Finder, aimed at it, opens; there is no sheet of its songs.
+    **Rename…** in its ⋯ menu opens a small sheet, **Rename Book**, in Remove's
+    shape: a Title field (filled with the title) and a filled **Rename Book**,
+    disabled while the title is empty or unchanged; a refusal is the field's
+    error, and Cancel closes it. **Remove…** removes the whole book like any
+    other, naming no language. Removing a single song has no screen for now: it
+    waits for the CMS (Board #14). A damaged book of yours has no Load Again,
+    since a file would replace it with a book.
   - **The footer** says where the books live. Once a book of yours is held it
     adds "Your books have no file: Back Up keeps them."
   - **From Text** (Board #34, #61; SDD-0004 §9, §17) is a text button left of
@@ -872,9 +865,13 @@ view is close enough to the frame to need a smaller unit.
     shadow; it is clamped to the card's box (its room ends 16px short of the
     card's edge), flips above the field when there is no room below, scrolls
     inside its own maximum height with a soft blur and fade at an edge only
-    while more scrolls that way, and never changes the card's size. A click on
-    the field or its chevron toggles it, Escape closes the list and not the
-    sheet, a tap outside closes it. It ends in **Other…** to type a code. A
+    while more scrolls that way, with a **scrim** over the card's content while
+    it is open (a layer in the card, clipped by its corners: a 6px blur and the
+    card's colour at 88%, so the form reads as texture; the field it belongs to
+    stays above it; fades with the list, snaps under reduced motion; a tap on it
+    closes the list and goes no further), and never changes the card's size. A
+    click on the field or its chevron toggles it, Escape closes the list and not
+    the sheet, a tap outside closes it. It ends in **Other…** to type a code. A
     suggestion from the song text ("Looks like …") fills the language until the
     person picks. Once a language is set, a quiet line, "Script: Malayalam
     (Mlym) · Change", the script derived from the language and a field ("Script

@@ -289,9 +289,9 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     expect(dialog.getByLabelText("Song text")).toHaveValue("");
   });
 
-  it("Cancel in the review goes back to the text, which is kept", async () => {
+  it("Back in the review goes back to the text, which is kept", async () => {
     const { s, reviewDialog } = await toReview();
-    fireEvent.click(reviewDialog.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(reviewDialog.getByRole("button", { name: "Back" }));
     const dialog = within(await screen.findByRole("dialog", { name: "From Text" }));
     expect(dialog.getByLabelText("Song text")).toHaveValue(SAMPLE);
     expect(s.admin.commit).not.toHaveBeenCalled();

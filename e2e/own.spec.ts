@@ -76,7 +76,7 @@ const assortedRow = (page: Page): Locator =>
     .locator("li.book")
     .filter({ has: page.locator(".book-main", { hasText: "Assorted Hymns" }) });
 
-test("Assorted Hymns: add two songs, find, present, remove", async ({ page }) => {
+test("Assorted Hymns: add two songs, find, present, open, rename, remove", async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Bring a songbook" })).toBeVisible();
@@ -118,30 +118,31 @@ test("Assorted Hymns: add two songs, find, present, remove", async ({ page }) =>
   await page.keyboard.press("f");
   await expect(presenting).toBeHidden();
 
-  // The sheet lists English before Malayalam (language, then title), though
-  // the Malayalam song is number 1.
+  // It opens like any book: its row makes it current and aims the Finder at it.
   await openLibrary(page);
   await assortedRow(page).locator(".book-main").click();
-  const sheet = page.getByRole("dialog", { name: "Assorted Hymns" });
-  const rows = sheet.getByRole("list", { name: "Songs" }).locator("li.book");
-  await expect(rows).toHaveCount(2);
-  await expect(rows.nth(0)).toContainText(ENGLISH_TITLE);
-  await expect(rows.nth(1)).toContainText(MALAYALAM_TITLE);
+  await expect(page.getByRole("combobox", { name: "Find a song" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await openLibrary(page);
+  await expect(assortedRow(page)).toContainText("Current");
 
-  // Remove one, after its confirmation.
-  await sheet.getByRole("button", { name: `Remove ${ENGLISH_TITLE}` }).click();
-  const confirm = page.getByRole("dialog", { name: "Remove Song" });
-  await expect(confirm.getByText(/Number 2 is retired/)).toBeVisible();
-  await confirm.getByRole("button", { name: "Remove Song" }).click();
-  await expect(rows).toHaveCount(1);
-  await expect(rows.first()).toContainText(MALAYALAM_TITLE);
+  // Rename… is in its menu, and asks for the new title in a small sheet.
+  await assortedRow(page).getByRole("button", { name: "More for Assorted Hymns" }).click();
+  await page.getByRole("menuitem", { name: /Rename…/ }).click();
+  const rename = page.getByRole("dialog", { name: "Rename Book" });
+  await rename.getByLabel("Title").fill("Harbor Songs");
+  await rename.getByRole("button", { name: "Rename Book" }).click();
+  await expect(rename).toBeHidden();
+  await expect(books(page).locator("li.book").first()).toContainText("Harbor Songs");
 
-  // The last song takes the book with it.
-  await sheet.getByRole("button", { name: `Remove ${MALAYALAM_TITLE}` }).click();
-  await expect(page.getByText(/the last one: the book goes with it/)).toBeVisible();
-  await page.getByRole("button", { name: "Remove Song" }).click();
-  await expect(sheet).toBeHidden();
-  await expect(assortedRow(page)).toHaveCount(0);
+  // Remove… is the book's, as for any book; its songs go with it.
+  await books(page).getByRole("button", { name: "More for Harbor Songs" }).click();
+  await page.getByRole("menuitem", { name: /Remove…/ }).click();
+  await page
+    .getByRole("dialog", { name: "Remove Book" })
+    .getByRole("button", { name: "Remove Book" })
+    .click();
+  await expect(books(page)).toHaveCount(0);
   // Nothing is left: the Library is as it was on first load.
   await expect(page.getByRole("heading", { name: "Bring a songbook" })).toBeVisible();
 

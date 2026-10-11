@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { booksReady, mocks, openFinder } from "./App.testkit.tsx";
+import { booksReady, mocks } from "./App.testkit.tsx";
 import App from "./App.tsx";
 import type { BookRow } from "./persistence/content-store.ts";
 
@@ -52,76 +52,6 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     });
     afterEach(() => {
       mocks.assortedLast = true;
-    });
-
-    /** Assorted Hymns' song 1 on screen, and the Library open on its sheet of songs. */
-    async function songUpThenSheet() {
-      mocks.rows = [first(), assorted()];
-      mocks.recents = [{ hymnbookId: "as1", hymnNumber: 1, viewedAt: 2 }];
-      render(() => <App />);
-      await openFinder();
-      fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
-        target: { value: "1" },
-      });
-      fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
-      await within(screen.getByRole("navigation", { name: "Hymnbook and song" })).findByRole(
-        "button",
-        { name: /#1/ },
-      );
-      const sections = within(screen.getByRole("navigation", { name: "Sections" }));
-      fireEvent.click(sections.getByRole("button", { name: "Library" }));
-      fireEvent.click(
-        await within(await screen.findByRole("list", { name: "Books" })).findByRole("button", {
-          name: /^Assorted Hymns/,
-        }),
-      );
-      const sheet = within(await screen.findByRole("dialog", { name: "Assorted Hymns" }));
-      fireEvent.click(await sheet.findByRole("button", { name: "Remove Mocked Hymn" }));
-      return { sections, sheet };
-    }
-
-    it("removing the song on screen, with the Output closed, clears it and keeps the book", async () => {
-      mocks.assortedLast = false;
-      const { sections, sheet } = await songUpThenSheet();
-      // The Output has not answered yet, so it counts as live: wait for it to be heard from.
-      await waitFor(
-        () => expect(sheet.getByRole("button", { name: "Remove Song" })).toBeEnabled(),
-        {
-          timeout: 5000,
-        },
-      );
-      fireEvent.click(sheet.getByRole("button", { name: "Remove Song" }));
-      await waitFor(() =>
-        expect(sheet.queryByRole("button", { name: "Remove Song" })).not.toBeInTheDocument(),
-      );
-      fireEvent.click(sections.getByRole("button", { name: "Present" }));
-      // No song is left up: the Finder, not the Presenter, and the book is still held.
-      expect(await screen.findByRole("combobox", { name: "Find a song" })).toBeInTheDocument();
-      expect(
-        within(screen.getByRole("navigation", { name: "Hymnbook and song" })).queryByRole(
-          "button",
-          { name: /#1/ },
-        ),
-      ).not.toBeInTheDocument();
-      expect(mocks.rows.some((book) => book.kind === "own")).toBe(true);
-    });
-
-    it("removing the last song while Assorted Hymns is the current book chooses another current book", async () => {
-      const { sections, sheet } = await songUpThenSheet();
-      await waitFor(
-        () => expect(sheet.getByRole("button", { name: "Remove Song" })).toBeEnabled(),
-        {
-          timeout: 5000,
-        },
-      );
-      fireEvent.click(sheet.getByRole("button", { name: "Remove Song" }));
-      await waitFor(() =>
-        expect(screen.queryByRole("button", { name: /^Assorted Hymns/ })).not.toBeInTheDocument(),
-      );
-      fireEvent.click(sections.getByRole("button", { name: "Present" }));
-      expect(await screen.findByText("Searching", { exact: false })).toHaveTextContent(
-        "Searching Mocked Hymnbook",
-      );
     });
 
     it("the first song added, with storage refused, says its own note, and Back Up opens the Backup section", async () => {

@@ -141,7 +141,6 @@ function setup(options: Setup = {}) {
     }),
   } satisfies LibraryAdmin;
   const store = { ensureInstalled: vi.fn(async () => ({ state: "ready" as const })) };
-  const hymnStore = { listHymns: vi.fn(async () => songs) };
   const userState = {
     getRecents: vi.fn(async () => [
       { hymnbookId: "as1", hymnNumber: 4, viewedAt: 3 },
@@ -152,16 +151,15 @@ function setup(options: Setup = {}) {
   };
   const onChoose = vi.fn();
   const onOpenSong = vi.fn();
-  const onSongRemoved = vi.fn();
   const onNotice = vi.fn();
   const onTextBook = vi.fn();
   const persist = vi.fn(async () => "granted" as const);
   const view = (
     props: {
       presentedKey?: string;
-      presentedNumber?: number;
       outputLive?: boolean;
       textBook?: string;
+      onOpen?: (key: string) => void;
     } = {},
   ) =>
     render(() => {
@@ -171,16 +169,14 @@ function setup(options: Setup = {}) {
           books={books}
           currentKey="mal"
           presentedKey={props.presentedKey}
-          presentedNumber={props.presentedNumber}
           outputLive={props.outputLive}
           onChoose={onChoose}
+          onOpen={props.onOpen}
           onOpenSong={onOpenSong}
-          onSongRemoved={onSongRemoved}
           onNotice={onNotice}
           textBook={props.textBook}
           onTextBook={onTextBook}
           admin={admin}
-          store={hymnStore}
           userState={userState}
           persist={persist}
           sample={[]}
@@ -189,11 +185,9 @@ function setup(options: Setup = {}) {
     });
   return {
     admin,
-    hymnStore,
     userState,
     onChoose,
     onOpenSong,
-    onSongRemoved,
     onNotice,
     onTextBook,
     view,
@@ -632,7 +626,7 @@ describe("Review: several songs", () => {
   });
 });
 
-describe("Library: your books, their row and sheet", () => {
+describe("Library: your books, their row and menu", () => {
   it("sits first, under Your books, labelled by its song count and no language", async () => {
     setup().view();
     const list = await screen.findByRole("list", { name: "Books" });
@@ -646,7 +640,7 @@ describe("Library: your books, their row and sheet", () => {
     expect(within(list).getByText("Books")).toBeInTheDocument();
   });
 
-  it("lists every book of yours first, then the rest, each opening its own songs", async () => {
+  it("lists every book of yours first, then the rest", async () => {
     const camp = assortedRow({
       key: "c1",
       origin: "own",
@@ -661,9 +655,6 @@ describe("Library: your books, their row and sheet", () => {
       .getAllByRole("listitem")
       .map((li) => li.getAttribute("data-book"));
     expect(keys).toEqual(["c1", "as1", "mal", "k1"]);
-    fireEvent.click(screen.getByRole("button", { name: /^Camp Songs/ }));
-    await screen.findByRole("dialog", { name: "Camp Songs" });
-    expect(s.hymnStore.listHymns).toHaveBeenCalledWith("c1");
   });
 
   it("shows no group heading when there are no books of yours", async () => {
@@ -672,115 +663,54 @@ describe("Library: your books, their row and sheet", () => {
     expect(within(list).queryByText("Your books")).not.toBeInTheDocument();
   });
 
-  it("opens a sheet of its songs in the order listHymns gives, each with Remove", async () => {
+  it("opens like any book: its row makes it current and aims the Finder at it", async () => {
     const s = setup();
-    s.view();
+    const onOpen = vi.fn();
+    s.view({ onOpen });
     fireEvent.click(await screen.findByRole("button", { name: /^Assorted Hymns/ }));
-    const dialog = within(await screen.findByRole("dialog", { name: "Assorted Hymns" }));
-    const list = await dialog.findByRole("list", { name: "Songs" });
-    const titles = within(list)
-      .getAllByRole("listitem")
-      .map((li) => li.querySelector(".book-title")?.textContent);
-    expect(titles).toEqual(["Amazing Grace", "Rock of Ages", "ദൈവത്തിനു സ്തോത്രം"]);
-    expect(within(list).getAllByRole("button", { name: /^Remove / })).toHaveLength(3);
-    expect(s.hymnStore.listHymns).toHaveBeenCalledWith("as1");
+    await waitFor(() => expect(s.onChoose).toHaveBeenCalledWith("as1"));
+    expect(onOpen).toHaveBeenCalledWith("as1");
+    expect(s.admin.openBook).toHaveBeenCalledWith("as1");
+    // No sheet of its songs: the book is opened, not managed.
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("a song's title opens it in the Operator", async () => {
-    const s = setup();
-    s.view();
-    fireEvent.click(await screen.findByRole("button", { name: /^Assorted Hymns/ }));
-    fireEvent.click(await screen.findByRole("button", { name: "Open Rock of Ages" }));
-    expect(s.onOpenSong).toHaveBeenCalledWith("as1", 2);
-    expect(s.onChoose).toHaveBeenCalledWith("as1");
+  it("its menu has Rename… and Remove…", async () => {
+    setup().view();
+    fireEvent.click(await screen.findByRole("button", { name: "More for Assorted Hymns" }));
+    expect(screen.getByRole("menuitem", { name: /Rename…/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Remove…/ })).toBeInTheDocument();
   });
 
-  it("Remove asks first, naming the song and what goes; Back removes nothing", async () => {
+  it("Rename… takes a new title in a small sheet, and the book is renamed in the Library", async () => {
     const s = setup();
     s.view();
-    fireEvent.click(await screen.findByRole("button", { name: /^Assorted Hymns/ }));
-    const dialog = within(await screen.findByRole("dialog", { name: "Assorted Hymns" }));
-    fireEvent.click(await dialog.findByRole("button", { name: "Remove Rock of Ages" }));
-    expect(await dialog.findByText("Its Recents: 1 entry.")).toBeInTheDocument();
-    expect(dialog.getByText(/Number 2 is retired/)).toBeInTheDocument();
-    expect(s.admin.removeOwnSong).not.toHaveBeenCalled();
-    fireEvent.click(dialog.getByRole("button", { name: "Back" }));
-    expect(s.admin.removeOwnSong).not.toHaveBeenCalled();
-    expect(s.userState.dropSong).not.toHaveBeenCalled();
-  });
-
-  it("confirming removes the song and its recents, and the list is read again", async () => {
-    const s = setup();
-    s.view();
-    fireEvent.click(await screen.findByRole("button", { name: /^Assorted Hymns/ }));
-    const dialog = within(await screen.findByRole("dialog", { name: "Assorted Hymns" }));
-    fireEvent.click(await dialog.findByRole("button", { name: "Remove Rock of Ages" }));
-    fireEvent.click(await dialog.findByRole("button", { name: "Remove Song" }));
-    await waitFor(() => expect(s.admin.removeOwnSong).toHaveBeenCalledWith("as1", 2));
-    expect(s.userState.dropSong).toHaveBeenCalledWith("as1", 2);
-    expect(s.userState.dropRecents).not.toHaveBeenCalled();
-    await waitFor(() => expect(s.onSongRemoved).toHaveBeenCalledWith("as1", 2));
-    await waitFor(() =>
-      expect(dialog.queryByRole("button", { name: "Remove Rock of Ages" })).not.toBeInTheDocument(),
-    );
-    expect(dialog.getByRole("button", { name: "Remove Amazing Grace" })).toBeInTheDocument();
-  });
-
-  it("the last song removed takes the book, and the sheet closes", async () => {
-    const s = setup({
-      rows: [shipped, assortedRow({ songs: 1 })],
-      songs: [SONGS[0] as (typeof SONGS)[number]],
-    });
-    s.view();
-    fireEvent.click(await screen.findByRole("button", { name: /^Assorted Hymns/ }));
-    const sheet = await screen.findByRole("dialog", { name: "Assorted Hymns" });
-    const dialog = within(sheet);
-    fireEvent.click(await dialog.findByRole("button", { name: "Remove Amazing Grace" }));
-    expect(await dialog.findByText(/the last one: the book goes with it/)).toBeInTheDocument();
-    fireEvent.click(await dialog.findByRole("button", { name: "Remove Song" }));
-    await waitFor(() => expect(s.userState.dropRecents).toHaveBeenCalledWith("as1"));
-    await waitFor(() => expect(sheet).not.toHaveAttribute("open"));
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: /^Assorted Hymns/ })).not.toBeInTheDocument(),
-    );
-  });
-
-  it("a song on the Output is not removed until End Live", async () => {
-    const s = setup();
-    s.view({ presentedKey: "as1", presentedNumber: 2, outputLive: true });
-    fireEvent.click(await screen.findByRole("button", { name: /^Assorted Hymns/ }));
-    const dialog = within(await screen.findByRole("dialog", { name: "Assorted Hymns" }));
-    fireEvent.click(await dialog.findByRole("button", { name: "Remove Rock of Ages" }));
-    expect(await dialog.findByText(/on the Output now/)).toBeInTheDocument();
-    expect(dialog.getByRole("button", { name: "Remove Song" })).toBeDisabled();
-    expect(s.admin.removeOwnSong).not.toHaveBeenCalled();
-  });
-
-  it("Rename takes a new title on a second page, and the book is renamed in the Library", async () => {
-    const s = setup();
-    s.view();
-    fireEvent.click(await screen.findByRole("button", { name: /^Assorted Hymns/ }));
-    const dialog = within(await screen.findByRole("dialog", { name: "Assorted Hymns" }));
-    fireEvent.click(await dialog.findByRole("button", { name: "Rename" }));
+    fireEvent.click(await screen.findByRole("button", { name: "More for Assorted Hymns" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Rename…/ }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Rename Book" }));
     const title = await dialog.findByLabelText("Title");
     expect(title).toHaveValue("Assorted Hymns");
     // Unchanged, there is nothing to rename.
     expect(dialog.getByRole("button", { name: "Rename Book" })).toBeDisabled();
+    fireEvent.input(title, { target: { value: "  " } });
+    expect(dialog.getByRole("button", { name: "Rename Book" })).toBeDisabled();
     fireEvent.input(title, { target: { value: "  Sunday Songs " } });
     fireEvent.click(dialog.getByRole("button", { name: "Rename Book" }));
     await waitFor(() => expect(s.admin.renameOwn).toHaveBeenCalledWith("as1", "Sunday Songs"));
-    expect(await screen.findByRole("dialog", { name: "Sunday Songs" })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Rename Book" })).not.toBeInTheDocument(),
+    );
     expect(screen.getAllByText("Sunday Songs").length).toBeGreaterThan(0);
   });
 
-  it("says why a rename was refused and keeps the page", async () => {
+  it("says why a rename was refused and keeps the sheet", async () => {
     const s = setup({
       renamed: { ok: false, reason: "invalid", message: "Give the book a title." },
     });
     s.view();
-    fireEvent.click(await screen.findByRole("button", { name: /^Assorted Hymns/ }));
-    const dialog = within(await screen.findByRole("dialog", { name: "Assorted Hymns" }));
-    fireEvent.click(await dialog.findByRole("button", { name: "Rename" }));
+    fireEvent.click(await screen.findByRole("button", { name: "More for Assorted Hymns" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Rename…/ }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Rename Book" }));
     fireEvent.input(await dialog.findByLabelText("Title"), { target: { value: "X" } });
     fireEvent.click(dialog.getByRole("button", { name: "Rename Book" }));
     expect(await dialog.findByRole("alert")).toHaveTextContent("Give the book a title.");
@@ -823,14 +753,6 @@ describe("Assorted Hymns while the Output is live, and a review closed mid-add",
     fireEvent.click(review.getByRole("button", { name: "Open Song" }));
     expect(s.onOpenSong).toHaveBeenCalledWith("as1", 4);
     expect(s.onNotice).not.toHaveBeenCalled();
-  });
-
-  it("while live, a song opened from the sheet is shown the same way", async () => {
-    const s = setup();
-    s.view({ outputLive: true });
-    fireEvent.click(await screen.findByRole("button", { name: /^Assorted Hymns/ }));
-    fireEvent.click(await screen.findByRole("button", { name: "Open Rock of Ages" }));
-    expect(s.onOpenSong).toHaveBeenCalledWith("as1", 2);
   });
 
   it("a review closed while the song is written says it was added, and does not present it", async () => {
