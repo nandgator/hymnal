@@ -54,6 +54,76 @@ describe("Sheet", () => {
     expect(scroller).toHaveTextContent("Body");
   });
 
+  describe("one sheet replacing another", () => {
+    // jsdom has no dialog modality or animations: stand in for both, with an
+    // exit animation that never ends, as a slow one would be mid-way.
+    function stub() {
+      HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+        this.setAttribute("open", "");
+      };
+      HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+        this.removeAttribute("open");
+      };
+      Object.defineProperty(HTMLElement.prototype, "getAnimations", {
+        configurable: true,
+        value: () => [{ finished: new Promise(() => {}) }],
+      });
+    }
+    afterEach(() => {
+      // biome-ignore lint/performance/noDelete: restoring jsdom's lack of the method
+      delete (HTMLElement.prototype as { getAnimations?: unknown }).getAnimations;
+    });
+
+    function pair() {
+      stub();
+      const [a, setA] = createSignal(false);
+      const [b, setB] = createSignal(false);
+      const view = render(() => (
+        <>
+          <Sheet open={a()} onClose={() => setA(false)} title="Settings">
+            <p>Settings body</p>
+          </Sheet>
+          <Sheet open={b()} onClose={() => setB(false)} title="Search">
+            <p>Search body</p>
+          </Sheet>
+        </>
+      ));
+      const [first, second] = Array.from(view.container.querySelectorAll("dialog"));
+      return { setA, setB, first: first as HTMLDialogElement, second: second as HTMLDialogElement };
+    }
+
+    it("opens from nothing and closes to nothing with the usual motion", () => {
+      const { setA, first } = pair();
+      setA(true);
+      expect(first.hasAttribute("data-swap")).toBe(false);
+      setA(false);
+      expect(first.hasAttribute("data-closing")).toBe(true);
+    });
+
+    it("closes the outgoing sheet at once and opens the incoming one as a swap, so no backdrop fades", () => {
+      const { setA, setB, first, second } = pair();
+      setA(true);
+      // What the app does: close the open sheet, then open the next.
+      setA(false);
+      setB(true);
+      expect(first.hasAttribute("open")).toBe(false);
+      expect(first.hasAttribute("data-closing")).toBe(false);
+      expect(screen.queryByText("Settings body")).not.toBeInTheDocument();
+      expect(second.hasAttribute("open")).toBe(true);
+      expect(second.hasAttribute("data-swap")).toBe(true);
+    });
+
+    it("a sheet closed after a swap sinks away as usual", () => {
+      const { setA, setB, second } = pair();
+      setA(true);
+      setA(false);
+      setB(true);
+      setB(false);
+      expect(second.hasAttribute("data-swap")).toBe(false);
+      expect(second.hasAttribute("data-closing")).toBe(true);
+    });
+  });
+
   describe("nested pages", () => {
     // A sheet whose root has a row that pushes a page, like Settings.
     function nested(direct = false) {
