@@ -5755,6 +5755,31 @@ fieldset.book-main {
   animation: menu-in var(--motion-short) var(--motion-emphasized);
   transform-origin: top left;
 }
+/* The card behind an open list: its content blurred and dimmed in the card's
+   colour until it reads as texture. A layer in the dialog (which clips the
+   corners), above the content and the header, below the field the list
+   belongs to (.pick-lifted). It fades with the list. */
+.pick-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background-color: color-mix(in srgb, var(--md-sys-color-surface-container-low) 88%, transparent);
+  backdrop-filter: blur(6px);
+  animation: fade-in var(--motion-short) var(--motion-emphasized);
+}
+.pick-scrim[data-leaving] {
+  animation: fade-out var(--motion-short) var(--motion-emphasized) forwards;
+}
+.pick-lifted {
+  position: relative;
+  z-index: 4;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pick-scrim,
+  .pick-scrim[data-leaving] {
+    animation: none;
+  }
+}
 .pick-list-above {
   transform-origin: bottom left;
 }

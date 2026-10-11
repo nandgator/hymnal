@@ -12,6 +12,8 @@ export interface PickListProps {
   track?: () => unknown;
   /** The list element, for scrolling the active row into view. */
   listRef?: (el: HTMLDivElement) => void;
+  /** A tap on the scrim behind the list: close it. */
+  onDismiss?: () => void;
   children: JSX.Element;
 }
 
@@ -23,10 +25,47 @@ export interface PickListProps {
  * a soft blur and fade at an edge while more scrolls that way. The rows are
  * `.pick-row`; the active one is `aria-selected="true"` (the hover highlight
  * glides to it) and the current one carries `data-current` (the tonal pill).
+ *
+ * While it is open the sheet's card behind it wears a scrim (`.pick-scrim`, a
+ * layer in the card, not in the top layer): the card's content dimmed and
+ * blurred to texture, so nothing of the form reads half cut at the list's edge.
+ * The field the list belongs to is lifted above it. A tap on the scrim closes
+ * the list and goes no further.
  */
 export function PickList(props: PickListProps) {
   let list: HTMLDivElement | undefined;
   let glide: GlideList | undefined;
+
+  // The scrim lives in the card (the dialog, which clips its corners) from the list's
+  // opening to its closing, and fades in and out with the list.
+  createEffect(() => {
+    const box = props.box();
+    const card = box?.closest("dialog");
+    if (!box || !card) return;
+    const lifted = box.closest<HTMLElement>(".field") ?? box;
+    const scrim = document.createElement("div");
+    scrim.className = "pick-scrim";
+    scrim.setAttribute("aria-hidden", "true");
+    // Pressing it must not move focus from the field (that would close the list
+    // by blur and let the tap fall on what is under): the click closes it.
+    scrim.addEventListener("pointerdown", (e) => e.preventDefault());
+    scrim.addEventListener("mousedown", (e) => e.preventDefault());
+    scrim.addEventListener("click", (e) => {
+      e.stopPropagation();
+      props.onDismiss?.();
+    });
+    card.append(scrim);
+    lifted.classList.add("pick-lifted");
+    onCleanup(() => {
+      lifted.classList.remove("pick-lifted");
+      scrim.dataset.leaving = "";
+      const done = () => scrim.remove();
+      scrim.addEventListener("animationend", done, { once: true });
+      // No animation (reduced motion, or none running): gone at once.
+      if (!scrim.getAnimations || scrim.getAnimations().length === 0 || !card.isConnected) done();
+      else setTimeout(done, 400);
+    });
+  });
 
   // The highlight is Enter's target, as well as the pointer's: the one layer
   // follows the active row, so the arrow keys and typing move it too.

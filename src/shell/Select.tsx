@@ -121,6 +121,7 @@ export function Select(props: SelectProps) {
           id={listId}
           label={props.label}
           box={() => box}
+          onDismiss={close}
           track={() => active()}
           listRef={(el) => {
             list = el;

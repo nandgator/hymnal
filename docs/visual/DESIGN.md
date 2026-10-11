@@ -865,9 +865,13 @@ view is close enough to the frame to need a smaller unit.
     shadow; it is clamped to the card's box (its room ends 16px short of the
     card's edge), flips above the field when there is no room below, scrolls
     inside its own maximum height with a soft blur and fade at an edge only
-    while more scrolls that way, and never changes the card's size. A click on
-    the field or its chevron toggles it, Escape closes the list and not the
-    sheet, a tap outside closes it. It ends in **Other…** to type a code. A
+    while more scrolls that way, with a **scrim** over the card's content while
+    it is open (a layer in the card, clipped by its corners: a 6px blur and the
+    card's colour at 88%, so the form reads as texture; the field it belongs to
+    stays above it; fades with the list, snaps under reduced motion; a tap on it
+    closes the list and goes no further), and never changes the card's size. A
+    click on the field or its chevron toggles it, Escape closes the list and not
+    the sheet, a tap outside closes it. It ends in **Other…** to type a code. A
     suggestion from the song text ("Looks like …") fills the language until the
     person picks. Once a language is set, a quiet line, "Script: Malayalam
     (Mlym) · Change", the script derived from the language and a field ("Script
