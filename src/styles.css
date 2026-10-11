@@ -5750,6 +5750,66 @@ fieldset.book-main {
 .lang-list-above {
   transform-origin: bottom left;
 }
+/* A soft blur and fade at an edge, only where more scrolls into view. The
+   strips are sticky and masked, so the list's own shadow is not clipped. */
+.lang-list::before,
+.lang-list::after {
+  position: sticky;
+  z-index: 2;
+  display: none;
+  height: 1.75rem;
+  background: linear-gradient(
+    var(--fade-dir, to bottom),
+    var(--md-sys-color-surface-container-high),
+    transparent
+  );
+  pointer-events: none;
+  content: "";
+  backdrop-filter: blur(3px);
+  mask-image: linear-gradient(var(--fade-dir, to bottom), #000 30%, transparent);
+}
+.lang-list::before {
+  --fade-dir: to bottom;
+  top: calc(-1 * var(--space-xs));
+  margin-bottom: -1.75rem;
+}
+.lang-list::after {
+  --fade-dir: to top;
+  bottom: calc(-1 * var(--space-xs));
+  margin-top: -1.75rem;
+}
+.lang-list:is([data-fade="top"], [data-fade="both"])::before,
+.lang-list:is([data-fade="bottom"], [data-fade="both"])::after {
+  display: block;
+}
+
+/* From Text is one form in a card of one size: the tallest state, within the
+   screen, with the form scrolling inside it, so the card never changes height
+   (a new book's name, Advanced, a long error) and nothing shifts sideways when
+   a scrollbar appears. */
+.sheet.sheet-tall:has(.textsheet) {
+  height: min(46rem, 88dvh);
+}
+.sheet:has(.textsheet) .sheet-content {
+  scrollbar-gutter: stable;
+}
+.select-box {
+  position: relative;
+}
+.field-select {
+  appearance: none;
+  padding-inline-end: 2.75rem;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.select-chevron {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--space-md);
+  margin-block: auto;
+  pointer-events: none;
+  color: var(--md-sys-color-on-surface-variant);
+}
 .lang-row {
   display: flex;
   flex-wrap: wrap;

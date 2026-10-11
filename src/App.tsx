@@ -1482,6 +1482,10 @@ function Operator(props: Shared) {
                     kind === "own" ? setKeepOwn(true) : setKeepFile(true)
                   }
                   onNotice={setLibraryNote}
+                  textBook={preferences.preferences().textBook}
+                  onTextBook={(key) =>
+                    preferences.update({ ...preferences.preferences(), textBook: key })
+                  }
                   onRestore={restoreFile}
                 />
               </Match>

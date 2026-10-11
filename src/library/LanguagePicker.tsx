@@ -42,6 +42,10 @@ export function LanguagePicker(props: LanguagePickerProps) {
   const [other, setOther] = createSignal(false);
   let field: HTMLInputElement | undefined;
   let returning = false;
+  // A press on the field: whether the list was open when it began decides whether the click closes it
+  // (the press's own focus would otherwise open it before the click is seen).
+  let pressing = false;
+  let openAtPress = false;
   let list: HTMLDivElement | undefined;
   let box: HTMLDivElement | undefined;
   let glide: GlideList | undefined;
@@ -129,17 +133,31 @@ export function LanguagePicker(props: LanguagePickerProps) {
     list.style.maxHeight = "";
     const at = box.getBoundingClientRect();
     const own = list.getBoundingClientRect();
+    // Floating in the top layer, but kept inside the sheet's card: its room ends a margin short of
+    // the card's edges (the page's, where there is no card), so it never runs past the card.
+    const card = box.closest("dialog")?.getBoundingClientRect();
+    const top = card ? card.top : 0;
     const spot = placeMenu({
-      trigger: at,
+      trigger: { left: at.left, right: at.right, top: at.top - top, bottom: at.bottom - top },
       menu: { w: at.width, h: list.scrollHeight + (own.height - list.clientHeight) },
-      viewport: { w: window.innerWidth, h: window.innerHeight },
+      viewport: { w: window.innerWidth, h: card ? card.height : window.innerHeight },
       align: "start",
+      margin: card ? 16 : 8,
     });
+    spot.top += top;
     list.style.width = `${at.width}px`;
     list.style.top = `${spot.top}px`;
     list.style.left = `${spot.left}px`;
     if (spot.maxHeight !== undefined) list.style.maxHeight = `${spot.maxHeight}px`;
     list.classList.toggle("lang-list-above", spot.above);
+    fade();
+  };
+  // A soft fade at an edge only while there is more to scroll that way.
+  const fade = () => {
+    if (!list) return;
+    const above = list.scrollTop > 1;
+    const below = list.scrollTop + list.clientHeight < list.scrollHeight - 1;
+    list.dataset.fade = above && below ? "both" : above ? "top" : below ? "bottom" : "none";
   };
   createEffect(() => {
     if (!open()) return;
@@ -198,8 +216,18 @@ export function LanguagePicker(props: LanguagePickerProps) {
             spellcheck={false}
             placeholder={open() && held() ? held()?.label : "Search languages"}
             value={open() ? query() : (held()?.label ?? "")}
-            onFocus={() => !returning && openList()}
-            onClick={openList}
+            onPointerDown={() => {
+              pressing = true;
+              openAtPress = open();
+            }}
+            onFocus={() => !returning && !pressing && openList()}
+            onClick={() => {
+              // The field (or its chevron) is a toggle: a second click closes the list.
+              const was = pressing ? openAtPress : false;
+              pressing = false;
+              if (was) close();
+              else openList();
+            }}
             onInput={(e) => {
               setQuery(e.currentTarget.value);
               setActive(0);
@@ -237,6 +265,7 @@ export function LanguagePicker(props: LanguagePickerProps) {
             role="listbox"
             aria-label="Languages"
             popover={"showPopover" in HTMLElement.prototype ? "manual" : undefined}
+            onScroll={fade}
             ref={(el) => {
               list = el;
               queueMicrotask(() => {
