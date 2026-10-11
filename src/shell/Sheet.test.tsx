@@ -70,7 +70,6 @@ describe("Sheet", () => {
       });
     }
     afterEach(() => {
-      // biome-ignore lint/performance/noDelete: restoring jsdom's lack of the method
       delete (HTMLElement.prototype as { getAnimations?: unknown }).getAnimations;
     });
 
