@@ -39,13 +39,52 @@ export interface SheetProps {
   children: JSX.Element;
 }
 
+/** A card's layout box: size and centre, untransformed (a leaving card is mid-sink). */
+interface Box {
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+}
+
+const boxOf = (el: HTMLElement): Box => ({
+  width: el.offsetWidth,
+  height: el.offsetHeight,
+  x: el.offsetLeft + el.offsetWidth / 2,
+  y: el.offsetTop + el.offsetHeight / 2,
+});
+
+/** What a sheet shows the others: its dialog, and how to end its exit now. */
+interface Peer {
+  dialog: () => HTMLDialogElement | undefined;
+  cut: () => void;
+}
+
 /**
- * Every mounted sheet's way to be cut short. A sheet opening while another is
- * open or leaving is a swap (one modal replacing another, Settings to Search):
- * the old one must vanish in the frame the new one appears, or two half-faded
- * scrims make the blur dip.
+ * Every mounted sheet. A sheet opening while another is leaving is a swap (one
+ * modal replacing another, Settings to Search): the old one must vanish in the
+ * frame the new one appears, or two half-faded scrims make the blur dip. One
+ * that is still fully open is only a swap if the caller closes it in the same
+ * breath; otherwise the new sheet is stacked over it.
  */
-const cuts = new Set<() => boolean>();
+const peers = new Set<Peer>();
+
+/**
+ * The open dialogs, lowest first. Only one has a scrim: a second one would
+ * double the dim and the blur. It is the lowest that is not leaving, so when
+ * the lower sheet goes while an upper stays the scrim passes up, unchanged.
+ */
+const stack: HTMLDialogElement[] = [];
+
+const syncScrims = () => {
+  for (let i = stack.length - 1; i >= 0; i--) if (!stack[i]?.open) stack.splice(i, 1);
+  const owner = stack.find((d) => d.dataset.closing === undefined) ?? stack[0];
+  for (const d of stack) d.toggleAttribute("data-stacked", d !== owner);
+};
+
+/** A time or easing the stylesheet defines, for animations run from script. */
+const motion = (name: string, fallback: string) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 
 /**
  * A modal sheet on a native <dialog>: focus trap, Escape and a backdrop for
@@ -64,8 +103,6 @@ export function Sheet(props: SheetProps) {
   // The content stays until the exit has played, not just while `open`.
   const [shown, setShown] = createSignal(false);
   let closing = 0;
-  // Set by a sheet that is replacing this one: the next close is instant.
-  let cutShort = false;
   let finishNow: (() => void) | undefined;
 
   // `rendered` is the page mounted: it outlasts `props.page` on the way back,
@@ -161,20 +198,44 @@ export function Sheet(props: SheetProps) {
   createEffect(() => {
     const open = props.open;
     if (!dialog) return;
+    let swapFrom: Box | undefined;
     if (open) {
       closing++;
       delete dialog.dataset.closing;
       finishNow = undefined;
-      cutShort = false;
-      // A swap: another sheet is open or still leaving. It goes at once and
-      // this one appears over the same, constant scrim (no fade-in) and
-      // cross-fades in place, with no rise: nothing is arriving from
-      // anywhere, one card is just replacing another (Material's modal swap).
-      // Opening from nothing keeps the full entrance.
+      // A swap: another sheet is leaving, or is closed in the same breath.
+      // It goes at once and this one appears over the same, constant scrim (no
+      // fade-in): its surface opaque from the first frame, growing or
+      // shrinking out of the old card's box while its content fades in
+      // (Material's fade through). Nothing is arriving from anywhere, one card
+      // is just replacing another. Opening from nothing keeps the full
+      // entrance, and so does opening over a sheet that stays (stacked).
+      delete dialog.dataset.swap;
       if (!dialog.open) {
-        const replaced = [...cuts].filter((cut) => cut !== cutSelf).map((cut) => cut());
-        if (replaced.includes(true)) dialog.dataset.swap = "";
-        else delete dialog.dataset.swap;
+        const others = [...peers].filter((p) => p.dialog() !== dialog && p.dialog()?.open);
+        const leaving = others.filter((p) => p.dialog()?.dataset.closing !== undefined);
+        const staying = others.filter((p) => p.dialog()?.dataset.closing === undefined);
+        const boxes = new Map(others.map((p) => [p, boxOf(p.dialog() as HTMLElement)]));
+        for (const p of leaving) p.cut();
+        const first = leaving[0];
+        if (first) swapFrom = boxes.get(first);
+        else if (staying.length > 0) {
+          // The caller may open before it closes (one batch): decide once its
+          // work has settled, before a frame is drawn.
+          const token = closing;
+          const el = dialog;
+          queueMicrotask(() => {
+            if (token !== closing || !el.open || el.dataset.closing !== undefined) return;
+            const gone = staying.filter((p) => {
+              const d = p.dialog();
+              return !d?.open || d.dataset.closing !== undefined;
+            });
+            for (const p of gone) p.cut();
+            const goneFirst = gone[0];
+            const box = goneFirst && boxes.get(goneFirst);
+            if (box) swapIn(box);
+          });
+        }
       }
       showPage(untrack(() => props.page));
       setShown(true);
@@ -182,6 +243,9 @@ export function Sheet(props: SheetProps) {
         if (typeof dialog.showModal === "function") dialog.showModal();
         else dialog.setAttribute("open", "");
       }
+      if (!stack.includes(dialog)) stack.push(dialog);
+      syncScrims();
+      if (swapFrom) swapIn(swapFrom);
       // Fallback where showModal's own autofocus pass misses the field.
       const field = dialog.querySelector<HTMLElement>("[autofocus]");
       if (field && document.activeElement !== field) field.focus();
@@ -199,31 +263,64 @@ export function Sheet(props: SheetProps) {
         if (typeof el.close === "function") el.close();
         else el.removeAttribute("open");
         setShown(false);
+        syncScrims();
       };
       finishNow = finish;
-      if (typeof el.getAnimations !== "function" || cutShort) {
-        cutShort = false;
+      if (typeof el.getAnimations !== "function") {
         finish();
         return;
       }
       el.dataset.closing = "";
+      syncScrims();
       const running = el.getAnimations({ subtree: true });
       if (running.length === 0) finish();
       else void Promise.allSettled(running.map((a) => a.finished)).then(finish);
     }
   });
 
-  // What a replacing sheet calls: end this one's exit now (it is leaving), or
-  // make it leave instantly when the caller has yet to close it. True when
-  // this sheet was on screen, so the caller knows it is a swap.
-  const cutSelf = () => {
-    if (!dialog?.open) return false;
-    if (finishNow && dialog.dataset.closing !== undefined) finishNow();
-    else cutShort = true;
-    return true;
+  // A swap: this is the card replacing another. Its surface is opaque from the
+  // first frame (only the content fades, in CSS); the box animates from the old
+  // card's to its own, position included for a different placement.
+  const swapIn = (from: Box) => {
+    const el = dialog;
+    if (!el) return;
+    el.dataset.swap = "";
+    if (typeof el.animate !== "function") return;
+    if (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches)
+      return;
+    const to = boxOf(el);
+    if (to.width === from.width && to.height === from.height && to.x === from.x && to.y === from.y)
+      return;
+    const frame = (b: Box, dx: number, dy: number) => ({
+      width: `${b.width}px`,
+      height: `${b.height}px`,
+      transform: `translate(${dx}px, ${dy}px)`,
+    });
+    el.dataset.morphing = "";
+    const done = () => delete el.dataset.morphing;
+    const run = el.animate([frame(from, from.x - to.x, from.y - to.y), frame(to, 0, 0)], {
+      duration: Number.parseFloat(motion("--motion-medium", "250")) || 250,
+      easing: motion("--motion-emphasized", "ease"),
+    });
+    void run?.finished.then(done, done);
   };
-  cuts.add(cutSelf);
-  onCleanup(() => cuts.delete(cutSelf));
+
+  // What a replacing sheet calls: end this one's exit now.
+  const peer: Peer = {
+    dialog: () => dialog,
+    cut: () => {
+      if (dialog?.open && finishNow && dialog.dataset.closing !== undefined) finishNow();
+    },
+  };
+  peers.add(peer);
+  onCleanup(() => {
+    peers.delete(peer);
+    if (dialog) {
+      const i = stack.indexOf(dialog);
+      if (i >= 0) stack.splice(i, 1);
+      syncScrims();
+    }
+  });
 
   createEffect(() => {
     if (props.steady || !dialog || typeof ResizeObserver === "undefined") return;
@@ -246,7 +343,10 @@ export function Sheet(props: SheetProps) {
       class={`sheet sheet-${props.placement ?? "bottom"}${props.tall ? " sheet-tall" : ""}${props.steady ? " sheet-steady" : ""}`}
       style={props.steady && settled() ? { "--sheet-hold": `${settled()}px` } : undefined}
       aria-label={props.page?.title ?? props.title}
-      onClose={() => props.onClose()}
+      onClose={() => {
+        syncScrims();
+        props.onClose();
+      }}
       onCancel={(event) => {
         // A file input's cancel (its picker dismissed) bubbles here: only the
         // dialog's own, which is Escape, closes or goes back.

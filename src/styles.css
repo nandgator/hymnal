@@ -3240,10 +3240,9 @@ html[data-scrolling],
   }
 }
 
-@keyframes sheet-swap-in {
+@keyframes sheet-swap-content {
   from {
     opacity: 0;
-    transform: scale(0.99);
   }
 }
 
@@ -3309,7 +3308,7 @@ html[data-scrolling],
   }
 
   /* A swap has no motion at all: the card is simply the other card. */
-  .sheet[data-swap][open] {
+  .sheet[data-swap] > .sheet-frame {
     animation: none;
   }
 
@@ -3527,16 +3526,26 @@ html[data-scrolling],
   animation: sheet-in var(--motion-medium) var(--motion-emphasized);
 }
 
-/* One sheet replacing another (Settings to Search): the scrim is already up
-   and stays exactly as it is, and the card cross-fades in place with the
-   faintest settle. Nothing rises: the sheet is not arriving, the content is
-   changing (PRINCIPLES.md, motion explains change). */
+/* One sheet replacing another (Settings to Search), Material's fade through:
+   the scrim is already up and stays exactly as it is, the card's surface is
+   opaque from its first frame (the page never shows through) and resizes out
+   of the old card's box (Sheet.tsx), and only its content fades in. Nothing
+   rises: the sheet is not arriving, the content is changing (PRINCIPLES.md,
+   motion explains change). */
 .sheet[data-swap]::backdrop {
   animation: none;
 }
 
 .sheet[data-swap][open] {
-  animation: sheet-swap-in var(--motion-short) var(--motion-standard);
+  animation: none;
+}
+
+/* A sheet stacked over another that stays (the Library's sheets are not closed
+   by the app's shortcuts): the lower one's scrim is the only one, or the dim
+   and the blur would double. Hidden, not faded or removed: no animation
+   restarts when the scrim passes up to this sheet. */
+.sheet[data-stacked]::backdrop {
+  visibility: hidden;
 }
 
 /* The dialog itself takes focus on opening (so Escape and Tab work); the
@@ -3576,6 +3585,10 @@ html[data-scrolling],
   overflow-y: auto;
 }
 
+.sheet[data-swap] > .sheet-frame {
+  animation: sheet-swap-content var(--motion-short) var(--motion-standard);
+}
+
 .sheet-header {
   z-index: 2;
   display: flex;
@@ -3608,6 +3621,12 @@ html[data-scrolling],
 
 .sheet-pages > .sheet-content {
   flex: 1;
+}
+
+/* While the box resizes the content is laid out for the final size inside a
+   clipped card: no scrollbar may flash in. */
+.sheet[data-morphing] .sheet-content {
+  overflow: hidden;
 }
 
 .sheet-page-off {
