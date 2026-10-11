@@ -171,7 +171,9 @@ const openSheet = async () => {
   fireEvent.click(screen.getByRole("button", { name: "From Text" }));
   const dialog = within(await screen.findByRole("dialog", { name: "From Text" }));
   // A song may go to Assorted Hymns, the default; these tests are of a new book.
-  fireEvent.change(dialog.getByRole("combobox", { name: "Add to" }), { target: { value: "new" } });
+  fireEvent.click(dialog.getByRole("combobox", { name: "Add to" }));
+  // hidden: a popover that is not shown (the test may stub showPopover) is not in the tree.
+  fireEvent.click(dialog.getByRole("option", { name: "New book…", hidden: true }));
   return { s, dialog };
 };
 
