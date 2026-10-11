@@ -58,27 +58,20 @@ to drop the songs from old commits is the maintainer's own later step
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                                                                                                                                                                                                                                                                                                        | Blocked by          |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| 62  | Bug: switching sheets (Ctrl+, to Ctrl+K) blinks: each sheet is its own dialog, so one backdrop fades out while the next fades in; a swap keeps the scrim still and cross-fades the card                                                                                                                                                                     | —                   |
-| 64  | Sheets, after #62: (a) a stacked sheet (Settings over a Library sheet such as Load Books) doubles the dim and blur, and #62's cut must not mark a sheet that stays open beneath; (b) a swap shows the page through the card while the new card fades from 0: the card stays opaque, only its content fades through, and its size morphs from the old card's | —                   |
-| 65  | Bug: in Settings the row hover glide follows the pointer out of a row, except onto a row holding segmented buttons: there it fades in place instead of gliding there                                                                                                                                                                                        | —                   |
-| 63  | Bug: closing or splitting a group leaves a sudden gap the other group then glides into: the closed group vanishes at once (areaGlide.ts); it should collapse in place, its panel shrinking as the other grows                                                                                                                                               | —                   |
-| 59  | Paste plain lyrics: a first line followed by lyrics is verse 1 and the title; indentation ignored; numbers assigned in the app (ADR-0033 §5)                                                                                                                                                                                                                | —                   |
-| 60  | Your books (ADR-0033): kind `own` replaces `assorted`, any number, rename, numbers kept when free, restore per book                                                                                                                                                                                                                                         | —                   |
-| 61  | From Text, one form: Add to picker, live field errors, script code checked, floating language list, fixed card height, plain intro                                                                                                                                                                                                                          | #60                 |
-| 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                                                                                                                                                                                                                                    | another machine     |
-| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                                                                                                                                                                                            | maintainer: devices |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                                                                                                                                                                                                 | —                   |
-| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                                                                                                                                                                               | —                   |
-| 16  | Feedback and corrections from users — where collected: TBD                                                                                                                                                                                                                                                                                                  | —                   |
-| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                                                                                                                                                                                                                                 | —                   |
-| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                                                                                                                                                                                                                              | —                   |
-| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                                                                                                                                                                                                                                     | —                   |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                                                                                                                                                                                                                                  | Phase 2             |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                                                                                                                                                                                                                               | content             |
-| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                                                                                                                                                                                                                               | —                   |
-| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                                                                                                                                                                                                                                      | —                   |
+| #   | Task                                                                                                                                             | Blocked by          |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                         | another machine     |
+| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland) | maintainer: devices |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                      | —                   |
+| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                    | —                   |
+| 16  | Feedback and corrections from users — where collected: TBD                                                                                       | —                   |
+| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                      | —                   |
+| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                   | —                   |
+| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                          | —                   |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                       | Phase 2             |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                    | content             |
+| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                    | —                   |
+| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                           | —                   |
 
 14–15 sit past the scope guard below. 16–25 and 37–40 are notes, not scheduled:
 the shell reserves room for them (DESIGN.md § Structure).
@@ -122,6 +115,17 @@ only, here:
 
 ## Log
 
+- 2026-10-11 — #62–65, the maintainer's review of sheets and motion: a sheet
+  replacing another morphs an opaque card out of the old one over one constant
+  scrim; stacked sheets share the lowest one's scrim; a closing tab group
+  collapses in its slot, no gap; one hover highlight glides across all of
+  Settings, rows with controls too
+- 2026-10-11 — #59–61 done: your books (ADR-0033, superseding ADR-0031) — books
+  you make grow, can be renamed, any number of them; books you receive stay
+  fixed. From Text is one form: Add to (your books, New book…), the songs'
+  language, the text; pasted plain lyrics parse (the first line is the title and
+  verse 1, numbers counted from the book's next); errors clear on edit, the
+  script code is checked, the language list floats inside the card
 - 2026-10-10 — #19 closed by the maintainer: #38 swaps book and song in one step
   for a lyric result; a number in another book goes through the header's picker
   (SDD-0001 §16.4)
@@ -160,7 +164,3 @@ only, here:
 - 2026-10-07 — #43 done: the sample (28 Otterbein hymns, 2 Malayalam songs),
   rights in `docs/sample/RIGHTS.md`, released as `sample-1`, fetched by the
   deploy against `sample/SHA256SUMS`, offered as Try the Sample (SDD-0004 §16)
-- 2026-10-07 — Fixed: a Safari private window (`getDirectory()` UnknownError)
-  holds books in memory; WebKit e2e runs locally in podman
-- 2026-10-07 — The origin is hymnal.sagaveracity.com (ADR-0030); the fork is
-  detached
