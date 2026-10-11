@@ -1,7 +1,15 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest";
-import { buildTextBook, slugify, songCount } from "./textbook.ts";
+import {
+  type BookChoice,
+  buildTextBook,
+  resolveChoice,
+  scriptProblem,
+  slugify,
+  songCount,
+  suggestBookTitle,
+} from "./textbook.ts";
 
 const fields = { title: "T", language: "en", script: "Latn", number: "" };
 
@@ -18,7 +26,7 @@ describe("slugify", () => {
 describe("buildTextBook", () => {
   it("asks for what is missing, and writes nothing", () => {
     const r = buildTextBook(
-      { ...fields, title: "", language: "", destination: "book" },
+      { ...fields, title: "", language: "", destination: { kind: "new" } },
       "1. A\n\nLine\n",
     );
     expect(r.ok).toBe(false);
@@ -48,7 +56,7 @@ describe("songCount", () => {
 });
 
 describe("buildTextBook for your books", () => {
-  const assorted = { ...fields, title: "", destination: "assorted" as const };
+  const assorted = { ...fields, title: "", destination: { kind: "default" } as const };
   const gunzip = async (bytes: Uint8Array) => {
     const { gunzipSync } = await import("fflate");
     return JSON.parse(new TextDecoder().decode(gunzipSync(bytes)));
@@ -57,7 +65,7 @@ describe("buildTextBook for your books", () => {
     const r = buildTextBook(assorted, "A Song\n\nLine one\n");
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.destination).toBe("assorted");
+      expect(r.target).toEqual({ kind: "default" });
       expect(r.id).toBe("text-songs");
     }
     const missing = buildTextBook({ ...assorted, language: "" }, "A Song\n\nLine one\n");
@@ -73,19 +81,91 @@ describe("buildTextBook for your books", () => {
   });
   it("takes several songs for Assorted Hymns, the container titled by it", async () => {
     const r = buildTextBook(assorted, "1. A\n\nLine\n\n---\n\n2. B\n\nLine\n");
-    expect(r.ok && r.destination).toBe("assorted");
+    expect(r.ok && r.target).toEqual({ kind: "default" });
     expect(r.ok && (await gunzip(r.bytes)).hymnbook.title).toBe("Assorted Hymns");
   });
   it("makes a new book of the title asked for, one song or several", async () => {
-    const one = buildTextBook({ ...fields, destination: "book" }, "1. A\n\nLine\n");
-    expect(one.ok && one.destination).toBe("book");
-    expect(one.ok && one.title).toBe("T");
+    const one = buildTextBook({ ...fields, destination: { kind: "new" } }, "1. A\n\nLine\n");
+    expect(one.ok && one.target).toEqual({ kind: "new", title: "T" });
     const many = buildTextBook(
-      { ...fields, destination: "book" },
+      { ...fields, destination: { kind: "new" } },
       "1. A\n\nL\n\n---\n\n2. B\n\nL\n",
     );
     expect(many.ok && (await gunzip(many.bytes)).hymnbook.title).toBe("T");
-    const untitled = buildTextBook({ ...fields, title: " ", destination: "book" }, "1. A\n\nL\n");
+    const untitled = buildTextBook(
+      { ...fields, title: " ", destination: { kind: "new" } },
+      "1. A\n\nL\n",
+    );
     expect(!untitled.ok && Object.keys(untitled.fields)).toEqual(["title"]);
+  });
+});
+
+describe("buildTextBook for a chosen book", () => {
+  const gunzip = async (bytes: Uint8Array) => {
+    const { gunzipSync } = await import("fflate");
+    return JSON.parse(new TextDecoder().decode(gunzipSync(bytes)));
+  };
+  const chosen = { ...fields, destination: { kind: "book", key: "k1" } as const };
+  it("targets the book by key", () => {
+    const r = buildTextBook(chosen, "A Song\n\nLine\n", 4);
+    expect(r.ok && r.target).toEqual({ kind: "book", key: "k1" });
+  });
+  it("counts songs with no number up from the book's next, skipping numbers written", async () => {
+    const text = "A\n\nLine\n\n---\n\n5. B\n\nLine\n\n---\n\nC\n\nLine\n\n---\n\nD\n\nLine\n";
+    const r = buildTextBook(chosen, text, 4);
+    expect(r.ok && (await gunzip(r.bytes)).hymns.map((h: { number: number }) => h.number)).toEqual([
+      4, 5, 6, 7,
+    ]);
+  });
+  it("lets the Advanced number win for a single song", async () => {
+    const r = buildTextBook({ ...chosen, number: "30" }, "A\n\nLine\n", 4);
+    expect(r.ok && (await gunzip(r.bytes)).hymns[0].number).toBe(30);
+  });
+  it("refuses a script this device does not know", () => {
+    const r = buildTextBook({ ...chosen, script: "Abcd" }, "A\n\nLine\n", 4);
+    expect(!r.ok && r.fields.script).toMatch(/not a script/);
+  });
+  it("normalises the script's case", async () => {
+    const r = buildTextBook({ ...chosen, script: "latn" }, "A\n\nLine\n", 4);
+    expect(r.ok && (await gunzip(r.bytes)).hymnbook.script).toBe("Latn");
+  });
+});
+
+describe("scriptProblem", () => {
+  it("wants four letters, and a script the platform names", () => {
+    expect(scriptProblem("")).toMatch(/Give the script code/);
+    expect(scriptProblem("La")).toMatch(/four letters/);
+    expect(scriptProblem("Latn1")).toMatch(/four letters/);
+    expect(scriptProblem("Abcd")).toMatch(/“Abcd” is not a script/);
+    expect(scriptProblem("Latn")).toBeUndefined();
+    expect(scriptProblem("mlym")).toBeUndefined();
+  });
+});
+
+describe("suggestBookTitle", () => {
+  it("is My Songs, or the next free My Songs N", () => {
+    expect(suggestBookTitle([])).toBe("My Songs");
+    expect(suggestBookTitle(["my songs"])).toBe("My Songs 2");
+    expect(suggestBookTitle(["My Songs", "My Songs 2"])).toBe("My Songs 3");
+  });
+});
+
+describe("resolveChoice", () => {
+  const book = (key: string, origin: string): BookChoice => ({
+    key,
+    origin,
+    title: key,
+    nextNumber: 1,
+  });
+  const books = [book("c1", "own"), book("as1", "assorted")];
+  it("is what the person picked while that book is there", () => {
+    expect(resolveChoice("c1", books, "as1")).toBe("c1");
+    expect(resolveChoice("new", books, "as1")).toBe("new");
+  });
+  it("is the book last added to, else Assorted Hymns, else the default to be made", () => {
+    expect(resolveChoice(undefined, books, "c1")).toBe("c1");
+    expect(resolveChoice(undefined, books, "gone")).toBe("as1");
+    expect(resolveChoice(undefined, [book("c1", "own")], undefined)).toBe("default");
+    expect(resolveChoice("gone", books)).toBe("as1");
   });
 });

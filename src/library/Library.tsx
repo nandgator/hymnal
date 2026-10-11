@@ -1,6 +1,7 @@
 import {
   type Accessor,
   createEffect,
+  createMemo,
   createSignal,
   For,
   type JSX,
@@ -10,7 +11,7 @@ import {
   Switch,
 } from "solid-js";
 import { SAMPLE_FILES } from "../config.ts";
-import { ASSORTED_ORIGIN, libraryOrder, type OwnTarget, statusFor } from "../domain/own.ts";
+import { libraryOrder, type OwnTarget, statusFor } from "../domain/own.ts";
 import type { LoadProgress } from "../domain/progress.ts";
 import { gzipContainer } from "../import/container.ts";
 import type { TextError } from "../import/songtext.ts";
@@ -47,7 +48,14 @@ import { OwnSheet, type OwnSong } from "./OwnSheet.tsx";
 import { RemoveSheet, type RemoveTarget } from "./RemoveSheet.tsx";
 import { ReviewSheet } from "./ReviewSheet.tsx";
 import { createTextDraft, TextSheet } from "./TextSheet.tsx";
-import { buildTextBook, type FieldProblems } from "./textbook.ts";
+import {
+  type BookChoice,
+  buildTextBook,
+  destinationOf,
+  type FieldProblems,
+  nextNumberFor,
+  resolveChoice,
+} from "./textbook.ts";
 
 /** Said in the Library when the books are held in memory (SDD-0004 §15). */
 const MEMORY_NOTE = "This window doesn’t keep books. They go when it closes, so keep the file.";
@@ -95,6 +103,9 @@ export interface LibraryProps {
   /** Defaults to {@link getContentAdmin}; overridable for tests. */
   admin?: LibraryAdmin;
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
+  /** The book of yours From Text last added to (a device preference), and how it is remembered. */
+  textBook?: string;
+  onTextBook?: (key: string) => void;
   userState?: Pick<UserState, "getRecents" | "dropRecents" | "dropSong">;
   /** Reads a book of yours' songs in their order; defaults to the content store. */
   store?: Pick<ContentStore, "listHymns">;
@@ -320,6 +331,21 @@ export function Library(props: LibraryProps) {
     if (reviewFromText() && !saving) setTextOpen(true);
   };
 
+  // The books From Text can add to, and the one it offers: the person's pick, else the book last
+  // added to (this device's preference), else Assorted Hymns.
+  const [lastBook, setLastBook] = createSignal<string>();
+  const ownBooks = createMemo((): BookChoice[] =>
+    rows()
+      .filter((b) => b.kind === "own")
+      .map((b) => ({
+        key: b.key,
+        origin: b.origin,
+        title: b.title,
+        nextNumber: b.nextNumber ?? 1,
+      })),
+  );
+  const textChoice = () => resolveChoice(draft.choice(), ownBooks(), lastBook() ?? props.textBook);
+
   const openText = () => {
     setTextErrors([]);
     setTextProblems({});
@@ -329,13 +355,13 @@ export function Library(props: LibraryProps) {
   /** Parse the text and, when it is clean, review the book as if its container had been read. */
   const reviewText = async () => {
     if (textBusy()) return;
-    const fields = draft.fields();
-    // A song with no number takes the book's next (ADR-0033 §5): the default book's, if it is held.
-    const next =
-      fields.destination === "book"
-        ? 1
-        : (rows().find((b) => b.kind === "own" && b.origin === ASSORTED_ORIGIN)?.nextNumber ?? 1);
-    const built = buildTextBook(fields, draft.songText(), next);
+    // A song with no number takes the chosen book's next (ADR-0033 §5).
+    const next = nextNumberFor(textChoice(), ownBooks());
+    const built = buildTextBook(
+      { ...draft.fields(), destination: destinationOf(textChoice()) },
+      draft.songText(),
+      next,
+    );
     if (!built.ok) {
       setTextProblems(built.fields);
       setTextErrors(built.errors);
@@ -351,11 +377,7 @@ export function Library(props: LibraryProps) {
       setReview(result);
       setReviewFile(name);
       setReviewFromText(true);
-      setReviewOwn(
-        built.destination === "assorted"
-          ? { kind: "default" }
-          : { kind: "new", title: built.title.trim() },
-      );
+      setReviewOwn(built.target);
       setReviewError(undefined);
       setTextOpen(false);
       setReviewOpen(true);
@@ -574,6 +596,8 @@ export function Library(props: LibraryProps) {
       return;
     }
     draft.reset();
+    setLastBook(result.key);
+    props.onTextBook?.(result.key);
     setReviewFromText(false);
     setReviewOwn(undefined);
     forgetBook(result.key);
@@ -1329,6 +1353,8 @@ export function Library(props: LibraryProps) {
         draft={draft}
         errors={textErrors()}
         problems={textProblems()}
+        books={ownBooks()}
+        choice={textChoice()}
         busy={textBusy()}
         placement={placement()}
         onCancel={() => setTextOpen(false)}

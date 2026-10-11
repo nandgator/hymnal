@@ -80,6 +80,8 @@ export interface Preferences {
   dragHintDismissed?: boolean;
   /** "Click the Output, or press F, for fullscreen" was shown; once. */
   fullscreenHintDismissed?: boolean;
+  /** The book of yours From Text last added to, by key; absent means Assorted Hymns (ADR-0033 §4). */
+  textBook?: string;
 }
 
 /** Where Go Live opens: the Output window when an external screen is known and
@@ -223,6 +225,7 @@ const PREFERENCE_FIELDS = {
   goLive: oneOf("auto", "here", "window"),
   dragHintDismissed: isBoolean,
   fullscreenHintDismissed: isBoolean,
+  textBook: (value) => typeof value === "string" && value !== "",
   // Read by the workspace itself, which makes any value whole.
   workspace: () => true,
   // Retired or renamed, still read once to carry their value over.

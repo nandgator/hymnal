@@ -170,11 +170,11 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
         fireEvent.input(text.getByLabelText("Song text"), {
           target: { value: "1. Amazing Grace\n\nAmazing grace!\n" },
         });
-        const box = text.getByRole("combobox");
+        const box = text.getByRole("combobox", { name: /language/i });
         fireEvent.focus(box);
         fireEvent.input(box, { target: { value: "English" } });
-        fireEvent.click(text.getAllByRole("option")[0] as HTMLElement);
-        fireEvent.click(text.getByRole("button", { name: "Review the Song" }));
+        fireEvent.click(within(text.getByRole("listbox")).getAllByRole("option")[0] as HTMLElement);
+        fireEvent.click(text.getByRole("button", { name: "Review Song" }));
         const review = within(await screen.findByRole("dialog", { name: "Add Song" }));
         fireEvent.click(await review.findByRole("button", { name: "Add Song" }));
         // Until the Output has answered it counts as live, so the song is only said to be added;

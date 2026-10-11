@@ -170,8 +170,8 @@ const openSheet = async () => {
   await screen.findByRole("list", { name: "Books" });
   fireEvent.click(screen.getByRole("button", { name: "From Text" }));
   const dialog = within(await screen.findByRole("dialog", { name: "From Text" }));
-  // A song may go to Assorted Hymns, the default; these tests are of a book of its own.
-  fireEvent.click(dialog.getByRole("radio", { name: "A New Book" }));
+  // A song may go to Assorted Hymns, the default; these tests are of a new book.
+  fireEvent.change(dialog.getByRole("combobox", { name: "Add to" }), { target: { value: "new" } });
   return { s, dialog };
 };
 
@@ -182,10 +182,10 @@ const chooseLanguage = (dialog: Dialog, search: string) => {
   const box = dialog.getByRole("combobox", { name: /language/i });
   fireEvent.focus(box);
   fireEvent.input(box, { target: { value: search } });
-  fireEvent.click(dialog.getAllByRole("option")[0] as HTMLElement);
+  fireEvent.click(within(dialog.getByRole("listbox")).getAllByRole("option")[0] as HTMLElement);
 };
 const fill = (dialog: Dialog, over: { title?: string; language?: string } = {}) => {
-  fireEvent.input(dialog.getByLabelText("Title"), {
+  fireEvent.input(dialog.getByLabelText("Book name"), {
     target: { value: over.title ?? "Public Domain Sample" },
   });
   chooseLanguage(dialog, over.language ?? "English");
@@ -193,12 +193,14 @@ const fill = (dialog: Dialog, over: { title?: string; language?: string } = {}) 
 const type = (dialog: Dialog, label: RegExp | string, value: string) =>
   fireEvent.input(dialog.getByLabelText(label), { target: { value } });
 const review = (dialog: Dialog) =>
-  fireEvent.click(dialog.getByRole("button", { name: /^Review the Songs?$/ }));
+  fireEvent.click(dialog.getByRole("button", { name: /^Review( Song| \d+ Songs)?$/ }));
 
 describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
   it("opens an empty sheet: the fields, one text area, nothing written", async () => {
     const { s, dialog } = await openSheet();
-    for (const label of ["Title", /language/i, "Song text"]) {
+    // The name of a new book is suggested, not left blank to be required.
+    expect(dialog.getByLabelText("Book name")).toHaveValue("My Songs");
+    for (const label of [/language/i, "Song text"]) {
       expect(dialog.getByLabelText(label)).toHaveValue("");
     }
     expect(dialog.queryByLabelText("Id")).not.toBeInTheDocument();
@@ -213,13 +215,14 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     expect(s.admin.commit).not.toHaveBeenCalled();
   });
 
-  it("asks for the title, language and script, never guessing them", async () => {
+  it("asks for the name, language and script, never guessing them", async () => {
     const { s, dialog } = await openSheet();
     type(dialog, "Song text", SAMPLE);
+    type(dialog, "Book name", "");
     review(dialog);
-    expect(await dialog.findByText("Give the book a title.")).toBeInTheDocument();
+    expect(await dialog.findByText("Give the book a name.")).toBeInTheDocument();
     expect(dialog.getByText("Choose the song’s language.")).toBeInTheDocument();
-    expect(dialog.getByLabelText("Title")).toBeInvalid();
+    expect(dialog.getByLabelText("Book name")).toBeInvalid();
     expect(dialog.getByRole("combobox", { name: /language/i })).toBeInvalid();
     expect(s.admin.review).not.toHaveBeenCalled();
   });
@@ -298,7 +301,7 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     fill(dialog);
     review(dialog);
     const list = await dialog.findByRole("alert", { name: "Parse errors" });
-    expect(list).toHaveTextContent("There is no song text.");
+    expect(list).toHaveTextContent("There are no songs to add.");
     expect(dialog.getByLabelText("Song text")).toBeInvalid();
     expect(s.admin.review).not.toHaveBeenCalled();
   });
@@ -353,7 +356,7 @@ describe("Library: the language of a book from text", () => {
     // Once under Common, once among all of them.
     expect(dialog.getAllByRole("option", { name: /മലയാളം — Malayalam/ })).toHaveLength(2);
     fireEvent.input(box, { target: { value: "tamil" } });
-    expect(dialog.getAllByRole("option")).toHaveLength(2); // Tamil, and Other…
+    expect(within(dialog.getByRole("listbox")).getAllByRole("option")).toHaveLength(2); // Tamil, and Other…
     fireEvent.input(box, { target: { value: "മല" } });
     expect(dialog.getByRole("option", { name: /Malayalam/ })).toBeInTheDocument();
     fireEvent.input(box, { target: { value: "zzzz" } });
@@ -390,7 +393,7 @@ describe("Library: the language of a book from text", () => {
     fireEvent.input(code, { target: { value: "sd" } });
     expect(dialog.getByText(/^Script: Arabic/)).toBeInTheDocument();
     fireEvent.input(code, { target: { value: "not a code" } });
-    fireEvent.input(dialog.getByLabelText("Title"), { target: { value: "T" } });
+    fireEvent.input(dialog.getByLabelText("Book name"), { target: { value: "T" } });
     type(dialog, "Song text", SAMPLE);
     review(dialog);
     expect(await dialog.findByText(/isn’t a language code/)).toBeInTheDocument();
@@ -430,7 +433,9 @@ describe("Library: the text sheet's picker and errors, in view", () => {
     const { dialog } = await openSheet();
     const box = dialog.getByRole("combobox", { name: /language/i });
     fireEvent.focus(box);
-    const names = dialog.getAllByRole("option").map((o) => o.textContent ?? "");
+    const names = within(dialog.getByRole("listbox"))
+      .getAllByRole("option")
+      .map((o) => o.textContent ?? "");
     expect(names.slice(0, 4)).toEqual([
       expect.stringMatching(/^English/),
       expect.stringMatching(/^മലയാളം/),
@@ -442,7 +447,7 @@ describe("Library: the text sheet's picker and errors, in view", () => {
     // A language outside Common is only in the full list, and search finds it.
     expect(names.some((n) => n.includes("Afrikaans"))).toBe(true);
     fireEvent.input(box, { target: { value: "afri" } });
-    expect(dialog.getAllByRole("option")).toHaveLength(2);
+    expect(within(dialog.getByRole("listbox")).getAllByRole("option")).toHaveLength(2);
     expect(dialog.queryByText("Common")).not.toBeInTheDocument();
   });
 
@@ -482,5 +487,75 @@ describe("Library: the sheet keeps its size while a list or a section opens", ()
     const css = readFileSync(resolve(__dirname, "../styles.css"), "utf8");
     expect(css).toMatch(/\.advanced::details-content\s*{[^}]*transition:[^;}]*block-size/);
     expect(css).toMatch(/\.advanced[^{]*{[^}]*interpolate-size:\s*allow-keywords/);
+  });
+
+  it("the card has one size, whatever opens in it: a fixed height and a steady scrollbar gutter", () => {
+    const css = readFileSync(resolve(__dirname, "../styles.css"), "utf8");
+    expect(css).toMatch(/\.sheet\.sheet-tall:has\(\.textsheet\)\s*{[^}]*\bheight:/);
+    expect(css).toMatch(/:has\(\.textsheet\) \.sheet-content\s*{[^}]*scrollbar-gutter:\s*stable/);
+  });
+});
+
+describe("Library: the language list as a dropdown", () => {
+  const open = async () => {
+    const { dialog } = await openSheet();
+    const box = dialog.getByRole("combobox", { name: /language/i });
+    return { dialog, box };
+  };
+
+  it("a click on the field opens the list and a second click closes it", async () => {
+    const { dialog, box } = await open();
+    fireEvent.pointerDown(box);
+    fireEvent.focus(box);
+    fireEvent.click(box);
+    expect(box).toHaveAttribute("aria-expanded", "true");
+    expect(dialog.getByRole("listbox", { hidden: true })).toBeInTheDocument();
+    fireEvent.pointerDown(box);
+    fireEvent.click(box);
+    expect(box).toHaveAttribute("aria-expanded", "false");
+    expect(dialog.queryByRole("listbox", { hidden: true })).not.toBeInTheDocument();
+    // And a third opens it again.
+    fireEvent.pointerDown(box);
+    fireEvent.click(box);
+    expect(box).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("Escape closes the list and not the sheet", async () => {
+    const { dialog, box } = await open();
+    fireEvent.focus(box);
+    expect(box).toHaveAttribute("aria-expanded", "true");
+    fireEvent.keyDown(box, { key: "Escape" });
+    expect(box).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("dialog", { name: "From Text" })).toBeInTheDocument();
+    expect(dialog.getByRole("combobox", { name: /language/i })).toBeInTheDocument();
+  });
+
+  it("keeps the active row in aria-activedescendant as the arrows move", async () => {
+    const { dialog, box } = await open();
+    fireEvent.focus(box);
+    const first = box.getAttribute("aria-activedescendant");
+    fireEvent.keyDown(box, { key: "ArrowDown" });
+    const second = box.getAttribute("aria-activedescendant");
+    expect(second).not.toBe(first);
+    expect(
+      dialog.getByRole("listbox", { hidden: true }).querySelector(`#${second}`),
+    ).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("fades only the edges that have more to scroll", async () => {
+    const { dialog, box } = await open();
+    fireEvent.focus(box);
+    const list = dialog.getByRole("listbox", { hidden: true });
+    Object.defineProperty(list, "clientHeight", { value: 100, configurable: true });
+    Object.defineProperty(list, "scrollHeight", { value: 400, configurable: true });
+    list.scrollTop = 0;
+    fireEvent.scroll(list);
+    expect(list).toHaveAttribute("data-fade", "bottom");
+    list.scrollTop = 150;
+    fireEvent.scroll(list);
+    expect(list).toHaveAttribute("data-fade", "both");
+    list.scrollTop = 300;
+    fireEvent.scroll(list);
+    expect(list).toHaveAttribute("data-fade", "top");
   });
 });

@@ -5731,6 +5731,50 @@ fieldset.book-main {
 .lang-list-above {
   transform-origin: bottom left;
 }
+/* A soft fade at the edge only where more scrolls into view. */
+.lang-list[data-fade="top"] {
+  mask-image: linear-gradient(to bottom, transparent, #000 1.5rem);
+}
+.lang-list[data-fade="bottom"] {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5rem), transparent);
+}
+.lang-list[data-fade="both"] {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 1.5rem,
+    #000 calc(100% - 1.5rem),
+    transparent
+  );
+}
+
+/* From Text is one form in a card of one size: the tallest state, within the
+   screen, with the form scrolling inside it, so the card never changes height
+   (a new book's name, Advanced, a long error) and nothing shifts sideways when
+   a scrollbar appears. */
+.sheet.sheet-tall:has(.textsheet) {
+  height: min(46rem, 88dvh);
+}
+.sheet:has(.textsheet) .sheet-content {
+  scrollbar-gutter: stable;
+}
+.select-box {
+  position: relative;
+}
+.field-select {
+  appearance: none;
+  padding-inline-end: 2.75rem;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.select-chevron {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--space-md);
+  margin-block: auto;
+  pointer-events: none;
+  color: var(--md-sys-color-on-surface-variant);
+}
 .lang-row {
   display: flex;
   flex-wrap: wrap;

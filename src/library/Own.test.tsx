@@ -154,9 +154,15 @@ function setup(options: Setup = {}) {
   const onOpenSong = vi.fn();
   const onSongRemoved = vi.fn();
   const onNotice = vi.fn();
+  const onTextBook = vi.fn();
   const persist = vi.fn(async () => "granted" as const);
   const view = (
-    props: { presentedKey?: string; presentedNumber?: number; outputLive?: boolean } = {},
+    props: {
+      presentedKey?: string;
+      presentedNumber?: number;
+      outputLive?: boolean;
+      textBook?: string;
+    } = {},
   ) =>
     render(() => {
       const books = createBooks(admin, store, ["mal"]);
@@ -171,6 +177,8 @@ function setup(options: Setup = {}) {
           onOpenSong={onOpenSong}
           onSongRemoved={onSongRemoved}
           onNotice={onNotice}
+          textBook={props.textBook}
+          onTextBook={onTextBook}
           admin={admin}
           store={hymnStore}
           userState={userState}
@@ -179,7 +187,17 @@ function setup(options: Setup = {}) {
         />
       );
     });
-  return { admin, hymnStore, userState, onChoose, onOpenSong, onSongRemoved, onNotice, view };
+  return {
+    admin,
+    hymnStore,
+    userState,
+    onChoose,
+    onOpenSong,
+    onSongRemoved,
+    onNotice,
+    onTextBook,
+    view,
+  };
 }
 
 const openText = async () => {
@@ -193,7 +211,7 @@ const chooseLanguage = (dialog: Dialog, search = "English") => {
   const box = dialog.getByRole("combobox", { name: /language/i });
   fireEvent.focus(box);
   fireEvent.input(box, { target: { value: search } });
-  fireEvent.click(dialog.getAllByRole("option")[0] as HTMLElement);
+  fireEvent.click(within(dialog.getByRole("listbox")).getAllByRole("option")[0] as HTMLElement);
 };
 const typeText = (dialog: Dialog, value: string) =>
   fireEvent.input(dialog.getByLabelText("Song text"), { target: { value } });
@@ -204,78 +222,197 @@ const toReview = async (s: ReturnType<typeof setup>, live: { outputLive?: boolea
   const dialog = await openText();
   typeText(dialog, ONE_SONG);
   chooseLanguage(dialog);
-  fireEvent.click(dialog.getByRole("button", { name: "Review the Song" }));
+  fireEvent.click(dialog.getByRole("button", { name: "Review Song" }));
   const review = within(await screen.findByRole("dialog", { name: "Add Song" }));
   await review.findByRole("heading", { name: "Amazing Grace" });
   return review;
 };
 
-describe("From Text: where the songs go", () => {
-  it("offers Assorted Hymns first, and hides the book's title and the song's number", async () => {
+describe("From Text: one form (ADR-0033 §4)", () => {
+  const options = (dialog: Dialog) =>
+    within(dialog.getByRole("combobox", { name: "Add to" })).getAllByRole("option");
+
+  it("is one form: Add to a book, language, text and Advanced; no modes, no id", async () => {
     setup().view();
     const dialog = await openText();
     typeText(dialog, ONE_SONG);
-    expect(dialog.getByRole("radio", { name: "Assorted Hymns" })).toBeChecked();
-    expect(dialog.getByRole("radio", { name: "A New Book" })).not.toBeChecked();
-    expect(dialog.queryByLabelText("Title")).not.toBeInTheDocument();
+    expect(dialog.queryByRole("radio")).not.toBeInTheDocument();
+    expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveValue("as1");
+    expect(dialog.queryByLabelText("Book name")).not.toBeInTheDocument();
     expect(dialog.queryByLabelText("Id")).not.toBeInTheDocument();
-    expect(dialog.queryByLabelText("Song number")).not.toBeInTheDocument();
-    // The song's language is asked, and its script follows it.
+    expect(dialog.getByText("Advanced")).toBeInTheDocument();
+    expect(dialog.getByLabelText("Song number")).toBeInTheDocument();
     expect(dialog.getByRole("combobox", { name: "Song’s language" })).toBeInTheDocument();
     chooseLanguage(dialog);
     expect(dialog.getByText(/^Script:/)).toBeInTheDocument();
-    expect(dialog.getByRole("button", { name: "Review the Song" })).toBeInTheDocument();
+    expect(dialog.getByRole("button", { name: "Review Song" })).toBeInTheDocument();
   });
 
-  it("A New Book asks for a title and no id", async () => {
+  it("offers the person's own books in the Library's order, New book… last", async () => {
+    setup({
+      rows: [
+        shipped,
+        assortedRow(),
+        assortedRow({ key: "c1", origin: "own", title: "Camp Songs" }),
+      ],
+    }).view();
+    const dialog = await openText();
+    expect(options(dialog).map((o) => o.textContent)).toEqual([
+      "Assorted Hymns",
+      "Camp Songs",
+      "New book…",
+    ]);
+  });
+
+  it("offers Assorted Hymns, to be made, when the person has no books", async () => {
+    setup({ rows: [shipped] }).view();
+    const dialog = await openText();
+    expect(options(dialog).map((o) => o.textContent)).toEqual(["Assorted Hymns", "New book…"]);
+    expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveValue("default");
+  });
+
+  it("defaults to the book last added to on this device", async () => {
+    setup({
+      rows: [
+        shipped,
+        assortedRow(),
+        assortedRow({ key: "c1", origin: "own", title: "Camp Songs", addedAt: 6 }),
+      ],
+    }).view({ textBook: "c1" });
+    const dialog = await openText();
+    expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveValue("c1");
+  });
+
+  it("falls back to Assorted Hymns when the remembered book is gone", async () => {
+    setup().view({ textBook: "gone" });
+    const dialog = await openText();
+    expect(dialog.getByRole("combobox", { name: "Add to" })).toHaveValue("as1");
+  });
+
+  it("New book… shows one more field, the name, filled with a suggestion", async () => {
     setup().view();
     const dialog = await openText();
-    typeText(dialog, ONE_SONG);
-    fireEvent.click(dialog.getByRole("radio", { name: "A New Book" }));
-    expect(dialog.getByLabelText("Title")).toBeInTheDocument();
+    fireEvent.change(dialog.getByRole("combobox", { name: "Add to" }), {
+      target: { value: "new" },
+    });
+    expect(dialog.getByLabelText("Book name")).toHaveValue("My Songs");
     expect(dialog.queryByLabelText("Id")).not.toBeInTheDocument();
-    expect(dialog.getByLabelText("Song number")).toBeInTheDocument();
-    expect(dialog.getByRole("button", { name: "Review the Song" })).toBeInTheDocument();
   });
 
-  it("offers both places for several songs, which are reviewed as songs", async () => {
+  it("suggests My Songs 2 when My Songs is taken", async () => {
+    setup({
+      rows: [shipped, assortedRow(), assortedRow({ key: "c1", origin: "own", title: "My Songs" })],
+    }).view();
+    const dialog = await openText();
+    fireEvent.change(dialog.getByRole("combobox", { name: "Add to" }), {
+      target: { value: "new" },
+    });
+    expect(dialog.getByLabelText("Book name")).toHaveValue("My Songs 2");
+  });
+
+  it("reviews several songs with the button saying how many", async () => {
     setup().view();
     const dialog = await openText();
     typeText(dialog, TWO_SONGS);
-    expect(dialog.getByRole("radio", { name: "Assorted Hymns" })).toBeChecked();
-    expect(dialog.getByRole("radio", { name: "A New Book" })).toBeInTheDocument();
     expect(dialog.getByRole("combobox", { name: "Songs’ language" })).toBeInTheDocument();
-    expect(dialog.getByRole("button", { name: "Review the Songs" })).toBeInTheDocument();
+    expect(dialog.getByRole("button", { name: "Review 2 Songs" })).toBeInTheDocument();
+    expect(dialog.getByText(/2 songs/)).toBeInTheDocument();
   });
 
-  it("asks only for the song's language, and says so when it is missing", async () => {
+  it("says the language is missing, and asks for nothing else", async () => {
     const s = setup();
     s.view();
     const dialog = await openText();
     typeText(dialog, ONE_SONG);
-    fireEvent.click(dialog.getByRole("button", { name: "Review the Song" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Review Song" }));
     expect(await dialog.findByText("Choose the song’s language.")).toBeInTheDocument();
-    expect(dialog.queryByText("Give the book a title.")).not.toBeInTheDocument();
+    expect(dialog.queryByText("Give the book a name.")).not.toBeInTheDocument();
     expect(s.admin.review).not.toHaveBeenCalled();
   });
 
-  it("numbers a song with none from the default book's next number", async () => {
+  it("an error goes the moment its field is edited, and only that one", async () => {
+    setup().view();
+    const dialog = await openText();
+    fireEvent.change(dialog.getByRole("combobox", { name: "Add to" }), {
+      target: { value: "new" },
+    });
+    fireEvent.input(dialog.getByLabelText("Book name"), { target: { value: "" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Review" }));
+    expect(await dialog.findByText("Give the book a name.")).toBeInTheDocument();
+    expect(dialog.getByText("Choose the song’s language.")).toBeInTheDocument();
+    expect(
+      dialog.getByText("There are no songs to add. Paste them or open a .txt file."),
+    ).toBeInTheDocument();
+    chooseLanguage(dialog);
+    expect(dialog.queryByText("Choose the song’s language.")).not.toBeInTheDocument();
+    expect(dialog.getByText("Give the book a name.")).toBeInTheDocument();
+    typeText(dialog, ONE_SONG);
+    expect(dialog.queryByText(/There are no songs/)).not.toBeInTheDocument();
+    fireEvent.input(dialog.getByLabelText("Book name"), { target: { value: "Camp" } });
+    expect(dialog.queryByText("Give the book a name.")).not.toBeInTheDocument();
+    // The next Review shows what it finds again.
+    fireEvent.input(dialog.getByLabelText("Book name"), { target: { value: " " } });
+    fireEvent.click(dialog.getByRole("button", { name: "Review Song" }));
+    expect(await dialog.findByText("Give the book a name.")).toBeInTheDocument();
+  });
+
+  it("checks a script typed by hand as it is typed: four letters, a script the device knows", async () => {
+    setup().view();
+    const dialog = await openText();
+    chooseLanguage(dialog);
+    fireEvent.click(dialog.getByRole("button", { name: "Change" }));
+    const code = dialog.getByLabelText("Script code");
+    fireEvent.input(code, { target: { value: "Abcd" } });
+    expect(dialog.getByRole("alert")).toHaveTextContent(/“Abcd” is not a script/);
+    fireEvent.input(code, { target: { value: "Abcde" } });
+    expect(dialog.getByRole("alert")).toHaveTextContent("A script code is four letters");
+    fireEvent.input(code, { target: { value: "mlym" } });
+    expect(dialog.queryByText(/is not a script|four letters/)).not.toBeInTheDocument();
+    fireEvent.blur(code);
+    expect(code).toHaveValue("Mlym");
+    fireEvent.click(dialog.getByRole("button", { name: "Done" }));
+    expect(dialog.getByText(/^Script:/)).toHaveTextContent("Malayalam");
+  });
+
+  it("numbers songs with none from the chosen book's next number, one or several", async () => {
     const s = setup();
     s.view();
     const dialog = await openText();
-    typeText(dialog, "Amazing Grace\n\nAmazing grace! how sweet the sound,\n");
+    typeText(
+      dialog,
+      "Amazing Grace\n\nAmazing grace!\n\n---\n\nRock of Ages\n\nRock of Ages, cleft for me\n",
+    );
     chooseLanguage(dialog);
-    fireEvent.click(dialog.getByRole("button", { name: "Review the Song" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Review 2 Songs" }));
+    await screen.findByRole("dialog", { name: /Add Song/ });
+    const file = (s.admin.review.mock.calls[0] as unknown as [File])[0];
+    const { gunzipSync } = await import("fflate");
+    const made = JSON.parse(
+      new TextDecoder().decode(gunzipSync(new Uint8Array(await file.arrayBuffer()))),
+    );
+    expect(made.hymns.map((h: { number: number }) => h.number)).toEqual([8, 9]);
+  });
+
+  it("numbers from 1 in a new book", async () => {
+    const s = setup();
+    s.view();
+    const dialog = await openText();
+    fireEvent.change(dialog.getByRole("combobox", { name: "Add to" }), {
+      target: { value: "new" },
+    });
+    typeText(dialog, "Amazing Grace\n\nAmazing grace!\n");
+    chooseLanguage(dialog);
+    fireEvent.click(dialog.getByRole("button", { name: "Review Song" }));
     await screen.findByRole("dialog", { name: "Add Song" });
     const file = (s.admin.review.mock.calls[0] as unknown as [File])[0];
     const { gunzipSync } = await import("fflate");
     const made = JSON.parse(
       new TextDecoder().decode(gunzipSync(new Uint8Array(await file.arrayBuffer()))),
     );
-    expect(made.hymns[0].number).toBe(8);
+    expect(made.hymns[0].number).toBe(1);
   });
 
-  it("a new book is added to as a new book of that title", async () => {
+  it("a new book is added to as a new book of that name", async () => {
     const s = setup({
       review: reviewOf({ title: "Camp Songs", own: ownList({ adding: [1] }) }),
       add: { ok: true, key: "n1", numbers: [1], already: 0, created: true },
@@ -283,10 +420,12 @@ describe("From Text: where the songs go", () => {
     s.view();
     const dialog = await openText();
     typeText(dialog, ONE_SONG);
-    fireEvent.click(dialog.getByRole("radio", { name: "A New Book" }));
-    fireEvent.input(dialog.getByLabelText("Title"), { target: { value: "Camp Songs" } });
+    fireEvent.change(dialog.getByRole("combobox", { name: "Add to" }), {
+      target: { value: "new" },
+    });
+    fireEvent.input(dialog.getByLabelText("Book name"), { target: { value: "Camp Songs" } });
     chooseLanguage(dialog);
-    fireEvent.click(dialog.getByRole("button", { name: "Review the Song" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Review Song" }));
     const review = within(await screen.findByRole("dialog", { name: "Add Song" }));
     expect(await review.findByText(/Becomes song/)).toHaveTextContent(
       "Becomes song 1 in Camp Songs",
@@ -303,6 +442,8 @@ describe("From Text: where the songs go", () => {
       ),
     );
     await waitFor(() => expect(s.onOpenSong).toHaveBeenCalledWith("n1", 1));
+    // The book added to is the one offered next time.
+    expect(s.onTextBook).toHaveBeenCalledWith("n1");
   });
 });
 
@@ -322,7 +463,7 @@ describe("Review: Add Song", () => {
     await waitFor(() => expect(s.onOpenSong).toHaveBeenCalledWith("as1", 8));
     expect(s.admin.addToOwn).toHaveBeenCalledWith(
       "t1",
-      { kind: "default" },
+      { kind: "book", key: "as1" },
       "en",
       "Latn",
       expect.any(Function),
@@ -442,7 +583,7 @@ describe("Review: several songs", () => {
     const dialog = await openText();
     typeText(dialog, TWO_SONGS);
     chooseLanguage(dialog);
-    fireEvent.click(dialog.getByRole("button", { name: "Review the Songs" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Review 2 Songs" }));
     return within(await screen.findByRole("dialog", { name: "Add Songs" }));
   };
 
@@ -480,7 +621,7 @@ describe("Review: several songs", () => {
     const dialog = await openText();
     typeText(dialog, TWO_SONGS);
     chooseLanguage(dialog);
-    fireEvent.click(dialog.getByRole("button", { name: "Review the Songs" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Review 2 Songs" }));
     const review = within(await screen.findByRole("dialog", { name: "Add Songs" }));
     fireEvent.click(await review.findByRole("button", { name: "Add Songs" }));
     await waitFor(() =>
