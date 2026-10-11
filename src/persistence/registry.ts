@@ -763,7 +763,7 @@ export async function removeOwnSong(
   if (now === "unreadable") {
     throw new Error("the book cannot be opened, so no song is removed from it");
   }
-  if (!now || !now.hymns.some((h) => h.number === number)) return { removed: false };
+  if (!now?.hymns.some((h) => h.number === number)) return { removed: false };
   const left = now.hymns.filter((h) => h.number !== number);
   if (left.length === 0) {
     removeBook(ctx, key);

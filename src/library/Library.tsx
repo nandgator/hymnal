@@ -10,15 +10,15 @@ import {
   Switch,
 } from "solid-js";
 import { SAMPLE_FILES } from "../config.ts";
-import { libraryOrder } from "../domain/assorted.ts";
+import { ASSORTED_ORIGIN, libraryOrder, type OwnTarget, statusFor } from "../domain/own.ts";
 import type { LoadProgress } from "../domain/progress.ts";
 import { gzipContainer } from "../import/container.ts";
 import type { TextError } from "../import/songtext.ts";
 import {
-  addToAssortedAndPersist,
+  addToOwnAndPersist,
   commitAndPersist,
-  removeAssortedSongAndRecents,
   removeBookAndRecents,
+  removeOwnSongAndRecents,
 } from "../persistence/books.ts";
 import {
   type BookRow,
@@ -34,7 +34,6 @@ import { glideList } from "../shell/glideList.ts";
 import { AfterDelay, createDelayed, LoadStatus, ProgressBar } from "../shell/Loading.tsx";
 import { Menu } from "../shell/Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "../shell/media.ts";
-import { AssortedSheet, type AssortedSong } from "./AssortedSheet.tsx";
 import {
   type Books,
   count,
@@ -44,6 +43,7 @@ import {
   type RowState,
   songs,
 } from "./books.ts";
+import { OwnSheet, type OwnSong } from "./OwnSheet.tsx";
 import { RemoveSheet, type RemoveTarget } from "./RemoveSheet.tsx";
 import { ReviewSheet } from "./ReviewSheet.tsx";
 import { createTextDraft, TextSheet } from "./TextSheet.tsx";
@@ -54,7 +54,7 @@ const MEMORY_NOTE = "This window doesn’t keep books. They go when it closes, s
 const SAMPLE_FAILED =
   "The sample couldn’t be fetched. It comes from this site, so check the connection and try again.";
 const KEPT_NOTE = "Books stay on this device.";
-/** Said only while a loaded book is held: Assorted Hymns has no file, and says so itself. */
+/** Said only while a loaded book is held: your books have no file, and say so themselves. */
 const KEEP_FILE_NOTE = "A loaded book has no copy anywhere else, so keep its file.";
 
 /** Said when a backup is picked together with books: it is restored on its own. */
@@ -79,14 +79,14 @@ export interface LibraryProps {
   outputLive?: boolean;
   /** The number of the hymn on screen: with {@link presentedKey}, the song a removal is refused for. */
   presentedNumber?: number;
-  /** A song of Assorted Hymns is chosen to be shown: its book is current and the Operator shows it. */
+  /** A song of a book of yours is chosen to be shown: its book is current and the Operator shows it. */
   onOpenSong?: (key: string, number: number) => void;
-  /** A song of Assorted Hymns was removed: if it was on screen, it goes. */
+  /** A song of a book of yours was removed: if it was on screen, it goes. */
   onSongRemoved?: (key: string, number: number) => void;
   /** End Live, from the Remove Book sheet that asks for it. */
   onEndLive?: () => void;
   /** The first load's request to keep storage was refused: say to keep the file. */
-  onStorageRefused?: (kind?: "assorted") => void;
+  onStorageRefused?: (kind?: "own") => void;
   /** A word for the snackbar: a book that loaded but could not be put to use. */
   onNotice?: (message: string) => void;
   /** A single picked file is a backup (decided by its content): the restore sheet takes it
@@ -96,7 +96,7 @@ export interface LibraryProps {
   admin?: LibraryAdmin;
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
   userState?: Pick<UserState, "getRecents" | "dropRecents" | "dropSong">;
-  /** Reads Assorted Hymns' songs in their order; defaults to the content store. */
+  /** Reads a book of yours' songs in their order; defaults to the content store. */
   store?: Pick<ContentStore, "listHymns">;
   /** Asks for persistent storage at the first load; overridable for tests. */
   persist?: Parameters<typeof commitAndPersist>[3];
@@ -240,16 +240,18 @@ export function Library(props: LibraryProps) {
   const [textErrors, setTextErrors] = createSignal<TextError[]>([]);
   const [textProblems, setTextProblems] = createSignal<FieldProblems>({});
   const [reviewFromText, setReviewFromText] = createSignal(false);
-  // ...and the one song of it goes to Assorted Hymns (SDD-0004 §17).
-  const [reviewAssorted, setReviewAssorted] = createSignal(false);
-  // The sheet of Assorted Hymns' songs, and the removal being asked on its second page.
-  const [assortedOpen, setAssortedOpen] = createSignal(false);
-  const [assortedKey, setAssortedKey] = createSignal("");
-  const [assortedSongs, setAssortedSongs] = createSignal<AssortedSong[]>();
-  const [assortedProblem, setAssortedProblem] = createSignal<string>();
-  const [assortedRemoving, setAssortedRemoving] = createSignal<AssortedSong>();
-  const [assortedRecents, setAssortedRecents] = createSignal(0);
-  const [assortedError, setAssortedError] = createSignal<string>();
+  // ...and its songs go to a book of yours (ADR-0033, SDD-0004 §17).
+  const [reviewOwn, setReviewOwn] = createSignal<OwnTarget>();
+  // The sheet of a book of yours' songs, and the removal or rename being asked on its second page.
+  const [ownOpen, setOwnOpen] = createSignal(false);
+  const [ownKey, setOwnKey] = createSignal("");
+  const [ownSongs, setOwnSongs] = createSignal<OwnSong[]>();
+  const [ownProblem, setOwnProblem] = createSignal<string>();
+  const [ownRemoving, setOwnRemoving] = createSignal<OwnSong>();
+  const [ownRecents, setOwnRecents] = createSignal(0);
+  const [ownError, setOwnError] = createSignal<string>();
+  const [ownRenaming, setOwnRenaming] = createSignal(false);
+  const [ownRenameError, setOwnRenameError] = createSignal<string>();
   const [removing, setRemoving] = createSignal<RemoveTarget>();
   const [removeOpen, setRemoveOpen] = createSignal(false);
   const [removeRecents, setRemoveRecents] = createSignal(0);
@@ -271,7 +273,7 @@ export function Library(props: LibraryProps) {
   const [missing, setMissing] = createSignal<ReadonlySet<string>>(new Set());
   const [justAdded, setJustAdded] = createSignal<string>();
 
-  // Assorted Hymns' row sits first, above the rest (SDD-0004 §17).
+  // Your books sit first, above the rest (SDD-0004 §17).
   const rows = () => {
     return libraryOrder(props.books.rows() ?? []);
   };
@@ -327,7 +329,13 @@ export function Library(props: LibraryProps) {
   /** Parse the text and, when it is clean, review the book as if its container had been read. */
   const reviewText = async () => {
     if (textBusy()) return;
-    const built = buildTextBook(draft.fields(), draft.songText());
+    const fields = draft.fields();
+    // A song with no number takes the book's next (ADR-0033 §5): the default book's, if it is held.
+    const next =
+      fields.destination === "book"
+        ? 1
+        : (rows().find((b) => b.kind === "own" && b.origin === ASSORTED_ORIGIN)?.nextNumber ?? 1);
+    const built = buildTextBook(fields, draft.songText(), next);
     if (!built.ok) {
       setTextProblems(built.fields);
       setTextErrors(built.errors);
@@ -343,7 +351,11 @@ export function Library(props: LibraryProps) {
       setReview(result);
       setReviewFile(name);
       setReviewFromText(true);
-      setReviewAssorted(built.destination === "assorted");
+      setReviewOwn(
+        built.destination === "assorted"
+          ? { kind: "default" }
+          : { kind: "new", title: built.title.trim() },
+      );
       setReviewError(undefined);
       setTextOpen(false);
       setReviewOpen(true);
@@ -360,7 +372,7 @@ export function Library(props: LibraryProps) {
 
   /** Puts a review in the sheet. */
   const present = (result: LoadReview, file: File) => {
-    setReviewAssorted(false);
+    setReviewOwn(undefined);
     setReview(result);
     setReviewFile(file.name);
     setReviewError(undefined);
@@ -499,34 +511,49 @@ export function Library(props: LibraryProps) {
     );
   };
 
-  /** Why a song was not added, in words. Already-here and unreadable are said by the review itself. */
-  const notAdded = (reason: string, message: string) => {
+  /** Why songs were not added, in words. Unreadable is said by the review itself. */
+  const notAdded = (reason: string, message: string, many: boolean) => {
+    const these = many ? "These songs are" : "This song is";
     switch (reason) {
       case "no-review":
         return "This review is no longer current. Cancel, then review the text again.";
-      case "not-one-song":
-        return "Only a single song can be added to Assorted Hymns. Put several songs in a book instead.";
+      case "already-here":
+        return `${these} in the book already. Nothing was added.`;
+      case "unreadable":
+        return "That book can’t be opened, so nothing was added to it.";
       case "invalid":
-        return `The song’s language or script wasn’t accepted (${message}). Edit the text to correct it.`;
+        return `${message} Edit the text to correct it.`;
       default:
-        return `Couldn’t add the song: ${message}`;
+        return `Couldn’t add ${many ? "the songs" : "the song"}: ${message}`;
     }
   };
 
-  /** Add Song: the one song of the review joins Assorted Hymns, and the Operator shows it. */
+  /** Said when songs were added but the sheet is not there to show them. */
+  const addedNote = (title: string, book: string, numbers: number[]) => {
+    const first = numbers[0];
+    const last = numbers[numbers.length - 1];
+    return numbers.length === 1
+      ? `${title || "The song"} was added to ${book} as ${first}.`
+      : `${count(numbers.length)} songs were added to ${book} as ${first} to ${last}.`;
+  };
+
+  /** Add Song: the songs of the review join a book of yours, and the Operator shows the first. */
   const addSong = async () => {
     const current = review();
-    const at = current?.assorted;
-    if (!current?.token || !at || at.next === null || busy()) return;
+    const target = reviewOwn();
+    const at = current && target ? statusFor(current.own ?? [], target) : undefined;
+    if (!current?.token || !target || !at || at.next === null || busy()) return;
+    const many = current.songCount > 1;
     setBusy(true);
     setCommitting(true);
     setProgress(undefined);
     setReviewError(undefined);
     const persist =
       (await storageMode) === "memory" ? async () => "unsupported" as const : props.persist;
-    const result = await addToAssortedAndPersist(
+    const result = await addToOwnAndPersist(
       admin(),
       current.token,
+      target,
       current.language,
       current.script,
       persist,
@@ -541,64 +568,53 @@ export function Library(props: LibraryProps) {
       setCommitting(false);
       setProgress(undefined);
       // The review is kept by the worker: show it as the book now is.
-      if (result.reason === "already-here" && result.number !== undefined) {
-        setReview({
-          ...current,
-          assorted: { key: result.key ?? at.key, next: at.next, has: result.number },
-        });
-        return;
-      }
-      if (result.reason === "unreadable") {
-        setReview({ ...current, assorted: { key: result.key ?? at.key, next: null, has: null } });
-        return;
-      }
-      const said = notAdded(result.reason, result.message);
+      const said = notAdded(result.reason, result.message, many);
       if (reviewOpen()) setReviewError(said);
-      else props.onNotice?.(`${current.title || "The song"}: ${said}`);
+      else props.onNotice?.(`${current.title || "The songs"}: ${said}`);
       return;
     }
     draft.reset();
     setReviewFromText(false);
-    setReviewAssorted(false);
+    setReviewOwn(undefined);
     forgetBook(result.key);
     await props.books.refresh();
     setBusy(false);
     setCommitting(false);
     setProgress(undefined);
     void result.persisted?.then((answer) => {
-      if (answer === "refused") props.onStorageRefused?.("assorted");
+      if (answer === "refused") props.onStorageRefused?.("own");
     });
+    const first = result.numbers[0];
     if (reviewOpen() && !props.outputLive) {
       setReviewOpen(false);
       props.onChoose(result.key);
-      props.onOpenSong?.(result.key, result.number);
+      if (first !== undefined) props.onOpenSong?.(result.key, first);
     } else {
       // The sheet was closed while it wrote, or the Output is live: nothing the Operator does
-      // elsewhere changes the Output unasked, so the song is added and not shown. Said instead.
+      // elsewhere changes the Output unasked, so the songs are added and not shown. Said instead.
       setReviewOpen(false);
       if (props.currentKey === undefined) props.onChoose(result.key);
       scrollTo(result.key);
-      props.onNotice?.(
-        `${current.title || "The song"} was added to Assorted Hymns as ${result.number}.`,
-      );
+      const book = rows().find((b) => b.key === result.key)?.title ?? at.title;
+      props.onNotice?.(addedNote(current.title, book, result.numbers));
     }
   };
 
-  /** Open Song: the song is in Assorted Hymns already; nothing is written. */
+  /** Open Song: the song is in the book already; nothing is written. */
   const openExisting = (key: string, number: number) => {
     if (busy()) return;
     const token = review()?.token;
     if (token) void admin().cancel(token);
     draft.reset();
     setReviewFromText(false);
-    setReviewAssorted(false);
+    setReviewOwn(undefined);
     setReviewOpen(false);
     props.onChoose(key);
     props.onOpenSong?.(key, number);
   };
 
   const commit = async (choice: Choice) => {
-    if (reviewAssorted()) return addSong();
+    if (reviewOwn()) return addSong();
     const current = review();
     if (!current?.token || busy()) return;
     // The queue and its entry as they are now: what is awaited below must not decide
@@ -722,65 +738,66 @@ export function Library(props: LibraryProps) {
     setRemoving({
       key: book.key,
       title: rowTitle(book),
-      language: book.kind === "assorted" ? "" : book.language,
+      language: book.kind === "own" ? "" : book.language,
       songs: book.songs,
       state: stateOf(book),
     });
     setRemoveOpen(true);
   };
 
-  /* --------------------- Assorted Hymns' songs (§17) -------------------- */
+  /* --------------------- A book of yours' songs (§17) -------------------- */
 
   const readSongs = async (key: string) => {
     try {
       const list = await store().listHymns(key);
-      if (assortedKey() === key) setAssortedSongs(list);
+      if (ownKey() === key) setOwnSongs(list);
     } catch (error) {
-      if (assortedKey() === key) {
-        setAssortedProblem(
+      if (ownKey() === key) {
+        setOwnProblem(
           `Couldn’t read the songs${error instanceof Error && error.message ? `: ${error.message}` : "."}`,
         );
       }
     }
   };
 
-  const openAssorted = (book: BookRow) => {
-    setAssortedKey(book.key);
-    setAssortedSongs(undefined);
-    setAssortedProblem(undefined);
-    setAssortedRemoving(undefined);
-    setAssortedError(undefined);
-    setAssortedOpen(true);
+  const openOwn = (book: BookRow) => {
+    setOwnKey(book.key);
+    setOwnSongs(undefined);
+    setOwnProblem(undefined);
+    setOwnRemoving(undefined);
+    setOwnRenaming(false);
+    setOwnError(undefined);
+    setOwnOpen(true);
     void readSongs(book.key);
   };
 
-  const askRemoveSong = async (song: AssortedSong) => {
-    const key = assortedKey();
+  const askRemoveSong = async (song: OwnSong) => {
+    const key = ownKey();
     const recents = (await user().getRecents()).filter(
       (r) => r.hymnbookId === key && r.hymnNumber === song.number,
     ).length;
-    setAssortedRecents(recents);
-    setAssortedError(undefined);
-    setAssortedRemoving(song);
+    setOwnRecents(recents);
+    setOwnError(undefined);
+    setOwnRemoving(song);
   };
 
   const songOnScreen = () =>
-    !!assortedRemoving() &&
-    assortedKey() === props.presentedKey &&
-    assortedRemoving()?.number === props.presentedNumber;
+    !!ownRemoving() &&
+    ownKey() === props.presentedKey &&
+    ownRemoving()?.number === props.presentedNumber;
   const songOnOutput = () => songOnScreen() && !!props.outputLive;
 
   const confirmRemoveSong = async () => {
-    const song = assortedRemoving();
-    const key = assortedKey();
+    const song = ownRemoving();
+    const key = ownKey();
     if (!song || busy() || songOnOutput()) return;
     setBusy(true);
-    let result: Awaited<ReturnType<typeof removeAssortedSongAndRecents>>;
+    let result: Awaited<ReturnType<typeof removeOwnSongAndRecents>>;
     try {
-      result = await removeAssortedSongAndRecents(admin(), user(), song.number);
+      result = await removeOwnSongAndRecents(admin(), user(), key, song.number);
     } catch (error) {
       setBusy(false);
-      setAssortedError(
+      setOwnError(
         `Couldn’t remove the song: ${error instanceof Error ? error.message : String(error)}`,
       );
       return;
@@ -788,11 +805,41 @@ export function Library(props: LibraryProps) {
     forgetBook(key);
     await props.books.refresh();
     setBusy(false);
-    setAssortedRemoving(undefined);
+    setOwnRemoving(undefined);
     if (result.removed) props.onSongRemoved?.(key, song.number);
     // The last song took the book with it: nothing is left to list.
-    if (result.removed && result.bookRemoved) setAssortedOpen(false);
+    if (result.removed && result.bookRemoved) setOwnOpen(false);
     else await readSongs(key);
+  };
+
+  const askRename = () => {
+    setOwnRenameError(undefined);
+    setOwnRenaming(true);
+  };
+
+  const confirmRename = async (title: string) => {
+    const key = ownKey();
+    if (busy()) return;
+    setBusy(true);
+    setOwnRenameError(undefined);
+    try {
+      const result = await admin().renameOwn(key, title);
+      if (!result.ok) {
+        setBusy(false);
+        setOwnRenameError(result.message);
+        return;
+      }
+    } catch (error) {
+      setBusy(false);
+      setOwnRenameError(
+        `Couldn’t rename the book: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return;
+    }
+    forgetBook(key);
+    await props.books.refresh();
+    setBusy(false);
+    setOwnRenaming(false);
   };
 
   const nextTitle = () => {
@@ -940,7 +987,7 @@ export function Library(props: LibraryProps) {
     const bad = () => state() !== "ok";
     const current = () => book.key === props.currentKey && !bad();
     const shipped = book.kind === "shipped";
-    const assorted = book.kind === "assorted";
+    const own = book.kind === "own";
     const menu = () => (
       <Menu
         label={`More for ${rowTitle(book)}`}
@@ -981,7 +1028,7 @@ export function Library(props: LibraryProps) {
                 </Show>
                 <div class="book-status">{problemOf(state()).status}</div>
                 <div class="book-note">{problemOf(state()).note}</div>
-                <Show when={problemOf(state()).loadAgain && !assorted}>
+                <Show when={problemOf(state()).loadAgain && !own}>
                   <div class="book-actions">
                     <button type="button" class="btn-text" onClick={() => pick(book.key)}>
                       Load Again
@@ -996,7 +1043,7 @@ export function Library(props: LibraryProps) {
             type="button"
             class="book-main"
             aria-current={current() ? "true" : undefined}
-            onClick={() => (assorted ? openAssorted(book) : void choose(book))}
+            onClick={() => (own ? openOwn(book) : void choose(book))}
           >
             <span class="book-tile">
               <span class="icon icon-library" aria-hidden="true" />
@@ -1010,11 +1057,11 @@ export function Library(props: LibraryProps) {
                       <b>Current</b>
                     </span>
                   </Show>
-                  <Show when={!assorted}>
+                  <Show when={!own}>
                     <span class="seg">{languageName(book.language)}</span>
                   </Show>
                   <span class="seg book-songs-inline num">{songs(book.songs)}</span>
-                  <Show when={!assorted}>
+                  <Show when={!own}>
                     <span class="seg">{shipped ? "Shipped" : "Loaded"}</span>
                   </Show>
                   <Show when={justAdded() === book.key}>
@@ -1034,6 +1081,16 @@ export function Library(props: LibraryProps) {
         {menu()}
       </li>
     );
+  };
+
+  /** The heading above the first row of a group, when there is both a group of yours and another. */
+  const groupHead = (book: BookRow, index: number): string | undefined => {
+    const all = rows();
+    if (!all.some((b) => b.kind === "own")) return undefined;
+    if (index === 0) return "Your books";
+    return book.kind !== "own" && all.findIndex((b) => b.kind !== "own") === index
+      ? "Books"
+      : undefined;
   };
 
   const list = (): JSX.Element => (
@@ -1093,7 +1150,20 @@ export function Library(props: LibraryProps) {
       >
         <Show when={reading() && readingShown() && reading()}>{(now) => readingRow(now())}</Show>
         <Show when={savingShown()}>{savingRow()}</Show>
-        <For each={rows()}>{bookRow}</For>
+        <For each={rows()}>
+          {(book, i) => (
+            <>
+              <Show when={groupHead(book, i())}>
+                {(label) => (
+                  <li class="book-group" role="presentation">
+                    {label()}
+                  </li>
+                )}
+              </Show>
+              {bookRow(book)}
+            </>
+          )}
+        </For>
       </ul>
       {/* The same offer as the empty Library's, under the list: the header
           has no room for a third action at phone width. */}
@@ -1113,9 +1183,9 @@ export function Library(props: LibraryProps) {
           >
             {MEMORY_NOTE}
           </Show>
-          <Show when={rows().some((book) => book.kind === "assorted")}>
+          <Show when={rows().some((book) => book.kind === "own")}>
             {" "}
-            Assorted Hymns has no file: Back Up keeps it.
+            Your books have no file: Back Up keeps them.
           </Show>
         </p>
       </Show>
@@ -1244,7 +1314,7 @@ export function Library(props: LibraryProps) {
         reading={sheetReading()}
         problems={reviewFromText() ? [] : readErrors()}
         fromText={reviewFromText()}
-        assorted={reviewAssorted()}
+        own={reviewOwn()}
         onOpenSong={openExisting}
         position={position()}
         placement={placement()}
@@ -1264,30 +1334,39 @@ export function Library(props: LibraryProps) {
         onCancel={() => setTextOpen(false)}
         onReview={() => void reviewText()}
       />
-      <AssortedSheet
-        open={assortedOpen()}
-        songs={assortedSongs()}
-        problem={assortedProblem()}
-        removing={assortedRemoving()}
-        recents={assortedRecents()}
-        last={(assortedSongs()?.length ?? 0) === 1}
+      <OwnSheet
+        open={ownOpen()}
+        title={rows().find((b) => b.key === ownKey())?.title ?? ""}
+        songs={ownSongs()}
+        problem={ownProblem()}
+        removing={ownRemoving()}
+        renaming={ownRenaming()}
+        renameError={ownRenameError()}
+        recents={ownRecents()}
+        last={(ownSongs()?.length ?? 0) === 1}
         presented={songOnScreen()}
         onOutput={songOnOutput()}
         onEndLive={props.onEndLive}
         busy={busy()}
-        error={assortedError()}
+        error={ownError()}
         placement={placement()}
         onClose={() => {
-          setAssortedOpen(false);
-          setAssortedRemoving(undefined);
+          setOwnOpen(false);
+          setOwnRemoving(undefined);
+          setOwnRenaming(false);
         }}
         onOpenSong={(number) => {
-          setAssortedOpen(false);
-          props.onChoose(assortedKey());
-          props.onOpenSong?.(assortedKey(), number);
+          setOwnOpen(false);
+          props.onChoose(ownKey());
+          props.onOpenSong?.(ownKey(), number);
         }}
         onAskRemove={(song) => void askRemoveSong(song)}
-        onBack={() => setAssortedRemoving(undefined)}
+        onAskRename={askRename}
+        onRename={(title) => void confirmRename(title)}
+        onBack={() => {
+          setOwnRemoving(undefined);
+          setOwnRenaming(false);
+        }}
         onConfirm={() => void confirmRemoveSong()}
       />
       <RemoveSheet

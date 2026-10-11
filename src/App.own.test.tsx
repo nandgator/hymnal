@@ -37,11 +37,11 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     mocks.searchAll.mockImplementation(async () => []);
   });
 
-  describe("Assorted Hymns (SDD-0004 §17)", () => {
+  describe("Your books (ADR-0033, SDD-0004 §17)", () => {
     const assorted = (): BookRow => ({
       key: "as1",
       origin: "assorted",
-      kind: "assorted",
+      kind: "own",
       file: "/as1.1.sqlite3",
       title: "Assorted Hymns",
       language: "mul",
@@ -103,7 +103,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
           { name: /#1/ },
         ),
       ).not.toBeInTheDocument();
-      expect(mocks.rows.some((book) => book.kind === "assorted")).toBe(true);
+      expect(mocks.rows.some((book) => book.kind === "own")).toBe(true);
     });
 
     it("removing the last song while Assorted Hymns is the current book chooses another current book", async () => {
@@ -130,7 +130,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
         storage: { persist: async () => false, persisted: async () => false },
       });
       const admin = mocks.admin as Record<string, unknown>;
-      const was = { review: admin.review, add: admin.addToAssorted };
+      const was = { review: admin.review, add: admin.addToOwn };
       admin.review = async () => ({
         token: "t",
         sourceHash: "a".repeat(64),
@@ -142,14 +142,18 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
         violations: [],
         verdict: { kind: "new" },
         held: { count: 0, books: [] },
-        assorted: { key: null, next: 1, has: null },
+        own: [
+          { key: null, origin: "assorted", title: "Assorted Hymns", next: 1, has: {}, adding: [1] },
+          { key: null, origin: "own", title: "", next: 1, has: {}, adding: [1] },
+        ],
       });
-      admin.addToAssorted = async () => {
+      admin.addToOwn = async () => {
         mocks.rows = [...mocks.rows, assorted()];
         return {
           ok: true,
           key: "as1",
-          number: 1,
+          numbers: [1],
+          already: 0,
           created: true,
           firstLoad: true,
         };
@@ -178,7 +182,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
         await screen.findAllByText(/was added to Assorted Hymns as 1/);
         fireEvent.click(screen.getByRole("button", { name: "Got It" }));
         const note = await screen.findAllByText(
-          "Your browser may clear stored songs if space runs low. Back up from Settings to keep Assorted Hymns.",
+          "Your browser may clear stored songs if space runs low. Back up from Settings to keep your books.",
         );
         expect(note.length).toBeGreaterThan(0);
         // Not the book-file note.
@@ -190,7 +194,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
         );
       } finally {
         admin.review = was.review;
-        admin.addToAssorted = was.add;
+        admin.addToOwn = was.add;
         vi.unstubAllGlobals();
       }
     });

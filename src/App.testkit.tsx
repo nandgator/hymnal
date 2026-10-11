@@ -103,8 +103,8 @@ export function contentStoreMock() {
       mocks.rows = mocks.rows.filter((book) => book.key !== key);
       return true;
     },
-    removeAssortedSong: async () => {
-      if (mocks.assortedLast) mocks.rows = mocks.rows.filter((book) => book.kind !== "assorted");
+    removeOwnSong: async () => {
+      if (mocks.assortedLast) mocks.rows = mocks.rows.filter((book) => book.kind !== "own");
       return { removed: true, key: "as1", bookRemoved: mocks.assortedLast };
     },
   };

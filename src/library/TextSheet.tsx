@@ -19,7 +19,6 @@ import {
   type Destination,
   type FieldProblems,
   joinSongTexts,
-  slugify,
   songCount,
   type TextFields,
 } from "./textbook.ts";
@@ -40,17 +39,11 @@ export function createTextDraft() {
   // The script follows the language ("ml" is Mlym) until it is changed by hand.
   const [scriptEdit, setScriptEdit] = createSignal<string>();
   const script = () => scriptEdit() ?? scriptOf(language());
-  const [id, setId] = createSignal("");
   const [number, setNumber] = createSignal("");
   const [songText, setSongText] = createSignal("");
-  // Where one song goes (SDD-0004 §17): Assorted Hymns unless the person asks for a book.
-  const [asked, setAsked] = createSignal<Destination>("assorted");
+  // Where the songs go (ADR-0033): Assorted Hymns unless the person asks for a new book.
+  const [destination, setDestination] = createSignal<Destination>("assorted");
   const songs = createMemo(() => songCount(songText()));
-  // Several songs make a book; nothing, or one, may join Assorted Hymns.
-  const offered = () => songs() <= 1;
-  const destination = (): Destination => (offered() ? asked() : "book");
-  // The id follows the title until it is edited by hand.
-  const [idEdited, setIdEdited] = createSignal(false);
   const scheduleSuggest = () => {
     clearTimeout(suggestTimer);
     const run = ++suggestRun;
@@ -72,17 +65,13 @@ export function createTextDraft() {
     title,
     language,
     script,
-    id,
     number,
     songText,
-    /** Assorted Hymns is on offer: the text holds no more than one song. */
-    offered,
+    /** How many songs the text holds. */
+    songs,
     destination,
-    setDestination: setAsked,
-    setTitle: (value: string) => {
-      setTitle(value);
-      if (!idEdited()) setId(slugify(value));
-    },
+    setDestination,
+    setTitle,
     setLanguage: (code: string) => {
       setChosen(true);
       setSuggested(undefined);
@@ -92,10 +81,6 @@ export function createTextDraft() {
     setScript: (code: string) => setScriptEdit(code),
     resetScript: () => setScriptEdit(undefined),
     scriptEdited: () => scriptEdit() !== undefined,
-    setId: (value: string) => {
-      setIdEdited(value !== "");
-      setId(value === "" ? slugify(title()) : value);
-    },
     setNumber,
     setSongText: (value: string) => {
       setSongText(value);
@@ -106,18 +91,16 @@ export function createTextDraft() {
       suggestRun++;
       setChosen(false);
       setSuggested(undefined);
-      for (const set of [setTitle, setLanguage, setId, setNumber, setSongText]) {
+      for (const set of [setTitle, setLanguage, setNumber, setSongText]) {
         set("");
       }
-      setIdEdited(false);
-      setAsked("assorted");
+      setDestination("assorted");
       setScriptEdit(undefined);
     },
     fields: (): TextFields => ({
       title: title(),
       language: language(),
       script: script(),
-      id: id(),
       number: number(),
       destination: destination(),
     }),
@@ -213,7 +196,7 @@ export function TextSheet(props: TextSheetProps) {
   // After a Review that found something wrong, bring the first thing wrong into view.
   createEffect(() => {
     if (!props.open || !hasProblem()) return;
-    if (props.problems.id || props.problems.number) setAdvanced(true);
+    if (props.problems.number) setAdvanced(true);
     queueMicrotask(() => {
       const first = form?.querySelector<HTMLElement>('[aria-invalid="true"]');
       if (!first) return;
@@ -268,28 +251,26 @@ export function TextSheet(props: TextSheetProps) {
         }}
       >
         <p class="textsheet-lead">
-          Songs written as plain text, in the <span class="nowrap">text format</span>, become a
-          book, or one song joins Assorted Hymns. You see it all before anything is stored, and
-          nothing leaves this device.
+          Songs written as plain text, in the <span class="nowrap">text format</span>, join Assorted
+          Hymns or a new book of yours. You see it all before anything is stored, and nothing leaves
+          this device.
         </p>
 
-        <Show when={d.offered()}>
-          <div class="field">
-            <span class="field-label" id="destination-label">
-              Add it to
-            </span>
-            <Segmented
-              legend="Where the song goes"
-              options={[
-                { value: "assorted", label: "Assorted Hymns" },
-                { value: "book", label: "A New Book" },
-              ]}
-              value={d.destination()}
-              onChange={d.setDestination}
-              tight
-            />
-          </div>
-        </Show>
+        <div class="field">
+          <span class="field-label" id="destination-label">
+            Add it to
+          </span>
+          <Segmented
+            legend="Where the songs go"
+            options={[
+              { value: "assorted", label: "Assorted Hymns" },
+              { value: "book", label: "A New Book" },
+            ]}
+            value={d.destination()}
+            onChange={d.setDestination}
+            tight
+          />
+        </div>
 
         <Show when={!toAssorted()}>
           <Field id="book-title" label="Title" problem={props.problems.title}>
@@ -311,7 +292,7 @@ export function TextSheet(props: TextSheetProps) {
 
         <div class="field">
           <label class="field-label" for="book-language">
-            {toAssorted() ? "Song’s language" : "Language"}
+            {d.songs() > 1 ? "Songs’ language" : "Song’s language"}
           </label>
           <LanguagePicker
             id="book-language"
@@ -450,30 +431,9 @@ export function TextSheet(props: TextSheetProps) {
             </summary>
             <div class="advanced-body">
               <Field
-                id="book-id"
-                label="Id"
-                hint="Made from the title; change it if you like."
-                problem={props.problems.id}
-              >
-                {(by) => (
-                  <input
-                    class="field-input"
-                    type="text"
-                    autocomplete="off"
-                    autocapitalize="off"
-                    spellcheck={false}
-                    id="book-id"
-                    value={d.id()}
-                    aria-invalid={!!props.problems.id}
-                    aria-describedby={by}
-                    onInput={(e) => d.setId(e.currentTarget.value)}
-                  />
-                )}
-              </Field>
-              <Field
                 id="book-number"
                 label="Song number"
-                hint="For one song whose first line has no number."
+                hint="For one song whose first line has no number. Left blank, it takes the book’s next number."
                 problem={props.problems.number}
               >
                 {(by) => (
@@ -496,7 +456,7 @@ export function TextSheet(props: TextSheetProps) {
 
         <div class="review-actions">
           <button type="submit" class="btn-filled" disabled={props.busy}>
-            {toAssorted() ? "Review the Song" : "Review the Book"}
+            {d.songs() > 1 ? "Review the Songs" : "Review the Song"}
           </button>
         </div>
       </form>

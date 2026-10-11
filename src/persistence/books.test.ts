@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
   askPersist,
   commitAndPersist,
-  removeOwnSongAndRecents,
   removeBookAndRecents,
+  removeOwnSongAndRecents,
 } from "./books.ts";
 import type { CommitResult } from "./load.ts";
 
@@ -169,12 +169,7 @@ describe("removeOwnSongAndRecents", () => {
 
   it("drops nothing when no song was removed", async () => {
     const s = state();
-    await removeOwnSongAndRecents(
-      { removeOwnSong: async () => ({ removed: false }) },
-      s,
-      "k",
-      1,
-    );
+    await removeOwnSongAndRecents({ removeOwnSong: async () => ({ removed: false }) }, s, "k", 1);
     expect(s.dropSong).not.toHaveBeenCalled();
     expect(s.dropRecents).not.toHaveBeenCalled();
   });
