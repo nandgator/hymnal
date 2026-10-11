@@ -1,15 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  clickGoLive,
-  endLiveFromMenu,
-  fakeAppTimers,
-  mocks,
-  openFinder,
-  updates,
-} from "./App.testkit.tsx";
+import { clickGoLive, endLiveFromMenu, fakeAppTimers, updates } from "./App.testkit.tsx";
 import App from "./App.tsx";
-import type { BookRow } from "./persistence/content-store.ts";
 
 vi.mock("./persistence/content-store.ts", async () =>
   (await import("./App.testkit.tsx")).contentStoreMock(),
@@ -126,64 +118,6 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
         output.postMessage({ type: "bye", id: "test-output" });
     };
   };
-
-  it("removing the song on the Output is refused while live, and goes through after End Live, clearing it (SDD-0004 §17)", async () => {
-    const book = { ...(mocks.rows[0] as BookRow) };
-    mocks.rows = [
-      book,
-      {
-        ...book,
-        key: "as1",
-        origin: "assorted",
-        kind: "own",
-        title: "Assorted Hymns",
-        language: "mul",
-        script: "Zyyy",
-        songs: 2,
-      },
-    ];
-    mocks.recents = [{ hymnbookId: "as1", hymnNumber: 1, viewedAt: 2 }];
-    mocks.assortedLast = false;
-    try {
-      const { output } = await goLive();
-      const seen: unknown[] = [];
-      closesOnCommand(output, seen);
-      await openFinder();
-      fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
-        target: { value: "1" },
-      });
-      fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
-      await within(screen.getByRole("navigation", { name: "Hymnbook and song" })).findByRole(
-        "button",
-        { name: /#1/ },
-      );
-      const sections = within(screen.getByRole("navigation", { name: "Sections" }));
-      fireEvent.click(sections.getByRole("button", { name: "Library" }));
-      fireEvent.click(
-        await within(await screen.findByRole("list", { name: "Books" })).findByRole("button", {
-          name: /^Assorted Hymns/,
-        }),
-      );
-      const sheet = within(await screen.findByRole("dialog", { name: "Assorted Hymns" }));
-      fireEvent.click(await sheet.findByRole("button", { name: "Remove Mocked Hymn" }));
-      expect(await sheet.findByText(/on the Output now/)).toBeInTheDocument();
-      expect(sheet.getByRole("button", { name: "Remove Song" })).toBeDisabled();
-
-      fireEvent.click(sheet.getByRole("button", { name: "End Live" }));
-      await waitFor(() => expect(seen).toContainEqual({ type: "close" }));
-      await waitFor(() => expect(sheet.getByRole("button", { name: "Remove Song" })).toBeEnabled());
-      fireEvent.click(sheet.getByRole("button", { name: "Remove Song" }));
-      await waitFor(() =>
-        expect(sheet.queryByRole("button", { name: "Remove Song" })).not.toBeInTheDocument(),
-      );
-      fireEvent.click(sections.getByRole("button", { name: "Present" }));
-      expect(await screen.findByRole("combobox", { name: "Find a song" })).toBeInTheDocument();
-      output.close();
-    } finally {
-      mocks.recents = [];
-      mocks.assortedLast = true;
-    }
-  }, 15000);
 
   it("ends Live by closing the Output window; Go Live opens it again on the same screen, asking nothing", async () => {
     const { output } = await goLive();

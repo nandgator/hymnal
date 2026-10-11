@@ -19,15 +19,12 @@ import {
   addToOwnAndPersist,
   commitAndPersist,
   removeBookAndRecents,
-  removeOwnSongAndRecents,
 } from "../persistence/books.ts";
 import {
   type BookRow,
   type Choice,
-  type ContentStore,
   forgetBook,
   getContentAdmin,
-  getContentStore,
   type LoadReview,
 } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
@@ -44,8 +41,8 @@ import {
   type RowState,
   songs,
 } from "./books.ts";
-import { OwnSheet, type OwnSong } from "./OwnSheet.tsx";
 import { RemoveSheet, type RemoveTarget } from "./RemoveSheet.tsx";
+import { RenameSheet, type RenameTarget } from "./RenameSheet.tsx";
 import { ReviewSheet } from "./ReviewSheet.tsx";
 import { createTextDraft, TextSheet } from "./TextSheet.tsx";
 import {
@@ -85,12 +82,8 @@ export interface LibraryProps {
    * cannot be removed while it is on the Output (SDD-0004 §10). */
   presentedKey?: string;
   outputLive?: boolean;
-  /** The number of the hymn on screen: with {@link presentedKey}, the song a removal is refused for. */
-  presentedNumber?: number;
   /** A song of a book of yours is chosen to be shown: its book is current and the Operator shows it. */
   onOpenSong?: (key: string, number: number) => void;
-  /** A song of a book of yours was removed: if it was on screen, it goes. */
-  onSongRemoved?: (key: string, number: number) => void;
   /** End Live, from the Remove Book sheet that asks for it. */
   onEndLive?: () => void;
   /** The first load's request to keep storage was refused: say to keep the file. */
@@ -107,8 +100,6 @@ export interface LibraryProps {
   textBook?: string;
   onTextBook?: (key: string) => void;
   userState?: Pick<UserState, "getRecents" | "dropRecents" | "dropSong">;
-  /** Reads a book of yours' songs in their order; defaults to the content store. */
-  store?: Pick<ContentStore, "listHymns">;
   /** Asks for persistent storage at the first load; overridable for tests. */
   persist?: Parameters<typeof commitAndPersist>[3];
   /** The sample files this build offers (Board #43); defaults to {@link SAMPLE_FILES}. */
@@ -201,7 +192,6 @@ export function Library(props: LibraryProps) {
   const expanded = createMediaQuery(EXPANDED_QUERY);
   const admin = () => props.admin ?? getContentAdmin();
   const user = () => props.userState ?? defaultUserState;
-  const store = () => props.store ?? getContentStore();
   // Whether the books are held in memory only (SDD-0004 §15). Until it is known nothing is said
   // of it either way, and the first load waits for the answer before it asks to keep storage.
   const [inMemory, setInMemory] = createSignal(false);
@@ -253,16 +243,10 @@ export function Library(props: LibraryProps) {
   const [reviewFromText, setReviewFromText] = createSignal(false);
   // ...and its songs go to a book of yours (ADR-0033, SDD-0004 §17).
   const [reviewOwn, setReviewOwn] = createSignal<OwnTarget>();
-  // The sheet of a book of yours' songs, and the removal or rename being asked on its second page.
-  const [ownOpen, setOwnOpen] = createSignal(false);
-  const [ownKey, setOwnKey] = createSignal("");
-  const [ownSongs, setOwnSongs] = createSignal<OwnSong[]>();
-  const [ownProblem, setOwnProblem] = createSignal<string>();
-  const [ownRemoving, setOwnRemoving] = createSignal<OwnSong>();
-  const [ownRecents, setOwnRecents] = createSignal(0);
-  const [ownError, setOwnError] = createSignal<string>();
-  const [ownRenaming, setOwnRenaming] = createSignal(false);
-  const [ownRenameError, setOwnRenameError] = createSignal<string>();
+  // The book of yours being renamed, in its small sheet (ADR-0033).
+  const [renaming, setRenaming] = createSignal<RenameTarget>();
+  const [renameOpen, setRenameOpen] = createSignal(false);
+  const [renameError, setRenameError] = createSignal<string>();
   const [removing, setRemoving] = createSignal<RemoveTarget>();
   const [removeOpen, setRemoveOpen] = createSignal(false);
   const [removeRecents, setRemoveRecents] = createSignal(0);
@@ -769,101 +753,37 @@ export function Library(props: LibraryProps) {
     setRemoveOpen(true);
   };
 
-  /* --------------------- A book of yours' songs (§17) -------------------- */
+  /* ------------------------- A book of yours (§17) ------------------------ */
 
-  const readSongs = async (key: string) => {
-    try {
-      const list = await store().listHymns(key);
-      if (ownKey() === key) setOwnSongs(list);
-    } catch (error) {
-      if (ownKey() === key) {
-        setOwnProblem(
-          `Couldn’t read the songs${error instanceof Error && error.message ? `: ${error.message}` : "."}`,
-        );
-      }
-    }
-  };
-
-  const openOwn = (book: BookRow) => {
-    setOwnKey(book.key);
-    setOwnSongs(undefined);
-    setOwnProblem(undefined);
-    setOwnRemoving(undefined);
-    setOwnRenaming(false);
-    setOwnError(undefined);
-    setOwnOpen(true);
-    void readSongs(book.key);
-  };
-
-  const askRemoveSong = async (song: OwnSong) => {
-    const key = ownKey();
-    const recents = (await user().getRecents()).filter(
-      (r) => r.hymnbookId === key && r.hymnNumber === song.number,
-    ).length;
-    setOwnRecents(recents);
-    setOwnError(undefined);
-    setOwnRemoving(song);
-  };
-
-  const songOnScreen = () =>
-    !!ownRemoving() &&
-    ownKey() === props.presentedKey &&
-    ownRemoving()?.number === props.presentedNumber;
-  const songOnOutput = () => songOnScreen() && !!props.outputLive;
-
-  const confirmRemoveSong = async () => {
-    const song = ownRemoving();
-    const key = ownKey();
-    if (!song || busy() || songOnOutput()) return;
-    setBusy(true);
-    let result: Awaited<ReturnType<typeof removeOwnSongAndRecents>>;
-    try {
-      result = await removeOwnSongAndRecents(admin(), user(), key, song.number);
-    } catch (error) {
-      setBusy(false);
-      setOwnError(
-        `Couldn’t remove the song: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return;
-    }
-    forgetBook(key);
-    await props.books.refresh();
-    setBusy(false);
-    setOwnRemoving(undefined);
-    if (result.removed) props.onSongRemoved?.(key, song.number);
-    // The last song took the book with it: nothing is left to list.
-    if (result.removed && result.bookRemoved) setOwnOpen(false);
-    else await readSongs(key);
-  };
-
-  const askRename = () => {
-    setOwnRenameError(undefined);
-    setOwnRenaming(true);
+  const askRename = (book: BookRow) => {
+    setRenameError(undefined);
+    setRenaming({ key: book.key, title: rowTitle(book) });
+    setRenameOpen(true);
   };
 
   const confirmRename = async (title: string) => {
-    const key = ownKey();
-    if (busy()) return;
+    const target = renaming();
+    if (!target || busy()) return;
     setBusy(true);
-    setOwnRenameError(undefined);
+    setRenameError(undefined);
     try {
-      const result = await admin().renameOwn(key, title);
+      const result = await admin().renameOwn(target.key, title);
       if (!result.ok) {
         setBusy(false);
-        setOwnRenameError(result.message);
+        setRenameError(result.message);
         return;
       }
     } catch (error) {
       setBusy(false);
-      setOwnRenameError(
+      setRenameError(
         `Couldn’t rename the book: ${error instanceof Error ? error.message : String(error)}`,
       );
       return;
     }
-    forgetBook(key);
+    forgetBook(target.key);
     await props.books.refresh();
     setBusy(false);
-    setOwnRenaming(false);
+    setRenameOpen(false);
   };
 
   const nextTitle = () => {
@@ -1017,6 +937,15 @@ export function Library(props: LibraryProps) {
         label={`More for ${rowTitle(book)}`}
         fold={false}
         items={[
+          ...(own
+            ? [
+                {
+                  label: "Rename…",
+                  supporting: "Gives the book a new title",
+                  run: () => askRename(book),
+                },
+              ]
+            : []),
           {
             label: "Remove…",
             disabled: shipped,
@@ -1067,7 +996,7 @@ export function Library(props: LibraryProps) {
             type="button"
             class="book-main"
             aria-current={current() ? "true" : undefined}
-            onClick={() => (own ? openOwn(book) : void choose(book))}
+            onClick={() => void choose(book)}
           >
             <span class="book-tile">
               <span class="icon icon-library" aria-hidden="true" />
@@ -1360,40 +1289,14 @@ export function Library(props: LibraryProps) {
         onCancel={() => setTextOpen(false)}
         onReview={() => void reviewText()}
       />
-      <OwnSheet
-        open={ownOpen()}
-        title={rows().find((b) => b.key === ownKey())?.title ?? ""}
-        songs={ownSongs()}
-        problem={ownProblem()}
-        removing={ownRemoving()}
-        renaming={ownRenaming()}
-        renameError={ownRenameError()}
-        recents={ownRecents()}
-        last={(ownSongs()?.length ?? 0) === 1}
-        presented={songOnScreen()}
-        onOutput={songOnOutput()}
-        onEndLive={props.onEndLive}
+      <RenameSheet
+        open={renameOpen()}
+        book={renaming()}
         busy={busy()}
-        error={ownError()}
+        error={renameError()}
         placement={placement()}
-        onClose={() => {
-          setOwnOpen(false);
-          setOwnRemoving(undefined);
-          setOwnRenaming(false);
-        }}
-        onOpenSong={(number) => {
-          setOwnOpen(false);
-          props.onChoose(ownKey());
-          props.onOpenSong?.(ownKey(), number);
-        }}
-        onAskRemove={(song) => void askRemoveSong(song)}
-        onAskRename={askRename}
+        onCancel={() => setRenameOpen(false)}
         onRename={(title) => void confirmRename(title)}
-        onBack={() => {
-          setOwnRemoving(undefined);
-          setOwnRenaming(false);
-        }}
-        onConfirm={() => void confirmRemoveSong()}
       />
       <RemoveSheet
         open={removeOpen()}

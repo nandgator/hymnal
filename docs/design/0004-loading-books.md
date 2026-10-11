@@ -1003,21 +1003,22 @@ of its shape (SDD-0006 §3.4).
 
 ### Renaming and removing
 
-A book of yours' row in the Library opens a sheet of its songs, in the order
-below, each with **Remove**, confirmed as a book's removal is, and a **Rename**
-for the book, on a second page. Renaming writes the package afresh under the new
-title, as Replace does, and the registry row follows in the same commit; the
-key, the songs and their numbers do not change.
+A book of yours' row in the Library opens like any book's: it becomes the
+current book. Its ⋯ menu has **Remove…**, as a book's, and **Rename…**, which
+asks for the new title in a small sheet. Renaming writes the package afresh
+under the new title, as Replace does, and the registry row follows in the same
+commit; the key, the songs and their numbers do not change.
 
 Removing a song writes the package afresh without it; `next_number` is
 unchanged, so the number is retired. The song's recents and a position on it are
-dropped. Removing the last song removes the book, as Remove Book does (§9). A
-book of yours can also be removed whole from its row.
+dropped. Removing the last song removes the book, as Remove Book does (§9). The
+store and the registry keep this; its screen is deferred to the CMS (Board #14),
+so for now a single song cannot be removed from the Library.
 
 ### The order
 
-Wherever a book of yours lists its songs (that sheet, the Finder's browse), they
-are ordered by the song's language tag (code point order), then by title with
+Wherever a book of yours lists its songs (the Finder's browse), they are ordered
+by the song's language tag (code point order), then by title with
 `Intl.Collator(language)`, then by number. Search ranks as for any book, and a
 number finds its song. Every other book stays in number order. In the Library
 your books are the first group, headed **Your books**, in the order they were
@@ -1056,5 +1057,5 @@ last song removes the book; recents dropped); reconcile's adoption of origin
 `assorted` and `own`; the order (mixed languages, collation, ties); the restore
 table and the number and recents rewrite of a merge, per book. Component: the
 From Text choice, Add Song(s) and Open Song in the review, the Library's group
-and a book's sheet with Rename. E2E: paste a song, add it, find it, present it,
-remove it.
+and a book's Rename… and Remove… in its menu. E2E: paste a song, add it, find
+it, present it, rename it, remove it.
