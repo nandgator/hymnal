@@ -5758,12 +5758,8 @@ fieldset.book-main {
 .pick-list-above {
   transform-origin: bottom left;
 }
-/* A soft fade at an edge, only where more scrolls into view. The strips are
-   sticky and paint the list's own surface colour over its own rows, fading to
-   nothing: they are not a backdrop-filter (which samples what is behind the
-   list at its edges and showed the form's text through the list's bottom) and
-   not a mask (which would thin the list's own surface), so the surface stays
-   opaque all the way to its rounded edge. */
+/* A soft blur and fade at an edge, only where more scrolls into view. The
+   strips are sticky and masked, so the list's own shadow is not clipped. */
 .pick-list::before,
 .pick-list::after {
   position: sticky;
@@ -5772,18 +5768,17 @@ fieldset.book-main {
   height: 1.75rem;
   pointer-events: none;
   content: "";
+  backdrop-filter: blur(3px);
 }
 .pick-list::before {
-  background: linear-gradient(
-    to bottom,
-    var(--md-sys-color-surface-container-high) 30%,
-    transparent
-  );
+  background: linear-gradient(to bottom, var(--md-sys-color-surface-container-high), transparent);
+  mask-image: linear-gradient(to bottom, #000 30%, transparent);
   top: calc(-1 * var(--space-xs));
   margin-bottom: -1.75rem;
 }
 .pick-list::after {
-  background: linear-gradient(to top, var(--md-sys-color-surface-container-high) 30%, transparent);
+  background: linear-gradient(to top, var(--md-sys-color-surface-container-high), transparent);
+  mask-image: linear-gradient(to top, #000 30%, transparent);
   bottom: calc(-1 * var(--space-xs));
   margin-top: -1.75rem;
 }

@@ -864,28 +864,27 @@ view is close enough to the frame to need a smaller unit.
     top layer, placed from the field's rect in the menu's surface with its
     shadow; it is clamped to the card's box (its room ends 16px short of the
     card's edge), flips above the field when there is no room below, scrolls
-    inside its own maximum height with a soft fade (the list's own surface
-    colour over its rows, no backdrop blur) at an edge only while more scrolls
-    that way, and never changes the card's size. A click on the field or its
-    chevron toggles it, Escape closes the list and not the sheet, a tap outside
-    closes it. It ends in **Other…** to type a code. A suggestion from the song
-    text ("Looks like …") fills the language until the person picks. Once a
-    language is set, a quiet line, "Script: Malayalam (Mlym) · Change", the
-    script derived from the language and a field ("Script code", with Done) only
-    after Change; a code typed by hand is checked as it is typed (four letters
-    and a script the device knows) and set in its usual case. Then the song text
-    area in the hymn face (with **Open .txt Files**, several at once) and its
-    hint, "12 lines, 2 songs. Put --- on its own line between songs." The
-    optional song number sits under **Advanced**. One filled button, **Review**
-    (**Review Song**, **Review 3 Songs**), is pinned at the bottom as the
-    review's is. **The card is one size**: a fixed height (the tallest state,
-    within 88% of the screen), the form scrolling inside it with a stable
-    scrollbar gutter, so it does not change when the destination changes,
-    Advanced opens or the list opens. **Every error is a field error**: the
-    field gets the `error` outline and its helper text turns `error`, under the
-    field, and it **goes the moment that field is edited**; a new error shows
-    again only on the next Review. Parse errors are listed under the song text,
-    one line each, "Line 12: message", and go when the text is edited. No
+    inside its own maximum height with a soft blur and fade at an edge only
+    while more scrolls that way, and never changes the card's size. A click on
+    the field or its chevron toggles it, Escape closes the list and not the
+    sheet, a tap outside closes it. It ends in **Other…** to type a code. A
+    suggestion from the song text ("Looks like …") fills the language until the
+    person picks. Once a language is set, a quiet line, "Script: Malayalam
+    (Mlym) · Change", the script derived from the language and a field ("Script
+    code", with Done) only after Change; a code typed by hand is checked as it
+    is typed (four letters and a script the device knows) and set in its usual
+    case. Then the song text area in the hymn face (with **Open .txt Files**,
+    several at once) and its hint, "12 lines, 2 songs. Put --- on its own line
+    between songs." The optional song number sits under **Advanced**. One filled
+    button, **Review** (**Review Song**, **Review 3 Songs**), is pinned at the
+    bottom as the review's is. **The card is one size**: a fixed height (the
+    tallest state, within 88% of the screen), the form scrolling inside it with
+    a stable scrollbar gutter, so it does not change when the destination
+    changes, Advanced opens or the list opens. **Every error is a field error**:
+    the field gets the `error` outline and its helper text turns `error`, under
+    the field, and it **goes the moment that field is edited**; a new error
+    shows again only on the next Review. Parse errors are listed under the song
+    text, one line each, "Line 12: message", and go when the text is edited. No
     callout, no table. The first field in error is scrolled into view (and
     focused, except the language). The review that follows is the same sheet,
     with no source check (withdrawn, ADR-0029 point 4); a refusal there offers
