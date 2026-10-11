@@ -40,6 +40,14 @@ export interface SheetProps {
 }
 
 /**
+ * Every mounted sheet's way to be cut short. A sheet opening while another is
+ * open or leaving is a swap (one modal replacing another, Settings to Search):
+ * the old one must vanish in the frame the new one appears, or two half-faded
+ * scrims make the blur dip.
+ */
+const cuts = new Set<() => boolean>();
+
+/**
  * A modal sheet on a native <dialog>: focus trap, Escape and a backdrop for
  * free. Controlled — `open` drives showModal/close, and every way of
  * dismissing it (Escape, the scrim, Close) reports through `onClose`.
@@ -56,6 +64,9 @@ export function Sheet(props: SheetProps) {
   // The content stays until the exit has played, not just while `open`.
   const [shown, setShown] = createSignal(false);
   let closing = 0;
+  // Set by a sheet that is replacing this one: the next close is instant.
+  let cutShort = false;
+  let finishNow: (() => void) | undefined;
 
   // `rendered` is the page mounted: it outlasts `props.page` on the way back,
   // until the slide ends. The root stays mounted underneath, hidden once a
@@ -153,6 +164,18 @@ export function Sheet(props: SheetProps) {
     if (open) {
       closing++;
       delete dialog.dataset.closing;
+      finishNow = undefined;
+      cutShort = false;
+      // A swap: another sheet is open or still leaving. It goes at once and
+      // this one appears over the same, constant scrim (no fade-in) and
+      // cross-fades in place, with no rise: nothing is arriving from
+      // anywhere, one card is just replacing another (Material's modal swap).
+      // Opening from nothing keeps the full entrance.
+      if (!dialog.open) {
+        const replaced = [...cuts].filter((cut) => cut !== cutSelf).map((cut) => cut());
+        if (replaced.includes(true)) dialog.dataset.swap = "";
+        else delete dialog.dataset.swap;
+      }
       showPage(untrack(() => props.page));
       setShown(true);
       if (!dialog.open) {
@@ -163,6 +186,7 @@ export function Sheet(props: SheetProps) {
       const field = dialog.querySelector<HTMLElement>("[autofocus]");
       if (field && document.activeElement !== field) field.focus();
     } else if (dialog.open) {
+      delete dialog.dataset.swap;
       // Motion explains the change (PRINCIPLES.md): the sheet sinks away and
       // the page comes back into focus, then the dialog closes. Reduced
       // motion fades it instead of sinking it; no animation support closes
@@ -176,7 +200,9 @@ export function Sheet(props: SheetProps) {
         else el.removeAttribute("open");
         setShown(false);
       };
-      if (typeof el.getAnimations !== "function") {
+      finishNow = finish;
+      if (typeof el.getAnimations !== "function" || cutShort) {
+        cutShort = false;
         finish();
         return;
       }
@@ -186,6 +212,18 @@ export function Sheet(props: SheetProps) {
       else void Promise.allSettled(running.map((a) => a.finished)).then(finish);
     }
   });
+
+  // What a replacing sheet calls: end this one's exit now (it is leaving), or
+  // make it leave instantly when the caller has yet to close it. True when
+  // this sheet was on screen, so the caller knows it is a swap.
+  const cutSelf = () => {
+    if (!dialog?.open) return false;
+    if (finishNow && dialog.dataset.closing !== undefined) finishNow();
+    else cutShort = true;
+    return true;
+  };
+  cuts.add(cutSelf);
+  onCleanup(() => cuts.delete(cutSelf));
 
   createEffect(() => {
     if (props.steady || !dialog || typeof ResizeObserver === "undefined") return;

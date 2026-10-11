@@ -3240,6 +3240,13 @@ html[data-scrolling],
   }
 }
 
+@keyframes sheet-swap-in {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rolling-face-leaving {
     display: none;
@@ -3299,6 +3306,11 @@ html[data-scrolling],
     to {
       opacity: 0;
     }
+  }
+
+  /* A swap has no motion at all: the card is simply the other card. */
+  .sheet[data-swap][open] {
+    animation: none;
   }
 
   @keyframes tab-in {
@@ -3513,6 +3525,18 @@ html[data-scrolling],
 
 .sheet[open] {
   animation: sheet-in var(--motion-medium) var(--motion-emphasized);
+}
+
+/* One sheet replacing another (Settings to Search): the scrim is already up
+   and stays exactly as it is, and the card cross-fades in place with the
+   faintest settle. Nothing rises: the sheet is not arriving, the content is
+   changing (PRINCIPLES.md, motion explains change). */
+.sheet[data-swap]::backdrop {
+  animation: none;
+}
+
+.sheet[data-swap][open] {
+  animation: sheet-swap-in var(--motion-short) var(--motion-standard);
 }
 
 /* The dialog itself takes focus on opening (so Escape and Tab work); the
