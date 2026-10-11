@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@solidjs/testing-library";
-import { createSignal } from "solid-js";
+import { batch, createSignal } from "solid-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Sheet, type SheetPage } from "./Sheet.tsx";
 
@@ -120,6 +120,170 @@ describe("Sheet", () => {
       setB(false);
       expect(second.hasAttribute("data-swap")).toBe(false);
       expect(second.hasAttribute("data-closing")).toBe(true);
+    });
+  });
+
+  describe("sheets stacked and swapped", () => {
+    // Same stand-ins as above; the cards have sizes so a swap can morph.
+    const sizes: Record<string, [number, number]> = { Settings: [576, 400], Search: [576, 200] };
+    const saved = Object.getOwnPropertyDescriptors(HTMLElement.prototype);
+    const animate = vi.fn();
+    function stub(reduced = false) {
+      HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+        this.setAttribute("open", "");
+      };
+      HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+        this.removeAttribute("open");
+      };
+      Object.defineProperty(HTMLElement.prototype, "getAnimations", {
+        configurable: true,
+        value: () => [{ finished: new Promise(() => {}) }],
+      });
+      const size = (el: HTMLElement) => sizes[el.getAttribute("aria-label") ?? ""] ?? [0, 0];
+      Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+        configurable: true,
+        get(this: HTMLElement) {
+          return size(this)[0];
+        },
+      });
+      Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+        configurable: true,
+        get(this: HTMLElement) {
+          return size(this)[1];
+        },
+      });
+      Object.defineProperty(HTMLElement.prototype, "animate", {
+        configurable: true,
+        value: animate,
+      });
+      vi.stubGlobal("matchMedia", () => ({ matches: reduced }));
+    }
+    afterEach(() => {
+      animate.mockReset();
+      vi.unstubAllGlobals();
+      delete (HTMLElement.prototype as { getAnimations?: unknown }).getAnimations;
+      delete (HTMLElement.prototype as { animate?: unknown }).animate;
+      for (const key of ["offsetWidth", "offsetHeight"]) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          key,
+          saved[key] ?? { configurable: true, value: undefined },
+        );
+      }
+    });
+
+    function pair(reduced = false) {
+      stub(reduced);
+      const [a, setA] = createSignal(false);
+      const [b, setB] = createSignal(false);
+      const view = render(() => (
+        <>
+          <Sheet open={a()} onClose={() => setA(false)} title="Settings">
+            <p>Settings body</p>
+          </Sheet>
+          <Sheet open={b()} onClose={() => setB(false)} title="Search">
+            <p>Search body</p>
+          </Sheet>
+        </>
+      ));
+      const [first, second] = Array.from(view.container.querySelectorAll("dialog"));
+      return { setA, setB, first: first as HTMLDialogElement, second: second as HTMLDialogElement };
+    }
+    const settled = () => Promise.resolve();
+
+    it("gives the scrim to the lowest of two stacked sheets only, so the dim and blur never double", async () => {
+      const { setA, setB, first, second } = pair();
+      setA(true);
+      setB(true);
+      await settled();
+      expect(first.hasAttribute("data-stacked")).toBe(false);
+      expect(second.hasAttribute("data-stacked")).toBe(true);
+      // Stacking is not a swap: the upper sheet makes its full entrance.
+      expect(second.hasAttribute("data-swap")).toBe(false);
+      expect(first.hasAttribute("open")).toBe(true);
+      expect(first.hasAttribute("data-closing")).toBe(false);
+    });
+
+    it("keeps the lower scrim when the upper sheet closes, and the lower one then closes with its usual motion", async () => {
+      const { setA, setB, first, second } = pair();
+      setA(true);
+      setB(true);
+      await settled();
+      setB(false);
+      expect(second.hasAttribute("data-closing")).toBe(true);
+      expect(first.hasAttribute("data-stacked")).toBe(false);
+      setA(false);
+      expect(first.hasAttribute("open")).toBe(true);
+      expect(first.hasAttribute("data-closing")).toBe(true);
+    });
+
+    it("hands the scrim to the upper sheet when the lower one closes and the upper stays", async () => {
+      const { setA, setB, first, second } = pair();
+      setA(true);
+      setB(true);
+      await settled();
+      setA(false);
+      await settled();
+      expect(first.hasAttribute("data-closing")).toBe(true);
+      expect(first.hasAttribute("data-stacked")).toBe(true);
+      expect(second.hasAttribute("data-stacked")).toBe(false);
+      expect(second.hasAttribute("data-swap")).toBe(false);
+    });
+
+    it("still reads a batch that opens before it closes as a swap, the old one gone at once", async () => {
+      const { setA, setB, first, second } = pair();
+      setA(true);
+      batch(() => {
+        setB(true);
+        setA(false);
+      });
+      await settled();
+      expect(first.hasAttribute("open")).toBe(false);
+      expect(second.hasAttribute("data-swap")).toBe(true);
+      expect(second.hasAttribute("data-stacked")).toBe(false);
+    });
+
+    it("grows the incoming card out of the outgoing card's box, its surface never faded", () => {
+      const { setA, setB, second } = pair();
+      setA(true);
+      setA(false);
+      setB(true);
+      expect(second.hasAttribute("data-swap")).toBe(true);
+      expect(animate).toHaveBeenCalledTimes(1);
+      const [keyframes] = animate.mock.calls[0] as [Record<string, string>[]];
+      expect(animate.mock.contexts[0]).toBe(second);
+      expect(keyframes[0]).toMatchObject({ width: "576px", height: "400px" });
+      expect(keyframes[1]).toMatchObject({ width: "576px", height: "200px" });
+      // Only height and position move; nothing on the dialog fades.
+      for (const frame of keyframes) expect(frame).not.toHaveProperty("opacity");
+    });
+
+    it("morphs a batched swap too", async () => {
+      const first = pair();
+      first.setA(true);
+      batch(() => {
+        first.setB(true);
+        first.setA(false);
+      });
+      await settled();
+      expect(animate).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not morph a swap under reduced motion", () => {
+      const { setA, setB, second } = pair(true);
+      setA(true);
+      setA(false);
+      setB(true);
+      expect(second.hasAttribute("data-swap")).toBe(true);
+      expect(animate).not.toHaveBeenCalled();
+    });
+
+    it("does not morph a stacked sheet", async () => {
+      const { setA, setB } = pair();
+      setA(true);
+      setB(true);
+      await settled();
+      expect(animate).not.toHaveBeenCalled();
     });
   });
 
