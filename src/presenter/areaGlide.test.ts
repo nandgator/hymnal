@@ -73,7 +73,9 @@ describe("glideAreas closing a group", () => {
     expect(basis(grow.frames[0])).toBe(600);
     expect(basis(grow.frames[1])).toBe(960);
     // A ghost of the closed group sits where it was and shrinks to nothing.
-    const ghostRun = runWhere((el) => el !== main);
+    const ghostRun = runWhere(
+      (el) => el.getAttribute("aria-hidden") === "true" && el.tagName === "SECTION",
+    );
     const ghost = ghostRun.el as HTMLElement;
     expect(row.firstElementChild).toBe(ghost);
     expect(ghost.getAttribute("aria-hidden")).toBe("true");
@@ -97,7 +99,9 @@ describe("glideAreas closing a group", () => {
       side.remove();
       widths.set(main, 960);
     });
-    const ghost = runWhere((el) => el !== main).el;
+    const ghost = runWhere(
+      (el) => el.getAttribute("aria-hidden") === "true" && el.tagName === "SECTION",
+    ).el;
     expect(ghost.previousElementSibling).toBe(main);
   });
 
