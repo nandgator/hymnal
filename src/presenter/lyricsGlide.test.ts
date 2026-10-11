@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   backDuration,
+  CARRY_MIN_SCROLL,
   edgeBoxes,
   glideLyrics,
   parseEase,
@@ -13,8 +14,29 @@ import {
 const base = { still: false, reduced: false, tintTravel: 120, scrollTravel: 120, viewport: 600 };
 
 describe("planGlide", () => {
-  it("glides a step to a near part, tint and scroll together", () => {
-    expect(planGlide(base)).toEqual({ tint: "glide", scroll: "glide" });
+  it("carries the card on its part when a step to a near part scrolls", () => {
+    expect(planGlide(base)).toEqual({ tint: "carry", scroll: "glide" });
+  });
+
+  it("glides the card on its own when there is next to no scroll to ride", () => {
+    expect(planGlide({ ...base, scrollTravel: 0 })).toEqual({ tint: "glide", scroll: "glide" });
+    expect(planGlide({ ...base, scrollTravel: CARRY_MIN_SCROLL - 1 })).toEqual({
+      tint: "glide",
+      scroll: "glide",
+    });
+    expect(planGlide({ ...base, scrollTravel: CARRY_MIN_SCROLL })).toEqual({
+      tint: "carry",
+      scroll: "glide",
+    });
+  });
+
+  it("keeps carrying while a cross-fade is under way, however small the scroll", () => {
+    expect(planGlide({ ...base, scrollTravel: 0, carrying: true })).toEqual({
+      tint: "carry",
+      scroll: "glide",
+    });
+    // A card that does not move has nothing to carry.
+    expect(planGlide({ ...base, tintTravel: 0, carrying: true }).tint).toBe("glide");
   });
 
   it("keeps a line step's tint where it is, with a gliding scroll", () => {
@@ -29,8 +51,10 @@ describe("planGlide", () => {
     expect(planGlide({ ...base, reduced: true })).toEqual({ tint: "snap", scroll: "snap" });
   });
 
-  it("sweeps a far tint jump (a wrap): the card and the list glide together", () => {
-    expect(planGlide({ ...base, tintTravel: 2400 })).toEqual({ tint: "glide", scroll: "glide" });
+  it("sweeps a far tint jump (a wrap): the card is carried and the list glides", () => {
+    expect(planGlide({ ...base, tintTravel: 2400 })).toEqual({ tint: "carry", scroll: "glide" });
+    // No scroll to ride, far or not: the card glides on its own.
+    expect(planGlide({ ...base, tintTravel: 2400, scrollTravel: 0 }).tint).toBe("glide");
   });
 
   it("lands a far scroll under a card that has not moved (nothing eases)", () => {
@@ -62,7 +86,11 @@ describe("planGlide", () => {
 
   it("never snaps the scroll under a card that eases: a far scroll sweeps with it", () => {
     expect(planGlide({ ...base, tintTravel: 100, scrollTravel: 3000 })).toEqual({
-      tint: "glide",
+      tint: "carry",
+      scroll: "glide",
+    });
+    expect(planGlide({ ...base, tintTravel: 1200, scrollTravel: 3000 })).toEqual({
+      tint: "carry",
       scroll: "glide",
     });
   });
@@ -277,6 +305,14 @@ describe("glideLyrics", () => {
       class {
         m41 = 0;
         m42 = 0;
+        // The tint's translate, as the computed transform would give it.
+        constructor(transform?: string) {
+          const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(transform ?? "");
+          if (m) {
+            this.m41 = Number(m[1]);
+            this.m42 = Number(m[2]);
+          }
+        }
       },
     );
     HTMLElement.prototype.animate = (keyframes, options) => {
@@ -358,7 +394,8 @@ describe("glideLyrics", () => {
     glideLyrics(list, { still: true });
     current(1);
     glideLyrics(list, { still: false });
-    expect(anims).toHaveLength(1);
+    // The clock (the new card's fade) and the old card's fade.
+    expect(anims).toHaveLength(2);
     anims[0].progress = 0.5;
     flush();
     expect(list.scrollTop).toBe(250);
@@ -367,8 +404,77 @@ describe("glideLyrics", () => {
     expect(list.scrollTop).toBe(500);
   });
 
+  describe("a step that scrolls carries the card with the text", () => {
+    const fadeOf = (i: number) => calls[i].keyframes.map((k) => k.opacity);
+
+    it("paints the card on its new part at once and fades it in, never moving it", () => {
+      const { list, tint, current } = setup();
+      glideLyrics(list, { still: true });
+      current(1);
+      glideLyrics(list, { still: false });
+      expect(tint.style.transform).toBe("translate(8px, 800px)");
+      expect(fadeOf(0)).toEqual([0, 1]);
+      expect(calls[0].keyframes.some((k) => "transform" in k)).toBe(false);
+      expect(calls[0].options.easing).toBe("cubic-bezier(0.2, 0, 0, 1)");
+    });
+
+    it("leaves the old card where it stood to fade out, on the same clock", () => {
+      const { list, current } = setup();
+      glideLyrics(list, { still: true });
+      current(1);
+      glideLyrics(list, { still: false });
+      const ghost = list.querySelector<HTMLElement>(":scope > .seq-ghost");
+      expect(ghost?.style.transform).toBe("translate(8px, 0px)");
+      expect(fadeOf(1)).toEqual([1, 0]);
+      expect(calls[1].options.duration).toBe(calls[0].options.duration);
+      expect(calls[1].options.easing).toBe(calls[0].options.easing);
+      // Gone once it has faded; the real tint is still the one found.
+      anims[1].finish();
+      expect(list.querySelector(".seq-ghost")).toBeNull();
+      expect(list.querySelectorAll(".seq-tint")).toHaveLength(1);
+    });
+
+    it("a step mid-fade leaves the half-faded card to finish, and none jump", () => {
+      const { list, current } = setup();
+      glideLyrics(list, { still: true });
+      current(1);
+      glideLyrics(list, { still: false });
+      anims[0].progress = 0.5;
+      flush();
+      current(0);
+      glideLyrics(list, { still: false });
+      expect(list.querySelectorAll(".seq-ghost")).toHaveLength(2);
+      expect(anims[0].playState).toBe("idle");
+      // The first ghost is not cancelled: it fades out on its own.
+      expect(anims[1].playState).toBe("running");
+    });
+
+    it("a list shown anew drops any card still fading", () => {
+      const { list, current } = setup();
+      glideLyrics(list, { still: true });
+      current(1);
+      glideLyrics(list, { still: false });
+      expect(list.querySelector(".seq-ghost")).not.toBeNull();
+      current(0); // another song, say, landing on its first part
+      glideLyrics(list, { still: true });
+      expect(list.querySelector(".seq-ghost")).toBeNull();
+    });
+
+    it("glides the card instead when the scroll has nowhere to go", () => {
+      const { list, current } = setup();
+      define(list, { scrollHeight: 800 });
+      glideLyrics(list, { still: true });
+      current(1);
+      glideLyrics(list, { still: false });
+      expect(calls).toHaveLength(1);
+      expect(calls[0].keyframes).toHaveLength(25);
+      expect(list.querySelector(".seq-ghost")).toBeNull();
+    });
+  });
+
   it("animates the edges as keyframes on one animation, its easing the clock", () => {
     const { list, current } = setup();
+    define(list, { scrollHeight: 801 });
     glideLyrics(list, { still: true });
     current(1);
     glideLyrics(list, { still: false });
@@ -378,13 +484,10 @@ describe("glideLyrics", () => {
     expect(keyframes.map((k) => k.offset)).toEqual(Array.from({ length: 25 }, (_, i) => i / 24));
     expect(options.easing).toBe("cubic-bezier(0.2, 0, 0, 1)");
     expect(options.duration).toBe(250);
-    // The scroll follows the clock's progress, whatever the edges do.
-    anims[0].progress = 0.25;
+    // The scroll (1px here, under the carry threshold) follows the clock.
+    anims[0].progress = 0.5;
     flush();
-    expect(list.scrollTop).toBe(125);
-    anims[0].progress = 0.75;
-    flush();
-    expect(list.scrollTop).toBe(375);
+    expect(list.scrollTop).toBe(0.5);
   });
 
   describe("a far step (a wrap, or a list scrolled far away) sweeps", () => {
@@ -394,10 +497,12 @@ describe("glideLyrics", () => {
       glideLyrics(list, { still: true });
       current(1);
       glideLyrics(list, { still: false });
-      expect(anims).toHaveLength(1);
+      // The new card's fade is the clock; the old card's fades beside it.
+      expect(anims).toHaveLength(2);
       const { keyframes, options } = calls[0];
-      expect(keyframes).toHaveLength(25);
-      expect(keyframes.some((k) => "opacity" in k)).toBe(false);
+      expect(keyframes.map((k) => k.opacity)).toEqual([0, 1]);
+      expect(keyframes.some((k) => "transform" in k)).toBe(false);
+      expect(calls[1].options.duration).toBe(options.duration);
       expect(options.duration).toBeGreaterThan(250);
       expect(options.duration).toBeLessThanOrEqual(400);
       // Scroll 0 to 750 (the last block is centred) rides the progress.
@@ -499,9 +604,10 @@ describe("glideLyrics", () => {
     flush();
     current(0);
     glideLyrics(list, { still: false });
-    expect(anims).toHaveLength(2);
+    // Each step: the clock and a ghost. The old clock is let go.
+    expect(anims).toHaveLength(4);
     expect(anims[0].playState).toBe("idle");
-    anims[1].finish();
+    anims[2].finish();
     flush();
     expect(list.scrollTop).toBe(0);
   });
