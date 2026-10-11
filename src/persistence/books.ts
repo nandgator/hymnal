@@ -1,6 +1,7 @@
+import type { OwnTarget } from "../domain/own.ts";
 import type { OnLoadProgress } from "../domain/progress.ts";
-import type { AssortedResult, Choice, CommitResult } from "./load.ts";
-import type { RemovedFromAssorted } from "./registry.ts";
+import type { Choice, CommitResult, OwnResult } from "./load.ts";
+import type { RemovedFromOwn } from "./registry.ts";
 import type { UserState } from "./user-state.ts";
 
 /** What `navigator.storage.persist()` answered, when it could be asked. */
@@ -80,18 +81,19 @@ export async function removeBookAndRecents(
 }
 
 /**
- * Removes one song of Assorted Hymns and drops its recents and its position
+ * Removes one song of a book of yours and drops its recents and its position
  * (SDD-0004 §17), in the order a book's removal does: the package first, the
  * commit; a crash after it leaves a recent that names a song no longer held,
  * which the app skips. The last song takes the book with it, and then every
  * recent of the book goes, as removing a book does.
  */
-export async function removeAssortedSongAndRecents(
-  admin: { removeAssortedSong(number: number): Promise<RemovedFromAssorted> },
+export async function removeOwnSongAndRecents(
+  admin: { removeOwnSong(key: string, number: number): Promise<RemovedFromOwn> },
   state: Pick<UserState, "dropSong" | "dropRecents">,
+  key: string,
   number: number,
-): Promise<RemovedFromAssorted> {
-  const result = await admin.removeAssortedSong(number);
+): Promise<RemovedFromOwn> {
+  const result = await admin.removeOwnSong(key, number);
   if (result.removed) {
     await state.dropSong(result.key, number);
     if (result.bookRemoved) await state.dropRecents(result.key);
@@ -99,32 +101,34 @@ export async function removeAssortedSongAndRecents(
   return result;
 }
 
-export type AddedSong = AssortedResult & {
+export type AddedSongs = OwnResult & {
   /** As {@link CommittedBook.persisted}: the answer to the first load's request to keep storage. */
   persisted?: Promise<PersistResult>;
 };
 
 /**
- * Adds a reviewed one-song book to Assorted Hymns (SDD-0004 §17) and, when that
- * made the device's first loaded book, asks for persistent storage as a first
- * commit does.
+ * Adds a reviewed file's songs to a book of yours (ADR-0033, SDD-0004 §17) and,
+ * when that made the device's first loaded book, asks for persistent storage as
+ * a first commit does.
  */
-export async function addToAssortedAndPersist(
+export async function addToOwnAndPersist(
   admin: {
-    addToAssorted(
+    addToOwn(
       token: string,
+      target: OwnTarget,
       language: string,
       script: string,
       onProgress?: OnLoadProgress,
-    ): Promise<AssortedResult>;
+    ): Promise<OwnResult>;
   },
   token: string,
+  target: OwnTarget,
   language: string,
   script: string,
   persist: () => Promise<PersistResult> = askPersist,
   onProgress?: OnLoadProgress,
-): Promise<AddedSong> {
-  const result = await admin.addToAssorted(token, language, script, onProgress);
+): Promise<AddedSongs> {
+  const result = await admin.addToOwn(token, target, language, script, onProgress);
   if (result.ok && result.firstLoad) {
     return {
       ...result,

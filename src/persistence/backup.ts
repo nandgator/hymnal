@@ -7,13 +7,6 @@ import {
   SCHEMA_VERSION,
 } from "../../scripts/content-schema.ts";
 import {
-  ASSORTED_ORIGIN,
-  asContainerShape,
-  followBook,
-  isLanguageTag,
-  isScriptCode,
-} from "../domain/assorted.ts";
-import {
   BACKUP_FORMAT,
   BACKUP_VERSION,
   type BackupBookEntry,
@@ -28,6 +21,7 @@ import {
   MAX_MANIFEST_BYTES,
   MAX_USER_STATE_BYTES,
   openBackup,
+  ownTarget,
   readEntry,
   SHA256_HEX,
   sameBackupVerdict,
@@ -36,6 +30,13 @@ import {
 } from "../domain/backup.ts";
 import { type ContainerBook, hashSongs } from "../domain/container.ts";
 import { sha256Hex } from "../domain/hash.ts";
+import {
+  asContainerShape,
+  followBook,
+  isLanguageTag,
+  isOwnOrigin,
+  isScriptCode,
+} from "../domain/own.ts";
 import { type OnLoadProgress, throttled } from "../domain/progress.ts";
 import type { HymnbookSource, HymnSource } from "../domain/types.ts";
 import { CONTENT_FORMAT, hymnFileName, validateCorpus } from "../domain/validate.ts";
@@ -52,11 +53,10 @@ import {
 import { type PoolFiles, sqlOf } from "./pool-files.ts";
 import {
   addBook,
-  assortedRow,
   freeGeneration,
   heldBooks,
   listBooks,
-  mergeIntoAssorted,
+  mergeIntoOwn,
   type RegistryContext,
   replaceBook,
 } from "./registry.ts";
@@ -424,21 +424,21 @@ async function readBack(sql: Sql, onProgress?: OnLoadProgress): Promise<RebuildR
   const head = readHead(sql, SCHEMA_VERSION);
   const [extra] = sql.all("SELECT publisher, edition, isbn, next_number FROM hymnbook");
   if (!head || !extra) return fail("damaged", "it has no readable book");
-  const assorted = head.origin === ASSORTED_ORIGIN;
-  // The version 4 fields are Assorted Hymns' alone (SDD-0004 §17): in any other book they are damage.
+  const own = isOwnOrigin(head.origin);
+  // The version 4 fields are your books' alone (SDD-0004 §17): in any other book they are damage.
   const [fields] = sql.all(
     "SELECT COUNT(*) AS n FROM hymn WHERE language IS NOT NULL OR script IS NOT NULL",
   );
-  if (!assorted && (extra.next_number !== null || (fields?.n as number) > 0)) {
+  if (!own && (extra.next_number !== null || (fields?.n as number) > 0)) {
     return fail(
       "damaged",
-      "it holds a next number or a song language that only Assorted Hymns has",
+      "it holds a next number or a song language that only a book of yours has",
     );
   }
   // The column is STRICT INTEGER, so only whole numbers reach here; one below 1, or past what a
   // number holds exactly (SQLite's are 64-bit), means the book is damaged.
   if (
-    assorted &&
+    own &&
     extra.next_number !== null &&
     !(Number.isSafeInteger(extra.next_number) && (extra.next_number as number) >= 1)
   ) {
@@ -452,13 +452,13 @@ async function readBack(sql: Sql, onProgress?: OnLoadProgress): Promise<RebuildR
   );
   // Through JSON, as a container's songs come: a field a package lacks is absent, not undefined.
   const hymns = JSON.parse(JSON.stringify(readHymns(sql, SCHEMA_VERSION))) as HymnSource[];
-  if (assorted) {
+  if (own) {
     const bad = hymns.find((h) => !isLanguageTag(h.language) || !isScriptCode(h.script));
     if (bad) return fail("invalid", `song ${bad.number} has no usable language and script`);
   }
   // The counter is lifted past every held number, as adding a song does (`addSong`): a lower one
   // would reuse a number, and the larger of the two is safe.
-  const nextNumber = assorted
+  const nextNumber = own
     ? Math.max(head.nextNumber ?? 1, hymns.reduce((max, h) => Math.max(max, h.number), 0) + 1)
     : null;
   const hymnbook: HymnbookSource = {
@@ -475,7 +475,7 @@ async function readBack(sql: Sql, onProgress?: OnLoadProgress): Promise<RebuildR
     hymnCount: hymns.length,
     ...(nextNumber === null ? {} : { nextNumber }),
   };
-  // Format 1 has no counter and no per-song language: they are Assorted Hymns' alone (SDD-0004 §17).
+  // Format 1 has no counter and no per-song language: they are your books' alone (SDD-0004 §17).
   const shaped = asContainerShape(hymnbook, hymns);
   const violations = validateCorpus(
     shaped.book,
@@ -769,9 +769,9 @@ export class BackupSession {
     const sqlite3 = await this.#sqlite3();
     const firstLoad = !listBooks(ctx).some((b) => b.kind !== "shipped");
     const results: BackupBookResult[] = [];
-    // The backup's Assorted Hymns, if it is merged into the device's: its recents and position
-    // follow it to the device's key and numbers (SDD-0004 §17).
-    let followed: { from: string; to: string; numbers: Map<number, number> } | undefined;
+    // A backup's book of yours that is merged into the device's: its recents and position
+    // follow it to the device's key and numbers (ADR-0033 §6).
+    const followed: { from: string; to: string; numbers: Map<number, number> }[] = [];
     for (const { entry, title, verdict } of pending.books) {
       const done = (outcome: BackupBookResult["outcome"], message?: string) =>
         results.push({ key: entry.key, title, outcome, ...(message ? { message } : {}) });
@@ -793,22 +793,27 @@ export class BackupSession {
           },
           heldBooks(ctx),
         );
-        const assorted = read.book.hymnbook.id === ASSORTED_ORIGIN;
+        const own = isOwnOrigin(read.book.hymnbook.id);
         if (now.kind === "already-here" || now.kind === "already-here-as") {
           // Nothing is written, but a recent on one of these songs points at the device's copy.
-          if (assorted && now.kind === "already-here" && assortedRow(ctx)?.state === "ok") {
+          const target =
+            own && now.kind === "already-here"
+              ? ownTarget({ key: entry.key, origin: read.book.hymnbook.id }, heldBooks(ctx))
+              : undefined;
+          if (target?.state === "ok") {
             // Numbers only, written never; an unreadable package or songs that are not all
             // there leave the recents unfollowed, they do not fail the book.
-            const merged = await mergeIntoAssorted(
+            const merged = await mergeIntoOwn(
               ctx,
+              target.key,
               { hymns: read.book.hymns, songHashes: read.songHashes },
               undefined,
               true,
             ).catch(() => undefined);
             if (merged && merged.added === 0) {
-              followed = { from: entry.key, to: merged.key, numbers: merged.numbers };
+              followed.push({ from: entry.key, to: merged.key, numbers: merged.numbers });
             } else {
-              followed = { from: entry.key, to: entry.key, numbers: new Map() };
+              followed.push({ from: entry.key, to: entry.key, numbers: new Map() });
             }
           }
           done(now.kind);
@@ -819,16 +824,17 @@ export class BackupSession {
           continue;
         }
         if (now.kind === "merge") {
-          const merged = await mergeIntoAssorted(
+          const merged = await mergeIntoOwn(
             ctx,
+            now.into,
             { hymns: read.book.hymns, songHashes: read.songHashes },
             report,
           ).catch((error) => {
             // Under the device's key these numbers could name other songs: they are dropped.
-            followed = { from: entry.key, to: entry.key, numbers: new Map() };
+            followed.push({ from: entry.key, to: entry.key, numbers: new Map() });
             throw error;
           });
-          followed = { from: entry.key, to: merged.key, numbers: merged.numbers };
+          followed.push({ from: entry.key, to: merged.key, numbers: merged.numbers });
           done("merged");
         } else if (now.kind === "conflict") {
           if (choices[entry.key] === "replace" && now.replaceable) {
@@ -847,7 +853,7 @@ export class BackupSession {
             read,
             freeGeneration(ctx, entry.key),
             report,
-            assorted ? "assorted" : "loaded",
+            own ? "own" : "loaded",
           );
           done("restored");
         }
@@ -860,9 +866,12 @@ export class BackupSession {
       (r) => r.outcome === "restored" || r.outcome === "replaced" || r.outcome === "merged",
     );
     const userState =
-      followed && pending.userState !== undefined
-        ? followBook(pending.userState, followed.from, followed.to, followed.numbers)
-        : pending.userState;
+      pending.userState === undefined
+        ? undefined
+        : followed.reduce<unknown>(
+            (doc, f) => followBook(doc, f.from, f.to, f.numbers),
+            pending.userState,
+          );
     return {
       ok: true,
       books: results,

@@ -965,7 +965,7 @@ describe("rebuilding a package (§3.4)", () => {
     }
   });
 
-  /** The package of Assorted Hymns: origin `assorted`, the only book that may hold the version 4 fields. */
+  /** The package of a book of yours: origin `assorted` (or `own`), the only books that may hold the version 4 fields. */
   const assortedBytes = (fill: (db: InstanceType<Sqlite3Static["oo1"]["DB"]>) => void = () => {}) =>
     packageBytes((db) => {
       db.exec("UPDATE hymnbook SET origin = 'assorted', next_number = 3");
@@ -989,6 +989,16 @@ describe("rebuilding a package (§3.4)", () => {
     ]);
   });
 
+  it("takes a book of origin own as a book of yours too", async () => {
+    const result = await rebuilt(
+      packageBytes((db) => {
+        db.exec("UPDATE hymnbook SET origin = 'own', next_number = 5");
+        db.exec("UPDATE hymn SET language = 'ml', script = 'Mlym'");
+      }),
+    );
+    expect(result.ok && result.read.book.hymnbook).toMatchObject({ id: "own", nextNumber: 5 });
+  });
+
   it.each([
     ["a next number", "UPDATE hymnbook SET next_number = 9"],
     ["a song's language", "UPDATE hymn SET language = 'ml' WHERE number = 1"],
@@ -1010,7 +1020,7 @@ describe("rebuilding a package (§3.4)", () => {
     ],
     ["a song with no language", "UPDATE hymn SET language = NULL WHERE number = 1", "invalid"],
     ["a song with a bad script", "UPDATE hymn SET script = 'mlym' WHERE number = 1", "invalid"],
-  ])("refuses Assorted Hymns with %s", async (_name, sql, reason) => {
+  ])("refuses a book of yours with %s", async (_name, sql, reason) => {
     expect(await rebuilt(assortedBytes((db) => db.exec(sql)))).toMatchObject({
       ok: false,
       reason,

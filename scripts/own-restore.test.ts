@@ -2,21 +2,21 @@
 
 import type { Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 import { beforeAll, describe, expect, it } from "vitest";
-import { followBook, mergeSongs } from "../src/domain/assorted.ts";
 import { type BackupBookFacts, backupVerdict } from "../src/domain/backup.ts";
 import type { HeldBook } from "../src/domain/duplicates.ts";
 import { songHash } from "../src/domain/hash.ts";
+import { followBook, mergeSongs, type OwnTarget } from "../src/domain/own.ts";
 import type { HymnSource } from "../src/domain/types.ts";
 import { BackupSession, writeBackup } from "../src/persistence/backup.ts";
 import { packageVersion, readHead, readHymns } from "../src/persistence/package-io.ts";
 import {
-  addAssortedSong,
   addBook,
-  assortedStatus,
+  addOwnSongs,
   listBooks,
+  ownStatuses,
   type RegistryContext,
   reconcile,
-  removeAssortedSong,
+  removeOwnSong,
 } from "../src/persistence/registry.ts";
 import { SCHEMA_VERSION } from "./content-schema.ts";
 import {
@@ -48,17 +48,35 @@ function session(ctx: RegistryContext) {
 /** Song `n`'s content, whatever number it is given: a hash does not include the number. */
 const song = async (n: number) => ({ hymn: hymn(n), hash: await songHash(hymn(n)) });
 
-/** Adds songs in order with `addAssortedSong`; the book is made by the first, under `key`. */
-async function addAll(ctx: RegistryContext, key: string, songs: [number, string?, string?][]) {
-  for (const [n, language = "en", script = "Latn"] of songs) {
-    const added = await addAssortedSong(ctx, () => key, await song(n), language, script);
+/**
+ * Adds songs in order, numbered 1, 2, 3 from an empty book; the book is made by the first, under
+ * `key`, as the default book unless `target` says a new one.
+ */
+async function addAll(
+  ctx: RegistryContext,
+  key: string,
+  songs: [number, string?, string?][],
+  target: OwnTarget = { kind: "default" },
+) {
+  let at = target;
+  for (const [i, [n, language = "en", script = "Latn"]] of songs.entries()) {
+    const one = await song(n);
+    const added = await addOwnSongs(
+      ctx,
+      () => key,
+      at,
+      [{ ...one, hymn: { ...one.hymn, number: i + 1 } }],
+      language,
+      script,
+    );
     if (!added.ok) throw new Error(JSON.stringify(added));
+    at = { kind: "book", key };
   }
 }
 
 /** The device's Assorted Hymns as the package holds it: number, title, language, script, and the counter. */
-function packageOf(s: { ctx: RegistryContext }) {
-  const row = listBooks(s.ctx).find((b) => b.kind === "assorted");
+function packageOf(s: { ctx: RegistryContext }, key?: string) {
+  const row = listBooks(s.ctx).find((b) => b.kind === "own" && (key ? b.key === key : true));
   if (!row) return null;
   return s.ctx.files.open(row.file, (sql) => {
     const version = packageVersion(sql);
@@ -85,11 +103,11 @@ async function reviewOf(into: { ctx: RegistryContext }, bytes: Uint8Array) {
   return { s, review };
 }
 
-describe("the restore table for Assorted Hymns (SDD-0004 §17)", () => {
+describe("the restore table for Assorted Hymns, the default book (ADR-0033 §6)", () => {
   it("restores under the backup's key as kind assorted when the device has none", async () => {
     const from = store();
     await addAll(from.ctx, "assorted-a", [[1], [2, "ml", "Mlym"], [3]]);
-    await removeAssortedSong(from.ctx, 3);
+    await removeOwnSong(from.ctx, "assorted-a", 3);
     const into = store();
     const { s, review } = await reviewOf(into, (await backupOf(from)).bytes);
     expect(review.books.map((b) => [b.key, b.verdict])).toEqual([
@@ -99,7 +117,7 @@ describe("the restore table for Assorted Hymns (SDD-0004 §17)", () => {
     expect(done).toMatchObject({ ok: true, held: ["assorted-a"], firstLoad: true });
     expect(done.ok && done.books.map((b) => b.outcome)).toEqual(["restored"]);
     expect(listBooks(into.ctx).map((b) => [b.key, b.kind, b.songs, b.title])).toEqual([
-      ["assorted-a", "assorted", 2, "Assorted Hymns"],
+      ["assorted-a", "own", 2, "Assorted Hymns"],
     ]);
     // The counter and each song's own language and script came with it: number 3 stays retired.
     expect(packageOf(into)).toMatchObject({
@@ -109,7 +127,7 @@ describe("the restore table for Assorted Hymns (SDD-0004 §17)", () => {
         [2, "Song 2", "ml", "Mlym"],
       ],
     });
-    expect(assortedStatus(into.ctx)).toMatchObject({ key: "assorted-a", next: 4 });
+    expect(ownStatuses(into.ctx, [], new Map())[0]).toMatchObject({ key: "assorted-a", next: 4 });
   });
 
   it("does nothing when the device has the same songs, under whatever key", async () => {
@@ -141,7 +159,7 @@ describe("the restore table for Assorted Hymns (SDD-0004 §17)", () => {
     const into = store();
     await addAll(into.ctx, "assorted-b", [[1], [3]]);
     const { s, review } = await reviewOf(into, (await backupOf(from)).bytes);
-    expect(review.books[0]?.verdict).toEqual({ kind: "merge", adds: 1 });
+    expect(review.books[0]?.verdict).toEqual({ kind: "merge", adds: 1, into: "assorted-b" });
     // The review writes nothing.
     expect(packageOf(into)?.songs).toHaveLength(2);
     const done = await s.commit(review.token);
@@ -150,7 +168,7 @@ describe("the restore table for Assorted Hymns (SDD-0004 §17)", () => {
     ]);
     expect(done).toMatchObject({ held: ["assorted-b"] });
     expect(listBooks(into.ctx).map((b) => [b.key, b.kind, b.songs])).toEqual([
-      ["assorted-b", "assorted", 3],
+      ["assorted-b", "own", 3],
     ]);
     // Backup song 2 clashed with the device's 2 (Song 3): it takes the counter, 3.
     expect(packageOf(into)).toMatchObject({
@@ -178,7 +196,7 @@ describe("the restore table for Assorted Hymns (SDD-0004 §17)", () => {
         key: "assorted-b",
         title: "Assorted Hymns",
         origin: "assorted",
-        kind: "assorted",
+        kind: "own",
         state: "unreadable",
         sources: [],
         songs: new Map(),
@@ -193,7 +211,7 @@ describe("the restore table for Assorted Hymns (SDD-0004 §17)", () => {
     expect(backupVerdict(facts, held)).toEqual({
       kind: "conflict",
       replaceable: false,
-      assortedUnreadable: true,
+      ownUnreadable: true,
     });
   });
 });
@@ -317,7 +335,7 @@ describe("the backup's recents and position follow the merge (SDD-0004 §17)", (
     await addAll(from.ctx, "assorted-a", [[1], [2], [3]]);
     const into = store();
     await addAll(into.ctx, "assorted-b", [[1], [4], [5]]);
-    await removeAssortedSong(into.ctx, 3);
+    await removeOwnSong(into.ctx, "assorted-b", 3);
     const state = {
       version: 1,
       lastPosition: { hymnbookId: "assorted-a", hymnNumber: 3, occurrenceIndex: 1, lineIndex: 2 },
@@ -479,9 +497,109 @@ describe("a crash mid-merge", () => {
     expect(listBooks(held.ctx)[0]).toMatchObject({ file: "/assorted-b.2.sqlite3", songs: 2 });
     await reconcile(held.ctx);
     expect(listBooks(held.ctx)).toMatchObject([
-      { key: "assorted-b", kind: "assorted", state: "ok", file: aheadFile, songs: 3 },
+      { key: "assorted-b", kind: "own", state: "ok", file: aheadFile, songs: 3 },
     ]);
     expect(held.ctx.files.list()).toEqual([aheadFile]);
     expect(packageOf(held)?.songs.map((x) => x[1])).toEqual(["Song 2", "Song 3", "Song 1"]);
+  });
+});
+
+describe("restoring books of yours, each by its key (ADR-0033 §6)", () => {
+  const camp: OwnTarget = { kind: "new", title: "Camp" };
+
+  it("restores a book of yours beside the device's, as kind own, with its title", async () => {
+    const from = store();
+    await addAll(from.ctx, "camp-a", [[1], [2]], camp);
+    const into = store();
+    await addAll(into.ctx, "assorted-b", [[7]]);
+    const { s, review } = await reviewOf(into, (await backupOf(from)).bytes);
+    expect(review.books.map((b) => [b.key, b.verdict])).toEqual([["camp-a", { kind: "restore" }]]);
+    const done = await s.commit(review.token);
+    expect(done.ok && done.books.map((b) => b.outcome)).toEqual(["restored"]);
+    expect(listBooks(into.ctx).map((b) => [b.key, b.kind, b.origin, b.title, b.songs])).toEqual([
+      ["assorted-b", "own", "assorted", "Assorted Hymns", 1],
+      ["camp-a", "own", "own", "Camp", 2],
+    ]);
+  });
+
+  it("merges a book of yours into the device's book of the same key", async () => {
+    const from = store();
+    await addAll(from.ctx, "camp-a", [[1], [2]], camp);
+    const into = store();
+    await addAll(into.ctx, "camp-a", [[2], [3]], { kind: "new", title: "Camp, renamed" });
+    const { s, review } = await reviewOf(into, (await backupOf(from)).bytes);
+    expect(review.books[0]?.verdict).toEqual({ kind: "merge", adds: 1, into: "camp-a" });
+    const done = await s.commit(review.token);
+    expect(done.ok && done.books.map((b) => b.outcome)).toEqual(["merged"]);
+    // The device keeps its key and its title; the backup's Song 1 is added under the counter.
+    expect(listBooks(into.ctx).map((b) => [b.key, b.title, b.songs])).toEqual([
+      ["camp-a", "Camp, renamed", 3],
+    ]);
+    expect(packageOf(into, "camp-a")?.songs.map((x) => x[1])).toEqual([
+      "Song 2",
+      "Song 3",
+      "Song 1",
+    ]);
+  });
+
+  it("does not merge a book of yours into the device's Assorted Hymns, whatever its key", async () => {
+    const from = store();
+    await addAll(from.ctx, "camp-a", [[1]], camp);
+    const into = store();
+    await addAll(into.ctx, "assorted-b", [[1]]);
+    const { review } = await reviewOf(into, (await backupOf(from)).bytes);
+    expect(review.books[0]?.verdict).toEqual({ kind: "restore" });
+  });
+
+  it("restores several books at once, merging the default and restoring the others", async () => {
+    const from = store();
+    await addAll(from.ctx, "assorted-a", [[1], [2]]);
+    await addAll(from.ctx, "camp-a", [[3]], camp);
+    await addAll(from.ctx, "retreat-a", [[4]], { kind: "new", title: "Retreat" });
+    const into = store();
+    await addAll(into.ctx, "assorted-b", [[1]]);
+    const state = {
+      version: 1,
+      recents: [
+        { hymnbookId: "assorted-a", hymnNumber: 2, viewedAt: 3 },
+        { hymnbookId: "camp-a", hymnNumber: 1, viewedAt: 2 },
+      ],
+    };
+    const { s, review } = await reviewOf(into, (await backupOf(from, state)).bytes);
+    const done = await s.commit(review.token);
+    expect(done.ok && done.books.map((b) => [b.key, b.outcome]).sort()).toEqual([
+      ["assorted-a", "merged"],
+      ["camp-a", "restored"],
+      ["retreat-a", "restored"],
+    ]);
+    expect(
+      listBooks(into.ctx)
+        .map((b) => [b.key, b.songs])
+        .sort(),
+    ).toEqual([
+      ["assorted-b", 2],
+      ["camp-a", 1],
+      ["retreat-a", 1],
+    ]);
+    // The default book's recent follows to the device's key; the restored book's stays on its own.
+    expect(done.ok && done.userState).toEqual({
+      version: 1,
+      recents: [
+        { hymnbookId: "assorted-b", hymnNumber: 2, viewedAt: 3 },
+        { hymnbookId: "camp-a", hymnNumber: 1, viewedAt: 2 },
+      ],
+    });
+  });
+
+  it("restores a backup made before this change (kind assorted in its registry): the origin decides", async () => {
+    const from = store();
+    await addAll(from.ctx, "assorted-a", [[1]]);
+    // A backup holds packages, not registry rows: the old app's kind `assorted` is not in it, and
+    // the origin `assorted` decides.
+    const into = store();
+    const { s, review } = await reviewOf(into, (await backupOf(from)).bytes);
+    const done = await s.commit(review.token);
+    expect(done.ok && done.books.map((b) => b.outcome)).toEqual(["restored"]);
+    expect(listBooks(into.ctx).map((b) => [b.kind, b.origin])).toEqual([["own", "assorted"]]);
   });
 });

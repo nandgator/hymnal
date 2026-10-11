@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   askPersist,
   commitAndPersist,
-  removeAssortedSongAndRecents,
+  removeOwnSongAndRecents,
   removeBookAndRecents,
 } from "./books.ts";
 import type { CommitResult } from "./load.ts";
@@ -129,7 +129,7 @@ describe("removeBookAndRecents", () => {
   });
 });
 
-describe("removeAssortedSongAndRecents", () => {
+describe("removeOwnSongAndRecents", () => {
   const state = () => ({
     dropSong: vi.fn(async () => {}),
     dropRecents: vi.fn(async () => {}),
@@ -141,14 +141,15 @@ describe("removeAssortedSongAndRecents", () => {
       dropSong: async (k: string, n: number) => void order.push(`song ${k} ${n}`),
       dropRecents: async (k: string) => void order.push(`recents ${k}`),
     };
-    await removeAssortedSongAndRecents(
+    await removeOwnSongAndRecents(
       {
-        removeAssortedSong: async () => {
+        removeOwnSong: async () => {
           order.push("removed");
           return { removed: true as const, key: "k", bookRemoved: false };
         },
       },
       s,
+      "k",
       4,
     );
     expect(order).toEqual(["removed", "song k 4"]);
@@ -156,9 +157,10 @@ describe("removeAssortedSongAndRecents", () => {
 
   it("drops every recent of the book when the last song took the book", async () => {
     const s = state();
-    await removeAssortedSongAndRecents(
-      { removeAssortedSong: async () => ({ removed: true, key: "k", bookRemoved: true }) },
+    await removeOwnSongAndRecents(
+      { removeOwnSong: async () => ({ removed: true, key: "k", bookRemoved: true }) },
       s,
+      "k",
       1,
     );
     expect(s.dropSong).toHaveBeenCalledWith("k", 1);
@@ -167,9 +169,10 @@ describe("removeAssortedSongAndRecents", () => {
 
   it("drops nothing when no song was removed", async () => {
     const s = state();
-    await removeAssortedSongAndRecents(
-      { removeAssortedSong: async () => ({ removed: false }) },
+    await removeOwnSongAndRecents(
+      { removeOwnSong: async () => ({ removed: false }) },
       s,
+      "k",
       1,
     );
     expect(s.dropSong).not.toHaveBeenCalled();

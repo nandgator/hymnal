@@ -132,7 +132,7 @@ export interface UserState {
   dropRecents(hymnbookId: HymnbookId): Promise<void>;
   /**
    * Forgets one song: its recents, and the last position if it is on that song
-   * (removing a song from Assorted Hymns, SDD-0004 §17).
+   * (removing a song from a book of yours, SDD-0004 §17).
    */
   dropSong(hymnbookId: HymnbookId, hymnNumber: HymnNumber): Promise<void>;
   getPreferences(): Promise<Preferences>;

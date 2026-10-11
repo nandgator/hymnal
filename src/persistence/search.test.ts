@@ -4,7 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { SCHEMA_SQL, SCHEMA_VERSION } from "../../scripts/content-schema.ts";
 import { book, sqlOf } from "../../scripts/registry-fixtures.ts";
-import { libraryOrder } from "../domain/assorted.ts";
+import { libraryOrder } from "../domain/own.ts";
 import { insertRows, packageRows } from "../domain/package-rows.ts";
 import type { HymnSource } from "../domain/types.ts";
 import type { BookRow } from "./registry.ts";
@@ -76,20 +76,25 @@ describe("searchBook", () => {
 });
 
 describe("libraryOrder", () => {
-  it("puts Assorted Hymns first and keeps the rest as listed", () => {
-    const rows = [row("b"), row("c"), row("a", { kind: "assorted" })];
+  it("puts your books first and keeps the rest as listed", () => {
+    const rows = [row("b"), row("c"), row("a", { kind: "own" })];
     expect(libraryOrder(rows).map((r) => r.key)).toEqual(["a", "b", "c"]);
+  });
+
+  it("puts every book of yours first, in the order listed", () => {
+    const rows = [row("b"), row("o1", { kind: "own" }), row("c"), row("o2", { kind: "own" })];
+    expect(libraryOrder(rows).map((r) => r.key)).toEqual(["o1", "o2", "b", "c"]);
   });
 });
 
 describe("searchOrder", () => {
-  it("is the current book, then Assorted Hymns, then the rest in order", () => {
-    const rows = [row("x"), row("y"), row("as", { kind: "assorted" }), row("z")];
+  it("is the current book, then your books, then the rest in order", () => {
+    const rows = [row("x"), row("y"), row("as", { kind: "own" }), row("z")];
     expect(searchOrder(rows, "y").map((r) => r.key)).toEqual(["y", "as", "x", "z"]);
   });
 
-  it("is Assorted Hymns first when it is the current book", () => {
-    const rows = [row("x"), row("as", { kind: "assorted" })];
+  it("is your book first when it is the current book", () => {
+    const rows = [row("x"), row("as", { kind: "own" })];
     expect(searchOrder(rows, "as").map((r) => r.key)).toEqual(["as", "x"]);
   });
 
@@ -108,7 +113,7 @@ describe("searchBooks", () => {
     hold("cur", [song(1, "Lord of the harvest")]);
     hold("as", [song(1, "Lord I come")]);
     hold("old", [song(5, "The Lord is my light")]);
-    const rows = [row("old"), row("cur"), row("as", { kind: "assorted", title: "Assorted Hymns" })];
+    const rows = [row("old"), row("cur"), row("as", { kind: "own", title: "Assorted Hymns" })];
     const hits = searchBooks(rows, "cur", find("lord"));
     expect(hits.map((h) => [h.key, h.title])).toEqual([
       ["cur", "Title of cur"],
