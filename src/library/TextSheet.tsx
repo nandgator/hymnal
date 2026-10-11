@@ -487,8 +487,8 @@ export function TextSheet(props: TextSheetProps) {
             fallback={
               <span class="field-hint num" id="song-text-hint">
                 {songs() === 0
-                  ? "0 lines. Separate songs with a --- line; several files are joined that way."
-                  : `${count(lineCount(d.songText()))} ${lineCount(d.songText()) === 1 ? "line" : "lines"}, ${songs() === 1 ? "1 song" : `${count(songs())} songs`}. Songs are separated by a --- line, as several files are.`}
+                  ? "0 lines. Put --- on its own line between songs."
+                  : `${count(lineCount(d.songText()))} ${lineCount(d.songText()) === 1 ? "line" : "lines"}, ${songs() === 1 ? "1 song" : `${count(songs())} songs`}. Put --- on its own line between songs.`}
               </span>
             }
           >

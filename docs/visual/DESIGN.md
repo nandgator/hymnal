@@ -866,19 +866,20 @@ view is close enough to the frame to need a smaller unit.
     languages by name, each in its own name and in English ("മലയാളം —
     Malayalam"), grouped Common then All languages. Its list is a popover in the
     top layer, placed from the field's rect in the menu's surface with its
-    shadow; it flips above the field when there is no room below, scrolls inside
-    its own maximum height with a soft fade at an edge only while more scrolls
-    that way, and never changes the card's size. A click on the field or its
-    chevron toggles it, Escape closes the list and not the sheet, a tap outside
-    closes it. It ends in **Other…** to type a code. A suggestion from the song
-    text ("Looks like …") fills the language until the person picks. Once a
-    language is set, a quiet line, "Script: Malayalam (Mlym) · Change", the
-    script derived from the language and a field ("Script code", with Done) only
-    after Change; a code typed by hand is checked as it is typed (four letters
-    and a script the device knows) and set in its usual case. Then the song text
-    area in the hymn face (with **Open .txt Files**, several at once) and its
-    hint, "12 lines, 2 songs. Songs are separated by a --- line, as several
-    files are." The optional song number sits under **Advanced**. One filled
+    shadow; it is clamped to the card's box (its room ends 16px short of the
+    card's edge), flips above the field when there is no room below, scrolls
+    inside its own maximum height with a soft blur and fade at an edge only
+    while more scrolls that way, and never changes the card's size. A click on
+    the field or its chevron toggles it, Escape closes the list and not the
+    sheet, a tap outside closes it. It ends in **Other…** to type a code. A
+    suggestion from the song text ("Looks like …") fills the language until the
+    person picks. Once a language is set, a quiet line, "Script: Malayalam
+    (Mlym) · Change", the script derived from the language and a field ("Script
+    code", with Done) only after Change; a code typed by hand is checked as it
+    is typed (four letters and a script the device knows) and set in its usual
+    case. Then the song text area in the hymn face (with **Open .txt Files**,
+    several at once) and its hint, "12 lines, 2 songs. Put --- on its own line
+    between songs." The optional song number sits under **Advanced**. One filled
     button, **Review** (**Review Song**, **Review 3 Songs**), is pinned at the
     bottom as the review's is. **The card is one size**: a fixed height (the
     tallest state, within 88% of the screen), the form scrolling inside it with

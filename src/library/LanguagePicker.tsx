@@ -133,12 +133,18 @@ export function LanguagePicker(props: LanguagePickerProps) {
     list.style.maxHeight = "";
     const at = box.getBoundingClientRect();
     const own = list.getBoundingClientRect();
+    // Floating in the top layer, but kept inside the sheet's card: its room ends a margin short of
+    // the card's edges (the page's, where there is no card), so it never runs past the card.
+    const card = box.closest("dialog")?.getBoundingClientRect();
+    const top = card ? card.top : 0;
     const spot = placeMenu({
-      trigger: at,
+      trigger: { left: at.left, right: at.right, top: at.top - top, bottom: at.bottom - top },
       menu: { w: at.width, h: list.scrollHeight + (own.height - list.clientHeight) },
-      viewport: { w: window.innerWidth, h: window.innerHeight },
+      viewport: { w: window.innerWidth, h: card ? card.height : window.innerHeight },
       align: "start",
+      margin: card ? 16 : 8,
     });
+    spot.top += top;
     list.style.width = `${at.width}px`;
     list.style.top = `${spot.top}px`;
     list.style.left = `${spot.left}px`;
