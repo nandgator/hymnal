@@ -5758,23 +5758,19 @@ fieldset.book-main {
   z-index: 2;
   display: none;
   height: 1.75rem;
-  background: linear-gradient(
-    var(--fade-dir, to bottom),
-    var(--md-sys-color-surface-container-high),
-    transparent
-  );
   pointer-events: none;
   content: "";
   backdrop-filter: blur(3px);
-  mask-image: linear-gradient(var(--fade-dir, to bottom), #000 30%, transparent);
 }
 .lang-list::before {
-  --fade-dir: to bottom;
+  background: linear-gradient(to bottom, var(--md-sys-color-surface-container-high), transparent);
+  mask-image: linear-gradient(to bottom, #000 30%, transparent);
   top: calc(-1 * var(--space-xs));
   margin-bottom: -1.75rem;
 }
 .lang-list::after {
-  --fade-dir: to top;
+  background: linear-gradient(to top, var(--md-sys-color-surface-container-high), transparent);
+  mask-image: linear-gradient(to top, #000 30%, transparent);
   bottom: calc(-1 * var(--space-xs));
   margin-top: -1.75rem;
 }
