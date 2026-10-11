@@ -58,23 +58,24 @@ to drop the songs from old commits is the maintainer's own later step
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                                                                                             | Blocked by          |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
-| 59  | Paste plain lyrics: a first line followed by lyrics is verse 1 and the title; indentation ignored; numbers assigned in the app (ADR-0033 §5)     | —                   |
-| 60  | Your books (ADR-0033): kind `own` replaces `assorted`, any number, rename, numbers kept when free, restore per book                              | —                   |
-| 61  | From Text, one form: Add to picker, live field errors, script code checked, floating language list, fixed card height, plain intro               | #60                 |
-| 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                         | another machine     |
-| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland) | maintainer: devices |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                      | —                   |
-| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                    | —                   |
-| 16  | Feedback and corrections from users — where collected: TBD                                                                                       | —                   |
-| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                      | —                   |
-| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                   | —                   |
-| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                          | —                   |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                       | Phase 2             |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                    | content             |
-| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                    | —                   |
-| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                           | —                   |
+| #   | Task                                                                                                                                                                                    | Blocked by          |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| 62  | Bug: switching sheets (Ctrl+, to Ctrl+K) blinks: each sheet is its own dialog, so one backdrop fades out while the next fades in; a swap keeps the scrim still and cross-fades the card | —                   |
+| 59  | Paste plain lyrics: a first line followed by lyrics is verse 1 and the title; indentation ignored; numbers assigned in the app (ADR-0033 §5)                                            | —                   |
+| 60  | Your books (ADR-0033): kind `own` replaces `assorted`, any number, rename, numbers kept when free, restore per book                                                                     | —                   |
+| 61  | From Text, one form: Add to picker, live field errors, script code checked, floating language list, fixed card height, plain intro                                                      | #60                 |
+| 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                                                                | another machine     |
+| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                        | maintainer: devices |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                                                             | —                   |
+| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                           | —                   |
+| 16  | Feedback and corrections from users — where collected: TBD                                                                                                                              | —                   |
+| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                                                             | —                   |
+| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                                                          | —                   |
+| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                                                                 | —                   |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                                                              | Phase 2             |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                                                           | content             |
+| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                                                           | —                   |
+| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                                                                  | —                   |
 
 14–15 sit past the scope guard below. 16–25 and 37–40 are notes, not scheduled:
 the shell reserves room for them (DESIGN.md § Structure).
