@@ -61,6 +61,7 @@ Ordered. Top unblocked item is next.
 | #   | Task                                                                                                                                                                                    | Blocked by          |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
 | 62  | Bug: switching sheets (Ctrl+, to Ctrl+K) blinks: each sheet is its own dialog, so one backdrop fades out while the next fades in; a swap keeps the scrim still and cross-fades the card | —                   |
+| 63  | Bug: split or close with Lyrics as the main group blinks empty: the tab content remounts in another group slot and zooms in from transparent while the areas glide                      | —                   |
 | 59  | Paste plain lyrics: a first line followed by lyrics is verse 1 and the title; indentation ignored; numbers assigned in the app (ADR-0033 §5)                                            | —                   |
 | 60  | Your books (ADR-0033): kind `own` replaces `assorted`, any number, rename, numbers kept when free, restore per book                                                                     | —                   |
 | 61  | From Text, one form: Add to picker, live field errors, script code checked, floating language list, fixed card height, plain intro                                                      | #60                 |
