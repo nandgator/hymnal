@@ -1,7 +1,7 @@
 import { inflateSync } from "fflate";
-import { ASSORTED_ORIGIN } from "./assorted.ts";
 import { type BookRef, type HeldBook, verdict as verdictOf } from "./duplicates.ts";
 import { type SongHashes, sameSongs, sha256Hex } from "./hash.ts";
+import { ASSORTED_ORIGIN, isOwnOrigin } from "./own.ts";
 
 /**
  * The parts of reading a backup that need no database (SDD-0006 §3, steps 1 to
@@ -381,7 +381,7 @@ export type BackupVerdict =
    * replace it from the backup. `replaceable` is false for a copy that needs a
    * newer app, which a file does not replace.
    */
-  | { kind: "conflict"; replaceable: boolean; assortedUnreadable?: true }
+  | { kind: "conflict"; replaceable: boolean; ownUnreadable?: true }
   /** Another book has the same songs or a source of this one: nothing. */
   | { kind: "already-here-as"; book: BookRef }
   /**
@@ -390,10 +390,11 @@ export type BackupVerdict =
    */
   | { kind: "restore"; over?: true }
   /**
-   * Assorted Hymns, with the device's holding other songs (SDD-0004 §17): the
-   * `adds` songs it lacks are added to the device's, which keeps its key.
+   * A book of yours, with the device's holding other songs (ADR-0033 §6): the
+   * `adds` songs it lacks are added to the device's book `into`, which keeps
+   * its key.
    */
-  | { kind: "merge"; adds: number };
+  | { kind: "merge"; adds: number; into: string };
 
 /**
  * §4's table, fed SDD-0004 §8's verdict: the book's `sources` stand in for the
@@ -402,16 +403,14 @@ export type BackupVerdict =
  * duplicate here: it is another edition, and the backup's own key stands.
  */
 export function backupVerdict(book: BackupBookFacts, held: readonly HeldBook[]): BackupVerdict {
-  const assorted = book.origin === ASSORTED_ORIGIN;
-  // The device has one Assorted Hymns, whatever its key: a backup's is merged into it (SDD-0004 §17).
-  const device = assorted ? held.find((b) => b.kind === "assorted") : undefined;
+  const own = isOwnOrigin(book.origin);
+  const device = own ? ownTarget(book, held) : undefined;
   if (device) {
     // One that cannot be opened is not written to; there is nothing to merge into.
-    if (device.state !== "ok")
-      return { kind: "conflict", replaceable: false, assortedUnreadable: true };
+    if (device.state !== "ok") return { kind: "conflict", replaceable: false, ownUnreadable: true };
     const there = new Set(device.songs.values());
     const adds = new Set([...book.songs.values()].filter((hash) => !there.has(hash))).size;
-    return adds === 0 ? { kind: "already-here" } : { kind: "merge", adds };
+    return adds === 0 ? { kind: "already-here" } : { kind: "merge", adds, into: device.key };
   }
   const same = held.find((b) => b.key === book.key);
   if (same) {
@@ -426,8 +425,8 @@ export function backupVerdict(book: BackupBookFacts, held: readonly HeldBook[]):
       ? { kind: "restore", over: true }
       : { kind: "conflict", replaceable: false };
   }
-  // Assorted Hymns is the person's own book: another book's songs do not make it a duplicate.
-  if (assorted) return { kind: "restore" };
+  // A book of yours is the person's own: another book's songs do not make it a duplicate.
+  if (own) return { kind: "restore" };
   const others = held.filter((b) => b.key !== book.key);
   for (const sourceHash of book.sources.length > 0 ? book.sources : [""]) {
     const found = verdictOf({ sourceHash, origin: book.origin, songHashes: book.songs }, others);
@@ -438,11 +437,29 @@ export function backupVerdict(book: BackupBookFacts, held: readonly HeldBook[]):
   return { kind: "restore" };
 }
 
+/**
+ * The device's book a backup's book of yours is merged into (ADR-0033 §6): the
+ * one of the same key, and for the backup's Assorted Hymns (origin `assorted`)
+ * the device's own Assorted Hymns, whatever its key.
+ */
+export function ownTarget(
+  book: Pick<BackupBookFacts, "key" | "origin">,
+  held: readonly HeldBook[],
+): HeldBook | undefined {
+  return (
+    held.find((b) => b.kind === "own" && b.key === book.key) ??
+    (book.origin === ASSORTED_ORIGIN
+      ? held.find((b) => b.kind === "own" && b.origin === ASSORTED_ORIGIN)
+      : undefined)
+  );
+}
+
 /** Two verdicts say the same thing, for the commit's second look at the registry. */
 export function sameBackupVerdict(a: BackupVerdict, b: BackupVerdict): boolean {
   if (a.kind !== b.kind) return false;
   if (a.kind === "conflict" && b.kind === "conflict") return a.replaceable === b.replaceable;
   if (a.kind === "restore" && b.kind === "restore") return a.over === b.over;
+  if (a.kind === "merge" && b.kind === "merge") return a.into === b.into;
   if (a.kind === "already-here-as" && b.kind === "already-here-as")
     return a.book.key === b.book.key;
   return true;

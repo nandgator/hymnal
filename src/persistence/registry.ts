@@ -1,16 +1,22 @@
 import { SCHEMA_VERSION } from "../../scripts/content-schema.ts";
-import {
-  ASSORTED_ORIGIN,
-  addSong,
-  asContainerShape,
-  assortedBook,
-  isLanguageTag,
-  isScriptCode,
-  mergeSongs,
-} from "../domain/assorted.ts";
 import type { ContainerBook } from "../domain/container.ts";
 import type { HeldBook } from "../domain/duplicates.ts";
 import { songHash } from "../domain/hash.ts";
+import {
+  ASSORTED_ORIGIN,
+  ASSORTED_TITLE,
+  addSongs,
+  asContainerShape,
+  isLanguageTag,
+  isOwnOrigin,
+  isScriptCode,
+  mergeSongs,
+  OWN_ORIGIN,
+  type OwnStatus,
+  type OwnTarget,
+  ownBook,
+  ownStatus,
+} from "../domain/own.ts";
 import { packageRows } from "../domain/package-rows.ts";
 import type { OnLoadProgress } from "../domain/progress.ts";
 import type { HymnSource } from "../domain/types.ts";
@@ -34,8 +40,11 @@ import {
 
 /** The registry's file in the pool, beside the books (SDD-0004 §6). */
 export const REGISTRY_FILE = "/registry.sqlite3";
-/** 2: kind `assorted` (SDD-0004 §17). A registry of another version is rebuilt. */
-export const REGISTRY_VERSION = 2;
+/**
+ * 3: kind `own` and `next_number` (ADR-0033, SDD-0004 §17). A registry of
+ * another version is rebuilt, and reconcile adopts the packages again.
+ */
+export const REGISTRY_VERSION = 3;
 
 /**
  * SDD-0004 §6, plus `state` (decided in part 3): a package kept but not
@@ -45,12 +54,13 @@ export const REGISTRY_SQL = `
 CREATE TABLE book (
   key       TEXT PRIMARY KEY,
   origin    TEXT NOT NULL,
-  kind      TEXT NOT NULL CHECK (kind IN ('shipped','loaded','assorted')),
+  kind      TEXT NOT NULL CHECK (kind IN ('shipped','loaded','own')),
   file      TEXT NOT NULL,
   title     TEXT NOT NULL,
   language  TEXT NOT NULL,
   script    TEXT NOT NULL,
   songs     INTEGER NOT NULL,
+  next_number INTEGER,
   added_at  INTEGER NOT NULL,
   state     TEXT NOT NULL DEFAULT 'ok'
             CHECK (state IN ('ok','needs-reloading','needs-newer-app','unreadable'))
@@ -71,7 +81,8 @@ CREATE TABLE song (
 CREATE INDEX song_hash ON song (hash);
 `;
 
-export type BookKind = "shipped" | "loaded" | "assorted";
+/** `own` is a book of yours (ADR-0033): it grows, and the other two are received and fixed. */
+export type BookKind = "shipped" | "loaded" | "own";
 
 export interface BookRow {
   key: string;
@@ -82,6 +93,8 @@ export interface BookRow {
   language: string;
   script: string;
   songs: number;
+  /** A book of yours only: the number a song with none takes (at least one past its highest). Null or absent otherwise. */
+  nextNumber?: number | null;
   addedAt: number;
   state: PackageState;
 }
@@ -159,6 +172,7 @@ const toBook = (r: Record<string, unknown>): BookRow => ({
   language: r.language as string,
   script: r.script as string,
   songs: r.songs as number,
+  nextNumber: typeof r.next_number === "number" ? r.next_number : null,
   addedAt: r.added_at as number,
   state: r.state as PackageState,
 });
@@ -207,7 +221,7 @@ function insertBook(
     }
     registry.run("DELETE FROM book WHERE key = ?", [row.key]);
     registry.run(
-      "INSERT INTO book (key, origin, kind, file, title, language, script, songs, added_at, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO book (key, origin, kind, file, title, language, script, songs, next_number, added_at, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         row.key,
         row.origin,
@@ -217,6 +231,7 @@ function insertBook(
         row.language,
         row.script,
         row.songs,
+        row.nextNumber ?? null,
         row.addedAt,
         row.state,
       ],
@@ -303,10 +318,15 @@ function rowOf(
     language: hymnbook.language,
     script: hymnbook.script,
     songs: hymns.length,
+    nextNumber: kind === "own" ? counter(hymnbook.nextNumber, hymns) : null,
     addedAt,
     state: "ok",
   };
 }
+
+/** A book of yours' counter: the larger of its `next_number` and one past its highest song. */
+const counter = (next: number | null | undefined, songs: readonly { number: number }[]): number =>
+  Math.max(next ?? 1, songs.reduce((max, h) => Math.max(max, h.number), 0) + 1);
 
 /** Registers a written package; if that fails the file goes too, since nothing holds it. */
 function commitRow(ctx: RegistryContext, row: BookRow, read: ContainerRead, over?: string) {
@@ -347,7 +367,7 @@ export async function addBook(
   read: ContainerRead,
   n = 1,
   onProgress?: OnLoadProgress,
-  /** Restoring Assorted Hymns writes kind `assorted` (SDD-0004 §17). */
+  /** Restoring a book of yours writes kind `own` (SDD-0004 §17). */
   kind: BookKind = "loaded",
 ): Promise<BookRow> {
   const file = `/${key}.${n}.sqlite3`;
@@ -419,27 +439,40 @@ export function recordSource(ctx: RegistryContext, key: string, hash: string): v
   ]);
 }
 
-// ---- Assorted Hymns (SDD-0004 §17) ----
+// ---- Your books (ADR-0033, SDD-0004 §17) ----
 
 async function hashesOf(hymns: readonly HymnSource[]): Promise<Map<number, string>> {
   return new Map(await Promise.all(hymns.map(async (h) => [h.number, await songHash(h)] as const)));
 }
 
-/** The one Assorted Hymns this device holds, readable or not, if it has one. */
-export const assortedRow = (ctx: RegistryContext): BookRow | undefined =>
-  listBooks(ctx).find((b) => b.kind === "assorted");
+/** The first number each hash is held under. */
+function heldBy(hashes: ReadonlyMap<number, string>): Map<string, number> {
+  const held = new Map<string, number>();
+  for (const [number, hash] of [...hashes].sort((a, b) => a[0] - b[0])) {
+    if (!held.has(hash)) held.set(hash, number);
+  }
+  return held;
+}
 
-/** What Assorted Hymns holds now, read from its package. */
-interface AssortedNow {
+/** The books of yours this device holds, readable or not. */
+export const ownRows = (ctx: RegistryContext): BookRow[] =>
+  listBooks(ctx).filter((b) => b.kind === "own");
+
+/** The default book, the one a song goes to when none is chosen: origin `assorted`. */
+export const defaultOwnRow = (ctx: RegistryContext): BookRow | undefined =>
+  ownRows(ctx).find((b) => b.origin === ASSORTED_ORIGIN);
+
+/** What a book of yours holds now, read from its package. */
+interface OwnNow {
   row: BookRow;
   hymns: HymnSource[];
   nextNumber: number | null;
   contentHash: string;
 }
 
-/** The book as it is now, null if the device has none, "unreadable" if it has one that cannot be written to. */
-function readAssorted(ctx: RegistryContext): AssortedNow | null | "unreadable" {
-  const row = assortedRow(ctx);
+/** The book as it is now: null if the device has no such book of yours, "unreadable" if it cannot be written to. */
+function readOwn(ctx: RegistryContext, key: string): OwnNow | null | "unreadable" {
+  const row = ownRows(ctx).find((b) => b.key === key);
   if (!row) return null;
   if (row.state !== "ok") return "unreadable";
   const read = ctx.files.open(row.file, (sql) => {
@@ -458,116 +491,200 @@ function readAssorted(ctx: RegistryContext): AssortedNow | null | "unreadable" {
   };
 }
 
+/** The counter of a book as it is now: the package's, lifted past its highest song and the index's. */
+const counterOf = (now: OwnNow): number =>
+  Math.max(
+    now.nextNumber ?? 1,
+    now.row.nextNumber ?? 1,
+    now.hymns.reduce((max, h) => Math.max(max, h.number), 0) + 1,
+  );
+
 /**
- * The number the next song added to Assorted Hymns will get, and the one
- * already holding `hash`. `next` is null when the device has an Assorted Hymns
- * that cannot be opened: nothing is added to it.
+ * What adding a file's songs to each book of yours would do (ADR-0033 §5), for
+ * the review: every book of yours, then the default one if the device has none
+ * and a new one, neither made yet. `next` is null for a book that cannot be
+ * opened. Read from the registry, which is the index of the packages.
  */
-export function assortedStatus(
+export function ownStatuses(
   ctx: RegistryContext,
-  hash?: string,
-): { key: string | null; next: number | null; has: number | null } {
-  const row = assortedRow(ctx);
-  if (!row) return { key: null, next: 1, has: null };
-  if (row.state !== "ok") return { key: row.key, next: null, has: null };
-  const held = hash
-    ? ctx.registry.all("SELECT number FROM song WHERE book_key = ? AND hash = ? ORDER BY number", [
-        row.key,
-        hash,
-      ])[0]
-    : undefined;
-  const next = ctx.files.open(row.file, (sql) => {
-    const version = packageVersion(sql);
-    return version === null ? null : (readHead(sql, version)?.nextNumber ?? null);
-  });
-  const highest = ctx.registry.all("SELECT MAX(number) AS n FROM song WHERE book_key = ?", [
-    row.key,
-  ])[0]?.n;
-  return {
-    key: row.key,
-    next: Math.max(next ?? 1, (typeof highest === "number" ? highest : 0) + 1),
-    has: typeof held?.number === "number" ? held.number : null,
-  };
+  hymns: readonly { number: number; title: string }[],
+  hashes: ReadonlyMap<number, string>,
+): OwnStatus[] {
+  const songs = new Map<string, Map<string, number>>();
+  for (const r of ctx.registry.all(
+    "SELECT book_key, number, hash FROM song WHERE book_key IN (SELECT key FROM book WHERE kind = 'own') ORDER BY number",
+  )) {
+    const map = songs.get(r.book_key as string) ?? new Map<string, number>();
+    if (!map.has(r.hash as string)) map.set(r.hash as string, r.number as number);
+    songs.set(r.book_key as string, map);
+  }
+  const rows = ownRows(ctx);
+  const none = new Map<string, number>();
+  const list = rows.map((row) =>
+    ownStatus(
+      row,
+      row.state === "ok" ? (row.nextNumber ?? 1) : null,
+      songs.get(row.key) ?? none,
+      hymns,
+      hashes,
+    ),
+  );
+  if (!rows.some((row) => row.origin === ASSORTED_ORIGIN)) {
+    const book = { key: null, origin: ASSORTED_ORIGIN, title: ASSORTED_TITLE };
+    list.push(ownStatus(book, 1, none, hymns, hashes));
+  }
+  list.push(ownStatus({ key: null, origin: OWN_ORIGIN, title: "" }, 1, none, hymns, hashes));
+  return list;
 }
 
-export type AddedToAssorted =
-  | { ok: true; key: string; number: number; created: boolean }
+export type AddedToOwn =
+  | {
+      ok: true;
+      key: string;
+      /** The numbers the added songs took, in the order given. */
+      numbers: number[];
+      /** Songs of the file the book held already, which were not added again. */
+      already: number;
+      created: boolean;
+    }
+  /** Every song is in the book already; `number` is the first one's there. */
   | { ok: false; reason: "already-here"; key: string; number: number }
   | { ok: false; reason: "invalid"; message: string }
-  /** The device's Assorted Hymns cannot be opened: it is not written to. */
+  /** The book cannot be opened: it is not written to. */
   | { ok: false; reason: "unreadable"; key: string };
 
+const firstViolations = (violations: { where: string; message: string }[]) =>
+  violations
+    .slice(0, 3)
+    .map((v) => `${v.where}: ${v.message}`)
+    .join("; ");
+
 /**
- * Adds one song (a reviewed one-song book) to Assorted Hymns, making the book
- * with the song as number 1 and `next_number` 2 if the device has none
- * (SDD-0004 §17). The whole is validated as a load's is, then written as
- * Replace writes (`<key>.<n+1>.sqlite3`, then the registry transaction, the
- * commit). A song whose hash is already in the book is reported, not added.
+ * Adds songs (a reviewed file's) to a book of yours, or to a new one
+ * (ADR-0033 §4, §5, SDD-0004 §17). A new book, or the default one when the
+ * device has none, is written with the songs under their numbers and the
+ * counter past the highest. The whole is validated as a load's is, then
+ * written as Replace writes (`<key>.<n+1>.sqlite3`, then the registry
+ * transaction, the commit). A song whose hash is in the book already is
+ * reported, not added again.
  */
-export async function addAssortedSong(
+export async function addOwnSongs(
   ctx: RegistryContext,
   newKey: () => string,
-  song: { hymn: HymnSource; hash: string },
+  target: OwnTarget,
+  songs: readonly { hymn: HymnSource; hash: string }[],
   language: string,
   script: string,
   onProgress?: OnLoadProgress,
-): Promise<AddedToAssorted> {
-  if (!isLanguageTag(language)) {
-    return { ok: false, reason: "invalid", message: `${language} is not a language tag` };
+): Promise<AddedToOwn> {
+  const invalid = (message: string): AddedToOwn => ({ ok: false, reason: "invalid", message });
+  if (!isLanguageTag(language)) return invalid(`${language} is not a language tag`);
+  if (!isScriptCode(script)) return invalid(`${script} is not a script code`);
+  if (songs.length === 0) return invalid("there are no songs to add");
+  let row: BookRow | undefined;
+  let made = { origin: OWN_ORIGIN, title: "" };
+  if (target.kind === "new") {
+    made.title = target.title.trim();
+    if (!made.title) return invalid("Give the book a title.");
+  } else if (target.kind === "default") {
+    row = defaultOwnRow(ctx);
+    made = { origin: ASSORTED_ORIGIN, title: ASSORTED_TITLE };
+  } else {
+    row = ownRows(ctx).find((b) => b.key === target.key);
+    if (!row) return invalid("that is not a book of yours on this device");
   }
-  if (!isScriptCode(script)) {
-    return { ok: false, reason: "invalid", message: `${script} is not a script code` };
+  const now = row ? readOwn(ctx, row.key) : null;
+  if (now === "unreadable") return { ok: false, reason: "unreadable", key: row?.key ?? "" };
+  const title = now?.row.title ?? made.title;
+  const origin = now?.row.origin ?? made.origin;
+  // Hashed from the package itself, not the registry's copy, which is only an index.
+  const songHashes = await hashesOf(now?.hymns ?? []);
+  const plan = addSongs(now, heldBy(songHashes), { origin, title }, songs, language, script);
+  if (!plan.ok) return invalid(plan.message);
+  if (plan.added.length === 0) {
+    const [first] = plan.already.values();
+    return now && first !== undefined
+      ? { ok: false, reason: "already-here", key: now.row.key, number: first }
+      : invalid("there are no songs to add");
   }
-  const held = readAssorted(ctx);
-  if (held === "unreadable") {
-    return { ok: false, reason: "unreadable", key: assortedRow(ctx)?.key ?? "" };
-  }
-  const now = held;
-  const status = assortedStatus(ctx, song.hash);
-  if (now && status.has !== null) {
-    return { ok: false, reason: "already-here", key: now.row.key, number: status.has };
-  }
-  const plan = addSong(
-    now && { hymns: now.hymns, nextNumber: Math.max(now.nextNumber ?? 1, status.next ?? 1) },
-    song.hymn,
-    language,
-    script,
-  );
   const shaped = asContainerShape(plan.book, plan.hymns);
   const violations = validateCorpus(
     shaped.book,
     shaped.hymns.map((hymn) => ({ file: hymnFileName(hymn.number), hymn })),
   );
-  if (violations.length > 0) {
-    const first = violations
-      .slice(0, 3)
-      .map((v) => `${v.where}: ${v.message}`)
-      .join("; ");
-    return { ok: false, reason: "invalid", message: first };
-  }
-  // Hashed from the package itself, not the registry's copy, which is only an index.
-  const songHashes = await hashesOf(now?.hymns ?? []);
-  songHashes.set(plan.number, song.hash);
+  if (violations.length > 0) return invalid(firstViolations(violations));
+  for (const { number, hash } of plan.added) songHashes.set(number, hash);
+  const sourceHash = now?.contentHash ?? plan.added[0]?.hash ?? "";
   const read: ContainerRead = {
-    sourceHash: now?.contentHash ?? song.hash,
+    sourceHash,
     sources: [],
-    contentHash: now?.contentHash ?? song.hash,
+    contentHash: sourceHash,
     book: { hymnbook: plan.book, hymns: plan.hymns },
     songHashes,
   };
+  const result = { numbers: plan.added.map((a) => a.number), already: plan.already.size };
   if (now) {
     await replaceBook(ctx, now.row.key, read, { onProgress });
-    return { ok: true, key: now.row.key, number: plan.number, created: false };
+    return { ok: true, key: now.row.key, created: false, ...result };
   }
   const key = newKey();
   await writeNewPackage(ctx, `/${key}.1.sqlite3`, key, read, onProgress);
-  const row = rowOf(ctx, key, `/${key}.1.sqlite3`, read, ctx.now(), "assorted");
-  commitRow(ctx, row, read);
-  return { ok: true, key, number: plan.number, created: true };
+  commitRow(ctx, rowOf(ctx, key, `/${key}.1.sqlite3`, read, ctx.now(), "own"), read);
+  return { ok: true, key, created: true, ...result };
 }
 
-export interface MergedIntoAssorted {
-  /** The device's Assorted Hymns, which keeps its key. */
+export type RenamedOwn =
+  | { ok: true; key: string; title: string }
+  | { ok: false; reason: "invalid" | "unreadable" | "unknown"; message: string };
+
+/**
+ * Renames a book of yours (ADR-0033 §1): the package is written afresh under
+ * the new title, as a Replace writes it, and the registry row follows in the
+ * same commit. The key, the songs and their numbers do not change.
+ */
+export async function renameOwn(
+  ctx: RegistryContext,
+  key: string,
+  title: string,
+  onProgress?: OnLoadProgress,
+): Promise<RenamedOwn> {
+  const named = title.trim();
+  if (!named) return { ok: false, reason: "invalid", message: "Give the book a title." };
+  const now = readOwn(ctx, key);
+  if (now === null) {
+    return { ok: false, reason: "unknown", message: "that is not a book of yours on this device" };
+  }
+  if (now === "unreadable") {
+    const message = "the book cannot be opened, so it is not renamed";
+    return { ok: false, reason: "unreadable", message };
+  }
+  if (now.row.title === named) return { ok: true, key, title: named };
+  const book = ownBook(now.row.origin, named, now.hymns.length, counterOf(now));
+  const shaped = asContainerShape(book, now.hymns);
+  const violations = validateCorpus(
+    shaped.book,
+    shaped.hymns.map((hymn) => ({ file: hymnFileName(hymn.number), hymn })),
+  );
+  if (violations.length > 0) {
+    return { ok: false, reason: "invalid", message: firstViolations(violations) };
+  }
+  await replaceBook(
+    ctx,
+    key,
+    {
+      sourceHash: now.contentHash,
+      sources: [],
+      contentHash: now.contentHash,
+      book: { hymnbook: book, hymns: now.hymns },
+      songHashes: await hashesOf(now.hymns),
+    },
+    { onProgress },
+  );
+  return { ok: true, key, title: named };
+}
+
+export interface MergedIntoOwn {
+  /** The device's book, which keeps its key. */
   key: string;
   /** Backup number to the number the device holds that song under (SDD-0004 §17). */
   numbers: Map<number, number>;
@@ -575,41 +692,37 @@ export interface MergedIntoAssorted {
 }
 
 /**
- * Merges a backup's Assorted Hymns into the device's (SDD-0004 §17): each song
- * not there by hash is added, per `mergeSongs`. Written as an add is: the
- * package afresh as `<key>.<n+1>`, then the registry transaction, the commit,
- * so a crash leaves either the old book or the merged one. Nothing is written
- * when every song is there already. Throws if the device has no readable
- * Assorted Hymns or the whole would not validate.
+ * Merges a backup's book of yours into the device's book `key` (ADR-0033 §6,
+ * SDD-0004 §17): each song not there by hash is added, per `mergeSongs`.
+ * Written as an add is: the package afresh as `<key>.<n+1>`, then the registry
+ * transaction, the commit, so a crash leaves either the old book or the merged
+ * one. Nothing is written when every song is there already. Throws if the book
+ * cannot be opened or the whole would not validate.
  */
-export async function mergeIntoAssorted(
+export async function mergeIntoOwn(
   ctx: RegistryContext,
+  key: string,
   incoming: { hymns: readonly HymnSource[]; songHashes: ReadonlyMap<number, string> },
   onProgress?: OnLoadProgress,
   /** Only works out the numbers (and how many would be added): nothing is written. */
   dryRun = false,
-): Promise<MergedIntoAssorted> {
-  const now = readAssorted(ctx);
+): Promise<MergedIntoOwn> {
+  const now = readOwn(ctx, key);
   if (now === null || now === "unreadable") {
-    throw new Error("the device has no Assorted Hymns that can be opened to merge into");
+    throw new Error("the device has no book of that key that can be opened to merge into");
   }
-  const key = now.row.key;
   // Hashed from the package itself, not the registry's copy, which is only an index.
   const deviceHashes = await hashesOf(now.hymns);
   const plan = mergeSongs(now, deviceHashes, incoming.hymns, incoming.songHashes);
   if (plan.added === 0 || dryRun) return { key, numbers: plan.numbers, added: plan.added };
-  const book = assortedBook(plan.hymns.length, plan.nextNumber);
+  const book = ownBook(now.row.origin, now.row.title, plan.hymns.length, plan.nextNumber);
   const shaped = asContainerShape(book, plan.hymns);
   const violations = validateCorpus(
     shaped.book,
     shaped.hymns.map((hymn) => ({ file: hymnFileName(hymn.number), hymn })),
   );
   if (violations.length > 0) {
-    const first = violations
-      .slice(0, 3)
-      .map((v) => `${v.where}: ${v.message}`)
-      .join("; ");
-    throw new Error(`the merged Assorted Hymns would not be valid: ${first}`);
+    throw new Error(`the merged book would not be valid: ${firstViolations(violations)}`);
   }
   const songHashes = new Map(deviceHashes);
   for (const [backupNumber, number] of plan.numbers) {
@@ -631,35 +744,32 @@ export async function mergeIntoAssorted(
   return { key, numbers: plan.numbers, added: plan.added };
 }
 
-export type RemovedFromAssorted =
+export type RemovedFromOwn =
   | { removed: false }
   | { removed: true; key: string; bookRemoved: boolean };
 
 /**
- * Removes one song from Assorted Hymns by number: the package is written
+ * Removes one song from a book of yours by number: the package is written
  * afresh without it and `next_number` stays, so the number is retired. The
  * last song takes the book with it, as removing a book does (SDD-0004 §17).
  */
-export async function removeAssortedSong(
+export async function removeOwnSong(
   ctx: RegistryContext,
+  key: string,
   number: number,
   onProgress?: OnLoadProgress,
-): Promise<RemovedFromAssorted> {
-  const held = readAssorted(ctx);
-  if (held === "unreadable") {
-    throw new Error("Assorted Hymns cannot be opened, so no song is removed from it");
+): Promise<RemovedFromOwn> {
+  const now = readOwn(ctx, key);
+  if (now === "unreadable") {
+    throw new Error("the book cannot be opened, so no song is removed from it");
   }
-  const now = held;
-  const present = now?.hymns.some((h) => h.number === number);
-  if (!now || !present) return { removed: false };
-  const key = now.row.key;
+  if (!now?.hymns.some((h) => h.number === number)) return { removed: false };
   const left = now.hymns.filter((h) => h.number !== number);
   if (left.length === 0) {
     removeBook(ctx, key);
     return { removed: true, key, bookRemoved: true };
   }
-  const next = Math.max(now.nextNumber ?? 1, assortedStatus(ctx).next ?? 1);
-  const hashes = await hashesOf(left);
+  const book = ownBook(now.row.origin, now.row.title, left.length, counterOf(now));
   await replaceBook(
     ctx,
     key,
@@ -667,8 +777,8 @@ export async function removeAssortedSong(
       sourceHash: now.contentHash,
       sources: [],
       contentHash: now.contentHash,
-      book: { hymnbook: assortedBook(left.length, next), hymns: left },
-      songHashes: hashes,
+      book: { hymnbook: book, hymns: left },
+      songHashes: await hashesOf(left),
     },
     { onProgress },
   );
@@ -752,6 +862,13 @@ export async function indexPackage(
     language: head.language,
     script: head.script,
     songs: head.songs,
+    nextNumber:
+      kind === "own"
+        ? counter(
+            head.nextNumber,
+            [...hashes.keys()].map((number) => ({ number })),
+          )
+        : null,
     addedAt: held?.addedAt ?? ctx.now(),
     state: "ok",
   };
@@ -804,6 +921,7 @@ function insertUnreadable(ctx: RegistryContext, file: string, state: PackageStat
       language: "",
       script: "",
       songs: 0,
+      nextNumber: null,
       addedAt: ctx.now(),
       state,
     },
@@ -934,8 +1052,8 @@ async function reconcileFile(ctx: RegistryContext, file: string): Promise<void> 
   if (!head) return insertUnreadable(ctx, file, "unreadable");
   const kind: BookKind = ctx.shipped.includes(head.key)
     ? "shipped"
-    : head.origin === ASSORTED_ORIGIN && !listBooks(ctx).some((b) => b.kind === "assorted")
-      ? "assorted"
+    : isOwnOrigin(head.origin)
+      ? "own"
       : "loaded";
   // Its key is held by another file. A Replace that crashed between writing
   // `<key>.<n+1>` and the row's commit left this copy: if the row's file is a

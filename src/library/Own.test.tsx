@@ -1,17 +1,19 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { describe, expect, it, vi } from "vitest";
+import type { OwnStatus } from "../domain/own.ts";
 import type {
-  AssortedResult,
   BookRow,
   LoadReview,
-  RemovedFromAssorted,
+  OwnResult,
+  RemovedFromOwn,
+  RenamedOwn,
 } from "../persistence/content-store.ts";
 import { createBooks, type LibraryAdmin } from "./books.ts";
 import { Library } from "./Library.tsx";
 
-// Assorted Hymns in the Library (SDD-0004 §17, component level): the From Text
-// choice and its hidden fields, Add Song and Open Song in the review, the
-// Library's row and the sheet of its songs.
+// Your books in the Library (ADR-0033, SDD-0004 §17, component level): the From Text
+// choice and its fields, Add Song and Open Song in the review, the Library's group of
+// your books and the sheet of a book's songs, with Rename.
 
 const ONE_SONG =
   "1. Amazing Grace\n\nAmazing grace! how sweet the sound,\nThat saved a wretch like me!\n";
@@ -33,12 +35,13 @@ const shipped: BookRow = {
 const assortedRow = (over: Partial<BookRow> = {}): BookRow => ({
   key: "as1",
   origin: "assorted",
-  kind: "assorted",
+  kind: "own",
   file: "/as1.1.sqlite3",
   title: "Assorted Hymns",
   language: "mul",
   script: "Zyyy",
   songs: 3,
+  nextNumber: 8,
   addedAt: 5,
   state: "ok",
   ...over,
@@ -63,26 +66,41 @@ const SONGS = [
   { number: 7, title: "ദൈവത്തിനു സ്തോത്രം", language: "ml", script: "Mlym" },
 ];
 
+/** The statuses a review lists: the device's Assorted Hymns (key as1), and a new book. */
+const ownList = (over: Partial<OwnStatus> = {}): OwnStatus[] => [
+  {
+    key: "as1",
+    origin: "assorted",
+    title: "Assorted Hymns",
+    next: 8,
+    has: {},
+    adding: [8],
+    ...over,
+  },
+  { key: null, origin: "own", title: "", next: 1, has: {}, adding: [1] },
+];
+
 const reviewOf = (over: Partial<LoadReview> = {}): LoadReview => ({
   token: "t1",
   sourceHash: "a3f9c21e07b4".padEnd(64, "0"),
   title: "Amazing Grace",
   language: "en",
   script: "Latn",
-  origin: "assorted-song",
+  origin: "text-songs",
   songCount: 1,
   violations: [],
   verdict: { kind: "new" },
   held: { count: 0, books: [] },
-  assorted: { key: "as1", next: 8, has: null },
+  own: ownList(),
   ...over,
 });
 
 interface Setup {
   rows?: BookRow[];
   review?: LoadReview;
-  add?: AssortedResult;
-  removed?: (number: number) => RemovedFromAssorted;
+  add?: OwnResult;
+  removed?: (number: number) => RemovedFromOwn;
+  renamed?: RenamedOwn;
   songs?: typeof SONGS;
   /** Holds Add Song's answer until it is released: the sheet can be closed meanwhile. */
   gate?: Promise<void>;
@@ -102,19 +120,24 @@ function setup(options: Setup = {}) {
     }),
     openBook: vi.fn(async () => ({ state: "ready" as const })),
     storageMode: vi.fn(async () => "opfs" as const),
-    addToAssorted: vi.fn(async (): Promise<AssortedResult> => {
+    addToOwn: vi.fn(async (): Promise<OwnResult> => {
       await options.gate;
-      return options.add ?? { ok: true, key: "as1", number: 8, created: false };
+      return options.add ?? { ok: true, key: "as1", numbers: [8], already: 0, created: false };
     }),
-    removeAssortedSong: vi.fn(async (number: number): Promise<RemovedFromAssorted> => {
+    removeOwnSong: vi.fn(async (_key: string, number: number): Promise<RemovedFromOwn> => {
       if (options.removed) return options.removed(number);
       songs = songs.filter((song) => song.number !== number);
       if (songs.length === 0) {
-        rows = rows.filter((b) => b.kind !== "assorted");
+        rows = rows.filter((b) => b.key !== "as1");
         return { removed: true, key: "as1", bookRemoved: true };
       }
-      rows = rows.map((b) => (b.kind === "assorted" ? { ...b, songs: songs.length } : b));
+      rows = rows.map((b) => (b.key === "as1" ? { ...b, songs: songs.length } : b));
       return { removed: true, key: "as1", bookRemoved: false };
+    }),
+    renameOwn: vi.fn(async (key: string, title: string): Promise<RenamedOwn> => {
+      if (options.renamed) return options.renamed;
+      rows = rows.map((b) => (b.key === key ? { ...b, title } : b));
+      return { ok: true, key, title };
     }),
   } satisfies LibraryAdmin;
   const store = { ensureInstalled: vi.fn(async () => ({ state: "ready" as const })) };
@@ -187,8 +210,8 @@ const toReview = async (s: ReturnType<typeof setup>, live: { outputLive?: boolea
   return review;
 };
 
-describe("From Text: where one song goes", () => {
-  it("offers Assorted Hymns first, and hides the book's id, title and the song's number", async () => {
+describe("From Text: where the songs go", () => {
+  it("offers Assorted Hymns first, and hides the book's title and the song's number", async () => {
     setup().view();
     const dialog = await openText();
     typeText(dialog, ONE_SONG);
@@ -204,27 +227,25 @@ describe("From Text: where one song goes", () => {
     expect(dialog.getByRole("button", { name: "Review the Song" })).toBeInTheDocument();
   });
 
-  it("A New Book brings back the book's own fields", async () => {
+  it("A New Book asks for a title and no id", async () => {
     setup().view();
     const dialog = await openText();
     typeText(dialog, ONE_SONG);
     fireEvent.click(dialog.getByRole("radio", { name: "A New Book" }));
     expect(dialog.getByLabelText("Title")).toBeInTheDocument();
-    expect(dialog.getByLabelText("Id")).toBeInTheDocument();
+    expect(dialog.queryByLabelText("Id")).not.toBeInTheDocument();
     expect(dialog.getByLabelText("Song number")).toBeInTheDocument();
-    expect(dialog.getByRole("button", { name: "Review the Book" })).toBeInTheDocument();
+    expect(dialog.getByRole("button", { name: "Review the Song" })).toBeInTheDocument();
   });
 
-  it("offers only a new book for several songs", async () => {
+  it("offers both places for several songs, which are reviewed as songs", async () => {
     setup().view();
     const dialog = await openText();
     typeText(dialog, TWO_SONGS);
-    expect(dialog.queryByRole("radio", { name: "Assorted Hymns" })).not.toBeInTheDocument();
-    expect(dialog.getByLabelText("Title")).toBeInTheDocument();
-    expect(dialog.getByRole("button", { name: "Review the Book" })).toBeInTheDocument();
-    // The choice comes back when the text is one song again.
-    typeText(dialog, ONE_SONG);
     expect(dialog.getByRole("radio", { name: "Assorted Hymns" })).toBeChecked();
+    expect(dialog.getByRole("radio", { name: "A New Book" })).toBeInTheDocument();
+    expect(dialog.getByRole("combobox", { name: "Songs’ language" })).toBeInTheDocument();
+    expect(dialog.getByRole("button", { name: "Review the Songs" })).toBeInTheDocument();
   });
 
   it("asks only for the song's language, and says so when it is missing", async () => {
@@ -237,6 +258,52 @@ describe("From Text: where one song goes", () => {
     expect(dialog.queryByText("Give the book a title.")).not.toBeInTheDocument();
     expect(s.admin.review).not.toHaveBeenCalled();
   });
+
+  it("numbers a song with none from the default book's next number", async () => {
+    const s = setup();
+    s.view();
+    const dialog = await openText();
+    typeText(dialog, "Amazing Grace\n\nAmazing grace! how sweet the sound,\n");
+    chooseLanguage(dialog);
+    fireEvent.click(dialog.getByRole("button", { name: "Review the Song" }));
+    await screen.findByRole("dialog", { name: "Add Song" });
+    const file = (s.admin.review.mock.calls[0] as unknown as [File])[0];
+    const { gunzipSync } = await import("fflate");
+    const made = JSON.parse(
+      new TextDecoder().decode(gunzipSync(new Uint8Array(await file.arrayBuffer()))),
+    );
+    expect(made.hymns[0].number).toBe(8);
+  });
+
+  it("a new book is added to as a new book of that title", async () => {
+    const s = setup({
+      review: reviewOf({ title: "Camp Songs", own: ownList({ adding: [1] }) }),
+      add: { ok: true, key: "n1", numbers: [1], already: 0, created: true },
+    });
+    s.view();
+    const dialog = await openText();
+    typeText(dialog, ONE_SONG);
+    fireEvent.click(dialog.getByRole("radio", { name: "A New Book" }));
+    fireEvent.input(dialog.getByLabelText("Title"), { target: { value: "Camp Songs" } });
+    chooseLanguage(dialog);
+    fireEvent.click(dialog.getByRole("button", { name: "Review the Song" }));
+    const review = within(await screen.findByRole("dialog", { name: "Add Song" }));
+    expect(await review.findByText(/Becomes song/)).toHaveTextContent(
+      "Becomes song 1 in Camp Songs",
+    );
+    expect(review.getByText(/makes a new book of yours/)).toBeInTheDocument();
+    fireEvent.click(review.getByRole("button", { name: "Add Song" }));
+    await waitFor(() =>
+      expect(s.admin.addToOwn).toHaveBeenCalledWith(
+        "t1",
+        { kind: "new", title: "Camp Songs" },
+        "en",
+        "Latn",
+        expect.any(Function),
+      ),
+    );
+    await waitFor(() => expect(s.onOpenSong).toHaveBeenCalledWith("n1", 1));
+  });
 });
 
 describe("Review: Add Song", () => {
@@ -245,7 +312,7 @@ describe("Review: Add Song", () => {
     const review = await toReview(s);
     // The one-song book is reviewed under the song's own title, with fixed internal values.
     const file = (s.admin.review.mock.calls[0] as unknown as [File])[0];
-    expect(file.name).toBe("assorted-song.hymnbook.json.gz");
+    expect(file.name).toBe("text-songs.hymnbook.json.gz");
     expect(review.getByText(/Becomes song/)).toHaveTextContent("Becomes song 8 in Assorted Hymns");
     expect(review.queryByText("Origin")).not.toBeInTheDocument();
     expect(review.queryByRole("button", { name: "Load Book" })).not.toBeInTheDocument();
@@ -253,7 +320,13 @@ describe("Review: Add Song", () => {
 
     fireEvent.click(review.getByRole("button", { name: "Add Song" }));
     await waitFor(() => expect(s.onOpenSong).toHaveBeenCalledWith("as1", 8));
-    expect(s.admin.addToAssorted).toHaveBeenCalledWith("t1", "en", "Latn", expect.any(Function));
+    expect(s.admin.addToOwn).toHaveBeenCalledWith(
+      "t1",
+      { kind: "default" },
+      "en",
+      "Latn",
+      expect.any(Function),
+    );
     expect(s.admin.commit).not.toHaveBeenCalled();
     expect(s.onChoose).toHaveBeenCalledWith("as1");
   });
@@ -261,7 +334,12 @@ describe("Review: Add Song", () => {
   it("makes the book with its first song, and says so", async () => {
     const s = setup({
       rows: [shipped],
-      review: reviewOf({ assorted: { key: null, next: 1, has: null } }),
+      review: reviewOf({
+        own: [
+          { key: null, origin: "assorted", title: "Assorted Hymns", next: 1, has: {}, adding: [1] },
+          ...ownList().slice(1),
+        ],
+      }),
     });
     const review = await toReview(s);
     expect(review.getByText(/Becomes song/)).toHaveTextContent("Becomes song 1");
@@ -269,7 +347,7 @@ describe("Review: Add Song", () => {
   });
 
   it("a song already there says so with its number and offers Open Song, not Add Song", async () => {
-    const s = setup({ review: reviewOf({ assorted: { key: "as1", next: 8, has: 4 } }) });
+    const s = setup({ review: reviewOf({ own: ownList({ has: { 1: 4 }, adding: [] }) }) });
     const review = await toReview(s);
     expect(review.getByText(/Already in Assorted Hymns as/)).toHaveTextContent(
       "Already in Assorted Hymns as 4",
@@ -277,12 +355,12 @@ describe("Review: Add Song", () => {
     expect(review.queryByRole("button", { name: "Add Song" })).not.toBeInTheDocument();
     fireEvent.click(review.getByRole("button", { name: "Open Song" }));
     expect(s.onOpenSong).toHaveBeenCalledWith("as1", 4);
-    expect(s.admin.addToAssorted).not.toHaveBeenCalled();
+    expect(s.admin.addToOwn).not.toHaveBeenCalled();
     expect(s.admin.cancel).toHaveBeenCalledWith("t1");
   });
 
   it("an unreadable Assorted Hymns can't be added to: no Add Song, the text can be edited", async () => {
-    const s = setup({ review: reviewOf({ assorted: { key: "as1", next: null, has: null } }) });
+    const s = setup({ review: reviewOf({ own: ownList({ next: null, adding: [] }) }) });
     const review = await toReview(s);
     expect(review.getByText("Assorted Hymns can’t be read")).toBeInTheDocument();
     expect(review.queryByRole("button", { name: "Add Song" })).not.toBeInTheDocument();
@@ -304,29 +382,43 @@ describe("Review: Add Song", () => {
     expect(review.getByRole("button", { name: "Add Song" })).toBeEnabled();
   });
 
-  it("a song that turns out to be there already becomes Open Song", async () => {
+  it("a song that turns out to be there already is said, and nothing is added", async () => {
     const s = setup({
       add: { ok: false, reason: "already-here", message: "", key: "as1", number: 2 },
     });
     const review = await toReview(s);
     fireEvent.click(review.getByRole("button", { name: "Add Song" }));
-    expect(await review.findByRole("button", { name: "Open Song" })).toBeInTheDocument();
-    expect(review.getByText(/Already in Assorted Hymns as/)).toHaveTextContent("as 2");
+    expect(await review.findByRole("alert")).toHaveTextContent(/in the book already/);
     expect(s.onOpenSong).not.toHaveBeenCalled();
   });
 
-  it("an Assorted Hymns that turns out unreadable stops Add Song", async () => {
+  it("a number held in the book stops Add Song, and the text can be edited", async () => {
+    const s = setup({
+      review: reviewOf({
+        own: ownList({
+          problem:
+            "Song 1 “Amazing Grace” is numbered 1, which this book already holds or has retired. Its next free number is 8.",
+        }),
+      }),
+    });
+    const review = await toReview(s);
+    expect(review.getByText("A number is taken")).toBeInTheDocument();
+    expect(review.getByText(/Song 1 “Amazing Grace” is numbered 1/)).toBeInTheDocument();
+    expect(review.queryByRole("button", { name: "Add Song" })).not.toBeInTheDocument();
+    expect(review.getByRole("button", { name: "Edit the Text" })).toBeInTheDocument();
+  });
+
+  it("a book that turns out unreadable is said, and nothing is added", async () => {
     const s = setup({ add: { ok: false, reason: "unreadable", message: "", key: "as1" } });
     const review = await toReview(s);
     fireEvent.click(review.getByRole("button", { name: "Add Song" }));
-    expect(await review.findByText("Assorted Hymns can’t be read")).toBeInTheDocument();
-    expect(review.queryByRole("button", { name: "Add Song" })).not.toBeInTheDocument();
+    expect(await review.findByRole("alert")).toHaveTextContent(/can’t be opened/);
+    expect(s.onOpenSong).not.toHaveBeenCalled();
   });
 
   it.each([
     ["no-review", /no longer current/],
-    ["not-one-song", /Only a single song/],
-    ["invalid", /language or script wasn’t accepted \(xx is not a language tag\)/],
+    ["invalid", /xx is not a language tag Edit the text/],
     ["failed", /Couldn’t add the song: disk full/],
   ] as const)("says in words why a song was not added: %s", async (reason, words) => {
     const message = reason === "invalid" ? "xx is not a language tag" : "disk full";
@@ -340,8 +432,66 @@ describe("Review: Add Song", () => {
   });
 });
 
-describe("Library: the Assorted Hymns row and its sheet", () => {
-  it("sits first, above the other books, labelled by its song count and no language", async () => {
+describe("Review: several songs", () => {
+  const manyReview = (over: Partial<OwnStatus> = {}) =>
+    reviewOf({ songCount: 2, title: "Assorted Hymns", own: ownList({ adding: [8, 9], ...over }) });
+
+  /** From Text to the review of the two songs. */
+  const toManyReview = async (s: ReturnType<typeof setup>) => {
+    s.view();
+    const dialog = await openText();
+    typeText(dialog, TWO_SONGS);
+    chooseLanguage(dialog);
+    fireEvent.click(dialog.getByRole("button", { name: "Review the Songs" }));
+    return within(await screen.findByRole("dialog", { name: "Add Songs" }));
+  };
+
+  it("says how many songs are added to the book, and Add Songs adds them and shows the first", async () => {
+    const s = setup({
+      review: manyReview(),
+      add: { ok: true, key: "as1", numbers: [8, 9], already: 0, created: false },
+    });
+    const review = await toManyReview(s);
+    expect(await review.findByText(/Adds/)).toHaveTextContent("Adds 2 songs to Assorted Hymns");
+    fireEvent.click(review.getByRole("button", { name: "Add Songs" }));
+    await waitFor(() => expect(s.onOpenSong).toHaveBeenCalledWith("as1", 8));
+  });
+
+  it("says the songs already there are not added again", async () => {
+    const s = setup({ review: manyReview({ has: { 2: 3 }, adding: [8] }) });
+    const review = await toManyReview(s);
+    expect(await review.findByText(/there already and not added again/)).toBeInTheDocument();
+  });
+
+  it("when every song is there, offers Open Song at the first", async () => {
+    const s = setup({ review: manyReview({ has: { 1: 3, 2: 4 }, adding: [] }) });
+    const review = await toManyReview(s);
+    expect(await review.findByText(/These songs are/)).toBeInTheDocument();
+    fireEvent.click(review.getByRole("button", { name: "Open Song" }));
+    expect(s.onOpenSong).toHaveBeenCalledWith("as1", 3);
+  });
+
+  it("while live, says the count and the numbers instead of showing a song", async () => {
+    const s = setup({
+      review: manyReview(),
+      add: { ok: true, key: "as1", numbers: [8, 9], already: 0, created: false },
+    });
+    s.view({ outputLive: true });
+    const dialog = await openText();
+    typeText(dialog, TWO_SONGS);
+    chooseLanguage(dialog);
+    fireEvent.click(dialog.getByRole("button", { name: "Review the Songs" }));
+    const review = within(await screen.findByRole("dialog", { name: "Add Songs" }));
+    fireEvent.click(await review.findByRole("button", { name: "Add Songs" }));
+    await waitFor(() =>
+      expect(s.onNotice).toHaveBeenCalledWith("2 songs were added to Assorted Hymns as 8 to 9."),
+    );
+    expect(s.onOpenSong).not.toHaveBeenCalled();
+  });
+});
+
+describe("Library: your books, their row and sheet", () => {
+  it("sits first, under Your books, labelled by its song count and no language", async () => {
     setup().view();
     const list = await screen.findByRole("list", { name: "Books" });
     const items = within(list).getAllByRole("listitem");
@@ -350,6 +500,34 @@ describe("Library: the Assorted Hymns row and its sheet", () => {
     expect(items[0]).toHaveTextContent("3 songs");
     expect(items[0]).not.toHaveTextContent(/Multiple|mul|Loaded|Shipped/);
     expect(items).toHaveLength(3);
+    expect(within(list).getByText("Your books")).toBeInTheDocument();
+    expect(within(list).getByText("Books")).toBeInTheDocument();
+  });
+
+  it("lists every book of yours first, then the rest, each opening its own songs", async () => {
+    const camp = assortedRow({
+      key: "c1",
+      origin: "own",
+      title: "Camp Songs",
+      songs: 2,
+      addedAt: 9,
+    });
+    const s = setup({ rows: [shipped, camp, loadedRow, assortedRow()] });
+    s.view();
+    const list = await screen.findByRole("list", { name: "Books" });
+    const keys = within(list)
+      .getAllByRole("listitem")
+      .map((li) => li.getAttribute("data-book"));
+    expect(keys).toEqual(["c1", "as1", "mal", "k1"]);
+    fireEvent.click(screen.getByRole("button", { name: /^Camp Songs/ }));
+    await screen.findByRole("dialog", { name: "Camp Songs" });
+    expect(s.hymnStore.listHymns).toHaveBeenCalledWith("c1");
+  });
+
+  it("shows no group heading when there are no books of yours", async () => {
+    setup({ rows: [shipped, loadedRow] }).view();
+    const list = await screen.findByRole("list", { name: "Books" });
+    expect(within(list).queryByText("Your books")).not.toBeInTheDocument();
   });
 
   it("opens a sheet of its songs in the order listHymns gives, each with Remove", async () => {
@@ -383,9 +561,9 @@ describe("Library: the Assorted Hymns row and its sheet", () => {
     fireEvent.click(await dialog.findByRole("button", { name: "Remove Rock of Ages" }));
     expect(await dialog.findByText("Its Recents: 1 entry.")).toBeInTheDocument();
     expect(dialog.getByText(/Number 2 is retired/)).toBeInTheDocument();
-    expect(s.admin.removeAssortedSong).not.toHaveBeenCalled();
+    expect(s.admin.removeOwnSong).not.toHaveBeenCalled();
     fireEvent.click(dialog.getByRole("button", { name: "Back" }));
-    expect(s.admin.removeAssortedSong).not.toHaveBeenCalled();
+    expect(s.admin.removeOwnSong).not.toHaveBeenCalled();
     expect(s.userState.dropSong).not.toHaveBeenCalled();
   });
 
@@ -396,7 +574,7 @@ describe("Library: the Assorted Hymns row and its sheet", () => {
     const dialog = within(await screen.findByRole("dialog", { name: "Assorted Hymns" }));
     fireEvent.click(await dialog.findByRole("button", { name: "Remove Rock of Ages" }));
     fireEvent.click(await dialog.findByRole("button", { name: "Remove Song" }));
-    await waitFor(() => expect(s.admin.removeAssortedSong).toHaveBeenCalledWith(2));
+    await waitFor(() => expect(s.admin.removeOwnSong).toHaveBeenCalledWith("as1", 2));
     expect(s.userState.dropSong).toHaveBeenCalledWith("as1", 2);
     expect(s.userState.dropRecents).not.toHaveBeenCalled();
     await waitFor(() => expect(s.onSongRemoved).toHaveBeenCalledWith("as1", 2));
@@ -416,9 +594,7 @@ describe("Library: the Assorted Hymns row and its sheet", () => {
     const sheet = await screen.findByRole("dialog", { name: "Assorted Hymns" });
     const dialog = within(sheet);
     fireEvent.click(await dialog.findByRole("button", { name: "Remove Amazing Grace" }));
-    expect(
-      await dialog.findByText(/the last one: Assorted Hymns goes with it/),
-    ).toBeInTheDocument();
+    expect(await dialog.findByText(/the last one: the book goes with it/)).toBeInTheDocument();
     fireEvent.click(await dialog.findByRole("button", { name: "Remove Song" }));
     await waitFor(() => expect(s.userState.dropRecents).toHaveBeenCalledWith("as1"));
     await waitFor(() => expect(sheet).not.toHaveAttribute("open"));
@@ -435,7 +611,38 @@ describe("Library: the Assorted Hymns row and its sheet", () => {
     fireEvent.click(await dialog.findByRole("button", { name: "Remove Rock of Ages" }));
     expect(await dialog.findByText(/on the Output now/)).toBeInTheDocument();
     expect(dialog.getByRole("button", { name: "Remove Song" })).toBeDisabled();
-    expect(s.admin.removeAssortedSong).not.toHaveBeenCalled();
+    expect(s.admin.removeOwnSong).not.toHaveBeenCalled();
+  });
+
+  it("Rename takes a new title on a second page, and the book is renamed in the Library", async () => {
+    const s = setup();
+    s.view();
+    fireEvent.click(await screen.findByRole("button", { name: /^Assorted Hymns/ }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Assorted Hymns" }));
+    fireEvent.click(await dialog.findByRole("button", { name: "Rename" }));
+    const title = await dialog.findByLabelText("Title");
+    expect(title).toHaveValue("Assorted Hymns");
+    // Unchanged, there is nothing to rename.
+    expect(dialog.getByRole("button", { name: "Rename Book" })).toBeDisabled();
+    fireEvent.input(title, { target: { value: "  Sunday Songs " } });
+    fireEvent.click(dialog.getByRole("button", { name: "Rename Book" }));
+    await waitFor(() => expect(s.admin.renameOwn).toHaveBeenCalledWith("as1", "Sunday Songs"));
+    expect(await screen.findByRole("dialog", { name: "Sunday Songs" })).toBeInTheDocument();
+    expect(screen.getAllByText("Sunday Songs").length).toBeGreaterThan(0);
+  });
+
+  it("says why a rename was refused and keeps the page", async () => {
+    const s = setup({
+      renamed: { ok: false, reason: "invalid", message: "Give the book a title." },
+    });
+    s.view();
+    fireEvent.click(await screen.findByRole("button", { name: /^Assorted Hymns/ }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Assorted Hymns" }));
+    fireEvent.click(await dialog.findByRole("button", { name: "Rename" }));
+    fireEvent.input(await dialog.findByLabelText("Title"), { target: { value: "X" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Rename Book" }));
+    expect(await dialog.findByRole("alert")).toHaveTextContent("Give the book a title.");
+    expect(dialog.getByLabelText("Title")).toBeInTheDocument();
   });
 
   it("the whole book is removed from its menu like any book", async () => {
@@ -460,7 +667,7 @@ describe("Assorted Hymns while the Output is live, and a review closed mid-add",
     await waitFor(() =>
       expect(s.onNotice).toHaveBeenCalledWith("Amazing Grace was added to Assorted Hymns as 8."),
     );
-    expect(s.admin.addToAssorted).toHaveBeenCalled();
+    expect(s.admin.addToOwn).toHaveBeenCalled();
     expect(s.onOpenSong).not.toHaveBeenCalled();
     // The review sheet is closed: nothing is left to press.
     await waitFor(() =>
@@ -469,7 +676,7 @@ describe("Assorted Hymns while the Output is live, and a review closed mid-add",
   });
 
   it("while live, Open Song in the review is a deliberate tap and shows the song as the Finder does", async () => {
-    const s = setup({ review: reviewOf({ assorted: { key: "as1", next: 8, has: 4 } }) });
+    const s = setup({ review: reviewOf({ own: ownList({ has: { 1: 4 }, adding: [] }) }) });
     const review = await toReview(s, { outputLive: true });
     fireEvent.click(review.getByRole("button", { name: "Open Song" }));
     expect(s.onOpenSong).toHaveBeenCalledWith("as1", 4);
@@ -518,32 +725,26 @@ describe("Assorted Hymns while the Output is live, and a review closed mid-add",
 });
 
 describe("Library footer", () => {
-  it("says Assorted Hymns has no file once it exists, and not before", async () => {
+  it("says your books have no file once one exists, and not before", async () => {
     setup({ rows: [shipped, loadedRow] }).view();
     await screen.findByRole("list", { name: "Books" });
-    expect(screen.queryByText(/Assorted Hymns has no file/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Your books have no file/)).not.toBeInTheDocument();
   });
-  it("with only Assorted Hymns held, does not tell the person to keep a file", async () => {
+  it("with only your books held, does not tell the person to keep a file", async () => {
     setup({ rows: [assortedRow()] }).view();
     expect(await screen.findByText(/Books stay on this device\./)).toBeInTheDocument();
     expect(screen.queryByText(/keep its file/)).not.toBeInTheDocument();
-    expect(screen.getByText(/Assorted Hymns has no file: Back Up keeps it\./)).toBeInTheDocument();
+    expect(screen.getByText(/Your books have no file: Back Up keeps them\./)).toBeInTheDocument();
   });
-  it("with only a loaded book held, says to keep its file and nothing of Assorted Hymns", async () => {
+  it("with only a loaded book held, says to keep its file and nothing of your books", async () => {
     setup({ rows: [loadedRow] }).view();
     expect(await screen.findByText(/A loaded book has no copy anywhere else/)).toBeInTheDocument();
-    expect(screen.queryByText(/Assorted Hymns has no file/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Your books have no file/)).not.toBeInTheDocument();
   });
   it("with both held, says both", async () => {
     setup({ rows: [loadedRow, assortedRow()] }).view();
     const foot = await screen.findByText(/Books stay on this device\./);
     expect(foot).toHaveTextContent(/keep its file\./);
-    expect(foot).toHaveTextContent(/Assorted Hymns has no file: Back Up keeps it\./);
-  });
-  it("adds the sentence once Assorted Hymns is held", async () => {
-    setup().view();
-    expect(
-      await screen.findByText(/Assorted Hymns has no file: Back Up keeps it\./),
-    ).toBeInTheDocument();
+    expect(foot).toHaveTextContent(/Your books have no file: Back Up keeps them\./);
   });
 });

@@ -1,5 +1,5 @@
 import { PACKAGE_MIGRATIONS, SCHEMA_SQL, SCHEMA_VERSION } from "../../scripts/content-schema.ts";
-import { assortedOrder } from "../domain/assorted.ts";
+import { ownOrder } from "../domain/own.ts";
 import { type InsertOptions, insertRows, type PackageRows } from "../domain/package-rows.ts";
 import type { HymnSource, Part, PartKind } from "../domain/types.ts";
 
@@ -105,7 +105,7 @@ export interface PackageHead {
   contentHash: string;
   sources: string[];
   songs: number;
-  /** Assorted Hymns only (version 4): the next number to give. */
+  /** Your books only (version 4): the next number to give. */
   nextNumber: number | null;
 }
 
@@ -157,7 +157,7 @@ export function readTitle(sql: Sql): string | null {
  * Every song of a package, parts in printed order (SDD-0004 §4), so a hash of
  * it equals the hash of the container's song. A version 2 package has no
  * position: its rowid order stands in for it. A song's `language` and `script`
- * (version 4) are Assorted Hymns' and are present only when set.
+ * (version 4) are your books' and are present only when set.
  */
 export function readHymns(sql: Sql, version: number): HymnSource[] {
   const order = version >= 3 ? "position" : "rowid";
@@ -255,18 +255,18 @@ export function writeSources(sql: Sql, sources: readonly string[]): void {
 export interface HymnSummary {
   number: number;
   title: string;
-  /** Assorted Hymns only: the song's own language and script (SDD-0004 §17). */
+  /** Your books only: the song's own language and script (SDD-0004 §17). */
   language?: string;
   script?: string;
 }
 
 /**
- * A book's songs for a list. Number order, except Assorted Hymns: by the
+ * A book's songs for a list. Number order, except a book of yours: by the
  * song's language, then its title in that language's collation, then number.
  */
-export function listSummaries(sql: Sql, assorted: boolean): HymnSummary[] {
-  if (assorted) {
-    return assortedOrder(
+export function listSummaries(sql: Sql, own: boolean): HymnSummary[] {
+  if (own) {
+    return ownOrder(
       sql.all("SELECT number, title, language, script FROM hymn").map((row) => ({
         number: row.number as number,
         title: row.title as string,

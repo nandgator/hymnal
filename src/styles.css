@@ -4978,6 +4978,18 @@ html[data-scrolling],
   isolation: isolate;
   --glide-radius: 14px;
 }
+/* A heading over a group of books: Your books, then the rest (Library.tsx). */
+.book-group {
+  padding: var(--space-xs) var(--space-xs) 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.book-group:not(:first-child) {
+  margin-block-start: var(--space-xs);
+}
 .book {
   --state-a: 0;
   --state: color-mix(in srgb, currentColor calc(var(--state-a) * 100%), transparent);

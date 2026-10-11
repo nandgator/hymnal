@@ -146,24 +146,26 @@ describe("RestoreSheet: the review", () => {
 
   it("has one sentence for each verdict", () => {
     expect(whatItDoes(book({ verdict: { kind: "already-here" } }))).toBe("Already here");
-    expect(whatItDoes(book({ verdict: { kind: "merge", adds: 1 } }))).toBe(
+    expect(whatItDoes(book({ verdict: { kind: "merge", adds: 1, into: "k" } }))).toBe(
       "Will be merged into this device’s: 1 new song",
     );
-    expect(whatItDoes(book({ verdict: { kind: "merge", adds: 12 } }))).toBe(
+    expect(whatItDoes(book({ verdict: { kind: "merge", adds: 12, into: "k" } }))).toBe(
       "Will be merged into this device’s: 12 new songs",
     );
   });
 
-  it("says an unreadable Assorted Hymns on the device blocks the merge", () => {
+  it("says an unreadable book of yours on the device blocks the merge", () => {
     expect(
-      whatItDoes(
-        book({ verdict: { kind: "conflict", replaceable: false, assortedUnreadable: true } }),
-      ),
-    ).toBe("Assorted Hymns on this device can’t be read, so this one can’t be merged");
+      whatItDoes(book({ verdict: { kind: "conflict", replaceable: false, ownUnreadable: true } })),
+    ).toBe("A book of yours on this device can’t be read, so this one can’t be merged");
   });
 
-  it("lets Restore be pressed for a merge, which changes the device's Assorted Hymns", async () => {
-    setup(ok({ books: [book({ title: "Assorted Hymns", verdict: { kind: "merge", adds: 2 } })] }));
+  it("lets Restore be pressed for a merge, which changes the device's book", async () => {
+    setup(
+      ok({
+        books: [book({ title: "Assorted Hymns", verdict: { kind: "merge", adds: 2, into: "k" } })],
+      }),
+    );
     expect(await screen.findByRole("button", { name: "Restore" })).toBeEnabled();
   });
 

@@ -18,8 +18,9 @@ export type LibraryAdmin = Pick<
   | "removeBook"
   | "openBook"
   | "storageMode"
-  | "addToAssorted"
-  | "removeAssortedSong"
+  | "addToOwn"
+  | "removeOwnSong"
+  | "renameOwn"
 > &
   /** Tells a backup from a book (SDD-0006 §5); a Library without it reviews every file as a book. */
   Partial<Pick<ContentAdmin, "isBackup">>;

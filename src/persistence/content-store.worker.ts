@@ -4,6 +4,7 @@ import * as Comlink from "comlink";
 import { SCHEMA_VERSION } from "../../scripts/content-schema.ts";
 import { SHIPPED_BOOK_IDS } from "../config.ts";
 import { hasZipMagic, isBackup, MAX_BACKUP_BYTES } from "../domain/backup.ts";
+import type { OwnTarget } from "../domain/own.ts";
 import type { OnLoadProgress } from "../domain/progress.ts";
 import type {
   Hymnbook,
@@ -24,11 +25,11 @@ import {
 } from "./backup.ts";
 import type { InstallProgress } from "./download.ts";
 import {
-  type AssortedResult,
   type Choice,
   type CommitResult,
   type LoadReview,
   LoadSession,
+  type OwnResult,
 } from "./load.ts";
 import { createMemoryPool } from "./memory-pool.ts";
 import { type HymnSummary, listSummaries, type Value } from "./package-io.ts";
@@ -46,11 +47,13 @@ import {
   listBooks,
   REGISTRY_FILE,
   type RegistryContext,
-  type RemovedFromAssorted,
+  type RemovedFromOwn,
+  type RenamedOwn,
   reconcile,
   registerHeld,
-  removeAssortedSong,
   removeBook,
+  removeOwnSong,
+  renameOwn,
   startRegistry,
 } from "./registry.ts";
 import { type BookHits, type SearchResult, searchBook, searchBooks } from "./search.ts";
@@ -120,22 +123,26 @@ export interface ContentAdmin {
   /** Throws the parsed book away. */
   cancel(token: string): Promise<boolean>;
   /**
-   * Adds the one song of a reviewed book to Assorted Hymns, making the book if the
-   * device has none (SDD-0004 §17). `language` is a BCP-47 tag, `script` an ISO 15924 code.
-   * A song already there (by hash) is reported with its number and not added.
+   * Adds the songs of a reviewed file to a book of yours: one held, the default
+   * one, or a new one (ADR-0033, SDD-0004 §17). `language` is a BCP-47 tag,
+   * `script` an ISO 15924 code. A song already there (by hash) is reported and
+   * not added again.
    */
-  addToAssorted(
+  addToOwn(
     token: string,
+    target: OwnTarget,
     language: string,
     script: string,
     onProgress?: OnLoadProgress,
-  ): Promise<AssortedResult>;
+  ): Promise<OwnResult>;
   /**
-   * Removes one song of Assorted Hymns by number; its number is retired. The last
-   * song takes the book with it. Its recents and position go with it: see
-   * `removeAssortedSongAndRecents`.
+   * Removes one song of a book of yours by number; its number is retired. The
+   * last song takes the book with it. Its recents and position go with it: see
+   * `removeOwnSongAndRecents`.
    */
-  removeAssortedSong(number: number): Promise<RemovedFromAssorted>;
+  removeOwnSong(key: string, number: number): Promise<RemovedFromOwn>;
+  /** Renames a book of yours; its key, songs and numbers do not change. */
+  renameOwn(key: string, title: string): Promise<RenamedOwn>;
   /**
    * Builds the backup: every held book that can be opened, and the user-state
    * document the page passes (`backupDoc`). Shipped books and books that cannot
@@ -358,19 +365,26 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     return this.#session.cancel(token);
   }
 
-  addToAssorted(
+  addToOwn(
     token: string,
+    target: OwnTarget,
     language: string,
     script: string,
     onProgress?: OnLoadProgress,
-  ): Promise<AssortedResult> {
-    return this.#track(this.#session.addToAssorted(token, language, script, quiet(onProgress)));
+  ): Promise<OwnResult> {
+    return this.#track(this.#session.addToOwn(token, target, language, script, quiet(onProgress)));
   }
 
-  removeAssortedSong(number: number): Promise<RemovedFromAssorted> {
+  removeOwnSong(key: string, number: number): Promise<RemovedFromOwn> {
     // Behind the loads in line, so a removal never races a write to the same book.
     return this.#track(
-      this.#session.exclusive(async () => removeAssortedSong(await this.#registry(), number)),
+      this.#session.exclusive(async () => removeOwnSong(await this.#registry(), key, number)),
+    );
+  }
+
+  renameOwn(key: string, title: string): Promise<RenamedOwn> {
+    return this.#track(
+      this.#session.exclusive(async () => renameOwn(await this.#registry(), key, title)),
     );
   }
 
@@ -552,10 +566,10 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
 
   async listHymns(id: HymnbookId): Promise<HymnSummary[]> {
     const db = this.#open(id);
-    const assorted = this.#liveCtx
-      ? listBooks(this.#liveCtx).some((book) => book.key === id && book.kind === "assorted")
+    const own = this.#liveCtx
+      ? listBooks(this.#liveCtx).some((book) => book.key === id && book.kind === "own")
       : false;
-    return listSummaries(sqlOf(db), assorted);
+    return listSummaries(sqlOf(db), own);
   }
 
   async getHymn(id: HymnbookId, number: number): Promise<HymnSource> {

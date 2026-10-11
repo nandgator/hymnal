@@ -88,7 +88,7 @@ export type ScreenNoticeId = (typeof SCREEN_NOTICE_IDS)[number];
 export const isScreenNotice = (id: string | undefined): id is ScreenNoticeId =>
   SCREEN_NOTICE_IDS.includes(id as ScreenNoticeId);
 
-export type NoticeId = "update" | "keep-file" | "keep-assorted" | "safari-hint" | ScreenNoticeId;
+export type NoticeId = "update" | "keep-file" | "keep-own" | "safari-hint" | ScreenNoticeId;
 
 /**
  * Which notice the shell shows, if any — one at a time: a screen notice
@@ -103,14 +103,14 @@ export function pickNotice(state: {
   screen?: ScreenNoticeId;
   /** The first load's request to keep storage was refused (SDD-0004 §9). */
   keepFile?: boolean;
-  /** The same, for the first song added to Assorted Hymns, which has no file to keep (SDD-0004 §17). */
-  keepAssorted?: boolean;
+  /** The same, for the first song added to a book of yours, which has no file to keep (SDD-0004 §17). */
+  keepOwn?: boolean;
 }): NoticeId | undefined {
   if (state.screen) return state.screen;
   if (state.update.live) return undefined;
   if (updateGate(state.update).prompt && !state.updateDismissed) return "update";
   if (state.keepFile) return "keep-file";
-  if (state.keepAssorted) return "keep-assorted";
+  if (state.keepOwn) return "keep-own";
   if (state.safariHint) return "safari-hint";
   return undefined;
 }

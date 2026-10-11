@@ -149,7 +149,7 @@ describe("the registry", () => {
     const { sql } = setup();
     expect(sql.all("PRAGMA user_version")).toEqual([{ user_version: REGISTRY_VERSION }]);
     sql.exec(
-      "INSERT INTO book VALUES ('x','x','loaded','/x','t','l','s',0,1,'ok'); PRAGMA user_version = 9",
+      "INSERT INTO book VALUES ('x','x','loaded','/x','t','l','s',0,NULL,1,'ok'); PRAGMA user_version = 9",
     );
     openRegistry(sql);
     expect(sql.all("SELECT * FROM book")).toEqual([]);

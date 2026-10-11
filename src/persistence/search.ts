@@ -1,4 +1,4 @@
-import { libraryOrder } from "../domain/assorted.ts";
+import { libraryOrder } from "../domain/own.ts";
 import type { Sql } from "./package-io.ts";
 import type { BookRow } from "./registry.ts";
 

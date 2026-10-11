@@ -8,6 +8,7 @@ import {
   Show,
   Switch,
 } from "solid-js";
+import { type OwnStatus, type OwnTarget, statusFor } from "../domain/own.ts";
 import type { LoadProgress } from "../domain/progress.ts";
 import type { Choice, LoadReview } from "../persistence/content-store.ts";
 import { AfterDelay, createDelayed, LoadStatus } from "../shell/Loading.tsx";
@@ -38,10 +39,10 @@ export interface ReviewSheetProps {
   /** The book was made from song text (ADR-0029): "back" means the text. */
   fromText?: boolean;
   /**
-   * The one song of that text goes to Assorted Hymns (SDD-0004 §17): the review says what
-   * number it will get, and the button is Add Song (or Open Song, for one already there).
+   * The songs of that text go to a book of yours (ADR-0033, SDD-0004 §17): the review says
+   * what numbers they will get, and the button is Add Song (or Open Song, for one already there).
    */
-  assorted?: boolean;
+  own?: OwnTarget;
   /** Several files were picked: which one this is, and where Back and Next lead. */
   position?: QueuePosition;
   /** A book's file is being read in the open sheet: its name, in place of the review. */
@@ -54,7 +55,7 @@ export interface ReviewSheetProps {
   onBack?: () => void;
   onNext?: () => void;
   onCommit: (choice: Choice) => void;
-  /** Open Song, for a song already in Assorted Hymns. */
+  /** Open Song, for a song already in the book. */
   onOpenSong?: (key: string, number: number) => void;
   /** After a refusal: the picker again. */
   onChooseAnother: () => void;
@@ -156,20 +157,28 @@ export function ReviewSheet(props: ReviewSheetProps) {
     const key = replace();
     return key ? { replace: key } : "keep-both";
   };
-  // The review of a song for Assorted Hymns (only a From Text review is one).
+  // The review of songs for a book of yours (only a From Text review is one).
   const song = () => {
     const review = props.review;
-    const at = review?.assorted;
-    return props.assorted && review && at && review.violations.length === 0
-      ? { review, ...at }
-      : undefined;
+    const status = props.own && review?.own ? statusFor(review.own, props.own) : undefined;
+    return review && status && review.violations.length === 0 ? { review, status } : undefined;
   };
-  // Assorted Hymns cannot be written to: only the text can be edited.
-  const unwritable = () => song()?.next === null;
+  const many = () => (props.review?.songCount ?? 0) > 1;
+  /** The book cannot be written to, or a number the text gives is taken: only the text can be edited. */
+  const unwritable = () => {
+    const status = song()?.status;
+    return !!status && (status.next === null || !!status.problem);
+  };
+  /** The number the first of the songs already there is held under. */
+  const thereAs = (status: OwnStatus) => Object.values(status.has)[0] ?? null;
+  const allThere = (status?: OwnStatus) =>
+    !!status && status.next !== null && !status.problem && status.adding.length === 0;
   const heldNote = (review: LoadReview) => {
     const mine = song();
-    // A song already in Assorted Hymns is said by its own callout.
-    const books = mine ? review.held.books.filter((b) => b.key !== mine.key) : review.held.books;
+    // A song already in the book is said by its own callout.
+    const books = mine
+      ? review.held.books.filter((b) => b.key !== mine.status.key)
+      : review.held.books;
     if (mine ? books.length === 0 : review.held.count === 0) return undefined;
     const names = books.map((b) => (
       <>
@@ -178,7 +187,11 @@ export function ReviewSheet(props: ReviewSheetProps) {
     ));
     return (
       <Callout icon="icon-info" tone="quiet">
-        {mine ? "This song is also in" : `${count(review.held.count)} of these songs are also in`}{" "}
+        {mine
+          ? many()
+            ? "These songs are also in"
+            : "This song is also in"
+          : `${count(review.held.count)} of these songs are also in`}{" "}
         <For each={names}>
           {(name, i) => (
             <>
@@ -187,7 +200,7 @@ export function ReviewSheet(props: ReviewSheetProps) {
             </>
           )}
         </For>
-        . {mine ? "It is added anyway." : "They load anyway."}
+        . {mine ? (many() ? "They are added anyway." : "It is added anyway.") : "They load anyway."}
       </Callout>
     );
   };
@@ -196,7 +209,15 @@ export function ReviewSheet(props: ReviewSheetProps) {
     <Sheet
       open={props.open}
       onClose={props.onCancel}
-      title={props.assorted ? "Add Song" : panel() === "restore" ? "Load Again" : "Load Books"}
+      title={
+        props.own
+          ? many()
+            ? "Add Songs"
+            : "Add Song"
+          : panel() === "restore"
+            ? "Load Again"
+            : "Load Books"
+      }
       closeLabel={
         props.committing || panel() === "same-file" || refused() || queued() ? "Close" : "Cancel"
       }
@@ -287,6 +308,10 @@ export function ReviewSheet(props: ReviewSheetProps) {
                       <span class="facts-code">
                         {review().language} · {review().script}
                       </span>
+                      <Show when={many()}>
+                        {" "}
+                        · <span class="num">{count(review().songCount)}</span> songs
+                      </Show>
                     </Show>
                   </p>
                 </div>
@@ -361,41 +386,83 @@ export function ReviewSheet(props: ReviewSheetProps) {
                   </ul>
                 </Match>
                 <Match when={song()}>
-                  {(mine) => (
-                    <>
-                      <Show when={mine().next === null}>
-                        <Callout icon="icon-error" tone="bad">
-                          <h4>Assorted Hymns can’t be read</h4>
-                          <p>
-                            The stored book can’t be opened, so no song can be added to it. Remove
-                            it in the Library to start it again, or keep this text for later.
-                          </p>
-                        </Callout>
-                      </Show>
-                      <Show when={mine().next !== null && mine().has !== null}>
-                        <Callout icon="icon-content-copy">
-                          <h4>
-                            Already in Assorted Hymns as <span class="num">{mine().has}</span>
-                          </h4>
-                          <p>The same song is there already. Nothing will be added.</p>
-                        </Callout>
-                      </Show>
-                      <Show when={mine().next !== null && mine().has === null}>
-                        <Callout icon="icon-check-circle" tone="new">
-                          <h4>
-                            Becomes song <span class="num">{mine().next}</span> in Assorted Hymns
-                          </h4>
-                          <p>
-                            {mine().key === null
-                              ? "Adding it makes Assorted Hymns, your own book of single songs. "
-                              : "Its number stays with it. "}
-                            The songs are listed by language, then by title.
-                          </p>
-                        </Callout>
-                      </Show>
-                      {heldNote(mine().review)}
-                    </>
-                  )}
+                  {(mine) => {
+                    const status = () => mine().status;
+                    const title = () => status().title || "a new book";
+                    const there = () => Object.keys(status().has).length;
+                    return (
+                      <>
+                        <Show when={status().next === null}>
+                          <Callout icon="icon-error" tone="bad">
+                            <h4>{title()} can’t be read</h4>
+                            <p>
+                              The stored book can’t be opened, so no song can be added to it. Remove
+                              it in the Library to start it again, or keep this text for later.
+                            </p>
+                          </Callout>
+                        </Show>
+                        <Show when={status().next !== null && status().problem}>
+                          {(problem) => (
+                            <Callout icon="icon-error" tone="bad">
+                              <h4>A number is taken</h4>
+                              <p>{problem()}</p>
+                              <p>
+                                Edit the text: give the song another number, or none, and it takes
+                                the next one.
+                              </p>
+                            </Callout>
+                          )}
+                        </Show>
+                        <Show when={allThere(status())}>
+                          <Callout icon="icon-content-copy">
+                            <h4>
+                              Already in {title()} as <span class="num">{thereAs(status())}</span>
+                            </h4>
+                            <p>
+                              {many() ? "These songs are" : "The same song is"} there already.
+                              Nothing will be added.
+                            </p>
+                          </Callout>
+                        </Show>
+                        <Show
+                          when={
+                            status().next !== null &&
+                            !status().problem &&
+                            status().adding.length > 0
+                          }
+                        >
+                          <Callout icon="icon-check-circle" tone="new">
+                            <h4>
+                              {status().adding.length === 1 ? (
+                                <>
+                                  Becomes song <span class="num">{status().adding[0]}</span> in{" "}
+                                  {title()}
+                                </>
+                              ) : (
+                                <>
+                                  Adds <span class="num">{count(status().adding.length)}</span>{" "}
+                                  songs to {title()}
+                                </>
+                              )}
+                            </h4>
+                            <p>
+                              {status().key === null
+                                ? status().origin === "assorted"
+                                  ? "Adding them makes Assorted Hymns, the book your songs go to when you choose none. "
+                                  : "Adding them makes a new book of yours. "
+                                : "Their numbers stay with them. "}
+                              <Show when={there() > 0}>
+                                {count(there())} of these {there() === 1 ? "is" : "are"} there
+                                already and not added again.{" "}
+                              </Show>
+                              The songs are listed by language, then by title.
+                            </p>
+                          </Callout>
+                        </Show>
+                        {heldNote(mine().review)}
+                      </>
+                    );
+                  }}
                 </Match>
                 <Match when={panel() === "restore"}>
                   <Callout icon="icon-history" tone="new">
@@ -566,15 +633,16 @@ export function ReviewSheet(props: ReviewSheetProps) {
                         class="btn-filled"
                         disabled={props.busy || props.refreshing}
                         onClick={() => {
-                          const mine = song();
-                          if (mine && mine.has !== null && mine.key !== null) {
-                            props.onOpenSong?.(mine.key, mine.has);
+                          const mine = song()?.status;
+                          const there = mine && allThere(mine) ? thereAs(mine) : null;
+                          if (mine && mine.key !== null && there !== null) {
+                            props.onOpenSong?.(mine.key, there);
                           } else props.onCommit(choice());
                         }}
                       >
                         <Switch>
-                          <Match when={song()?.has != null}>Open Song</Match>
-                          <Match when={song()}>Add Song</Match>
+                          <Match when={allThere(song()?.status)}>Open Song</Match>
+                          <Match when={song()}>{many() ? "Add Songs" : "Add Song"}</Match>
                           <Match when={panel() === "same-file" || panel() === "same-songs"}>
                             Open Book
                           </Match>

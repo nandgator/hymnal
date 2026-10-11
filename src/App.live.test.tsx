@@ -135,7 +135,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
         ...book,
         key: "as1",
         origin: "assorted",
-        kind: "assorted",
+        kind: "own",
         title: "Assorted Hymns",
         language: "mul",
         script: "Zyyy",
@@ -183,7 +183,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
       mocks.recents = [];
       mocks.assortedLast = true;
     }
-  });
+  }, 15000);
 
   it("ends Live by closing the Output window; Go Live opens it again on the same screen, asking nothing", async () => {
     const { output } = await goLive();

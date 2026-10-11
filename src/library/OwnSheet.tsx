@@ -1,23 +1,29 @@
-import { For, onCleanup, Show } from "solid-js";
+import { createSignal, For, onCleanup, Show } from "solid-js";
 import { glideList } from "../shell/glideList.ts";
 import { Sheet } from "../shell/Sheet.tsx";
 import { count, languageName } from "./books.ts";
 
-/** One song of Assorted Hymns, as the Finder lists it (`listHymns`). */
-export interface AssortedSong {
+/** One song of a book of yours, as the Finder lists it (`listHymns`). */
+export interface OwnSong {
   number: number;
   title: string;
   language?: string;
 }
 
-export interface AssortedSheetProps {
+export interface OwnSheetProps {
   open: boolean;
+  /** The book's title, which is the sheet's. */
+  title: string;
+  /** The title is being edited, on a second page. */
+  renaming?: boolean;
+  /** Why the rename was refused, in words. */
+  renameError?: string;
   /** The songs in the order `listHymns` gives them; undefined while they are read. */
-  songs?: AssortedSong[];
+  songs?: OwnSong[];
   /** Why the songs could not be read, in words. */
   problem?: string;
   /** The song whose removal is being confirmed; kept while its page slides away. */
-  removing?: AssortedSong;
+  removing?: OwnSong;
   /** How many of the removing song's entries are in Recents, which go with it. */
   recents: number;
   /** The removing song is the only one left, so the book goes with it. */
@@ -31,19 +37,22 @@ export interface AssortedSheetProps {
   error?: string;
   placement: "bottom" | "center";
   onClose: () => void;
+  onAskRename: () => void;
+  onRename: (title: string) => void;
   onOpenSong: (number: number) => void;
-  onAskRemove: (song: AssortedSong) => void;
+  onAskRemove: (song: OwnSong) => void;
   /** Back from the confirmation, to the list. */
   onBack: () => void;
   onConfirm: () => void;
 }
 
 /**
- * The songs of Assorted Hymns, in the order it lists them (SDD-0004 §17), each
- * with Remove. Remove asks first, on a page inside the sheet, as removing a book does.
+ * The songs of a book of yours, in the order it lists them (SDD-0004 §17), each
+ * with Remove, and Rename for the book (ADR-0033). Remove asks first, on a page
+ * inside the sheet, as removing a book does; Rename takes the new title on another.
  */
-export function AssortedSheet(props: AssortedSheetProps) {
-  const confirm = (song: AssortedSong) => (
+export function OwnSheet(props: OwnSheetProps) {
+  const confirm = (song: OwnSong) => (
     <div class="review">
       <div class="review-book">
         <h3>{song.title}</h3>
@@ -59,7 +68,7 @@ export function AssortedSheet(props: AssortedSheetProps) {
             <span class="icon icon-library" aria-hidden="true" />
             <span>
               {props.last
-                ? "The song, which is the last one: Assorted Hymns goes with it."
+                ? "The song, which is the last one: the book goes with it."
                 : "The song: its words leave this device."}
             </span>
           </li>
@@ -115,14 +124,57 @@ export function AssortedSheet(props: AssortedSheetProps) {
     </div>
   );
 
+  const rename = () => {
+    const [draft, setDraft] = createSignal(props.title);
+    // The page is mounted afresh each time it opens: the title as it is now.
+    const changed = () => draft().trim() !== "" && draft().trim() !== props.title;
+    return (
+      <form
+        class="review"
+        novalidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (changed() && !props.busy) props.onRename(draft().trim());
+        }}
+      >
+        <div class="field">
+          <label class="field-label" for="own-title">
+            Title
+          </label>
+          <input
+            id="own-title"
+            class="field-input"
+            type="text"
+            autocomplete="off"
+            value={draft()}
+            aria-invalid={!!props.renameError}
+            aria-describedby={props.renameError ? "own-title-problem" : undefined}
+            onInput={(e) => setDraft(e.currentTarget.value)}
+            autofocus
+          />
+          <Show when={props.renameError}>
+            <span class="field-hint field-problem" id="own-title-problem" role="alert">
+              {props.renameError}
+            </span>
+          </Show>
+        </div>
+        <div class="review-actions">
+          <button type="submit" class="btn-filled" disabled={props.busy || !changed()}>
+            Rename Book
+          </button>
+        </div>
+      </form>
+    );
+  };
+
   /** The page that asks, fixed to the song it was opened for: it outlasts `removing` while it slides away. */
-  const confirmPageFor = (song: AssortedSong) => () => confirm(song);
+  const confirmPageFor = (song: OwnSong) => () => confirm(song);
 
   return (
     <Sheet
       open={props.open}
       onClose={() => !props.busy && props.onClose()}
-      title="Assorted Hymns"
+      title={props.title}
       closeLabel="Close"
       placement={props.placement}
       tall
@@ -134,11 +186,18 @@ export function AssortedSheet(props: AssortedSheetProps) {
               // The song as it is asked: the page outlasts `removing` while it slides away.
               content: confirmPageFor(props.removing),
             }
-          : undefined
+          : props.renaming
+            ? { id: "rename", title: "Rename Book", content: rename }
+            : undefined
       }
       onBack={() => !props.busy && props.onBack()}
     >
       <div class="review">
+        <div class="review-actions">
+          <button type="button" class="btn-tonal" disabled={props.busy} onClick={props.onAskRename}>
+            Rename
+          </button>
+        </div>
         <Show when={props.problem}>
           <p class="review-error" role="alert">
             {props.problem}

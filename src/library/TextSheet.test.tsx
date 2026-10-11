@@ -6,12 +6,13 @@ import { describe, expect, it, vi } from "vitest";
 import sampleMd from "../../docs/authoring/sample.md?raw";
 import { validateCorpus } from "../domain/validate.ts";
 import type {
-  AssortedResult,
   BookRow,
   Choice,
   CommitResult,
   LoadReview,
-  RemovedFromAssorted,
+  OwnResult,
+  RemovedFromOwn,
+  RenamedOwn,
 } from "../persistence/content-store.ts";
 import { createBooks, type LibraryAdmin } from "./books.ts";
 import { Library } from "./Library.tsx";
@@ -84,34 +85,63 @@ function setup() {
         violations: [],
         verdict: { kind: "new" },
         held: { count: 0, books: [] },
+        own: [
+          {
+            key: null,
+            origin: "assorted",
+            title: "Assorted Hymns",
+            next: 1,
+            has: {},
+            adding: hymns.map((h: { number: number }) => h.number),
+          },
+          {
+            key: null,
+            origin: "own",
+            title: "",
+            next: 1,
+            has: {},
+            adding: hymns.map((h: { number: number }) => h.number),
+          },
+        ],
       };
     }),
-    commit: vi.fn(async (token: string, _choice?: Choice): Promise<CommitResult> => {
-      const book = pending.get(token);
-      if (!book) return { ok: false, reason: "no-review", message: "nothing pending" };
-      rows = [
-        ...rows,
-        {
-          ...shipped,
-          key: "k1",
-          origin: book.id,
-          kind: "loaded",
-          title: book.title,
-          songs: book.songs,
-          language: "en",
-          script: "Latn",
-        },
-      ];
-      return { ok: true, action: "loaded", key: "k1" };
+    commit: vi.fn(async (_token: string, _choice?: Choice): Promise<CommitResult> => {
+      return { ok: false, reason: "no-review", message: "songs are added, not loaded" };
     }),
     cancel: vi.fn(async () => true),
     removeBook: vi.fn(async () => true),
     openBook: vi.fn(async () => ({ state: "ready" as const })),
     storageMode: vi.fn(async () => "opfs" as const),
-    addToAssorted: vi.fn(
-      async (): Promise<AssortedResult> => ({ ok: false, reason: "no-review", message: "" }),
+    addToOwn: vi.fn(
+      async (token: string, target: { kind: string; title?: string }): Promise<OwnResult> => {
+        const book = pending.get(token);
+        if (!book) return { ok: false, reason: "no-review", message: "nothing pending" };
+        rows = [
+          ...rows,
+          {
+            ...shipped,
+            key: "k1",
+            origin: "own",
+            kind: "own",
+            title: target.title ?? "Assorted Hymns",
+            songs: book.songs,
+            language: "mul",
+            script: "Zyyy",
+          },
+        ];
+        return {
+          ok: true,
+          key: "k1",
+          numbers: Array.from({ length: book.songs }, (_, i) => i + 1),
+          already: 0,
+          created: true,
+        };
+      },
     ),
-    removeAssortedSong: vi.fn(async (): Promise<RemovedFromAssorted> => ({ removed: false })),
+    removeOwnSong: vi.fn(async (): Promise<RemovedFromOwn> => ({ removed: false })),
+    renameOwn: vi.fn(
+      async (key: string, title: string): Promise<RenamedOwn> => ({ ok: true, key, title }),
+    ),
   } satisfies LibraryAdmin;
   const store = { ensureInstalled: vi.fn(async () => ({ state: "ready" as const })) };
   const persist = vi.fn(async () => "granted" as const);
@@ -149,7 +179,7 @@ type Dialog = Awaited<ReturnType<typeof openSheet>>["dialog"];
 
 /** Picks a language from the list by typing part of its name, then choosing the first row. */
 const chooseLanguage = (dialog: Dialog, search: string) => {
-  const box = dialog.getByRole("combobox", { name: "Language" });
+  const box = dialog.getByRole("combobox", { name: /language/i });
   fireEvent.focus(box);
   fireEvent.input(box, { target: { value: search } });
   fireEvent.click(dialog.getAllByRole("option")[0] as HTMLElement);
@@ -163,14 +193,15 @@ const fill = (dialog: Dialog, over: { title?: string; language?: string } = {}) 
 const type = (dialog: Dialog, label: RegExp | string, value: string) =>
   fireEvent.input(dialog.getByLabelText(label), { target: { value } });
 const review = (dialog: Dialog) =>
-  fireEvent.click(dialog.getByRole("button", { name: "Review the Book" }));
+  fireEvent.click(dialog.getByRole("button", { name: /^Review the Songs?$/ }));
 
 describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
   it("opens an empty sheet: the fields, one text area, nothing written", async () => {
     const { s, dialog } = await openSheet();
-    for (const label of ["Title", "Language", "Id", "Song text"]) {
+    for (const label of ["Title", /language/i, "Song text"]) {
       expect(dialog.getByLabelText(label)).toHaveValue("");
     }
+    expect(dialog.queryByLabelText("Id")).not.toBeInTheDocument();
     // The script is not asked for until a language says what it is.
     expect(dialog.queryByLabelText("Script code")).not.toBeInTheDocument();
     expect(dialog.queryByText(/^Script:/)).not.toBeInTheDocument();
@@ -182,23 +213,14 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     expect(s.admin.commit).not.toHaveBeenCalled();
   });
 
-  it("derives the id from the title until it is edited by hand", async () => {
-    const { dialog } = await openSheet();
-    type(dialog, "Title", "Hymns of Fellowship, 2nd ed.");
-    expect(dialog.getByLabelText("Id")).toHaveValue("hymns-of-fellowship-2nd-ed");
-    type(dialog, "Id", "hof");
-    type(dialog, "Title", "Hymns of Fellowship");
-    expect(dialog.getByLabelText("Id")).toHaveValue("hof");
-  });
-
   it("asks for the title, language and script, never guessing them", async () => {
     const { s, dialog } = await openSheet();
     type(dialog, "Song text", SAMPLE);
     review(dialog);
     expect(await dialog.findByText("Give the book a title.")).toBeInTheDocument();
-    expect(dialog.getByText("Choose the book’s language.")).toBeInTheDocument();
+    expect(dialog.getByText("Choose the song’s language.")).toBeInTheDocument();
     expect(dialog.getByLabelText("Title")).toBeInvalid();
-    expect(dialog.getByRole("combobox", { name: "Language" })).toBeInvalid();
+    expect(dialog.getByRole("combobox", { name: /language/i })).toBeInvalid();
     expect(s.admin.review).not.toHaveBeenCalled();
   });
 
@@ -227,27 +249,35 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
     fill(dialog);
     type(dialog, "Song text", SAMPLE);
     review(dialog);
-    const reviewDialog = within(await screen.findByRole("dialog", { name: "Load Books" }));
+    const reviewDialog = within(await screen.findByRole("dialog", { name: "Add Songs" }));
     return { s, reviewDialog };
   };
 
-  it("reviews the book with no source check row", async () => {
+  it("reviews the songs as joining a new book, with no source check row", async () => {
     const { s, reviewDialog } = await toReview();
     expect(reviewDialog.queryByText("Source check")).not.toBeInTheDocument();
-    expect(reviewDialog.getByText("A new book")).toBeInTheDocument();
-    expect(reviewDialog.getByText("public-domain-sample")).toBeInTheDocument();
-    expect(screen.getByRole("dialog", { name: "Load Books" })).toHaveTextContent("3 songs");
+    expect(reviewDialog.getByText(/^Adds/)).toHaveTextContent(
+      "Adds 3 songs to Public Domain Sample",
+    );
+    expect(reviewDialog.getByText(/makes a new book of yours/)).toBeInTheDocument();
     expect(s.admin.commit).not.toHaveBeenCalled();
   });
 
-  it("commits through the same button; the new book is listed and the text is cleared", async () => {
+  it("Add Songs adds them to a new book of that title; the book is listed and the text is cleared", async () => {
     const { s, reviewDialog } = await toReview();
-    fireEvent.click(reviewDialog.getByRole("button", { name: "Load Book" }));
+    fireEvent.click(reviewDialog.getByRole("button", { name: "Add Songs" }));
     await waitFor(() =>
-      expect(s.admin.commit).toHaveBeenCalledWith("t1", "keep-both", expect.any(Function)),
+      expect(s.admin.addToOwn).toHaveBeenCalledWith(
+        "t1",
+        { kind: "new", title: "Public Domain Sample" },
+        "en",
+        "Latn",
+        expect.any(Function),
+      ),
     );
+    expect(s.admin.commit).not.toHaveBeenCalled();
     expect(await screen.findByText("Public Domain Sample")).toBeInTheDocument();
-    // The buttons stay off until the book is written and listed.
+    // The buttons stay off until the songs are written and listed.
     await waitFor(() => expect(screen.getByRole("button", { name: "From Text" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "From Text" }));
     const dialog = within(await screen.findByRole("dialog", { name: "From Text" }));
@@ -276,7 +306,7 @@ describe("Library: a book from song text (ADR-0029, SDD-0004 §9)", () => {
 
 describe("Library: a language suggested by the text", () => {
   const ML_TEXT = "മലയാളം ഭാഷ എഴുതിയ വാക്കുകൾ ഇവിടെ";
-  const language = (dialog: Dialog) => dialog.getByRole("combobox", { name: "Language" });
+  const language = (dialog: Dialog) => dialog.getByRole("combobox", { name: /language/i });
 
   it("preselects the script's language with a quiet line, and derives the script", async () => {
     const { dialog } = await openSheet();
@@ -318,7 +348,7 @@ describe("Library: a language suggested by the text", () => {
 describe("Library: the language of a book from text", () => {
   it("lists languages by their own name and English, searchable by either", async () => {
     const { dialog } = await openSheet();
-    const box = dialog.getByRole("combobox", { name: "Language" });
+    const box = dialog.getByRole("combobox", { name: /language/i });
     fireEvent.focus(box);
     // Once under Common, once among all of them.
     expect(dialog.getAllByRole("option", { name: /മലയാളം — Malayalam/ })).toHaveLength(2);
@@ -334,7 +364,7 @@ describe("Library: the language of a book from text", () => {
   it("derives the script from the language and shows it as a quiet line", async () => {
     const { dialog } = await openSheet();
     chooseLanguage(dialog, "Malayalam");
-    expect(dialog.getByRole("combobox", { name: "Language" })).toHaveValue("മലയാളം — Malayalam");
+    expect(dialog.getByRole("combobox", { name: /language/i })).toHaveValue("മലയാളം — Malayalam");
     expect(dialog.getByText(/^Script: Malayalam/)).toHaveTextContent("Script: Malayalam (Mlym)");
     expect(dialog.queryByLabelText("Script code")).not.toBeInTheDocument();
   });
@@ -354,9 +384,9 @@ describe("Library: the language of a book from text", () => {
 
   it("Other… types a code, and a code that is no language is a field error", async () => {
     const { s, dialog } = await openSheet();
-    fireEvent.focus(dialog.getByRole("combobox", { name: "Language" }));
+    fireEvent.focus(dialog.getByRole("combobox", { name: /language/i }));
     fireEvent.click(dialog.getByRole("option", { name: "Other…" }));
-    const code = dialog.getByLabelText("Language");
+    const code = dialog.getByLabelText(/language/i);
     fireEvent.input(code, { target: { value: "sd" } });
     expect(dialog.getByText(/^Script: Arabic/)).toBeInTheDocument();
     fireEvent.input(code, { target: { value: "not a code" } });
@@ -367,11 +397,12 @@ describe("Library: the language of a book from text", () => {
     expect(s.admin.review).not.toHaveBeenCalled();
   });
 
-  it("keeps the id under Advanced", async () => {
+  it("keeps the song number under Advanced, and has no id", async () => {
     const { dialog } = await openSheet();
     const summary = dialog.getByText("Advanced");
     expect(summary.closest("details")).not.toHaveAttribute("open");
-    expect(summary.closest("details")).toContainElement(dialog.getByLabelText("Id"));
+    expect(summary.closest("details")).toContainElement(dialog.getByLabelText("Song number"));
+    expect(dialog.queryByLabelText("Id")).not.toBeInTheDocument();
   });
 
   it("several .txt files become one song text with --- between them", async () => {
@@ -397,7 +428,7 @@ describe("Library: the language of a book from text", () => {
 describe("Library: the text sheet's picker and errors, in view", () => {
   it("opens with Common languages first, then all of them; search covers both", async () => {
     const { dialog } = await openSheet();
-    const box = dialog.getByRole("combobox", { name: "Language" });
+    const box = dialog.getByRole("combobox", { name: /language/i });
     fireEvent.focus(box);
     const names = dialog.getAllByRole("option").map((o) => o.textContent ?? "");
     expect(names.slice(0, 4)).toEqual([
@@ -436,7 +467,7 @@ describe("Library: the sheet keeps its size while a list or a section opens", ()
     (HTMLElement.prototype as { showPopover?: () => void }).showPopover = show;
     try {
       const { dialog } = await openSheet();
-      fireEvent.focus(dialog.getByRole("combobox", { name: "Language" }));
+      fireEvent.focus(dialog.getByRole("combobox", { name: /language/i }));
       const list = dialog.getByRole("listbox", { hidden: true });
       expect(list).toHaveAttribute("popover", "manual");
       await waitFor(() => expect(show).toHaveBeenCalled());

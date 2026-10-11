@@ -7,14 +7,15 @@ import {
   verdict as verdictOf,
 } from "../domain/duplicates.ts";
 import { uuidv7 } from "../domain/key.ts";
+import type { OwnStatus, OwnTarget } from "../domain/own.ts";
 import { type OnLoadProgress, throttled } from "../domain/progress.ts";
 import type { Violation } from "../domain/validate.ts";
 import {
-  addAssortedSong,
   addBook,
-  assortedStatus,
+  addOwnSongs,
   heldBooks,
   listBooks,
+  ownStatuses,
   type RegistryContext,
   recordSource,
   replaceBook,
@@ -49,23 +50,30 @@ export interface LoadReview {
   /** Songs of this file already held in another book. */
   held: HeldElsewhere;
   /**
-   * Set when the file holds exactly one song (SDD-0004 §17): where it would go in
-   * Assorted Hymns. `next` is the number it will get; `has` the number of the same
-   * song (by hash) already there, in which case it is "already here as n" and not
-   * added; `key` is the Assorted Hymns book, null if the device has none yet.
-   * `next` is null when the device's Assorted Hymns cannot be opened: no song can be added.
+   * What adding this file's songs to a book of yours would do (ADR-0033 §5, SDD-0004
+   * §17): one status per book of yours, then the default one if the device has
+   * none and a new one, neither made yet. Not set for a review aimed at a held book.
    */
-  assorted?: { key: string | null; next: number | null; has: number | null };
+  own?: OwnStatus[];
 }
 
-/** The result of adding a reviewed one-song book to Assorted Hymns. */
-export type AssortedResult =
-  | { ok: true; key: string; number: number; created: boolean; firstLoad?: true }
+/** The result of adding a reviewed file's songs to a book of yours. */
+export type OwnResult =
+  | {
+      ok: true;
+      key: string;
+      /** The numbers the added songs took, in the order given. */
+      numbers: number[];
+      /** Songs of the file the book held already, not added again. */
+      already: number;
+      created: boolean;
+      firstLoad?: true;
+    }
   | {
       ok: false;
-      reason: "no-review" | "not-one-song" | "already-here" | "invalid" | "unreadable" | "failed";
+      reason: "no-review" | "already-here" | "invalid" | "unreadable" | "failed";
       message: string;
-      /** For `already-here`: the book and the number the song has there. */
+      /** For `already-here`: the book and the number the first song has there. */
       key?: string;
       number?: number;
     };
@@ -210,9 +218,7 @@ export class LoadSession {
         read.songHashes,
         held.filter((b) => b.key !== target),
       ),
-      ...(hymns.length === 1 && !row
-        ? { assorted: assortedStatus(ctx, read.songHashes.get(hymns[0]?.number as number)) }
-        : {}),
+      ...(row ? {} : { own: ownStatuses(ctx, hymns, read.songHashes) }),
     };
   }
 
@@ -270,18 +276,19 @@ export class LoadSession {
   }
 
   /**
-   * Adds the one song of a reviewed book to Assorted Hymns under `language` and
-   * `script` (SDD-0004 §17). Like `commit`, it takes the review at once and
-   * writes in turn; on a refusal or a failure the review comes back, so the
-   * language can be corrected. The verdict of the review is not used: Assorted
-   * Hymns looks only for the song's hash in itself.
+   * Adds the songs of a reviewed file to a book of yours (ADR-0033 §4, SDD-0004
+   * §17): one of them, the default one, or a new one. Each song gets `language`
+   * and `script` unless it has its own. Like `commit`, it takes the review at
+   * once and writes in turn; on a refusal or a failure the review comes back, so
+   * the text can be corrected.
    */
-  addToAssorted(
+  addToOwn(
     token: string,
+    target: OwnTarget,
     language: string,
     script: string,
     onProgress?: OnLoadProgress,
-  ): Promise<AssortedResult> {
+  ): Promise<OwnResult> {
     const pending = this.#pending;
     if (!pending || pending.token !== token) {
       return Promise.resolve({
@@ -290,33 +297,28 @@ export class LoadSession {
         message: "no review is pending under that token (or it is being committed)",
       });
     }
-    const [song, ...more] = pending.read.book.hymns;
-    if (!song || more.length > 0 || pending.target !== undefined) {
+    if (pending.read.book.hymns.length === 0 || pending.target !== undefined) {
       return Promise.resolve({
         ok: false,
-        reason: "not-one-song",
-        message: "only a file of exactly one song is added to Assorted Hymns",
+        reason: "invalid",
+        message: "this review has no songs to add to a book of yours",
       });
     }
     this.#pending = undefined;
     const generation = this.#generation;
     const report = throttled(onProgress);
-    const run = this.#tail.then(async (): Promise<AssortedResult> => {
+    const run = this.#tail.then(async (): Promise<OwnResult> => {
       const keep = () => {
         if (generation === this.#generation && !this.#pending) this.#pending = pending;
       };
       try {
         const ctx = await this.#registry();
         const first = !listBooks(ctx).some((b) => b.kind !== "shipped");
-        const hash = pending.read.songHashes.get(song.number) as string;
-        const added = await addAssortedSong(
-          ctx,
-          this.#newKey,
-          { hymn: song, hash },
-          language,
-          script,
-          report,
-        );
+        const songs = pending.read.book.hymns.map((hymn) => ({
+          hymn,
+          hash: pending.read.songHashes.get(hymn.number) as string,
+        }));
+        const added = await addOwnSongs(ctx, this.#newKey, target, songs, language, script, report);
         if (added.ok) {
           return { ...added, ...(first ? { firstLoad: true as const } : {}) };
         }
@@ -325,7 +327,7 @@ export class LoadSession {
           return {
             ok: false,
             reason: "already-here",
-            message: `already in Assorted Hymns as ${added.number}`,
+            message: `already in the book as ${added.number}`,
             key: added.key,
             number: added.number,
           };
@@ -334,7 +336,7 @@ export class LoadSession {
           return {
             ok: false,
             reason: "unreadable",
-            message: "Assorted Hymns cannot be opened, so no song is added to it",
+            message: "the book cannot be opened, so no song is added to it",
             key: added.key,
           };
         }
