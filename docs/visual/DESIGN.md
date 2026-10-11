@@ -1348,22 +1348,23 @@ does. Reduced motion keeps these fades.
 **List highlight.** Wherever rows are hovered (a menu, a choice menu, the
 language list, the hymnbooks sheet and the menu sheet, the rail, the Library's
 books, Recents, the Finder's results and the command menu, a segmented button, a
-section of settings, the tab bar) there is one highlight layer, the hover colour
-above, that **glides** (translate and height, 250ms (the medium duration),
-emphasised easing) to the row under the pointer or the keyboard's focus. It is
-one primitive, `glideRows` (`hoverGlide.ts`; `glideList.ts` for a list with a
-selection too), not a copy per list. **Entering**: the layer arrives from the
-side the pointer crossed the list's edge by (a row's height above or below, half
-its width, at most 96px, beside), fading up from 0 and out of a 4px blur.
-**Leaving**: it drifts out toward the side the pointer left by, by as much,
-fading to 0 into the same blur; moving back in while it fades carries on from
-where it is. **Between rows** it only glides. Crossing a gap between rows does
-not let go (it waits 60ms for the next row). **Keyboard focus** moves it by
-glide and brings it up by fading in place, with no side: a stale pointer never
-gives it one. A list whose highlight is something else's as well (the Finder's
-and the language list's active row, Enter's target) shows that row with the same
-layer (`show(row)`). The rows paint no hover of their own. Touch has no hover:
-no layer there, and a tap leaves nothing behind.
+Settings (all its rows, across sections), the tab bar) there is one highlight
+layer, the hover colour above, that **glides** (translate and height, 250ms (the
+medium duration), emphasised easing) to the row under the pointer or the
+keyboard's focus. It is one primitive, `glideRows` (`hoverGlide.ts`;
+`glideList.ts` for a list with a selection too), not a copy per list.
+**Entering**: the layer arrives from the side the pointer crossed the list's
+edge by (a row's height above or below, half its width, at most 96px, beside),
+fading up from 0 and out of a 4px blur. **Leaving**: it drifts out toward the
+side the pointer left by, by as much, fading to 0 into the same blur; moving
+back in while it fades carries on from where it is. **Between rows** it only
+glides. Crossing a gap between rows does not let go (it waits 60ms for the next
+row). **Keyboard focus** moves it by glide and brings it up by fading in place,
+with no side: a stale pointer never gives it one. A list whose highlight is
+something else's as well (the Finder's and the language list's active row,
+Enter's target) shows that row with the same layer (`show(row)`). The rows paint
+no hover of their own. Touch has no hover: no layer there, and a tap leaves
+nothing behind.
 
 **Buttons wear it too.** A group of adjacent buttons (a pane's toolbar: expand,
 move, close; the text sizer's A− and A+; Repeat, Undo and Reset; the transport's
