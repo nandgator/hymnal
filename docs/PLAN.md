@@ -62,7 +62,7 @@ Ordered. Top unblocked item is next.
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
 | 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                         | another machine     |
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland) | maintainer: devices |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                      | —                   |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks); removing one song from your books (its UI left with OwnSheet, ADR-0033 §6)          | —                   |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                    | —                   |
 | 16  | Feedback and corrections from users — where collected: TBD                                                                                       | —                   |
 | 18  | Over-the-air update notices (as Supabase announces changes)                                                                                      | —                   |
@@ -115,6 +115,10 @@ only, here:
 
 ## Log
 
+- 2026-10-12 — the maintainer's review of From Text: Add to picks from the
+  language's list (one PickList); an open list dims and blurs the card behind
+  it; the review after From Text says Back; your books open like any book, with
+  Rename… in the book's menu (removing one song waits for #14)
 - 2026-10-11 — #62–65, the maintainer's review of sheets and motion: a sheet
   replacing another morphs an opaque card out of the old one over one constant
   scrim; stacked sheets share the lowest one's scrim; a closing tab group
@@ -161,6 +165,3 @@ only, here:
   their width (no View Transitions); Recents rows stay in view
 - 2026-10-07 — Withdrawn by the maintainer: the source check (ADR-0029 point 4),
   from the app and the CLI
-- 2026-10-07 — #43 done: the sample (28 Otterbein hymns, 2 Malayalam songs),
-  rights in `docs/sample/RIGHTS.md`, released as `sample-1`, fetched by the
-  deploy against `sample/SHA256SUMS`, offered as Try the Sample (SDD-0004 §16)
