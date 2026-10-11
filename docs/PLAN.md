@@ -46,7 +46,7 @@ to drop the songs from old commits is the maintainer's own later step
 
 | Area    | Status                                                                     |
 | ------- | -------------------------------------------------------------------------- |
-| Docs    | arc42 + 30 ADRs + SDD-0001–0006 + DESIGN.md; authoring kit                 |
+| Docs    | arc42 + 33 ADRs + SDD-0001–0006 + DESIGN.md; authoring kit                 |
 | Tooling | bun, biome, prettier, markdownlint, vitest, Playwright on three engines    |
 | Domain  | Types, Sequence Engine, validation (`src/domain/`): pure, tested           |
 | Content | Books load as containers through the Library; the sample only (ADR-0026)   |
@@ -60,6 +60,9 @@ Ordered. Top unblocked item is next.
 
 | #   | Task                                                                                                                                             | Blocked by          |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| 59  | Paste plain lyrics: a first line followed by lyrics is verse 1 and the title; indentation ignored; numbers assigned in the app (ADR-0033 §5)     | —                   |
+| 60  | Your books (ADR-0033): kind `own` replaces `assorted`, any number, rename, numbers kept when free, restore per book                              | —                   |
+| 61  | From Text, one form: Add to picker, live field errors, script code checked, floating language list, fixed card height, plain intro               | #60                 |
 | 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                         | another machine     |
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland) | maintainer: devices |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks)                                                                                      | —                   |

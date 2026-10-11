@@ -41,8 +41,9 @@ superseded in part says which part.
 | [0028](0028-put-the-output-on-the-projector-screen.md)              | Put the Output on the projector screen                            | Accepted                                                                                          |
 | [0029](0029-others-build-their-books-the-format-is-the-contract.md) | Others build their books: the format is the contract              | Accepted; point 4 (the source check) withdrawn                                                    |
 | [0030](0030-security-a-local-first-threat-model.md)                 | Security: a local-first threat model                              | Accepted                                                                                          |
-| [0031](0031-assorted-hymns-the-persons-own-book.md)                 | Assorted Hymns: the person's own book of single songs             | Accepted                                                                                          |
+| [0031](0031-assorted-hymns-the-persons-own-book.md)                 | Assorted Hymns: the person's own book of single songs             | Superseded by [0033](0033-your-books-the-ones-you-make.md)                                        |
 | [0032](0032-one-search-the-finder-searches-every-source.md)         | One search: the Finder searches every source                      | Accepted                                                                                          |
+| [0033](0033-your-books-the-ones-you-make.md)                        | Your books: the books you make grow, the books you receive do not | Accepted                                                                                          |
 
 ## Open questions
 

@@ -1,6 +1,6 @@
 # 0031 — Assorted Hymns: the person's own book of single songs
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0033](0033-your-books-the-ones-you-make.md)
 - **Date:** 2026-10-10
 - **Decided:** by the maintainer, in the design talk for Board #58
 
