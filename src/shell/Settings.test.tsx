@@ -192,6 +192,32 @@ describe("Settings", () => {
     expect(screen.getByText(/No settings match/)).toBeInTheDocument();
   });
 
+  it("the hover highlight glides from a switch row onto a segmented row, not out and back", async () => {
+    vi.useFakeTimers();
+    try {
+      render(() => <Settings userState={fakeUserState()} />);
+      const over = (el: Element) =>
+        el.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }));
+      const pin = screen.getByText(/^Show Live Preview/).closest(".settings-row") as HTMLElement;
+      const theme = screen.getByRole("group", { name: "Theme" });
+      // The one highlight of Settings: one layer serves a row in Workspace
+      // and the Theme row in Display.
+      const layer = [...document.querySelectorAll<HTMLElement>(".hover-glide")].find(
+        (l) => l.parentElement?.contains(pin) && l.parentElement.contains(theme),
+      );
+
+      expect(layer).toBeDefined();
+      over(pin);
+      expect(layer?.style.opacity).toBe("1");
+      over(theme.querySelector(".segment") as HTMLElement);
+      // Past the gap wait: a row the pointer glided onto keeps the highlight.
+      vi.advanceTimersByTime(500);
+      expect(layer?.style.opacity).toBe("1");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("search skips a setting inside a closed disclosure, and follows the layout as it changes", async () => {
     render(() => <Settings userState={fakeUserState()} />);
     await screen.findByText("100%");

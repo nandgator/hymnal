@@ -346,10 +346,12 @@ export function Settings(props: SettingsProps) {
   // Tooltips carry key hints only where there's a keyboard (SDD-0001 §16.5).
   const keyboard = createMediaQuery(EXPANDED_QUERY);
 
-  // The rows of a section that act on a press (a switch's row, a link) show
-  // the app's one hover highlight, which glides between them.
-  const glideSection = (el: HTMLElement) =>
-    onCleanup(glideList(el, { rows: "label.settings-row, button.settings-link" }).stop);
+  // Every row of Settings, across its sections (a switch's row, one with a
+  // segmented button or the text sizer, a link), shares the app's one hover
+  // highlight, which glides from row to row. Controls inside a row keep their
+  // own layer, over the row's.
+  const glideSettings = (el: HTMLElement) =>
+    onCleanup(glideList(el, { rows: ".settings-row, button.settings-link" }).stop);
 
   // The Output screen (ADR-0028): Automatic, or one of the detected screens;
   // a remembered one that is not attached stays listed, marked.
@@ -458,7 +460,13 @@ export function Settings(props: SettingsProps) {
   });
 
   return (
-    <div class="settings" ref={settingsRef}>
+    <div
+      class="settings glide-list"
+      ref={(el) => {
+        settingsRef = el;
+        glideSettings(el);
+      }}
+    >
       <label class="text-field settings-search">
         <input
           type="search"
@@ -471,7 +479,7 @@ export function Settings(props: SettingsProps) {
       <Show when={noMatch()}>
         <p class="body-large on-surface-variant">No settings match “{query().trim()}”.</p>
       </Show>
-      <section class="settings-section" ref={glideSection} aria-labelledby={`${id}-display`}>
+      <section class="settings-section" aria-labelledby={`${id}-display`}>
         <h3 id={`${id}-display`} class="settings-heading">
           Display
         </h3>
@@ -521,7 +529,7 @@ export function Settings(props: SettingsProps) {
         </div>
       </section>
 
-      <section class="settings-section" ref={glideSection} aria-labelledby={`${id}-workspace`}>
+      <section class="settings-section" aria-labelledby={`${id}-workspace`}>
         <h3 id={`${id}-workspace`} class="settings-heading">
           Workspace
         </h3>
@@ -569,7 +577,7 @@ export function Settings(props: SettingsProps) {
         </label>
       </section>
 
-      <section class="settings-section" ref={glideSection} aria-labelledby={`${id}-presentation`}>
+      <section class="settings-section" aria-labelledby={`${id}-presentation`}>
         <h3 id={`${id}-presentation`} class="settings-heading">
           Presentation
         </h3>
@@ -855,7 +863,7 @@ export function Settings(props: SettingsProps) {
 
       <Show when={props.onShowShortcuts}>
         {(show) => (
-          <section class="settings-section" ref={glideSection} aria-labelledby={`${id}-keyboard`}>
+          <section class="settings-section" aria-labelledby={`${id}-keyboard`}>
             <h3 id={`${id}-keyboard`} class="settings-heading">
               Keyboard
             </h3>
