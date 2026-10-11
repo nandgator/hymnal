@@ -1019,12 +1019,12 @@ number path is unchanged and stays in the current book.
 **The worker.** `searchAll(query, currentKey)` runs `searchLyrics`'s match over
 every held book whose state is `ok`, each capped at `SEARCH_LIMIT`, and returns
 `{ key, title, results }[]`: the current book first, then the rest in the
-Library's order (Assorted Hymns first, then the order the books were added,
-SDD-0004 §17; `libraryOrder`). A book with no match is left out. It is one
-message to the worker, not one per book. Before building the view, it is timed
-over the sample and the 1,631-song Malayalam book: if a query takes over 100 ms,
-the current book's group is sent first and the rest follow, so the first results
-never wait on the others.
+Library's order (your books first, then the order the books were added, SDD-0004
+§17; `libraryOrder`). A book with no match is left out. It is one message to the
+worker, not one per book. Before building the view, it is timed over the sample
+and the 1,631-song Malayalam book: if a query takes over 100 ms, the current
+book's group is sent first and the rest follow, so the first results never wait
+on the others.
 
 **The view.** Each group has a heading, the book's title. The current book's
 group shows its results as today; every other group shows its first five, and
