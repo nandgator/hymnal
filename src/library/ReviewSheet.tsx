@@ -219,7 +219,12 @@ export function ReviewSheet(props: ReviewSheetProps) {
             : "Load Books"
       }
       closeLabel={
-        props.committing || panel() === "same-file" || refused() || queued() ? "Close" : "Cancel"
+        props.committing || panel() === "same-file" || refused() || queued()
+          ? "Close"
+          : props.own
+            ? // From Text: this returns to the form, which keeps its text.
+              "Back"
+            : "Cancel"
       }
       placement={props.placement}
       tall
