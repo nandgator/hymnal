@@ -115,6 +115,10 @@ only, here:
 
 ## Log
 
+- 2026-10-12 — fix: a notice over a sheet took no tap (Got It pressed the
+  control under it; Chromium and Firefox reproduce, Safari reported): a modal
+  dialog makes everything outside it inert, so the notice now lives inside the
+  open sheet and goes home when it closes
 - 2026-10-12 — the Finder suggests a typed number from every book, the current
   book's exact match first and Enter unchanged (ADR-0032, amended); the
   Hymnbooks sheet has a search field that filters by title

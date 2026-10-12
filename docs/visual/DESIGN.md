@@ -752,7 +752,9 @@ view is close enough to the frame to need a smaller unit.
 - **Snackbar.** The shell's one notice, for what needs a word but not a stop:
   **Update ready** with **Restart** and a close (Later), a line answering an
   action (**Diagnostics copied**, **Got It**; in the top layer, so it shows over
-  a sheet), the note about keeping the book file after a first load whose
+  a sheet, and inside the open sheet in the tree: a modal dialog makes all
+  outside it inert, so a notice left outside would show but take no tap or
+  focus), the note about keeping the book file after a first load whose
   storage request was refused, with **Got It**, and the Safari note about
   keeping books, with **Got It**. One pattern at every width, for every notice:
   a **floating card** on the current theme's `surface-container-highest` (text

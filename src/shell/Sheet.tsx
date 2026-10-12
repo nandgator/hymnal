@@ -96,6 +96,15 @@ const peers = new Set<Peer>();
  */
 const stack: HTMLDialogElement[] = [];
 
+/** The modal dialog on top of the page: the last opened that is open and not leaving. */
+export function topSheet(): HTMLDialogElement | undefined {
+  for (let i = stack.length - 1; i >= 0; i--) {
+    const d = stack[i];
+    if (d?.open && d.dataset.closing === undefined) return d;
+  }
+  return undefined;
+}
+
 const syncScrims = () => {
   for (let i = stack.length - 1; i >= 0; i--) if (!stack[i]?.open) stack.splice(i, 1);
   const owner = stack.find((d) => d.dataset.closing === undefined) ?? stack[0];

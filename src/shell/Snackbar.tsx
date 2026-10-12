@@ -1,5 +1,6 @@
-import { createEffect, createSignal, onCleanup, Show, untrack } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount, Show, untrack } from "solid-js";
 import { hoverGroup } from "./hoverGlide.ts";
+import { topSheet } from "./Sheet.tsx";
 
 export interface SnackbarProps {
   message: string;
@@ -23,6 +24,37 @@ export function SnackbarHost(props: { notice: SnackbarProps | undefined }) {
   const [shown, setShown] = createSignal<SnackbarProps>();
   const [leaving, setLeaving] = createSignal(false);
   let region: HTMLDivElement | undefined;
+  let anchor: HTMLDivElement | undefined;
+
+  // A modal dialog makes everything outside it inert, a popover in the top
+  // layer included: drawn over the sheet, the notice would take no tap (the
+  // browser hits the sheet's control under it) and no focus. So the notice
+  // lives inside the sheet on top while one is open, and goes home when the
+  // last closes. Moving it hides a popover, so it is shown again.
+  onMount(() => {
+    const home = anchor?.parentNode;
+    if (!anchor || !home) return;
+    const place = () => {
+      const target = topSheet() ?? home;
+      if (!anchor || anchor.parentNode === target) return;
+      target.appendChild(anchor);
+      queueMicrotask(() => {
+        if (region?.isConnected && !region.matches(":popover-open")) region.showPopover?.();
+      });
+    };
+    place();
+    const watch = new MutationObserver(place);
+    watch.observe(document, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ["open", "data-closing"],
+    });
+    onCleanup(() => {
+      watch.disconnect();
+      if (anchor?.parentNode !== home) home.appendChild(anchor as Node);
+    });
+  });
+
   createEffect(() => {
     const next = props.notice;
     if (next) {
@@ -44,27 +76,29 @@ export function SnackbarHost(props: { notice: SnackbarProps | undefined }) {
     }
   });
   return (
-    <Show when={shown()}>
-      {(notice) => (
-        <div
-          class="snackbar-region"
-          classList={{ "snackbar-leaving": leaving() }}
-          aria-hidden={leaving() ? "true" : undefined}
-          ref={(el) => {
-            region = el;
-            // In the top layer, so a notice shows over an open sheet too.
-            if (typeof el.showPopover !== "function") return;
-            el.setAttribute("popover", "manual");
-            queueMicrotask(() => el.isConnected && el.showPopover());
-          }}
-          onAnimationEnd={(event) => {
-            if (leaving() && event.target === event.currentTarget) setShown(undefined);
-          }}
-        >
-          <Snackbar {...notice()} />
-        </div>
-      )}
-    </Show>
+    <div class="snackbar-anchor" ref={anchor}>
+      <Show when={shown()}>
+        {(notice) => (
+          <div
+            class="snackbar-region"
+            classList={{ "snackbar-leaving": leaving() }}
+            aria-hidden={leaving() ? "true" : undefined}
+            ref={(el) => {
+              region = el;
+              // In the top layer, so a notice shows over an open sheet too.
+              if (typeof el.showPopover !== "function") return;
+              el.setAttribute("popover", "manual");
+              queueMicrotask(() => el.isConnected && el.showPopover());
+            }}
+            onAnimationEnd={(event) => {
+              if (leaving() && event.target === event.currentTarget) setShown(undefined);
+            }}
+          >
+            <Snackbar {...notice()} />
+          </div>
+        )}
+      </Show>
+    </div>
   );
 }
 
