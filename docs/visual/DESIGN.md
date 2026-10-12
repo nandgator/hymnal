@@ -556,27 +556,29 @@ view is close enough to the frame to need a smaller unit.
     the Output; only a tap does. Scrolled away from the current block, a "Back
     to Current" button floats up (chat apps' "jump to latest"): an action, so
     neutral, set apart by its shadow rather than by the tonal "selected" colour.
-    The current block stays highlighted and, while you haven't scrolled away,
-    centred. Only a step glides there. A step that scrolls moves only the
-    scroll: the card stays on its part, in the list's own coordinates, so it
-    never slides across text that is itself moving; the old part's card fades
-    out where it stood as the new part's fades in, both riding the scroll on one
-    clock and one easing. A jump of more than a screen (End, Home, a wrap from
+    The current block stays highlighted and in view. Only a step glides there,
+    and every step glides the card from the old part to the new, its leading
+    edge first, so it stretches over the new part then lets go of the old. The
+    list does not re-centre on a step: it scrolls only when the new part, with a
+    margin (15% of the list's height, less for a part that nearly fills it),
+    would not be fully showing, and then the least that shows it, or to the
+    part's top if the part is taller than the list. Most steps are a card
+    gliding over still text; when a scroll is needed it shares the card's clock
+    and easing, the card gliding in the list's own coordinates as the list
+    scrolls, each edge eased as seen so it only moves toward where it ends,
+    never past it or back. A jump of more than a screen (End, Home, a wrap from
     the last part to the first or back by a digit or a part chip, a distant
-    part, or a list browsed far from the current part) is the same, a sweep: the
-    list scrolls the whole way with the new card coming in on its part, taking
-    the medium time up to a screen of travel, then 40ms more for every 1000px,
-    to at most 150ms more (400ms), quick but long enough for the eye to follow.
-    A step with under 8px of scroll has no moving text to cross, so one tint
-    layer glides from the old part to the new, its leading edge first (a line
-    step keeps the tint still and only brightens its line). Reduced motion shows
-    the end state at once. Back to Current is the exception: it always scrolls
-    there, the tint staying put, taking longer the further it goes (the medium
-    time to a screen away, up to 450ms more), and it is offered whenever the
-    current part is out of view, including the one a song opens on. A list shown
-    anew (a tab, a split, expand or collapse, another song) lands on the current
-    part at once, and the tint re-measures, never glides, as type size or width
-    changes.
+    part, or a list browsed far from the current part) is the same, a sweep,
+    taking the medium time up to a screen of travel, then 40ms more for every
+    1000px, to at most 150ms more (400ms), quick but long enough for the eye to
+    follow. A line step keeps the tint still and only brightens its line.
+    Reduced motion shows the end state at once. Back to Current is the
+    exception: it centres the part, always scrolling there, the tint staying
+    put, taking longer the further it goes (the medium time to a screen away, up
+    to 450ms more), and it is offered whenever the current part is out of view,
+    including the one a song opens on. A list shown anew (a tab, a split, expand
+    or collapse, another song) lands on the current part, centred, at once, and
+    the tint re-measures, never glides, as type size or width changes.
   - **Height matters too.** WCAG's Reflow sets a width floor (320 CSS px) but no
     single height floor, so the practice is to degrade gracefully. The stage
     needs Live and at least a row of the keypad: under 640px of height (a
@@ -1100,11 +1102,11 @@ view is close enough to the frame to need a smaller unit.
   (`lyricsGlide.ts`: one animation clocks both, so they land together; translate
   and height, never scaleY, which warps the corners). Its leading edge arrives
   first and the trailing edge follows, so it stretches over the new part, then
-  lets go of the old; a jump of more than a screen fades it instead. The text
-  changes colour in those same 250ms and easing, so the part the tint leaves
-  dims and the one it reaches brightens as the tint passes, never ahead or
-  behind it. **Full Song's tint** (SDD-0005, the Output) does the same within a
-  column. Across columns it fades, overlapped so some part is always lit: the
+  lets go of the old; a jump of more than a screen sweeps, a little longer. The
+  text changes colour in those same 250ms and easing, so the part the tint
+  leaves dims and the one it reaches brightens as the tint passes, never ahead
+  or behind it. **Full Song's tint** (SDD-0005, the Output) does the same within
+  a column. Across columns it fades, overlapped so some part is always lit: the
   old tint fades out in place over the first 60%, the new one fades in over the
   last 80% travelling 1.6em from the left, the text following in step. A page
   turn is a handoff within 250ms: the old page fades out over the first 110ms,

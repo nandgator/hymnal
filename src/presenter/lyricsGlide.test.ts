@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   backDuration,
-  CARRY_MIN_SCROLL,
   edgeBoxes,
+  glideBack,
   glideLyrics,
   parseEase,
   planGlide,
+  scrollIntoViewTop,
   scrollTargetTop,
   sweepDuration,
   watchTint,
@@ -14,29 +15,10 @@ import {
 const base = { still: false, reduced: false, tintTravel: 120, scrollTravel: 120, viewport: 600 };
 
 describe("planGlide", () => {
-  it("carries the card on its part when a step to a near part scrolls", () => {
-    expect(planGlide(base)).toEqual({ tint: "carry", scroll: "glide" });
-  });
-
-  it("glides the card on its own when there is next to no scroll to ride", () => {
+  it("glides the card and the scroll together for every step, scrolling or not", () => {
+    expect(planGlide(base)).toEqual({ tint: "glide", scroll: "glide" });
     expect(planGlide({ ...base, scrollTravel: 0 })).toEqual({ tint: "glide", scroll: "glide" });
-    expect(planGlide({ ...base, scrollTravel: CARRY_MIN_SCROLL - 1 })).toEqual({
-      tint: "glide",
-      scroll: "glide",
-    });
-    expect(planGlide({ ...base, scrollTravel: CARRY_MIN_SCROLL })).toEqual({
-      tint: "carry",
-      scroll: "glide",
-    });
-  });
-
-  it("keeps carrying while a cross-fade is under way, however small the scroll", () => {
-    expect(planGlide({ ...base, scrollTravel: 0, carrying: true })).toEqual({
-      tint: "carry",
-      scroll: "glide",
-    });
-    // A card that does not move has nothing to carry.
-    expect(planGlide({ ...base, tintTravel: 0, carrying: true }).tint).toBe("glide");
+    expect(planGlide({ ...base, scrollTravel: 7 })).toEqual({ tint: "glide", scroll: "glide" });
   });
 
   it("keeps a line step's tint where it is, with a gliding scroll", () => {
@@ -51,10 +33,8 @@ describe("planGlide", () => {
     expect(planGlide({ ...base, reduced: true })).toEqual({ tint: "snap", scroll: "snap" });
   });
 
-  it("sweeps a far tint jump (a wrap): the card is carried and the list glides", () => {
-    expect(planGlide({ ...base, tintTravel: 2400 })).toEqual({ tint: "carry", scroll: "glide" });
-    // No scroll to ride, far or not: the card glides on its own.
-    expect(planGlide({ ...base, tintTravel: 2400, scrollTravel: 0 }).tint).toBe("glide");
+  it("sweeps a far tint jump (a wrap): the card and the list glide", () => {
+    expect(planGlide({ ...base, tintTravel: 2400 })).toEqual({ tint: "glide", scroll: "glide" });
   });
 
   it("lands a far scroll under a card that has not moved (nothing eases)", () => {
@@ -86,11 +66,11 @@ describe("planGlide", () => {
 
   it("never snaps the scroll under a card that eases: a far scroll sweeps with it", () => {
     expect(planGlide({ ...base, tintTravel: 100, scrollTravel: 3000 })).toEqual({
-      tint: "carry",
+      tint: "glide",
       scroll: "glide",
     });
     expect(planGlide({ ...base, tintTravel: 1200, scrollTravel: 3000 })).toEqual({
-      tint: "carry",
+      tint: "glide",
       scroll: "glide",
     });
   });
@@ -165,6 +145,39 @@ describe("scrollTargetTop", () => {
   it("stays within the list's ends", () => {
     expect(scrollTargetTop({ ...list, top: 0, height: 100, align: "center" })).toBe(0);
     expect(scrollTargetTop({ ...list, top: 1900, height: 100, align: "center" })).toBe(1600);
+  });
+});
+
+describe("scrollIntoViewTop", () => {
+  const list = { viewport: 400, scrollHeight: 3000 };
+  const at = (top: number, height: number, current: number, margin = 60) =>
+    scrollIntoViewTop({ ...list, top, height, current, margin });
+
+  it("does not scroll when the block is fully visible with the margin", () => {
+    expect(at(1100, 100, 1000)).toBe(1000);
+    expect(at(1060, 280, 1000)).toBe(1000); // the margin exactly, both sides
+  });
+
+  it("scrolls the least that gives the margin below a block under the fold", () => {
+    expect(at(1300, 100, 1000)).toBe(1060); // bottom 1400 + 60 - 400
+  });
+
+  it("scrolls the least that gives the margin above a block over the top", () => {
+    expect(at(900, 100, 1000)).toBe(840); // top 900 - 60
+  });
+
+  it("lessens the margin for a block that nearly fills the list", () => {
+    expect(at(2000, 380, 0)).toBe(1990); // margin 10: bottom 2380 + 10 - 400
+  });
+
+  it("puts a block taller than the list at its top", () => {
+    expect(at(2000, 900, 0)).toBe(2000);
+    expect(at(2000, 900, 2300)).toBe(2000);
+  });
+
+  it("stays within the list's ends", () => {
+    expect(at(20, 100, 500)).toBe(0);
+    expect(at(2900, 100, 0)).toBe(2600);
   });
 });
 
@@ -360,15 +373,16 @@ describe("glideLyrics", () => {
     }
   };
 
-  // Two blocks in a list 800 tall, 2000 of content; block 0 current.
-  function setup(clientHeight = 800) {
+  // Blocks (200 tall) in a list 800 tall, 2000 of content, at the given
+  // tops; block 0 current.
+  function setup(clientHeight = 800, tops = [0, 800]) {
     const list = document.createElement("section");
     list.className = "sequence";
     const tint = document.createElement("div");
     tint.className = "seq-tint";
     const seq = document.createElement("ol");
     seq.className = "seq-list";
-    const blocks = [0, 800].map((top) => {
+    const blocks = tops.map((top) => {
       const li = document.createElement("li");
       li.className = "seq-block";
       define(li, { offsetTop: top, offsetLeft: 8, offsetWidth: 300, offsetHeight: 200 });
@@ -389,86 +403,168 @@ describe("glideLyrics", () => {
     return { list, tint, blocks, current };
   }
 
-  it("rides the tint's progress to the new centre", () => {
+  it("rides the tint's progress to the least scroll that shows the new part", () => {
     const { list, current } = setup();
     glideLyrics(list, { still: true });
     current(1);
     glideLyrics(list, { still: false });
-    // The clock (the new card's fade) and the old card's fade.
-    expect(anims).toHaveLength(2);
+    // One animation: the card's glide is the clock, no second layer.
+    expect(anims).toHaveLength(1);
     anims[0].progress = 0.5;
     flush();
-    expect(list.scrollTop).toBe(250);
+    // The block's bottom (1000) plus a margin (15% of 800) at the list's foot.
+    expect(list.scrollTop).toBe(160);
     anims[0].finish();
     flush();
-    expect(list.scrollTop).toBe(500);
+    expect(list.scrollTop).toBe(320);
   });
 
-  describe("a step that scrolls carries the card with the text", () => {
-    const fadeOf = (i: number) => calls[i].keyframes.map((k) => k.opacity);
+  describe("a step glides the card and scrolls only if it must", () => {
+    const place = (k: Keyframe) => {
+      const m = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(String(k.transform));
+      return { y: Number(m?.[2]), h: Number.parseFloat(String(k.height)) };
+    };
 
-    it("paints the card on its new part at once and fades it in, never moving it", () => {
-      const { list, tint, current } = setup();
-      glideLyrics(list, { still: true });
-      current(1);
-      glideLyrics(list, { still: false });
-      expect(tint.style.transform).toBe("translate(8px, 800px)");
-      expect(fadeOf(0)).toEqual([0, 1]);
-      expect(calls[0].keyframes.some((k) => "transform" in k)).toBe(false);
-      expect(calls[0].options.easing).toBe("cubic-bezier(0.2, 0, 0, 1)");
-    });
-
-    it("leaves the old card where it stood to fade out, on the same clock", () => {
-      const { list, current } = setup();
-      glideLyrics(list, { still: true });
-      current(1);
-      glideLyrics(list, { still: false });
-      const ghost = list.querySelector<HTMLElement>(":scope > .seq-ghost");
-      expect(ghost?.style.transform).toBe("translate(8px, 0px)");
-      expect(fadeOf(1)).toEqual([1, 0]);
-      expect(calls[1].options.duration).toBe(calls[0].options.duration);
-      expect(calls[1].options.easing).toBe(calls[0].options.easing);
-      // Gone once it has faded; the real tint is still the one found.
-      anims[1].finish();
-      expect(list.querySelector(".seq-ghost")).toBeNull();
-      expect(list.querySelectorAll(".seq-tint")).toHaveLength(1);
-    });
-
-    it("a step mid-fade leaves the half-faded card to finish, and none jump", () => {
-      const { list, current } = setup();
-      glideLyrics(list, { still: true });
-      current(1);
-      glideLyrics(list, { still: false });
-      anims[0].progress = 0.5;
-      flush();
-      current(0);
-      glideLyrics(list, { still: false });
-      expect(list.querySelectorAll(".seq-ghost")).toHaveLength(2);
-      expect(anims[0].playState).toBe("idle");
-      // The first ghost is not cancelled: it fades out on its own.
-      expect(anims[1].playState).toBe("running");
-    });
-
-    it("a list shown anew drops any card still fading", () => {
-      const { list, current } = setup();
-      glideLyrics(list, { still: true });
-      current(1);
-      glideLyrics(list, { still: false });
-      expect(list.querySelector(".seq-ghost")).not.toBeNull();
-      current(0); // another song, say, landing on its first part
-      glideLyrics(list, { still: true });
-      expect(list.querySelector(".seq-ghost")).toBeNull();
-    });
-
-    it("glides the card instead when the scroll has nowhere to go", () => {
-      const { list, current } = setup();
-      define(list, { scrollHeight: 800 });
+    it("does not scroll when the next part is fully visible with a margin", () => {
+      const { list, tint, current } = setup(800, [0, 300]);
       glideLyrics(list, { still: true });
       current(1);
       glideLyrics(list, { still: false });
       expect(calls).toHaveLength(1);
       expect(calls[0].keyframes).toHaveLength(25);
+      expect(tint.style.transform).toBe("translate(8px, 300px)");
+      anims[0].progress = 0.5;
+      flush();
+      expect(list.scrollTop).toBe(0);
+      anims[0].finish();
+      flush();
+      expect(list.scrollTop).toBe(0);
+    });
+
+    it("scrolls the minimum when the next part would be under the fold", () => {
+      // The part ends at 1000; the list shows 0 to 800; a 120 margin: 320.
+      const { list, current } = setup();
+      glideLyrics(list, { still: true });
+      current(1);
+      glideLyrics(list, { still: false });
+      anims[0].finish();
+      flush();
+      expect(list.scrollTop).toBe(320);
+    });
+
+    it("scrolls the minimum up when the previous part is over the top", () => {
+      const { list, current } = setup(800, [0, 200, 1000]);
+      glideLyrics(list, { still: true });
+      current(2);
+      glideLyrics(list, { still: true });
+      expect(list.scrollTop).toBe(700); // a part shown anew is centred
+      current(1);
+      glideLyrics(list, { still: false });
+      anims[0].finish();
+      flush();
+      expect(list.scrollTop).toBe(80); // its top 200 less the margin
+    });
+
+    it("scrolls a part taller than the list to its top", () => {
+      const { list, blocks, current } = setup(300);
+      define(blocks[1], { offsetHeight: 500 });
+      glideLyrics(list, { still: true });
+      current(1);
+      glideLyrics(list, { still: false });
+      anims[0].finish();
+      flush();
+      expect(list.scrollTop).toBe(800);
+    });
+
+    it("moves the card as a glide of its box, never a cross-fade, with no ghost", () => {
+      const { list, current } = setup();
+      glideLyrics(list, { still: true });
+      current(1);
+      glideLyrics(list, { still: false });
+      const { keyframes } = calls[0];
+      expect(keyframes).toHaveLength(25);
+      expect(keyframes.every((k) => "transform" in k && "height" in k)).toBe(true);
+      expect(keyframes.some((k) => "opacity" in k)).toBe(false);
+      expect(keyframes[0].transform).toBe("translate(8px, 0px)");
+      expect(keyframes.at(-1)?.transform).toBe("translate(8px, 800px)");
       expect(list.querySelector(".seq-ghost")).toBeNull();
+      expect(list.querySelectorAll(".seq-tint")).toHaveLength(1);
+    });
+
+    it("never creates a ghost, however the steps come", () => {
+      const { list, current } = setup();
+      const seen: number[] = [];
+      glideLyrics(list, { still: true });
+      for (const n of [1, 0, 1, 0]) {
+        current(n);
+        glideLyrics(list, { still: false });
+        anims.at(-1)?.finish();
+        seen.push(list.children.length);
+      }
+      expect(seen).toEqual([2, 2, 2, 2]);
+      expect(calls.every((c) => !c.keyframes.some((k) => "opacity" in k))).toBe(true);
+    });
+
+    it("moves the card's edges on screen only toward where they end, a real distance", () => {
+      const { list, current } = setup();
+      glideLyrics(list, { still: true });
+      current(1);
+      glideLyrics(list, { still: false });
+      const { keyframes } = calls[0];
+      const n = keyframes.length - 1;
+      const seen = keyframes.map((k, i) => {
+        const { y, h } = place(k);
+        const scroll = 320 * (i / n);
+        return { top: y - scroll, bottom: y + h - scroll };
+      });
+      // From 0 to 480 on screen: the card travels, the text moving under it.
+      expect(seen[0].top).toBe(0);
+      expect(seen[n].top).toBeCloseTo(480, 6);
+      expect(seen[n].bottom).toBeCloseTo(680, 6);
+      for (const edge of ["top", "bottom"] as const) {
+        const end = seen[n][edge];
+        seen.slice(1).forEach((v, i) => {
+          expect(v[edge] - seen[i][edge]).toBeGreaterThanOrEqual(-1e-6);
+          expect(v[edge]).toBeLessThanOrEqual(end + 1e-6);
+        });
+      }
+    });
+
+    it("a step part-way to a scroll counts from where that scroll is going", () => {
+      // 0 to 1 scrolls to 320; a second step to the block at 1000 scrolls on
+      // from 320, not from the half-way 160.
+      const { list, current } = setup(800, [0, 800, 1000]);
+      glideLyrics(list, { still: true });
+      current(1);
+      glideLyrics(list, { still: false });
+      anims[0].progress = 0.5;
+      flush();
+      current(2);
+      glideLyrics(list, { still: false });
+      anims.at(-1)?.finish();
+      flush();
+      expect(list.scrollTop).toBe(520); // bottom 1200 + 120 - 800
+    });
+  });
+
+  describe("a list shown anew and Back to Current still centre", () => {
+    it("centres a part shown anew, at once", () => {
+      const { list, current } = setup();
+      current(1);
+      glideLyrics(list, { still: true });
+      expect(list.scrollTop).toBe(500);
+      expect(calls).toHaveLength(0);
+    });
+
+    it("glides Back to Current to the centre", () => {
+      const { list, current } = setup();
+      current(1);
+      glideLyrics(list, { still: true });
+      list.scrollTop = 0;
+      glideBack(list);
+      anims.at(-1)?.finish();
+      flush();
+      expect(list.scrollTop).toBe(500);
     });
   });
 
@@ -484,7 +580,7 @@ describe("glideLyrics", () => {
     expect(keyframes.map((k) => k.offset)).toEqual(Array.from({ length: 25 }, (_, i) => i / 24));
     expect(options.easing).toBe("cubic-bezier(0.2, 0, 0, 1)");
     expect(options.duration).toBe(250);
-    // The scroll (1px here, under the carry threshold) follows the clock.
+    // The scroll (1px here) follows the clock.
     anims[0].progress = 0.5;
     flush();
     expect(list.scrollTop).toBe(0.5);
@@ -497,22 +593,20 @@ describe("glideLyrics", () => {
       glideLyrics(list, { still: true });
       current(1);
       glideLyrics(list, { still: false });
-      // The new card's fade is the clock; the old card's fades beside it.
-      expect(anims).toHaveLength(2);
+      expect(anims).toHaveLength(1);
       const { keyframes, options } = calls[0];
-      expect(keyframes.map((k) => k.opacity)).toEqual([0, 1]);
-      expect(keyframes.some((k) => "transform" in k)).toBe(false);
-      expect(calls[1].options.duration).toBe(options.duration);
+      expect(keyframes.every((k) => "transform" in k)).toBe(true);
       expect(options.duration).toBeGreaterThan(250);
       expect(options.duration).toBeLessThanOrEqual(400);
-      // Scroll 0 to 750 (the last block is centred) rides the progress.
+      // Scroll 0 to 745 (the part's foot, a margin of 45 above the list's)
+      // rides the progress.
       expect(list.scrollTop).toBe(0);
       anims[0].progress = 0.5;
       flush();
-      expect(list.scrollTop).toBe(375);
+      expect(list.scrollTop).toBe(372.5);
       anims[0].finish();
       flush();
-      expect(list.scrollTop).toBe(750);
+      expect(list.scrollTop).toBe(745);
     });
 
     it("a card that was out of view sweeps in, the list gliding with it", () => {
@@ -524,10 +618,10 @@ describe("glideLyrics", () => {
       expect(list.scrollTop).toBe(1400);
       anims[0].progress = 0.5;
       flush();
-      expect(list.scrollTop).toBe(950);
+      expect(list.scrollTop).toBe(1040);
       anims[0].finish();
       flush();
-      expect(list.scrollTop).toBe(500);
+      expect(list.scrollTop).toBe(680); // its top 800 less the margin
     });
   });
 
@@ -575,11 +669,11 @@ describe("glideLyrics", () => {
     }
     anims[0].progress = 0.75;
     flush();
-    expect(list.scrollTop).toBe(375);
+    expect(list.scrollTop).toBe(240);
     list.dispatchEvent(new Event("wheel"));
     anims[0].progress = 1;
     flush();
-    expect(list.scrollTop).toBe(375);
+    expect(list.scrollTop).toBe(240);
   });
 
   it("lets go for a key the list would scroll with", () => {
@@ -592,7 +686,7 @@ describe("glideLyrics", () => {
     list.dispatchEvent(new KeyboardEvent("keydown", { key: "PageDown" }));
     anims[0].progress = 1;
     flush();
-    expect(list.scrollTop).toBe(250);
+    expect(list.scrollTop).toBe(160);
   });
 
   it("a new step mid-glide starts a fresh glide from where the scroll is", () => {
@@ -604,15 +698,19 @@ describe("glideLyrics", () => {
     flush();
     current(0);
     glideLyrics(list, { still: false });
-    // Each step: the clock and a ghost. The old clock is let go.
-    expect(anims).toHaveLength(4);
+    // The old clock is let go; the new glide runs from the scroll as it is.
+    expect(anims).toHaveLength(2);
     expect(anims[0].playState).toBe("idle");
-    anims[2].finish();
+    expect(list.scrollTop).toBe(160);
+    anims[1].progress = 0.5;
+    flush();
+    expect(list.scrollTop).toBe(80);
+    anims[1].finish();
     flush();
     expect(list.scrollTop).toBe(0);
   });
 
-  it("a resize mid-glide lands the scroll centred on the new geometry", () => {
+  it("a resize mid-glide lands the scroll on the new geometry's least scroll", () => {
     const { list, blocks, current } = setup();
     const stopWatching = watchTint(list);
     glideLyrics(list, { still: true });
@@ -620,16 +718,16 @@ describe("glideLyrics", () => {
     glideLyrics(list, { still: false });
     anims[0].progress = 0.5;
     flush();
-    expect(list.scrollTop).toBe(250);
+    expect(list.scrollTop).toBe(160);
     // A larger type: the block moves down and grows.
     define(blocks[1], { offsetTop: 1000, offsetHeight: 300 });
     define(list, { scrollHeight: 2400 });
     observed?.();
-    expect(list.scrollTop).toBe(750);
+    expect(list.scrollTop).toBe(620); // bottom 1300 + margin 120 - 800
     flush();
     anims[0].progress = 1;
     flush();
-    expect(list.scrollTop).toBe(750);
+    expect(list.scrollTop).toBe(620);
     stopWatching();
   });
 

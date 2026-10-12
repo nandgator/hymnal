@@ -514,15 +514,16 @@ export function Presenter(props: PresenterProps) {
   const shown = (id: PaneId) => props.panes?.[id] ?? true;
   const [liveExpanded, setLiveExpanded] = createSignal(false);
 
-  // Keep the current block centred in every Lyrics list on screen, like the
+  // Keep the current block in view in every Lyrics list on screen, like the
   // Output: the focused line under line focus, the whole block otherwise —
   // or its top, when the block is taller than the list. Each list scrolls
   // inside itself, never the page (DESIGN.md § Stability). Scrolling by
-  // hand only browses; the next step re-centres. Only a step glides (the
-  // tint and the scroll as one motion, lyricsGlide.ts): a list shown anew
-  // (a tab, a split, expand or collapse) lands on the current part at once,
-  // since gliding a whole song's lyrics every time is motion without
-  // meaning (PRINCIPLES.md, motion explains change).
+  // hand only browses; the next step brings the current part back. A step
+  // glides the tint and scrolls only if the part would not show, the least
+  // that does (lyricsGlide.ts); a list shown anew (a tab, a split, expand or
+  // collapse) lands with the current part centred at once, since gliding a
+  // whole song's lyrics every time is motion without meaning (PRINCIPLES.md,
+  // motion explains change).
   let lastStep: string | undefined;
   let lastEngine: SequenceEngine | undefined;
   // Hidden in another section: nothing to measure; shown again, it lands.
