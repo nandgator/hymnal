@@ -76,7 +76,7 @@ describe("revealOffset", () => {
   it("keeps clear of what covers the view's edges (the sticky field)", () => {
     // 40px at the top is covered: row 30 at 300 is hidden, so the view moves up to 260.
     expect(revealOffset(flat, 30, 300, 100, { top: 40, bottom: 0 })).toBe(260);
-    expect(revealOffset(flat, 39, 300, 100, { top: 0, bottom: 20 })).toBe(330);
+    expect(revealOffset(flat, 39, 300, 100, { top: 0, bottom: 20 })).toBe(320);
   });
 
   it("never goes above the start", () => {

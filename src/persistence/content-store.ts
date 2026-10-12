@@ -41,6 +41,7 @@ export function getContentStore(): ContentStore {
       searchLyrics: (id, query) => remote.searchLyrics(id, query),
       searchAll: (query, currentKey) => remote.searchAll(query, currentKey),
       searchNumber: (typed, currentKey) => remote.searchNumber(typed, currentKey),
+      searchMore: (id, query, offset) => remote.searchMore(id, query, offset),
     } satisfies ContentStore;
   }
   return store;
@@ -161,6 +162,7 @@ export type {
   HymnSummary,
   InstallProgress,
   OnLoadProgress,
+  SearchPage,
   SearchResult,
 } from "./content-store.worker.ts";
 export type { Choice, CommitResult, LoadReview, OwnResult } from "./load.ts";
