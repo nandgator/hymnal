@@ -4759,6 +4759,11 @@ html[data-scrolling],
    gutters, above the dock and the safe area. Fixed, so it never moves the
    layout; the region ignores the pointer so it never blocks what lies
    around the card. It rises in from below and sinks back. */
+/* The host's stand-in in the tree: it moves into the open sheet (Snackbar.tsx). */
+.snackbar-anchor {
+  display: contents;
+}
+
 .snackbar-region {
   position: fixed;
   /* In the top layer (a popover): none of the popover's own box. */
