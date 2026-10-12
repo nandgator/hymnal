@@ -8,7 +8,14 @@ import { libraryOrder } from "../domain/own.ts";
 import { insertRows, packageRows } from "../domain/package-rows.ts";
 import type { HymnSource } from "../domain/types.ts";
 import type { BookRow } from "./registry.ts";
-import { numberMatches, SEARCH_LIMIT, searchBook, searchBooks, searchOrder } from "./search.ts";
+import {
+  numberMatches,
+  SEARCH_LIMIT,
+  searchBook,
+  searchBookPage,
+  searchBooks,
+  searchOrder,
+} from "./search.ts";
 
 const song = (number: number, line: string): HymnSource => ({
   number,
@@ -72,6 +79,49 @@ describe("searchBook", () => {
       Array.from({ length: SEARCH_LIMIT + 20 }, (_, i) => song(i + 1, "grace and peace")),
     );
     expect(searchBook(sqlOf(held.get("big") as DatabaseSync), "grace")).toHaveLength(SEARCH_LIMIT);
+  });
+});
+
+describe("searchBookPage (Board #66)", () => {
+  const pageOf = (key: string, word: string, offset: number) =>
+    searchBookPage(sqlOf(held.get(key) as DatabaseSync), word, offset);
+
+  it("returns the match 30 at a time, saying whether more follow, with no row twice", () => {
+    hold(
+      "pages",
+      Array.from({ length: 70 }, (_, i) => song(i + 1, `a lantern line ${i + 1}`)),
+    );
+    const first = pageOf("pages", "lantern", 0);
+    const second = pageOf("pages", "lantern", SEARCH_LIMIT);
+    const third = pageOf("pages", "lantern", 2 * SEARCH_LIMIT);
+    expect([first.results.length, second.results.length, third.results.length]).toEqual([
+      30, 30, 10,
+    ]);
+    expect([first.more, second.more, third.more]).toEqual([true, true, false]);
+    const numbers = [...first.results, ...second.results, ...third.results].map((r) => r.number);
+    expect(new Set(numbers).size).toBe(70);
+  });
+
+  it("has no more when the match fills a page exactly and goes no further", () => {
+    hold(
+      "exact",
+      Array.from({ length: SEARCH_LIMIT }, (_, i) => song(i + 1, `a harbor line ${i + 1}`)),
+    );
+    const page = pageOf("exact", "harbor", 0);
+    expect(page.results).toHaveLength(SEARCH_LIMIT);
+    expect(page.more).toBe(false);
+  });
+
+  it("starts with what searchBook returns", () => {
+    expect(searchBook(sqlOf(held.get("pages") as DatabaseSync), "lantern")).toEqual(
+      pageOf("pages", "lantern", 0).results,
+    );
+  });
+
+  it("is carried by a book's hits, so the Finder knows to ask for the next page", () => {
+    const hits = searchBooks([row("pages")], "pages", (book) => pageOf(book.key, "lantern", 0));
+    expect(hits[0]?.more).toBe(true);
+    expect(hits[0]?.results).toHaveLength(SEARCH_LIMIT);
   });
 });
 

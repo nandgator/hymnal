@@ -56,6 +56,7 @@ export function contentStoreMock() {
     searchLyrics: async () => [],
     searchAll: (query, currentKey) => mocks.searchAll(query, currentKey),
     searchNumber: async () => [],
+    searchMore: async () => ({ results: [], more: false }),
   };
   const row: BookRow = {
     key: "mal-ymef-athmeeya-geethangal-16",

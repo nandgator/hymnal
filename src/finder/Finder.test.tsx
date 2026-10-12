@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { HymnbookId, HymnNumber, HymnSource } from "../domain/types.ts";
 import type { BookHits, ContentStore, SearchResult } from "../persistence/content-store.ts";
 import type { RecentEntry, UserState } from "../persistence/user-state.ts";
-import { Finder, OPENING_SONGS } from "./Finder.tsx";
+import { Finder } from "./Finder.tsx";
 
 const HYMN_42: HymnSource = {
   number: 42,
@@ -32,6 +32,7 @@ function fakeStore(overrides: Partial<ContentStore> = {}): ContentStore {
       return results.length ? [{ key, title: key, results }] : [];
     },
     searchNumber: async () => [],
+    searchMore: async () => ({ results: [], more: false }),
     ...overrides,
   };
   return store;
@@ -64,9 +65,10 @@ describe("Finder", () => {
       number: i + 1,
       title: `Song Number ${i + 1}`,
     }));
-  const songsList = () => screen.getByRole("region", { name: "Songs" });
+  const options = () => screen.queryAllByRole("option");
+  const listbox = () => screen.getByRole("listbox", { name: "Matching songs" });
 
-  it("with nothing typed, shows Assorted Hymns in the order the book lists them, not by number", async () => {
+  it("with nothing typed, lists Assorted Hymns in the order the book gives, under each language", async () => {
     const assorted = [
       { number: 7, title: "Amazing", language: "en", script: "Latn" },
       { number: 2, title: "Zion Song", language: "en", script: "Latn" },
@@ -80,35 +82,41 @@ describe("Finder", () => {
         onSelect={vi.fn()}
       />
     ));
-    await screen.findByRole("heading", { name: "Songs" });
-    const rows = within(songsList()).getAllByRole("button");
-    expect(rows.map((row) => row.textContent)).toEqual([
+    await screen.findByRole("group", { name: "English" });
+    expect(options().map((row) => row.textContent)).toEqual([
       expect.stringContaining("Amazing"),
       expect.stringContaining("Zion Song"),
       expect.stringContaining("മഹത്വം"),
     ]);
+    const malayalam = screen.getByRole("group", { name: "Malayalam" });
+    expect(within(malayalam).getAllByRole("option")).toHaveLength(1);
   });
 
-  it("with nothing typed, shows the book's first songs by number, not an empty recents line", async () => {
+  it("with nothing typed, lists the whole book as All songs: a window of it, not all of it", async () => {
     render(() => (
       <Finder
         hymnbookId="book"
-        store={fakeStore({ listHymns: async () => book(50) })}
+        store={fakeStore({ listHymns: async () => book(1000) })}
         userState={fakeUserState()}
         onSelect={vi.fn()}
       />
     ));
-    await screen.findByRole("heading", { name: "From the start" });
-    const rows = within(songsList()).getAllByRole("button");
-    expect(rows).toHaveLength(OPENING_SONGS);
+    await screen.findByRole("group", { name: "All songs" });
+    const rows = options();
+    expect(rows.length).toBeGreaterThan(5);
+    expect(rows.length).toBeLessThan(60);
     expect(rows[0]).toHaveTextContent("#1");
-    expect(rows[OPENING_SONGS - 1]).toHaveTextContent(`#${OPENING_SONGS}`);
     expect(screen.queryByText("No recent songs yet.")).not.toBeInTheDocument();
     // Recents has nothing to say, so it says nothing: no heading over an empty list.
     expect(screen.queryByRole("heading", { name: "Recents" })).not.toBeInTheDocument();
+    // Every option says where it is in the whole book.
+    expect(rows[0]).toHaveAttribute("aria-setsize", "1000");
+    expect(rows[0]).toHaveAttribute("aria-posinset", "1");
+    expect(rows[3]).toHaveAttribute("aria-posinset", "4");
+    expect(screen.getByRole("combobox")).toHaveAttribute("aria-controls", listbox().id);
   });
 
-  it("calls a short book's list Songs, and opens a song picked from it", async () => {
+  it("opens a song picked from the list", async () => {
     const onSelect = vi.fn();
     render(() => (
       <Finder
@@ -118,8 +126,8 @@ describe("Finder", () => {
         onSelect={onSelect}
       />
     ));
-    await screen.findByRole("heading", { name: "Songs" });
-    fireEvent.click(within(songsList()).getByRole("button", { name: /Song Number 2/ }));
+    await screen.findByRole("group", { name: "All songs" });
+    fireEvent.mouseDown(screen.getByRole("option", { name: /Song Number 2/ }));
     expect(onSelect).toHaveBeenCalledWith(2, "book");
   });
 
@@ -134,9 +142,9 @@ describe("Finder", () => {
       />
     ));
     const recentsHeading = await screen.findByRole("heading", { name: "Recents" });
-    const songsHeading = await screen.findByRole("heading", { name: "From the start" });
+    const songs = await screen.findByRole("group", { name: "All songs" });
     expect(
-      recentsHeading.compareDocumentPosition(songsHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+      recentsHeading.compareDocumentPosition(songs) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(screen.queryByText("No recent songs yet.")).not.toBeInTheDocument();
   });
@@ -150,23 +158,250 @@ describe("Finder", () => {
         onSelect={vi.fn()}
       />
     ));
-    await screen.findByRole("heading", { name: "From the start" });
+    await screen.findByRole("group", { name: "All songs" });
     fireEvent.input(find(), { target: { value: "2" } });
-    expect(screen.queryByRole("heading", { name: "From the start" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "All songs" })).not.toBeInTheDocument();
     fireEvent.input(find(), { target: { value: "" } });
-    expect(await screen.findByRole("heading", { name: "From the start" })).toBeInTheDocument();
+    expect(await screen.findByRole("group", { name: "All songs" })).toBeInTheDocument();
   });
 
-  it("keeps the empty recents line where there is no song list to show instead", async () => {
-    render(() => (
-      <Finder
-        hymnbookId="book"
-        store={fakeStore({ listHymns: async () => [] })}
-        userState={fakeUserState()}
-        onSelect={vi.fn()}
-      />
-    ));
-    expect(await screen.findByText("No recent songs yet.")).toBeInTheDocument();
+  describe("browsing with the keyboard (SDD-0001 §13.2)", () => {
+    const renderBook = (count = 1000, onSelect = vi.fn()) => {
+      render(() => (
+        <Finder
+          hymnbookId="book"
+          store={fakeStore({ listHymns: async () => book(count) })}
+          userState={fakeUserState()}
+          onSelect={onSelect}
+        />
+      ));
+      return onSelect;
+    };
+    const key = (name: string, extra: Partial<KeyboardEventInit> = {}) =>
+      fireEvent.keyDown(find(), { key: name, ...extra });
+    const selectedOption = () => options().find((o) => o.getAttribute("aria-selected") === "true");
+    const enter = () => fireEvent.submit(find().closest("form") as HTMLFormElement);
+
+    it("highlights nothing until an arrow key, and Enter then opens nothing", async () => {
+      const onSelect = renderBook();
+      await screen.findByRole("group", { name: "All songs" });
+      expect(selectedOption()).toBeUndefined();
+      expect(find()).not.toHaveAttribute("aria-activedescendant");
+      enter();
+      expect(onSelect).not.toHaveBeenCalled();
+      key("ArrowDown");
+      expect(selectedOption()).toHaveTextContent("#1");
+      expect(find()).toHaveAttribute("aria-activedescendant", selectedOption()?.id);
+      key("ArrowDown");
+      enter();
+      expect(onSelect).toHaveBeenCalledWith(2, "book");
+    });
+
+    it("End goes to the last song of the book and brings it into the window, Home back", async () => {
+      const onSelect = renderBook();
+      await screen.findByRole("group", { name: "All songs" });
+      key("End");
+      expect(selectedOption()).toHaveTextContent("#1000");
+      expect(selectedOption()).toHaveAttribute("aria-posinset", "1000");
+      expect(find()).toHaveAttribute("aria-activedescendant", selectedOption()?.id);
+      expect(options().length).toBeLessThan(60);
+      expect(screen.queryByText(/^#1$/)).not.toBeInTheDocument();
+      enter();
+      expect(onSelect).toHaveBeenCalledWith(1000, "book");
+      key("Home");
+      expect(selectedOption()).toHaveTextContent("#1");
+    });
+
+    it("the arrows wrap from the last song to the first, and Up from none goes to the last", async () => {
+      renderBook(40);
+      await screen.findByRole("group", { name: "All songs" });
+      key("ArrowUp");
+      expect(selectedOption()).toHaveTextContent("#40");
+      key("ArrowDown");
+      expect(selectedOption()).toHaveTextContent("#1");
+    });
+
+    it("PageDown moves a screenful on, bringing that row into the window", async () => {
+      renderBook();
+      await screen.findByRole("group", { name: "All songs" });
+      key("ArrowDown");
+      key("PageDown");
+      const at = Number(selectedOption()?.getAttribute("aria-posinset"));
+      expect(at).toBeGreaterThan(5);
+      key("PageUp");
+      expect(selectedOption()).toHaveTextContent("#1");
+    });
+
+    it("keeps Home and End for the caret once something is typed", async () => {
+      render(() => (
+        <Finder
+          hymnbookId="book"
+          store={fakeStore({
+            listHymns: async () => book(60),
+            searchLyrics: async () => [
+              { number: 3, title: "Song Number 3", snippet: "a" },
+              { number: 4, title: "Song Number 4", snippet: "b" },
+            ],
+          })}
+          userState={fakeUserState()}
+          onSelect={vi.fn()}
+        />
+      ));
+      await screen.findByRole("group", { name: "All songs" });
+      fireEvent.input(find(), { target: { value: "Song" } });
+      await waitFor(() => expect(options().length).toBeGreaterThan(0));
+      const before = selectedOption()?.id;
+      key("End");
+      expect(selectedOption()?.id).toBe(before);
+    });
+
+    it("the quick switcher shows no list of the book with nothing typed", async () => {
+      render(() => (
+        <Finder
+          compact
+          hymnbookId="book"
+          store={fakeStore({ listHymns: async () => book(100) })}
+          userState={fakeUserState()}
+          onSelect={vi.fn()}
+        />
+      ));
+      await Promise.resolve();
+      expect(screen.queryAllByRole("option")).toHaveLength(0);
+      expect(screen.queryByRole("group", { name: "All songs" })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("search past the first page (SDD-0001 §13.2)", () => {
+    const page = (from: number, count: number): SearchResult[] =>
+      Array.from({ length: count }, (_, i) => ({
+        number: from + i,
+        title: `Found ${from + i}`,
+        snippet: `a lantern line ${from + i}`,
+      }));
+    const key = (name: string, extra: Partial<KeyboardEventInit> = {}) =>
+      fireEvent.keyDown(find(), { key: name, ...extra });
+    const lastOption = () => options().at(-1);
+    const toEnd = () => key("End", { ctrlKey: true });
+
+    const setup = (
+      more: (offset: number, query: string) => Promise<{ results: SearchResult[]; more: boolean }>,
+    ) => {
+      const searchMore = vi.fn(async (_id: string, query: string, offset: number) =>
+        more(offset, query),
+      );
+      const searchAll = vi.fn(
+        async (query: string, id: string): Promise<BookHits[]> => [
+          { key: id, title: id, results: page(1, 30), more: query === "lantern" },
+        ],
+      );
+      render(() => (
+        <Finder
+          hymnbookId="book"
+          store={fakeStore({ searchAll, searchMore })}
+          userState={fakeUserState()}
+          onSelect={vi.fn()}
+        />
+      ));
+      return { searchMore, searchAll };
+    };
+    const typeLantern = async () => {
+      fireEvent.input(find(), { target: { value: "lantern" } });
+      await screen.findAllByRole("option");
+    };
+
+    it("asks for the next page when the end of the first comes into reach, and appends it in place", async () => {
+      const { searchMore } = setup(async (offset) => ({
+        results: page(offset + 1, 12),
+        more: false,
+      }));
+      await typeLantern();
+      expect(searchMore).not.toHaveBeenCalled();
+      toEnd();
+      await waitFor(() => expect(searchMore).toHaveBeenCalledWith("book", "lantern", 30));
+      expect(searchMore).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        toEnd();
+        expect(lastOption()).toHaveAttribute("aria-setsize", "42");
+      });
+      await screen.findByText("End of results");
+      expect(lastOption()).toHaveTextContent("#42");
+    });
+
+    it("lists no song twice when a page repeats one", async () => {
+      setup(async () => ({ results: page(28, 5), more: false }));
+      await typeLantern();
+      toEnd();
+      await waitFor(() => {
+        toEnd();
+        expect(lastOption()).toHaveAttribute("aria-setsize", "32");
+      });
+      await screen.findByText("End of results");
+      expect(lastOption()).toHaveTextContent("#32");
+    });
+
+    it("pages again while more follow", async () => {
+      let calls = 0;
+      const { searchMore } = setup(async (offset) => ({
+        results: page(offset + 1, 30),
+        more: ++calls < 2,
+      }));
+      await typeLantern();
+      toEnd();
+      await waitFor(() => expect(searchMore).toHaveBeenCalledTimes(1));
+      await waitFor(() => {
+        toEnd();
+        expect(lastOption()).toHaveAttribute("aria-setsize", "60");
+      });
+      await waitFor(() => expect(searchMore).toHaveBeenCalledTimes(2));
+      expect(searchMore).toHaveBeenLastCalledWith("book", "lantern", 60);
+      await waitFor(() => {
+        toEnd();
+        expect(lastOption()).toHaveAttribute("aria-setsize", "90");
+      });
+      await screen.findByText("End of results");
+    });
+
+    it("ArrowDown on the last row waits for the page instead of wrapping", async () => {
+      setup(() => new Promise(() => {}));
+      await typeLantern();
+      toEnd();
+      key("ArrowDown");
+      expect(lastOption()).toHaveAttribute("aria-selected", "true");
+    });
+
+    it("a new query throws the pages away, and a page still on its way does not join it", async () => {
+      let release: (page: { results: SearchResult[]; more: boolean }) => void = () => {};
+      const { searchMore } = setup(
+        () =>
+          new Promise((resolve) => {
+            release = resolve;
+          }),
+      );
+      await typeLantern();
+      toEnd();
+      await waitFor(() => expect(searchMore).toHaveBeenCalled());
+      fireEvent.input(find(), { target: { value: "harbor" } });
+      await waitFor(() => expect(screen.queryByText("Loading more")).not.toBeInTheDocument());
+      release({ results: page(500, 5), more: false });
+      await Promise.resolve();
+      expect(screen.queryByText("Found 500")).not.toBeInTheDocument();
+      expect(options()[0]).toHaveAttribute("aria-setsize", "30");
+    });
+
+    it("says when a page could not be loaded and tries again on a tap", async () => {
+      let fail = true;
+      const { searchMore } = setup(async (offset) => {
+        if (fail) throw new Error("worker gone");
+        return { results: page(offset + 1, 3), more: false };
+      });
+      await typeLantern();
+      toEnd();
+      const retry = await screen.findByText("Could not load more. Try again.");
+      fail = false;
+      fireEvent.mouseDown(retry);
+      await screen.findByText("End of results");
+      expect(searchMore).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("focus on opening over nothing", () => {
@@ -199,7 +434,7 @@ describe("Finder", () => {
     it("leaves it alone on a touch screen, where the keyboard would cover the songs", async () => {
       pointer(false);
       open();
-      await screen.findByRole("heading", { name: "Songs" });
+      await screen.findByRole("group", { name: "All songs" });
       await new Promise((r) => setTimeout(r, 20));
       expect(find()).not.toHaveFocus();
     });
@@ -229,11 +464,11 @@ describe("Finder", () => {
       expect(screen.queryByRole("heading", { name: "Recents" })).not.toBeInTheDocument(),
     );
     release([]);
-    expect(await screen.findByRole("heading", { name: "From the start" })).toBeInTheDocument();
+    expect(await screen.findByRole("group", { name: "All songs" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Recents" })).not.toBeInTheDocument();
   });
 
-  it("lists the first songs of the book now searched, not the last one's", async () => {
+  it("lists the songs of the book now searched, not the last one's", async () => {
     const [id, setId] = createSignal("en");
     const store = fakeStore({
       listHymns: async (book) =>
@@ -244,11 +479,7 @@ describe("Finder", () => {
     render(() => (
       <Finder hymnbookId={id()} store={store} userState={fakeUserState()} onSelect={vi.fn()} />
     ));
-    expect(
-      await within(await screen.findByRole("region", { name: "Songs" })).findByText(
-        "English Opening",
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("English Opening")).toBeInTheDocument();
     setId("ml");
     expect(await screen.findByText("Malayalam Opening")).toBeInTheDocument();
     expect(screen.queryByText("English Opening")).not.toBeInTheDocument();
@@ -312,7 +543,7 @@ describe("Finder", () => {
         onSelect={onSelect}
       />
     ));
-    await screen.findByRole("heading", { name: "Songs" });
+    await screen.findByRole("group", { name: "All songs" });
 
     submit("42");
 
@@ -334,7 +565,7 @@ describe("Finder", () => {
         onSelect={onSelect}
       />
     ));
-    await screen.findByRole("heading", { name: "Songs" });
+    await screen.findByRole("group", { name: "All songs" });
 
     submit("grace");
 
@@ -358,7 +589,7 @@ describe("Finder", () => {
         onSelect={vi.fn()}
       />
     ));
-    await screen.findByRole("heading", { name: "Songs" });
+    await screen.findByRole("group", { name: "All songs" });
 
     submit("line");
 
@@ -387,7 +618,7 @@ describe("Finder", () => {
         onSelect={vi.fn()}
       />
     ));
-    await screen.findByRole("heading", { name: "Songs" });
+    await screen.findByRole("group", { name: "All songs" });
 
     submit("nothing like this");
 
@@ -446,7 +677,7 @@ describe("Finder", () => {
         onSelect={onSelect}
       />
     ));
-    await screen.findByRole("heading", { name: "Songs" });
+    await screen.findByRole("group", { name: "All songs" });
 
     fireEvent.input(find(), { target: { value: "4" } });
     const options = await screen.findAllByRole("option");
@@ -475,11 +706,11 @@ describe("Finder", () => {
         onSelect={vi.fn()}
       />
     ));
-    await screen.findByRole("heading", { name: "Songs" });
+    await screen.findByRole("group", { name: "All songs" });
 
     fireEvent.input(find(), { target: { value: "grace" } });
+    await waitFor(() => expect(searchLyrics).toHaveBeenCalledWith("book", "grace"));
     expect(await screen.findByRole("option", { name: /Forty-Second Hymn/ })).toBeInTheDocument();
-    expect(searchLyrics).toHaveBeenCalledWith("book", "grace");
   });
 
   it("keeps the list while the next query is pending, and empties it only for no results", async () => {
@@ -498,7 +729,7 @@ describe("Finder", () => {
         onSelect={vi.fn()}
       />
     ));
-    await screen.findByRole("heading", { name: "Songs" });
+    await screen.findByRole("group", { name: "All songs" });
 
     // A number's suggestion stays up through the pause and the read of a words search.
     fireEvent.input(find(), { target: { value: "42" } });
@@ -528,7 +759,7 @@ describe("Finder", () => {
         onSelect={vi.fn()}
       />
     ));
-    await screen.findByRole("heading", { name: "Songs" });
+    await screen.findByRole("group", { name: "All songs" });
     fireEvent.input(find(), { target: { value: "42" } });
     fireEvent.keyDown(find(), { key: "Escape" });
     expect(find()).toHaveValue("");
@@ -549,7 +780,7 @@ describe("Finder", () => {
         onSelect={onSelect}
       />
     ));
-    await screen.findByRole("heading", { name: "Songs" });
+    await screen.findByRole("group", { name: "All songs" });
 
     fireEvent.input(find(), { target: { value: "121" } });
     const [, second] = await screen.findAllByRole("option");

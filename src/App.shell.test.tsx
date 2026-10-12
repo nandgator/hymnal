@@ -281,7 +281,13 @@ describe("App", () => {
     await screen.findByRole("img", { name: "Live output preview" });
   }
 
+  /** A tall window: the command menu's list is windowed, and these look at all its actions. */
+  const tallWindow = () => {
+    vi.spyOn(window, "innerHeight", "get").mockReturnValue(4000);
+  };
+
   it("shows each action's key in the command menu, from the keymap; Show the details now has none", async () => {
+    tallWindow();
     render(() => <App />);
     await openHymn();
     fireEvent.keyDown(window, { key: "r" });
@@ -303,6 +309,7 @@ describe("App", () => {
   });
 
   it("lists actions as you type in the command menu, ahead of hymns (SDD-0001 §16.5)", async () => {
+    tallWindow();
     render(() => <App />);
     await openHymn();
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
@@ -320,7 +327,7 @@ describe("App", () => {
     // Cleared, the actions and the book's songs are back.
     fireEvent.input(box, { target: { value: "" } });
     expect(within(menu).getByRole("option", { name: /Blank the Output/ })).toBeInTheDocument();
-    expect(within(menu).getByRole("heading", { name: "Songs" })).toBeInTheDocument();
+    expect(within(menu).getByRole("group", { name: "All songs" })).toBeInTheDocument();
   });
 
   it("toggles the Output's reading band from the command menu, kept in preferences", async () => {

@@ -1,4 +1,5 @@
 import {
+  batch,
   createEffect,
   createMemo,
   createResource,
@@ -11,6 +12,7 @@ import {
   untrack,
 } from "solid-js";
 import type { HymnbookId, HymnNumber } from "../domain/types.ts";
+import { languageName } from "../library/books.ts";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import type { UserState } from "../persistence/user-state.ts";
 import { titleCase } from "../shell/case.ts";
@@ -18,6 +20,7 @@ import { type GlideList, glideList } from "../shell/glideList.ts";
 import { hoverButton } from "../shell/hoverGlide.ts";
 import { KeyCombo } from "../shell/KeyCombo.tsx";
 import { RecentsList } from "../shell/RecentsList.tsx";
+import { type Layout, layoutOf, type Range, type Windowed, windowed } from "../shell/windowing.ts";
 import {
   type FinderGroup,
   type FinderItem,
@@ -25,14 +28,13 @@ import {
   SOURCES,
   searchSources,
   searchSourcesByNumber,
+  searchSourcesMore,
 } from "./sources.ts";
 
 /** How long typing must pause before a lyric search runs. */
 const LYRIC_DEBOUNCE_MS = 200;
 /** Number suggestions shown at most. */
 const NUMBER_SUGGESTIONS = 8;
-/** How many of the book's first songs show while nothing is typed. */
-export const OPENING_SONGS = 20;
 /** Matches the quick switcher lists at most, from one book. */
 const COMPACT_ROWS = 5;
 /** Matches the quick switcher lists from each book, when there are several. */
@@ -44,6 +46,17 @@ const GROUP_ROWS = 5;
 const LEAVE_BACKSTOP_MS = 600;
 /** The highlight follows moving rows for at most this long. */
 const FOLLOW_MS = 800;
+/** The windowed list's rows in rem, fixed in the stylesheet (`.finder-windowed`): nothing is
+ * measured per row (SDD-0001 §13.2). */
+const OPTION_REM = 3.5;
+const HEADING_REM = 2.75;
+const STATUS_REM = 3;
+/** Rows kept either side of the view. */
+const OVERSCAN_ROWS = 6;
+/** Slots rendered before the list has been placed: enough to fill a tall sheet. */
+const FIRST_SLOTS = 18;
+/** The group a browsed book's songs are in when the book has no languages. */
+const ALL_SONGS = "All songs";
 
 export interface FinderProps {
   /** The book searched: its key (SDD-0004 §10). */
@@ -101,7 +114,53 @@ type Row =
   | { kind: "hymn"; item: FinderItem; group: GroupRef }
   | { kind: "more"; group: GroupRef };
 
+/** What fills a windowed listbox, top to bottom: a group's heading, its options, and the line
+ * that ends a group which pages (loading, a failure) or a search that has (the end). */
+type Slot =
+  | { kind: "heading"; group: GroupRef }
+  | { kind: "row"; row: Row; index: number }
+  | { kind: "status"; group: GroupRef; state: "loading" | "failed" | "end" };
+
+/** A group's stretch of slots: `first` is its heading (when it has one), `from` to `to` the rest. */
+interface Section {
+  group: GroupRef;
+  heading: Slot | undefined;
+  first: number;
+  from: number;
+  to: number;
+}
+
+/** The windowed list's plan: every slot, where it sits, and the option each belongs to. */
+interface Plan {
+  slots: Slot[];
+  sections: Section[];
+  layout: Layout;
+  /** The slot of each option, by option index. */
+  slotOfOption: number[];
+  /** The slots that ask for the next page of their group when they come into reach. */
+  pagers: { slot: number; group: string }[];
+}
+
+/** One rem in px: read when a plan is made, not while scrolling. */
+const remPx = () => {
+  const size = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+  return Number.isFinite(size) && size > 0 ? size : 16;
+};
+
+/** A group's pages fetched past its first, and how far into the book's matches they reached. */
+interface Paged {
+  items: FinderItem[];
+  more: boolean;
+  fetched: number;
+}
+
 let nextId = 0;
+
+const itemOf = (hymn: { number: HymnNumber; title: string }, book: HymnbookId): FinderItem => ({
+  number: hymn.number,
+  title: hymn.title,
+  book,
+});
 
 /** Whether every word typed starts a word of the label: "bl" and "blank
  * out" both find "Blank the Output". A number never matches, so the fast
@@ -131,24 +190,48 @@ export function Finder(props: FinderProps) {
   // the last book's shows.
   const [read] = createResource(id, (book) => store().listHymns(book));
   const hymns = () => (read.loading ? undefined : read());
-  // The book from its start, by number, while nothing is typed: there is
-  // always something to open (SDD-0001 §13).
-  // The list is in the order the book gives (`listHymns`): by number, except Assorted Hymns,
-  // which lists its songs by language and title (SDD-0004 §17). The Finder keeps that order.
-  const opening = createMemo(() => (hymns() ?? []).slice(0, OPENING_SONGS));
   // How many recents there are, once known; the list reports it.
   const [recentCount, setRecentCount] = createSignal<number>();
   // Another book: its recents are not known yet, and nothing of the last one's shows.
   createEffect(on(id, () => setRecentCount(undefined), { defer: true }));
   // The songs are in the list's place until it is known that there are none, and both lists
   // appear together once both are read, so neither moves the other.
-  const songsExpected = () => read.loading || opening().length > 0;
-  const songsShown = () =>
-    !props.compact && !trimmed() && opening().length > 0 && recentCount() !== undefined;
+  const songsExpected = () => read.loading || (hymns()?.length ?? 0) > 0;
 
   const [query, setQuery] = createSignal(props.initialQuery ?? "");
   const trimmed = () => query().trim();
   const isNumber = () => /^\d+$/.test(trimmed());
+
+  // The whole book while nothing is typed (SDD-0001 §13.2), in the order the book gives
+  // (`listHymns`): by number, except Assorted Hymns, which lists its songs by language and
+  // title (SDD-0004 §17). The Finder keeps that order, a group to a language where the book
+  // has several; the list is windowed, so a book of any length costs the same to show.
+  const browsing = () => !props.compact && !trimmed();
+  const browseGroups = createMemo((): FinderGroup[] => {
+    const all = hymns() ?? [];
+    if (!browsing() || all.length === 0 || recentCount() === undefined) return [];
+    const book = id();
+    const languages = new Set(all.map((hymn) => hymn.language ?? ""));
+    if (languages.size < 2 || languages.has("")) {
+      return [
+        { id: book, title: ALL_SONGS, current: true, items: all.map((h) => itemOf(h, book)) },
+      ];
+    }
+    const groups: FinderGroup[] = [];
+    for (const hymn of all) {
+      const last = groups.at(-1);
+      const code = hymn.language ?? "";
+      if (last && last.id === `${book}#${code}`) last.items.push(itemOf(hymn, book));
+      else
+        groups.push({
+          id: `${book}#${code}`,
+          title: languageName(code) || code,
+          current: true,
+          items: [itemOf(hymn, book)],
+        });
+    }
+    return groups;
+  });
 
   // Lyric search runs once typing pauses — or at once, on Enter.
   const [lyricQuery, setLyricQuery] = createSignal("");
@@ -165,13 +248,18 @@ export function Finder(props: FinderProps) {
   onCleanup(() => clearTimeout(debounce));
 
   // A lyric query goes to every source (ADR-0032): the books, each its own group.
+  // Each result set says which query it answers, so whether it is the latest asked is not a
+  // matter of when the resource starts loading.
   const [lyricResults] = createResource(
     lyricQuery,
-    (text): Promise<FinderGroup[]> =>
-      text
-        ? searchSources(props.sources ?? SOURCES, text, { store: store(), currentKey: id() })
-        : Promise.resolve([]),
+    async (text): Promise<{ text: string; groups: FinderGroup[] }> => ({
+      text,
+      groups: text
+        ? await searchSources(props.sources ?? SOURCES, text, { store: store(), currentKey: id() })
+        : [],
+    }),
   );
+  const lyricPending = () => lyricResults.loading || lyricResults.latest?.text !== lyricQuery();
 
   // Several books held (and not the switcher, for a number): the results are grouped
   // under their books' titles.
@@ -199,8 +287,10 @@ export function Finder(props: FinderProps) {
   // While the next lyric search is pending (the pause before it, or its read)
   // the last results stay: only a result set that is empty empties the list.
   // A number is suggested from the current book first, then the other books.
+  let browsed = false;
   const groups = createMemo((prev: FinderGroup[]): FinderGroup[] => {
     if (isNumber()) {
+      browsed = false;
       const typed = trimmed();
       const all = hymns() ?? [];
       const exact = all.filter((hymn) => String(hymn.number) === typed);
@@ -215,22 +305,99 @@ export function Finder(props: FinderProps) {
         ...otherNumberGroups(),
       ];
     }
-    if (!trimmed()) return [];
-    if (!lyricQuery() || lyricResults.loading) return prev;
-    const found = lyricResults.latest ?? [];
+    if (!trimmed()) {
+      browsed = true;
+      return browseGroups();
+    }
+    // The whole book is not a result: words typed after it wait with an empty list.
+    if (!lyricQuery() || lyricPending()) return browsed ? [] : prev;
+    browsed = false;
+    const found = lyricResults.latest?.groups ?? [];
     const cap = !props.compact ? undefined : grouped() ? COMPACT_GROUP_ROWS : COMPACT_ROWS;
     return found.map((group) => ({ ...group, items: group.items.slice(0, cap) }));
   }, []);
 
   // Which other books' groups More in has opened; a new search closes them.
   const [expanded, setExpanded] = createSignal<ReadonlySet<string>>(new Set());
+  // The pages fetched past a search's first, by group; those on their way; those that failed.
+  // A new result set throws them all away, and a page still on its way is let go (SDD-0001 §13.2).
+  const [paged, setPaged] = createSignal<ReadonlyMap<string, Paged>>(new Map());
+  const [fetching, setFetching] = createSignal<ReadonlySet<string>>(new Set());
+  const [failed, setFailed] = createSignal<ReadonlySet<string>>(new Set());
+  let generation = 0;
   createEffect(
     on(
       () => lyricResults.latest,
-      () => setExpanded(new Set<string>()),
+      () => {
+        generation++;
+        setExpanded(new Set<string>());
+        setPaged(new Map());
+        setFetching(new Set<string>());
+        setFailed(new Set<string>());
+      },
       { defer: true },
     ),
   );
+
+  // The groups with their later pages appended, each song once. The highlight and the
+  // scroll belong to `groups`, so a page arriving moves neither.
+  const shownGroups = createMemo((): FinderGroup[] => {
+    const more = paged();
+    if (more.size === 0) return groups();
+    return groups().map((group) => {
+      const extra = more.get(group.id);
+      if (!extra) return group;
+      const have = new Set(group.items.map((item) => item.number));
+      const added = extra.items.filter((item) => !have.has(item.number));
+      return { ...group, items: [...group.items, ...added], more: extra.more };
+    });
+  });
+
+  /** Asks for the next page of a group, once, and appends it when it arrives. */
+  const loadMore = (groupId: string) => {
+    const base = groups().find((group) => group.id === groupId);
+    const mine = paged().get(groupId);
+    const more = mine ? mine.more : base?.more;
+    if (!base || !more || fetching().has(groupId) || failed().has(groupId)) return;
+    const turn = generation;
+    const offset = base.items.length + (mine?.fetched ?? 0);
+    const text = lyricQuery();
+    const grow = (set: ReadonlySet<string>, add: boolean) =>
+      new Set([...set].filter((g) => g !== groupId).concat(add ? [groupId] : []));
+    setFetching((set) => grow(set, true));
+    setFailed((set) => grow(set, false));
+    searchSourcesMore(props.sources ?? SOURCES, groupId, text, offset, {
+      store: store(),
+      currentKey: id(),
+    })
+      .then((page) => {
+        if (turn !== generation) return;
+        // One batch: when the page lands the group is no longer on its way, so the next
+        // page can be asked for at once if the end is still in reach.
+        batch(() => {
+          setFetching((set) => grow(set, false));
+          setPaged((all) => {
+            const next = new Map(all);
+            const before = all.get(groupId);
+            next.set(groupId, {
+              items: [...(before?.items ?? []), ...page.items],
+              more: page.more,
+              fetched: (before?.fetched ?? 0) + page.items.length,
+            });
+            return next;
+          });
+        });
+      })
+      .catch(() => {
+        if (turn !== generation) return;
+        batch(() => {
+          setFetching((set) => grow(set, false));
+          setFailed((set) => grow(set, true));
+        });
+      });
+  };
+  /** Whether a search has pages still to come: the arrows wait for them at the last row. */
+  const morePending = () => !props.compact && shownGroups().some((group) => group.more);
 
   const commandRows = createMemo((): Row[] =>
     (props.commands ?? [])
@@ -240,16 +407,17 @@ export function Finder(props: FinderProps) {
 
   // The actions, then each group's songs. A book that is not the current one shows its
   // first few and a More in row, until opened (SDD-0001 §13.1).
+  const shortOf = (group: FinderGroup) =>
+    grouped() &&
+    !props.compact &&
+    !group.current &&
+    !expanded().has(group.id) &&
+    group.items.length > GROUP_ROWS;
   const rows = createMemo((): Row[] => [
     ...commandRows(),
-    ...groups().flatMap((group): Row[] => {
+    ...shownGroups().flatMap((group): Row[] => {
       const ref = { id: group.id, title: group.title };
-      const short =
-        grouped() &&
-        !props.compact &&
-        !group.current &&
-        !expanded().has(group.id) &&
-        group.items.length > GROUP_ROWS;
+      const short = shortOf(group);
       const items = short ? group.items.slice(0, GROUP_ROWS) : group.items;
       return [
         ...items.map((item) => ({ kind: "hymn" as const, item, group: ref })),
@@ -263,7 +431,6 @@ export function Finder(props: FinderProps) {
   // takes its highlight with it, rather than it staying behind or jumping
   // elsewhere; Enter then takes the top match (DESIGN.md § States).
   const [active, setActiveIndex] = createSignal<number>();
-  const setActive = (step: (index: number) => number) => setActiveIndex(step(active() ?? -1));
   // Opening a group (More in) changes the rows, not the matches: the highlight stays
   // where it is, now on the first song that was hidden.
   createEffect(() => {
@@ -293,13 +460,11 @@ export function Finder(props: FinderProps) {
     lastRows.delete(key);
   };
   createEffect(() => {
+    // Only the switcher's rows have a motion; a windowed list has its own plan.
+    if (!props.compact) return;
     const live = rows();
     const keys = live.map(rowKey);
     for (const row of live) lastRows.set(rowKey(row), row);
-    if (!props.compact) {
-      setShown(keys);
-      return;
-    }
     const before = untrack(shown);
     const next = [...keys];
     const going = new Set<string>();
@@ -325,7 +490,11 @@ export function Finder(props: FinderProps) {
   };
 
   const noMatch = () =>
-    !isNumber() && !!lyricQuery() && lyricResults.state === "ready" && lyricResults().length === 0;
+    !isNumber() &&
+    !!lyricQuery() &&
+    lyricResults.state === "ready" &&
+    lyricResults().text === lyricQuery() &&
+    lyricResults().groups.length === 0;
 
   // The groups on screen, in order, each row in its group. A leaving row (the switcher)
   // keeps its group until it is gone.
@@ -364,6 +533,13 @@ export function Finder(props: FinderProps) {
   const choose = () => {
     // The highlight may point past a list that has just shrunk: the last row is taken.
     const list = rows();
+    // Nothing typed, the list is the whole book: only a row the arrows chose is opened.
+    if (!trimmed() && !props.compact) {
+      const chosen =
+        active() === undefined ? undefined : list[Math.min(active() ?? 0, list.length - 1)];
+      if (chosen) pick(chosen);
+      return;
+    }
     const row =
       active() === undefined && numberNotHere()
         ? undefined
@@ -375,14 +551,187 @@ export function Finder(props: FinderProps) {
     if (trimmed() && !isNumber()) setLyricQuery(trimmed());
   };
 
+  // The windowed list (SDD-0001 §13.2): every row of the plan has a fixed height, and only
+  // the slots within the scroller's view, with some over, are in the DOM.
+  const headed = () => grouped() || !trimmed();
+  /** A search that went past its first page and has none left. */
+  const pagedToEnd = () => paged().size > 0 && !shownGroups().some((group) => group.more);
+  const plan = createMemo((): Plan => {
+    const list = rows();
+    const rem = remPx();
+    const slots: Slot[] = [];
+    const sections: Section[] = [];
+    const slotOfOption: number[] = [];
+    const pagers: Plan["pagers"] = [];
+    const byId = new Map(shownGroups().map((group) => [group.id, group]));
+    const finished = pagedToEnd();
+    let open: Section | undefined;
+    const close = (last: boolean) => {
+      if (!open) return;
+      const group = byId.get(open.group.id);
+      if (group?.more && !shortOf(group)) {
+        const state = failed().has(group.id) ? "failed" : "loading";
+        pagers.push({ slot: slots.length, group: group.id });
+        slots.push({ kind: "status", group: open.group, state });
+      } else if (last && finished) {
+        slots.push({ kind: "status", group: open.group, state: "end" });
+      }
+      open.to = slots.length;
+      sections.push(open);
+      open = undefined;
+    };
+    list.forEach((row, index) => {
+      if (open?.group.id !== row.group.id) {
+        close(false);
+        const heading: Slot | undefined =
+          headed() && row.group.title && row.group.id !== COMMANDS_GROUP.id
+            ? { kind: "heading", group: row.group }
+            : undefined;
+        const first = slots.length;
+        if (heading) slots.push(heading);
+        open = { group: row.group, heading, first, from: slots.length, to: slots.length };
+      }
+      slotOfOption.push(slots.length);
+      slots.push({ kind: "row", row, index });
+    });
+    close(true);
+    const height = (i: number) => {
+      const kind = slots[i]?.kind;
+      return (kind === "heading" ? HEADING_REM : kind === "status" ? STATUS_REM : OPTION_REM) * rem;
+    };
+    return { slots, sections, layout: layoutOf(slots.length, height), slotOfOption, pagers };
+  });
+  const [range, setRange] = createSignal<Range>({ start: 0, end: FIRST_SLOTS });
+  /** The sections with something in the window, by their place in the plan. */
+  const sectionsInView = createMemo((): number[] => {
+    const { start, end } = range();
+    const out: number[] = [];
+    plan().sections.forEach((section, at) => {
+      if (section.first < end && section.to > start) out.push(at);
+    });
+    return out;
+  });
+  const bodyOf = (at: number): Slot[] => {
+    const section = plan().sections[at];
+    if (!section) return [];
+    const { start, end } = range();
+    return plan().slots.slice(Math.max(section.from, start), Math.min(section.to, end));
+  };
+  const heightAt = (index: number) => plan().layout.offsets[index] ?? 0;
+  /** The height standing for the slots of a section above the window, inside the section. */
+  const spaceAbove = (at: number) => {
+    const section = plan().sections[at];
+    return section
+      ? heightAt(Math.max(section.from, Math.min(range().start, section.to))) -
+          heightAt(section.from)
+      : 0;
+  };
+  const spaceBelow = (at: number) => {
+    const section = plan().sections[at];
+    return section
+      ? heightAt(section.to) - heightAt(Math.min(section.to, Math.max(section.from, range().end)))
+      : 0;
+  };
+  /** The height of the sections before the first in the window, and after the last. */
+  const spaceBefore = () => heightAt(plan().sections[sectionsInView()[0] ?? 0]?.first ?? 0);
+  const spaceAfter = () => {
+    const last = plan().sections[sectionsInView().at(-1) ?? 0];
+    return last ? plan().layout.total - heightAt(last.to) : 0;
+  };
+
+  let win: Windowed | undefined;
+  let formEl: HTMLFormElement | undefined;
+  let rootEl: HTMLDivElement | undefined;
+  /** What the sticky field (and a group's heading) cover at the top of the view, in px. */
+  const coveredAbove = () => {
+    if (!formEl) return 0;
+    const stick = Number.parseFloat(getComputedStyle(formEl).top);
+    const heading = headed() ? HEADING_REM * remPx() : 0;
+    return (Number.isFinite(stick) ? stick : 0) + formEl.offsetHeight + heading;
+  };
+  const activeShown = () => {
+    const at = active();
+    if (at === undefined) return false;
+    if (props.compact) return true;
+    const slot = plan().slotOfOption[at];
+    const { start, end } = range();
+    return slot !== undefined && slot >= start && slot < end;
+  };
+  /** The highlight moves by key: to a row, scrolled into view at once. */
+  const moveTo = (index: number) => {
+    setActiveIndex(index);
+    const slot = plan().slotOfOption[index];
+    if (slot !== undefined) win?.reveal(slot);
+  };
+
+  onMount(() => {
+    if (props.compact || !results || !results.isConnected) return;
+    win = windowed({
+      list: results,
+      layout: () => plan().layout,
+      overscan: OVERSCAN_ROWS * OPTION_REM * remPx(),
+      insets: () => ({ top: coveredAbove(), bottom: 8 }),
+      onRange: setRange,
+    });
+    onCleanup(() => win?.stop());
+    win.update();
+    // The groups' headings stick under the field, wherever its height has got to.
+    if (formEl && rootEl && typeof ResizeObserver === "function") {
+      const form = formEl;
+      const root = rootEl;
+      const watch = new ResizeObserver(() =>
+        root.style.setProperty("--finder-form-h", `${form.offsetHeight}px`),
+      );
+      watch.observe(form);
+      onCleanup(() => watch.disconnect());
+    }
+  });
+  // A new plan changes the height: the window is read again. A new query starts at the top.
+  createEffect(on(plan, () => win?.update(), { defer: true }));
+  createEffect(on(trimmed, () => win?.toStart(), { defer: true }));
+  // The status line that ends a group which pages asks for the next page when it comes
+  // within reach, a window's overscan from the view.
+  createEffect(() => {
+    if (props.compact) return;
+    const { start, end } = range();
+    for (const pager of plan().pagers) {
+      if (pager.slot >= start && pager.slot < end) untrack(() => loadMore(pager.group));
+    }
+  });
+
+  const retry = (group: string) => {
+    setFailed((set) => new Set([...set].filter((g) => g !== group)));
+    loadMore(group);
+  };
+
   const onKeyDown = (event: KeyboardEvent) => {
     const count = rows().length;
+    const at = active();
+    const windowedList = !props.compact;
+    const page = () =>
+      Math.max(1, Math.floor((win?.viewport() ?? 600) / (OPTION_REM * remPx())) - 1);
+    // Home and End are the box's own caret keys once something is typed (Ctrl takes them).
+    const ends = windowedList && (!trimmed() || event.ctrlKey || event.metaKey);
     if (event.key === "ArrowDown" && count) {
       event.preventDefault();
-      setActive((i) => (i + 1) % count);
+      // The last row of a search with pages to come waits for them, rather than wrapping.
+      if (at === count - 1 && morePending()) return;
+      moveTo(at === undefined ? 0 : (at + 1) % count);
     } else if (event.key === "ArrowUp" && count) {
       event.preventDefault();
-      setActive((i) => (i < 0 ? count - 1 : (i - 1 + count) % count));
+      moveTo(at === undefined ? count - 1 : (at - 1 + count) % count);
+    } else if (event.key === "PageDown" && count && windowedList) {
+      event.preventDefault();
+      moveTo(Math.min(count - 1, (at ?? -1) + page()));
+    } else if (event.key === "PageUp" && count && windowedList) {
+      event.preventDefault();
+      moveTo(Math.max(0, (at ?? 0) - page()));
+    } else if (event.key === "Home" && count && ends) {
+      event.preventDefault();
+      moveTo(0);
+    } else if (event.key === "End" && count && ends) {
+      event.preventDefault();
+      moveTo(count - 1);
     } else if (event.key === "Escape" && query() && !props.compact) {
       // Clear first; a second Escape reaches the sheet and closes it.
       event.preventDefault();
@@ -400,6 +749,8 @@ export function Finder(props: FinderProps) {
   createEffect(() => {
     active();
     rows();
+    // A windowed row that left the window and came back is a new element: marked again.
+    if (!props.compact && active() !== undefined) range();
     // After the rows have settled: a microtask on, the DOM is what to mark.
     queueMicrotask(() => {
       glide?.hover.show(results?.querySelector<HTMLElement>('[aria-selected="true"]') ?? null);
@@ -416,8 +767,39 @@ export function Finder(props: FinderProps) {
     });
   });
 
+  /** What an option says: an action and its key, More in a book, or a song's number and title. */
+  const optionContent = (row: Row) => {
+    if (row.kind === "command") {
+      return (
+        <>
+          <span class="finder-title">{row.command.label}</span>
+          <Show when={row.command.hint}>{(hint) => <KeyCombo keys={hint()} />}</Show>
+        </>
+      );
+    }
+    if (row.kind === "more") {
+      return <span class="finder-title finder-more">More in {row.group.title}</span>;
+    }
+    const hymn = row.item;
+    return (
+      <>
+        <span class="finder-number">#{hymn.number}</span>
+        <span class="finder-text">
+          <span class="finder-title">{titleCase(hymn.title)}</span>
+          <Show when={hymn.snippet}>
+            {(snippet) => (
+              <span class="finder-snippet-box">
+                <span class="finder-snippet list-row-supporting">— {snippet()}</span>
+              </span>
+            )}
+          </Show>
+        </span>
+      </>
+    );
+  };
+
   return (
-    <div class="finder">
+    <div class="finder" ref={rootEl}>
       <Show when={props.onBack}>
         <button
           type="button"
@@ -431,6 +813,7 @@ export function Finder(props: FinderProps) {
       </Show>
       <form
         class="finder-form"
+        ref={formEl}
         onSubmit={(event) => {
           event.preventDefault();
           choose();
@@ -443,7 +826,7 @@ export function Finder(props: FinderProps) {
             aria-autocomplete="list"
             aria-expanded={rows().length > 0}
             aria-controls={listId}
-            aria-activedescendant={active() == null ? undefined : optionId(active() ?? 0)}
+            aria-activedescendant={activeShown() ? optionId(active() ?? 0) : undefined}
             ref={(el) =>
               // Opened over nothing (a book chosen in the Library), the next key typed is a
               // search, with a keyboard to type on. Not where a screen keyboard would cover
@@ -483,140 +866,6 @@ export function Finder(props: FinderProps) {
         <p class="body-large">No matches for "{lyricQuery()}".</p>
       </Show>
 
-      {/* Keyboard reaches the options through the input's
-          aria-activedescendant (the ARIA combobox pattern), not focus. */}
-      <div
-        id={listId}
-        class="list glide-list"
-        role="listbox"
-        aria-label={props.commands ? "Matching songs and actions" : "Matching songs"}
-        onMouseLeave={() => setActiveIndex(undefined)}
-        ref={(el) => {
-          results = el;
-          glide = glideList(el, { rows: ".finder-option" });
-          onCleanup(glide.stop);
-        }}
-      >
-        <For each={groupIds()}>
-          {(group) => (
-            // With several books, each source is a group under its heading; with one, the
-            // wrapper is no more than a wrapper.
-            <div class="finder-group" {...groupAria(group)}>
-              <Show when={grouped() && titled(group) && group !== COMMANDS_GROUP.id}>
-                <div
-                  class="finder-group-heading label-large on-surface-variant"
-                  id={headingId(group)}
-                >
-                  {groupTitle(group)}
-                </div>
-              </Show>
-              <For each={keysIn(group)}>
-                {(key) => {
-                  const row = () => rowOf(key);
-                  const going = () => leaving().has(key);
-                  const index = () => liveIndex(key);
-                  return (
-                    <div
-                      role="presentation"
-                      class="finder-row"
-                      data-entering={props.compact && settled ? "" : undefined}
-                      data-leaving={going() ? "" : undefined}
-                      onAnimationEnd={(event) => {
-                        if (event.target === event.currentTarget)
-                          event.currentTarget.removeAttribute("data-entering");
-                      }}
-                      onTransitionEnd={(event) => {
-                        if (event.target === event.currentTarget) dropRow(key);
-                      }}
-                    >
-                      <div class="finder-row-clip">
-                        <Show when={row()}>
-                          {(current) => {
-                            const command = () => {
-                              const it = current();
-                              return it.kind === "command" ? it.command : undefined;
-                            };
-                            const option = () => {
-                              const it = current();
-                              return it.kind === "hymn" ? it.item : undefined;
-                            };
-                            const more = () => {
-                              const it = current();
-                              return it.kind === "more" ? it.group : undefined;
-                            };
-                            return (
-                              <div
-                                id={going() ? `${listId}-out-${key}` : optionId(index())}
-                                role="option"
-                                tabIndex={-1}
-                                class="list-row finder-option"
-                                aria-hidden={going() ? "true" : undefined}
-                                aria-selected={!going() && active() === index()}
-                                // mousemove, not mouseenter: a list appearing under a resting
-                                // pointer fires mouseenter without the pointer moving, and must
-                                // not steal the highlight from the top match — typing "121" then
-                                // Enter must open 121, not the row that landed under the mouse.
-                                onMouseMove={() => !going() && setActiveIndex(index())}
-                                // mousedown, not click: keeps focus in the box while choosing.
-                                onMouseDown={(event) => {
-                                  event.preventDefault();
-                                  if (!going()) pick(current());
-                                }}
-                              >
-                                <Show
-                                  when={option()}
-                                  fallback={
-                                    <Show
-                                      when={more()}
-                                      fallback={
-                                        <>
-                                          <span class="finder-title">{command()?.label}</span>
-                                          <Show when={command()?.hint}>
-                                            {(hint) => <KeyCombo keys={hint()} />}
-                                          </Show>
-                                        </>
-                                      }
-                                    >
-                                      {(book) => (
-                                        <span class="finder-title finder-more">
-                                          More in {book().title}
-                                        </span>
-                                      )}
-                                    </Show>
-                                  }
-                                >
-                                  {(hymn) => (
-                                    <>
-                                      <span class="finder-number">#{hymn().number}</span>
-                                      <span class="finder-text">
-                                        <span class="finder-title">{titleCase(hymn().title)}</span>
-                                        <Show when={hymn().snippet}>
-                                          {(snippet) => (
-                                            <span class="finder-snippet-box">
-                                              <span class="finder-snippet list-row-supporting">
-                                                — {snippet()}
-                                              </span>
-                                            </span>
-                                          )}
-                                        </Show>
-                                      </span>
-                                    </>
-                                  )}
-                                </Show>
-                              </div>
-                            );
-                          }}
-                        </Show>
-                      </div>
-                    </div>
-                  );
-                }}
-              </For>
-            </div>
-          )}
-        </For>
-      </div>
-
       <Show when={!trimmed() && !props.compact}>
         {/* Recents is there while it has entries (or while there are no songs
             to show instead); its own count says which. */}
@@ -633,35 +882,251 @@ export function Finder(props: FinderProps) {
             onCount={setRecentCount}
           />
         </section>
-        <Show when={songsShown()}>
-          <section aria-label="Songs">
-            <h2 class="title-medium on-surface-variant">
-              {(hymns()?.length ?? 0) > OPENING_SONGS ? "From the start" : "Songs"}
-            </h2>
-            <div
-              class="recents"
-              ref={(el) => onCleanup(glideList(el, { rows: ".recents-row" }).stop)}
-            >
-              <ul class="list finder-songs">
-                <For each={opening()}>
-                  {(hymn) => (
-                    <li>
-                      <button
-                        type="button"
-                        class="list-row recents-row"
-                        aria-current={hymn.number === props.current ? "true" : undefined}
-                        onClick={() => props.onSelect(hymn.number, id())}
+      </Show>
+
+      {/* Keyboard reaches the options through the input's
+          aria-activedescendant (the ARIA combobox pattern), not focus. */}
+      <div
+        id={listId}
+        class="list glide-list"
+        classList={{ "finder-windowed": !props.compact }}
+        role="listbox"
+        aria-label={props.commands ? "Matching songs and actions" : "Matching songs"}
+        onMouseLeave={() => setActiveIndex(undefined)}
+        // A failed page is tried again by a tap on its line.
+        onMouseDown={(event) => {
+          const line = (event.target as Element).closest<HTMLElement>('[data-state="failed"]');
+          if (!line?.dataset.group) return;
+          event.preventDefault();
+          retry(line.dataset.group);
+        }}
+        ref={(el) => {
+          results = el;
+          glide = glideList(el, { rows: ".finder-option" });
+          onCleanup(glide.stop);
+        }}
+      >
+        <Show
+          when={props.compact}
+          fallback={
+            <>
+              <div
+                class="finder-spacer"
+                aria-hidden="true"
+                style={{ height: `${spaceBefore()}px` }}
+              />
+              <For each={sectionsInView()}>
+                {(at) => {
+                  const section = () => plan().sections[at];
+                  return (
+                    <div
+                      class="finder-group"
+                      {...(headed() && section()?.heading
+                        ? { role: "group", "aria-labelledby": `${listId}-g-${at}` }
+                        : section()?.group.id === COMMANDS_GROUP.id && headed()
+                          ? { role: "group", "aria-label": COMMANDS_GROUP.title }
+                          : { role: "presentation" })}
+                    >
+                      <Show when={section()?.heading}>
+                        <div
+                          class="finder-group-heading label-large on-surface-variant"
+                          id={`${listId}-g-${at}`}
+                        >
+                          {section()?.group.title}
+                        </div>
+                      </Show>
+                      <div
+                        class="finder-spacer"
+                        aria-hidden="true"
+                        style={{ height: `${spaceAbove(at)}px` }}
+                      />
+                      <For each={bodyOf(at)}>
+                        {(slot) =>
+                          slot.kind === "row" ? (
+                            <div
+                              id={optionId(slot.index)}
+                              role="option"
+                              tabIndex={-1}
+                              class="list-row finder-option"
+                              aria-selected={active() === slot.index}
+                              aria-setsize={rows().length}
+                              aria-posinset={slot.index + 1}
+                              aria-current={
+                                slot.row.kind === "hymn" &&
+                                slot.row.item.number === props.current &&
+                                slot.row.item.book === id()
+                                  ? "true"
+                                  : undefined
+                              }
+                              onMouseMove={() => setActiveIndex(slot.index)}
+                              // mousedown, not click: keeps focus in the box while choosing.
+                              onMouseDown={(event) => {
+                                event.preventDefault();
+                                if (slot.kind === "row") pick(slot.row);
+                              }}
+                            >
+                              {optionContent(slot.row)}
+                            </div>
+                          ) : slot.kind === "status" ? (
+                            <div
+                              class="finder-status body-medium on-surface-variant"
+                              data-state={slot.state}
+                              data-group={slot.group.id}
+                              role="presentation"
+                            >
+                              {slot.state === "loading"
+                                ? "Loading more"
+                                : slot.state === "failed"
+                                  ? "Could not load more. Try again."
+                                  : "End of results"}
+                            </div>
+                          ) : null
+                        }
+                      </For>
+                      <div
+                        class="finder-spacer"
+                        aria-hidden="true"
+                        style={{ height: `${spaceBelow(at)}px` }}
+                      />
+                    </div>
+                  );
+                }}
+              </For>
+              <div
+                class="finder-spacer"
+                aria-hidden="true"
+                style={{ height: `${spaceAfter()}px` }}
+              />
+            </>
+          }
+        >
+          <For each={groupIds()}>
+            {(group) => (
+              // With several books, each source is a group under its heading; with one, the
+              // wrapper is no more than a wrapper.
+              <div class="finder-group" {...groupAria(group)}>
+                <Show when={grouped() && titled(group) && group !== COMMANDS_GROUP.id}>
+                  <div
+                    class="finder-group-heading label-large on-surface-variant"
+                    id={headingId(group)}
+                  >
+                    {groupTitle(group)}
+                  </div>
+                </Show>
+                <For each={keysIn(group)}>
+                  {(key) => {
+                    const row = () => rowOf(key);
+                    const going = () => leaving().has(key);
+                    const index = () => liveIndex(key);
+                    return (
+                      <div
+                        role="presentation"
+                        class="finder-row"
+                        data-entering={props.compact && settled ? "" : undefined}
+                        data-leaving={going() ? "" : undefined}
+                        onAnimationEnd={(event) => {
+                          if (event.target === event.currentTarget)
+                            event.currentTarget.removeAttribute("data-entering");
+                        }}
+                        onTransitionEnd={(event) => {
+                          if (event.target === event.currentTarget) dropRow(key);
+                        }}
                       >
-                        <span class="recents-number">#{hymn.number}</span>
-                        <span class="recents-title">{titleCase(hymn.title)}</span>
-                      </button>
-                    </li>
-                  )}
+                        <div class="finder-row-clip">
+                          <Show when={row()}>
+                            {(current) => {
+                              const command = () => {
+                                const it = current();
+                                return it.kind === "command" ? it.command : undefined;
+                              };
+                              const option = () => {
+                                const it = current();
+                                return it.kind === "hymn" ? it.item : undefined;
+                              };
+                              const more = () => {
+                                const it = current();
+                                return it.kind === "more" ? it.group : undefined;
+                              };
+                              return (
+                                <div
+                                  id={going() ? `${listId}-out-${key}` : optionId(index())}
+                                  role="option"
+                                  tabIndex={-1}
+                                  class="list-row finder-option"
+                                  aria-hidden={going() ? "true" : undefined}
+                                  aria-selected={!going() && active() === index()}
+                                  // mousemove, not mouseenter: a list appearing under a resting
+                                  // pointer fires mouseenter without the pointer moving, and must
+                                  // not steal the highlight from the top match — typing "121" then
+                                  // Enter must open 121, not the row that landed under the mouse.
+                                  onMouseMove={() => !going() && setActiveIndex(index())}
+                                  // mousedown, not click: keeps focus in the box while choosing.
+                                  onMouseDown={(event) => {
+                                    event.preventDefault();
+                                    if (!going()) pick(current());
+                                  }}
+                                >
+                                  <Show
+                                    when={option()}
+                                    fallback={
+                                      <Show
+                                        when={more()}
+                                        fallback={
+                                          <>
+                                            <span class="finder-title">{command()?.label}</span>
+                                            <Show when={command()?.hint}>
+                                              {(hint) => <KeyCombo keys={hint()} />}
+                                            </Show>
+                                          </>
+                                        }
+                                      >
+                                        {(book) => (
+                                          <span class="finder-title finder-more">
+                                            More in {book().title}
+                                          </span>
+                                        )}
+                                      </Show>
+                                    }
+                                  >
+                                    {(hymn) => (
+                                      <>
+                                        <span class="finder-number">#{hymn().number}</span>
+                                        <span class="finder-text">
+                                          <span class="finder-title">
+                                            {titleCase(hymn().title)}
+                                          </span>
+                                          <Show when={hymn().snippet}>
+                                            {(snippet) => (
+                                              <span class="finder-snippet-box">
+                                                <span class="finder-snippet list-row-supporting">
+                                                  — {snippet()}
+                                                </span>
+                                              </span>
+                                            )}
+                                          </Show>
+                                        </span>
+                                      </>
+                                    )}
+                                  </Show>
+                                </div>
+                              );
+                            }}
+                          </Show>
+                        </div>
+                      </div>
+                    );
+                  }}
                 </For>
-              </ul>
-            </div>
-          </section>
+              </div>
+            )}
+          </For>
         </Show>
+      </div>
+      {/* What the line that ends a paging list says, for a screen reader. */}
+      <Show when={!props.compact}>
+        <div class="visually-hidden" role="status">
+          {fetching().size > 0 ? "Loading more results" : pagedToEnd() ? "No more results" : ""}
+        </div>
       </Show>
     </div>
   );

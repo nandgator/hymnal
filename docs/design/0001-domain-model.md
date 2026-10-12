@@ -960,11 +960,12 @@ word becomes a quoted FTS5 prefix term (`"word"*`), joined with spaces for
 implicit AND. A query matches lines containing all the words, regardless of
 order, and matches as the user finishes typing a word. Each term is quoted (not
 merely escaped) so FTS5 query-syntax characters in free text can't break the
-query. **Capped at 30 results** (`SEARCH_LIMIT`): found by browser-testing
+query. **A page is 30 results** (`SEARCH_LIMIT`): found by browser-testing
 against the real corpus — a common word matches hundreds of hymns, and `rank`
-ordering doesn't help a caller that renders every row. The snippet is the first
-line containing any query word, since a multi-word query can match across
-different lines of the same hymn.
+ordering doesn't help a caller that renders every row. The Finder asks for the
+next page as the list is scrolled (§13.2), so the 30 is a page, not a cap. The
+snippet is the first line containing any query word, since a multi-word query
+can match across different lines of the same hymn.
 
 **Search as you type** (Board #12, at the maintainer's request: "what if I want
 to see the options while I type"). The box is an ARIA combobox over a live
@@ -981,10 +982,10 @@ There is no Find button.
 - **Keys:** ↑/↓ move the highlighted option, Enter takes it — the top one unless
   moved — and Escape clears the query (a second Escape reaches the sheet and
   closes it). While the box is empty the Finder shows Recents (this book's, when
-  there are any, as the shared `RecentsList`) and, below them, the book's first
-  songs by number (twenty, `OPENING_SONGS`: "From the start", or "Songs" when
-  the book has no more), each opening on a tap. With no recents the Recents
-  heading is not shown. A line under the field says which book is searched.
+  there are any, as the shared `RecentsList`) and, below them, **All songs**:
+  the whole book, a windowed list (§13.2), each song opening on a tap. With no
+  recents the Recents heading is not shown. A line under the field says which
+  book is searched.
 - While focus is in the box, the Presenter's shortcuts are off (§16.5): arrow
   keys that move the highlight must never also move the Output.
 
@@ -1071,6 +1072,74 @@ books, the cap per book. Component: the groups and their headings, More in, the
 line under the field, the arrow keys across groups, Enter, a pick in another
 book handing its key, the one-book case unchanged. E2E: two books loaded, a word
 in both found under each, a pick in the other book opens it.
+
+### 13.2 Browse a whole book (Board #66)
+
+**Decided (the maintainer, 2026-10-12).** A book of a thousand songs can be
+browsed. Nothing typed, the Finder shows Recents on top and, below, **All
+songs**: every song of the book in one list that scrolls inside the Finder (the
+sheet's content, or the page when the Finder fills Present), replacing the first
+twenty ("From the start", `OPENING_SONGS`, gone). A lyric search scrolls on past
+its first 30. In the command menu (§16.5) the order is Recents, the actions,
+then All songs, so the songs start a screen down.
+
+**One windowed listbox.** The list under the field is the same `role="listbox"`
+for browsing and for results, and only the rows in view, plus an overscan of six
+rows either side, are in the DOM. Spacers of the missing height keep the scroll
+bar true. The window is a small module, `windowing.ts` in `src/shell`: pure
+maths over a layout of heights (`layoutOf`, `windowOf`, `revealOffset`, a binary
+search over offsets), and a controller that finds the nearest scrolling
+ancestor, listens to its scroll once per frame, and reports a range only when it
+changes. No dependency: the list is a few dozen lines of maths, and a library's
+measuring of every row (the cost this must avoid) is what it would add.
+
+**Fixed heights, nothing measured per row.** An option is 3.5rem and a heading
+2.75rem, a status line 3rem, set in CSS and read once as rem in pixels (and
+again when the scroller resizes). The book is never measured on open, and a
+scroll does no per-frame layout read: the list's offset in its scroller is
+cached, and read again when the scroller or the Finder changes size, when a row
+is revealed, and at most four times a second while scrolling (a page sliding in
+moves the list without resizing it). A title or a snippet is one line, cut with
+an ellipsis, so heights never vary; Malayalam glyphs keep their room inside the
+row and clear the number column as before.
+
+**Order and headings.** The order is the book's (`listHymns`): by number;
+Assorted Hymns by language, then title (SDD-0004 §17). Where the book has
+languages the songs are in groups under the language's name, as the books are in
+a multi-book search (§13.1): a heading is `position: sticky` under the field, so
+the language you are in stays in view. A book without languages is one group,
+**All songs**, whose heading sticks the same way. A typed number still jumps:
+the number's suggestions replace the list as before.
+
+**Keys.** The box stays focused and the listbox is reached by
+`aria-activedescendant`. With nothing typed no row is highlighted, and Enter
+does nothing until an arrow key has chosen one. ↑/↓ move the highlight through
+the whole list and scroll it into view at once (no smooth scroll);
+PageUp/PageDown move by a screenful; Home/End go to the first and last row when
+the box is empty, and with Ctrl when it is not (the box keeps its caret keys). ↓
+on the last row wraps to the first unless more results are on their way. Each
+option says `aria-setsize` (every option, loaded ones only while a search is
+paging) and `aria-posinset`, so a screen reader hears "23 of 1,631".
+
+**Paging.** A search returns a page of 30 per book with whether more follow
+(`more` on the book's hits). When the last row of a group that has more comes
+within the overscan, the Finder asks the worker for the next page of that book
+(`searchMore(book, query, offset)`, the same match ordered by rank then number
+so pages never overlap) and appends it in place; the highlight and the scroll
+position stay. A group that is not yet opened (More in, §13.1) pages once it is.
+While a page loads the list ends in a quiet "Loading more", on failure in "Could
+not load more. Try again", which a tap retries, and, once a search has paged to
+its end, in "End of results". A new query throws away the pages, in flight ones
+included; a song is never listed twice. The quick switcher (§16.7) is unchanged:
+a short list, no browsing, no paging.
+
+**Testing.** Unit: the maths (offsets, range, reveal, overscan, an empty list);
+the controller on a stub scroller; `searchBook` pages (offset, `more`, no
+overlap). Component: the opening list is the whole book, windowed (a few dozen
+options of 1,000), `aria-setsize`/`aria-posinset`, headings by language, the
+arrow keys and Home/End scrolling the highlighted row in, appending a page once,
+no duplicates, a new query resetting. E2E: a generated 300-song book scrolled to
+its end and a late song opened, a search that goes past 30.
 
 ## 14. Presenter
 

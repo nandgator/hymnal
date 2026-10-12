@@ -59,12 +59,14 @@ import {
 import {
   type BookHits,
   numberMatches,
+  type SearchPage,
   type SearchResult,
   searchBook,
+  searchBookPage,
   searchBooks,
 } from "./search.ts";
 
-export type { BookHits, HymnSummary, SearchResult };
+export type { BookHits, HymnSummary, SearchPage, SearchResult };
 
 export type ContentStatus =
   | { state: "ready" }
@@ -102,6 +104,12 @@ export interface ContentStore {
    * (ADR-0032, amended): the same order as `searchAll`, a book with none left out.
    */
   searchNumber(typed: string, currentKey: HymnbookId): Promise<BookHits[]>;
+  /**
+   * The page of one book's matches after the first `offset` (Board #66, SDD-0001 §13.2),
+   * `SEARCH_LIMIT` of them, and whether more follow. The same order as `searchAll`'s, so a
+   * page never repeats a song of the one before.
+   */
+  searchMore(id: HymnbookId, query: string, offset: number): Promise<SearchPage>;
 }
 
 /** A progress callback from the page, which a closed page or a released proxy must not break. */
@@ -644,8 +652,12 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     const ctx = this.#liveCtx;
     if (!ctx || query.trim() === "") return [];
     return searchBooks(listBooks(ctx), currentKey, (book) =>
-      searchBook(sqlOf(this.#open(book.key)), query),
+      searchBookPage(sqlOf(this.#open(book.key)), query),
     );
+  }
+
+  async searchMore(id: HymnbookId, query: string, offset: number): Promise<SearchPage> {
+    return searchBookPage(sqlOf(this.#open(id)), query, offset);
   }
 
   async searchNumber(typed: string, currentKey: HymnbookId): Promise<BookHits[]> {
