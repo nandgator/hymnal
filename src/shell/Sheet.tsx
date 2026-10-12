@@ -54,9 +54,16 @@ const boxOf = (el: HTMLElement): Box => ({
   y: el.offsetTop + el.offsetHeight / 2,
 });
 
-/** What a sheet shows the others: its dialog and how to end its exit now. */
+/** How far a content's settle had got: the opacity and scale it had. */
+interface Carry {
+  opacity: number;
+  scale: number;
+}
+
+/** What a sheet shows the others: its dialog, where its settle is, and how to end its exit now. */
 interface Peer {
   dialog: () => HTMLDialogElement | undefined;
+  settleState: () => Carry | undefined;
   cut: () => void;
 }
 
@@ -120,6 +127,19 @@ export function Sheet(props: SheetProps) {
   let frameEl: HTMLDivElement | undefined;
   // Ends the swap in progress: its morph, its settle, what watches the content.
   let endSwap: (() => void) | undefined;
+  // The content's settle in progress, and what it settles.
+  let settleRun: Animation | undefined;
+  let settleEl: HTMLElement | undefined;
+
+  // Where the settle has got to (opacity and scale as drawn), if it is running.
+  const settleState = (): Carry | undefined => {
+    if (!settleEl || settleRun?.playState !== "running") return undefined;
+    const style = getComputedStyle(settleEl);
+    const opacity = Number.parseFloat(style.opacity);
+    const scale = Number.parseFloat(style.transform.replace(/^matrix\(/, ""));
+    if (!(opacity >= 0 && opacity < 1) || !(scale > 0)) return undefined;
+    return { opacity, scale };
+  };
 
   // `rendered` is the page mounted: it outlasts `props.page` on the way back,
   // until the slide ends. The root stays mounted underneath, hidden once a
@@ -215,6 +235,7 @@ export function Sheet(props: SheetProps) {
     const open = props.open;
     if (!dialog) return;
     let swapFrom: Box | undefined;
+    let carry: Carry | undefined;
     if (open) {
       closing++;
       delete dialog.dataset.closing;
@@ -234,6 +255,8 @@ export function Sheet(props: SheetProps) {
         const staying = others.filter((p) => p.dialog()?.dataset.closing === undefined);
         const boxes = new Map(others.map((p) => [p, boxOf(p.dialog() as HTMLElement)]));
         const first = leaving[0];
+        // Before cutting it: that ends its settle.
+        carry = first?.settleState();
         for (const p of leaving) p.cut();
         if (first) swapFrom = boxes.get(first);
         else if (staying.length > 0) {
@@ -248,9 +271,10 @@ export function Sheet(props: SheetProps) {
               return !d?.open || d.dataset.closing !== undefined;
             });
             const goneFirst = gone[0];
+            const from = goneFirst?.settleState();
             for (const p of gone) p.cut();
             const box = goneFirst && boxes.get(goneFirst);
-            if (box) swapIn(box);
+            if (box) swapIn(box, from);
           });
         }
       }
@@ -262,7 +286,7 @@ export function Sheet(props: SheetProps) {
       }
       if (!stack.includes(dialog)) stack.push(dialog);
       syncScrims();
-      if (swapFrom) swapIn(swapFrom);
+      if (swapFrom) swapIn(swapFrom, carry);
       // Fallback where showModal's own autofocus pass misses the field.
       const field = dialog.querySelector<HTMLElement>("[autofocus]");
       if (field && document.activeElement !== field) field.focus();
@@ -303,7 +327,7 @@ export function Sheet(props: SheetProps) {
   // placement. Its own is the one the content gives once rendered: content that
   // lands while the card moves (the Finder's songs) moves the target, from
   // where the card is now.
-  const swapIn = (from: Box) => {
+  const swapIn = (from: Box, carry?: Carry) => {
     const el = dialog;
     if (!el) return;
     endSwap?.();
@@ -315,20 +339,24 @@ export function Sheet(props: SheetProps) {
     const easing = motion("--motion-emphasized", "ease");
 
     const settling = frameEl;
-    let settleRun: Animation | undefined;
     if (settling) {
       settling.style.transformOrigin = "50% 0";
+      // A swap while the leaving content was still settling carries on from
+      // where that had got to, not from the start: no dip, no jump.
+      const start = carry ?? { opacity: 0.4, scale: 0.98 };
       settleRun = settling.animate(
         [
-          { opacity: 0.4, transform: "scale(0.98)" },
+          { opacity: start.opacity, transform: `scale(${start.scale})` },
           { opacity: 1, transform: "scale(1)" },
         ],
         { duration: SETTLE_IN_MS, easing },
       );
+      settleEl = settling;
     }
     const endSettle = () => {
       settleRun?.cancel();
       settleRun = undefined;
+      settleEl = undefined;
       if (settling) settling.style.transformOrigin = "";
     };
 
@@ -423,6 +451,7 @@ export function Sheet(props: SheetProps) {
   // What a replacing sheet calls: end this one's exit now.
   const peer: Peer = {
     dialog: () => dialog,
+    settleState,
     cut: () => {
       if (dialog?.open && finishNow && dialog.dataset.closing !== undefined) finishNow();
     },
