@@ -27,6 +27,16 @@ describe("Sheet", () => {
     expect(document.activeElement).toBe(focused);
   });
 
+  it("with no autofocus field, focuses the title, not its Close button", () => {
+    render(() => (
+      <Sheet open onClose={() => {}} title="Remove Book">
+        <button type="button">Remove</button>
+      </Sheet>
+    ));
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Remove Book" }));
+    expect(document.activeElement).not.toBe(screen.getByRole("button", { name: "Close" }));
+  });
+
   it("stays open when a file picker inside it is dismissed (its input's cancel bubbles)", () => {
     const onClose = vi.fn();
     const { container } = render(() => (

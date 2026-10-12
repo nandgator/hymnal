@@ -166,6 +166,33 @@ describe("App", () => {
     expect(screen.queryByRole("region", { name: "Display" })).not.toBeInTheDocument();
   });
 
+  it("opens Settings with focus in its search field, also by a swap from the Finder and when reopened", async () => {
+    render(() => <App />);
+    await booksReady();
+    const field = () => screen.getByRole("searchbox", { name: "Search settings" });
+
+    fireEvent.keyDown(window, { key: ",", ctrlKey: true });
+    await screen.findByRole("dialog", { name: "Settings" });
+    expect(document.activeElement).toBe(field());
+
+    // Settings to the Finder and back: each lands on its own field.
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const finder = await screen.findByRole("dialog", { name: "Search" });
+    await waitFor(() => expect(document.activeElement).toBe(within(finder).getByRole("combobox")));
+    fireEvent.keyDown(window, { key: ",", ctrlKey: true });
+    await screen.findByRole("dialog", { name: "Settings" });
+    await waitFor(() => expect(document.activeElement).toBe(field()));
+
+    // Closed and opened again.
+    fireEvent.keyDown(window, { key: ",", ctrlKey: true });
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Settings" })).not.toBeInTheDocument(),
+    );
+    fireEvent.keyDown(window, { key: ",", ctrlKey: true });
+    await screen.findByRole("dialog", { name: "Settings" });
+    await waitFor(() => expect(document.activeElement).toBe(field()));
+  });
+
   it("opens the command menu with Ctrl+K or /, and the shortcut sheet with ? (SDD-0001 §16.5)", async () => {
     render(() => <App />);
     // The menu waits for a hymnbook to search.
