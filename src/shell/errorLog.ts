@@ -19,7 +19,11 @@ function isResizeObserverLoop(event: ErrorEvent): boolean {
  */
 export function installErrorLogging(): () => void {
   const onError = (event: ErrorEvent) => {
-    if (isResizeObserverLoop(event)) return;
+    if (isResizeObserverLoop(event)) {
+      // Cancelled, so the browser does not report it as an uncaught error either.
+      event.preventDefault();
+      return;
+    }
     console.error("[hymnal] uncaught error", event.error ?? event.message);
   };
   const onRejection = (event: PromiseRejectionEvent) =>
