@@ -54,16 +54,16 @@ const boxOf = (el: HTMLElement): Box => ({
   y: el.offsetTop + el.offsetHeight / 2,
 });
 
-/** What a card looked like as it went: a still copy of its content, and where its lists were scrolled. */
-interface Picture {
-  ghost: HTMLElement;
-  scrolls: number[];
+/** How far a content's settle had got: the opacity and scale it had. */
+interface Carry {
+  opacity: number;
+  scale: number;
 }
 
-/** What a sheet shows the others: its dialog, a picture of its content, and how to end its exit now. */
+/** What a sheet shows the others: its dialog, where its settle is, and how to end its exit now. */
 interface Peer {
   dialog: () => HTMLDialogElement | undefined;
-  snapshot: () => Picture | undefined;
+  settleState: () => Carry | undefined;
   cut: () => void;
 }
 
@@ -77,6 +77,8 @@ const sameBox = (a: Box, b: Box) =>
 const SETTLE_MS = 600;
 /** The shortest a retargeted morph runs: a card landing mid-way still glides the rest. */
 const MIN_RETARGET_MS = 120;
+/** How long the new content takes to settle in on the card. */
+const SETTLE_IN_MS = 180;
 
 /**
  * Every mounted sheet. A sheet opening while another is leaving is a swap (one
@@ -123,10 +125,21 @@ export function Sheet(props: SheetProps) {
   let closing = 0;
   let finishNow: (() => void) | undefined;
   let frameEl: HTMLDivElement | undefined;
-  // Ends the swap in progress: its morph, the old card's picture, what watches the content.
+  // Ends the swap in progress: its morph, its settle, what watches the content.
   let endSwap: (() => void) | undefined;
-  // The old card's picture, while it fades out over this card.
-  let ghostEl: HTMLElement | undefined;
+  // The content's settle in progress, and what it settles.
+  let settleRun: Animation | undefined;
+  let settleEl: HTMLElement | undefined;
+
+  // Where the settle has got to (opacity and scale as drawn), if it is running.
+  const settleState = (): Carry | undefined => {
+    if (!settleEl || settleRun?.playState !== "running") return undefined;
+    const style = getComputedStyle(settleEl);
+    const opacity = Number.parseFloat(style.opacity);
+    const scale = Number.parseFloat(style.transform.replace(/^matrix\(/, ""));
+    if (!(opacity >= 0 && opacity < 1) || !(scale > 0)) return undefined;
+    return { opacity, scale };
+  };
 
   // `rendered` is the page mounted: it outlasts `props.page` on the way back,
   // until the slide ends. The root stays mounted underneath, hidden once a
@@ -222,7 +235,7 @@ export function Sheet(props: SheetProps) {
     const open = props.open;
     if (!dialog) return;
     let swapFrom: Box | undefined;
-    let swapPicture: Picture | undefined;
+    let carry: Carry | undefined;
     if (open) {
       closing++;
       delete dialog.dataset.closing;
@@ -231,9 +244,9 @@ export function Sheet(props: SheetProps) {
       // A swap: another sheet is leaving, or is closed in the same breath.
       // It goes at once and this one appears over the same, constant scrim (no
       // fade-in): its surface opaque from the first frame, growing or
-      // shrinking out of the old card's box while its content fades in
-      // (Material's fade through). Nothing is arriving from anywhere, one card
-      // is just replacing another. Opening from nothing keeps the full
+      // shrinking out of the old card's box while its content settles in. The
+      // old content is gone at once, so the two never read over each other.
+      // Nothing is arriving from anywhere, one card is just replacing another. Opening from nothing keeps the full
       // entrance, and so does opening over a sheet that stays (stacked).
       delete dialog.dataset.swap;
       if (!dialog.open) {
@@ -241,9 +254,9 @@ export function Sheet(props: SheetProps) {
         const leaving = others.filter((p) => p.dialog()?.dataset.closing !== undefined);
         const staying = others.filter((p) => p.dialog()?.dataset.closing === undefined);
         const boxes = new Map(others.map((p) => [p, boxOf(p.dialog() as HTMLElement)]));
-        // Its picture first: cutting it unmounts the content.
         const first = leaving[0];
-        if (first) swapPicture = first.snapshot();
+        // Before cutting it: that ends its settle.
+        carry = first?.settleState();
         for (const p of leaving) p.cut();
         if (first) swapFrom = boxes.get(first);
         else if (staying.length > 0) {
@@ -258,10 +271,10 @@ export function Sheet(props: SheetProps) {
               return !d?.open || d.dataset.closing !== undefined;
             });
             const goneFirst = gone[0];
-            const picture = goneFirst?.snapshot();
+            const from = goneFirst?.settleState();
             for (const p of gone) p.cut();
             const box = goneFirst && boxes.get(goneFirst);
-            if (box) swapIn(box, picture);
+            if (box) swapIn(box, from);
           });
         }
       }
@@ -273,7 +286,7 @@ export function Sheet(props: SheetProps) {
       }
       if (!stack.includes(dialog)) stack.push(dialog);
       syncScrims();
-      if (swapFrom) swapIn(swapFrom, swapPicture);
+      if (swapFrom) swapIn(swapFrom, carry);
       // Fallback where showModal's own autofocus pass misses the field.
       const field = dialog.querySelector<HTMLElement>("[autofocus]");
       if (field && document.activeElement !== field) field.focus();
@@ -308,13 +321,13 @@ export function Sheet(props: SheetProps) {
   });
 
   // A swap: this is the card replacing another. Its surface is opaque from the
-  // first frame and its content is whole beneath a still picture of the old
-  // card's, which fades out (the dissolve never has a frame with neither, and
-  // the page never shows through). The box animates from the old card's to its
-  // own, position included for a different placement. Its own is the one the
-  // content gives once rendered: content that lands while the card moves (the
-  // Finder's songs) moves the target, from where the card is now.
-  const swapIn = (from: Box, picture?: Picture) => {
+  // first frame and the old content is already gone; the new content settles
+  // in on it (a little scale and a fade, from the top centre) while the box
+  // animates from the old card's to its own, position included for a different
+  // placement. Its own is the one the content gives once rendered: content that
+  // lands while the card moves (the Finder's songs) moves the target, from
+  // where the card is now.
+  const swapIn = (from: Box, carry?: Carry) => {
     const el = dialog;
     if (!el) return;
     endSwap?.();
@@ -325,28 +338,27 @@ export function Sheet(props: SheetProps) {
     const duration = Number.parseFloat(motion("--motion-medium", "250")) || 250;
     const easing = motion("--motion-emphasized", "ease");
 
-    let ghostTimer: ReturnType<typeof setTimeout> | undefined;
-    const dropGhost = () => {
-      clearTimeout(ghostTimer);
-      ghostEl?.remove();
-      ghostEl = undefined;
-    };
-    if (picture) {
-      ghostEl?.remove();
-      const { ghost, scrolls } = picture;
-      ghostEl = ghost;
-      el.append(ghost);
-      ghost.querySelectorAll<HTMLElement>(".sheet-content").forEach((content, i) => {
-        content.scrollTop = scrolls[i] ?? 0;
-      });
-      ghost.addEventListener("animationend", (event) => {
-        if (event.target === ghost) dropGhost();
-      });
-      ghostTimer = setTimeout(
-        dropGhost,
-        (Number.parseFloat(motion("--motion-short", "150")) || 150) + 250,
+    const settling = frameEl;
+    if (settling) {
+      settling.style.transformOrigin = "50% 0";
+      // A swap while the leaving content was still settling carries on from
+      // where that had got to, not from the start: no dip, no jump.
+      const start = carry ?? { opacity: 0.4, scale: 0.98 };
+      settleRun = settling.animate(
+        [
+          { opacity: start.opacity, transform: `scale(${start.scale})` },
+          { opacity: 1, transform: "scale(1)" },
+        ],
+        { duration: SETTLE_IN_MS, easing },
       );
+      settleEl = settling;
     }
+    const endSettle = () => {
+      settleRun?.cancel();
+      settleRun = undefined;
+      settleEl = undefined;
+      if (settling) settling.style.transformOrigin = "";
+    };
 
     const frame = (b: Box, dx: number, dy: number) => ({
       width: `${b.width}px`,
@@ -428,7 +440,7 @@ export function Sheet(props: SheetProps) {
       if (endSwap !== end) return;
       endSwap = undefined;
       unwatch?.();
-      dropGhost();
+      endSettle();
       run?.cancel();
       run = undefined;
       delete el.dataset.morphing;
@@ -436,49 +448,10 @@ export function Sheet(props: SheetProps) {
     endSwap = end;
   };
 
-  // What the card looks like now, for the card that replaces it: its content,
-  // still, and whatever of an earlier picture is still fading over it.
-  const snapshot = (): Picture | undefined => {
-    const el = dialog;
-    const frame = frameEl;
-    if (!el?.open || !frame || typeof el.animate !== "function") return undefined;
-    if (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches)
-      return undefined;
-    const ghost = document.createElement("div");
-    ghost.className = "sheet-ghost";
-    ghost.setAttribute("aria-hidden", "true");
-    ghost.setAttribute("inert", "");
-    ghost.style.width = `${el.offsetWidth}px`;
-    ghost.style.height = `${el.offsetHeight}px`;
-    const copy = frame.cloneNode(true) as HTMLElement;
-    // A copy is not a second field, nor a second target for a label or Tab.
-    for (const part of copy.querySelectorAll("[id], [autofocus]")) {
-      part.removeAttribute("id");
-      part.removeAttribute("autofocus");
-    }
-    const kinds = "input, textarea, select";
-    const fields = frame.querySelectorAll<HTMLInputElement>(kinds);
-    copy.querySelectorAll<HTMLInputElement>(kinds).forEach((field, i) => {
-      const source = fields[i];
-      if (!source) return;
-      field.value = source.value;
-      field.checked = source.checked;
-    });
-    ghost.append(copy);
-    if (ghostEl?.isConnected) {
-      const older = ghostEl.cloneNode(true) as HTMLElement;
-      older.style.opacity = getComputedStyle(ghostEl).opacity;
-      older.style.animation = "none";
-      ghost.append(older);
-    }
-    const scrolls = [...frame.querySelectorAll(".sheet-content")].map((c) => c.scrollTop);
-    return { ghost, scrolls };
-  };
-
   // What a replacing sheet calls: end this one's exit now.
   const peer: Peer = {
     dialog: () => dialog,
-    snapshot,
+    settleState,
     cut: () => {
       if (dialog?.open && finishNow && dialog.dataset.closing !== undefined) finishNow();
     },

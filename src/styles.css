@@ -3240,12 +3240,6 @@ html[data-scrolling],
   }
 }
 
-@keyframes sheet-ghost-out {
-  to {
-    opacity: 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .rolling-face-leaving {
     display: none;
@@ -3521,10 +3515,11 @@ html[data-scrolling],
   animation: sheet-in var(--motion-medium) var(--motion-emphasized);
 }
 
-/* One sheet replacing another (Settings to Search), Material's fade through:
-   the scrim is already up and stays exactly as it is, the card's surface is
-   opaque from its first frame (the page never shows through) and resizes out
-   of the old card's box (Sheet.tsx), and only its content fades in. Nothing
+/* One sheet replacing another (Settings to Search): the scrim is already up
+   and stays exactly as it is, the card's surface is opaque from its first
+   frame (the page never shows through) and resizes out of the old card's box
+   (Sheet.tsx). The old content is gone at once and the new settles in on the
+   card, a little scale and a fade from the top centre (Sheet.tsx). Nothing
    rises: the sheet is not arriving, the content is changing (PRINCIPLES.md,
    motion explains change). */
 .sheet[data-swap]::backdrop {
@@ -3578,23 +3573,6 @@ html[data-scrolling],
   scroll-padding-block-end: 5rem;
   padding: var(--space-xs) var(--space-lg) var(--sheet-pad-bottom);
   overflow-y: auto;
-}
-
-/* The old card's content, a still picture of it, dissolving off the new
-   card's (Sheet.tsx): opaque to begin with, so the new content comes through
-   as it goes and no frame is empty. It is a picture: nothing in it takes a
-   click or a key. */
-.sheet-ghost {
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline-start: 0;
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background-color: var(--md-sys-color-surface-container-low);
-  pointer-events: none;
-  animation: sheet-ghost-out var(--motion-short) var(--motion-standard) forwards;
 }
 
 .sheet-header {
