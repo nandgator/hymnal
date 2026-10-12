@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@solidjs/testing-library";
-import { batch, createSignal } from "solid-js";
+import { batch, createEffect, createSignal, For } from "solid-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Sheet, type SheetPage } from "./Sheet.tsx";
 
@@ -128,6 +128,8 @@ describe("Sheet", () => {
     const sizes: Record<string, [number, number]> = { Settings: [576, 400], Search: [576, 200] };
     const saved = Object.getOwnPropertyDescriptors(HTMLElement.prototype);
     const animate = vi.fn();
+    // The height a card has right now while an animation holds it, by label.
+    const midway: Record<string, number> = {};
     function stub(reduced = false) {
       HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
         this.setAttribute("open", "");
@@ -139,7 +141,12 @@ describe("Sheet", () => {
         configurable: true,
         value: () => [{ finished: new Promise(() => {}) }],
       });
-      const size = (el: HTMLElement) => sizes[el.getAttribute("aria-label") ?? ""] ?? [0, 0];
+      const size = (el: HTMLElement): [number, number] => {
+        const label = el.getAttribute("aria-label") ?? "";
+        const [w, h] = sizes[label] ?? [0, 0];
+        // A card mid-morph is as tall as its animation says, not as its content is.
+        return [w, midway[label] ?? h];
+      };
       Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
         configurable: true,
         get(this: HTMLElement) {
@@ -160,6 +167,9 @@ describe("Sheet", () => {
     }
     afterEach(() => {
       animate.mockReset();
+      sizes.Settings = [576, 400];
+      sizes.Search = [576, 200];
+      for (const key of Object.keys(midway)) delete midway[key];
       vi.unstubAllGlobals();
       delete (HTMLElement.prototype as { getAnimations?: unknown }).getAnimations;
       delete (HTMLElement.prototype as { animate?: unknown }).animate;
@@ -284,6 +294,113 @@ describe("Sheet", () => {
       setB(true);
       await settled();
       expect(animate).not.toHaveBeenCalled();
+    });
+
+    describe("a swap's content and its target", () => {
+      // Search's rows arrive after the card is up (an effect, as the Finder's do), and the
+      // card is 200 plus 40 for each.
+      function growing() {
+        stub();
+        const callbacks: Array<() => void> = [];
+        vi.stubGlobal(
+          "ResizeObserver",
+          class {
+            constructor(callback: () => void) {
+              callbacks.push(callback);
+            }
+            observe() {}
+            unobserve() {}
+            disconnect() {}
+          },
+        );
+        const [a, setA] = createSignal(false);
+        const [b, setB] = createSignal(false);
+        const [rows, setRows] = createSignal<number[]>([]);
+        const view = render(() => (
+          <>
+            <Sheet open={a()} onClose={() => setA(false)} title="Settings">
+              <p>Settings body</p>
+            </Sheet>
+            <Sheet open={b()} onClose={() => setB(false)} title="Search">
+              {(() => {
+                createEffect(() => {
+                  if (!b()) return;
+                  setRows([1, 2, 3, 4, 5]);
+                  sizes.Search = [576, 400];
+                });
+                return (
+                  <ul>
+                    <For each={rows()}>{(n) => <li>{n}</li>}</For>
+                  </ul>
+                );
+              })()}
+            </Sheet>
+          </>
+        ));
+        const [first, second] = Array.from(view.container.querySelectorAll("dialog"));
+        const resize = () => {
+          for (const callback of callbacks) callback();
+        };
+        return { setA, setB, resize, first, second: second as HTMLDialogElement, view };
+      }
+
+      it("keeps the outgoing card's content over the incoming one while it fades, so no frame is blank", () => {
+        const { setA, setB, second } = pair();
+        setA(true);
+        setA(false);
+        setB(true);
+        const ghost = second.querySelector(".sheet-ghost");
+        expect(ghost).not.toBeNull();
+        expect(ghost?.textContent).toContain("Settings body");
+        // Only a picture: nothing in it is reachable or announced.
+        expect(ghost?.getAttribute("aria-hidden")).toBe("true");
+        expect(ghost?.hasAttribute("inert")).toBe(true);
+        // The new content is not what fades in: it is there, whole, beneath.
+        expect(second.querySelector(".sheet-frame")?.textContent).toContain("Search body");
+        fireEvent.animationEnd(ghost as Element);
+        expect(second.querySelector(".sheet-ghost")).toBeNull();
+      });
+
+      it("has no ghost for a swap under reduced motion", () => {
+        const reduced = pair(true);
+        reduced.setA(true);
+        reduced.setA(false);
+        reduced.setB(true);
+        expect(reduced.second.querySelector(".sheet-ghost")).toBeNull();
+      });
+
+      it("morphs to the height the new content has once it is rendered, not the one it has as it mounts", async () => {
+        const { setA, setB, resize } = growing();
+        setA(true);
+        setA(false);
+        setB(true);
+        await settled();
+        resize();
+        const last = animate.mock.calls[animate.mock.calls.length - 1] as [
+          Record<string, string>[],
+        ];
+        expect(last[0][last[0].length - 1]).toMatchObject({ height: "400px" });
+      });
+
+      it("retargets from the box the card has now, not the old card's, when its content lands mid-morph", async () => {
+        const { setA, setB, resize } = growing();
+        const cancel = vi.fn();
+        animate.mockImplementation(() => ({ cancel, finished: new Promise(() => {}) }));
+        setA(true);
+        setA(false);
+        setB(true);
+        await settled();
+        // Mid-morph: the card is 300 tall while its animation runs.
+        midway.Search = 300;
+        cancel.mockImplementation(() => delete midway.Search);
+        resize();
+        expect(cancel).toHaveBeenCalled();
+        const last = animate.mock.calls[animate.mock.calls.length - 1] as [
+          Record<string, string>[],
+        ];
+        expect(last[0][0]).toMatchObject({ height: "300px" });
+        expect(last[0][last[0].length - 1]).toMatchObject({ height: "400px" });
+      });
     });
   });
 

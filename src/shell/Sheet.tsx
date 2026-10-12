@@ -54,11 +54,29 @@ const boxOf = (el: HTMLElement): Box => ({
   y: el.offsetTop + el.offsetHeight / 2,
 });
 
-/** What a sheet shows the others: its dialog, and how to end its exit now. */
+/** What a card looked like as it went: a still copy of its content, and where its lists were scrolled. */
+interface Picture {
+  ghost: HTMLElement;
+  scrolls: number[];
+}
+
+/** What a sheet shows the others: its dialog, a picture of its content, and how to end its exit now. */
 interface Peer {
   dialog: () => HTMLDialogElement | undefined;
+  snapshot: () => Picture | undefined;
   cut: () => void;
 }
+
+const sameBox = (a: Box, b: Box) =>
+  Math.abs(a.width - b.width) < 0.5 &&
+  Math.abs(a.height - b.height) < 0.5 &&
+  Math.abs(a.x - b.x) < 0.5 &&
+  Math.abs(a.y - b.y) < 0.5;
+
+/** How long after a swap starts that content landing late still moves the morph's target. */
+const SETTLE_MS = 600;
+/** The shortest a retargeted morph runs: a card landing mid-way still glides the rest. */
+const MIN_RETARGET_MS = 120;
 
 /**
  * Every mounted sheet. A sheet opening while another is leaving is a swap (one
@@ -104,6 +122,11 @@ export function Sheet(props: SheetProps) {
   const [shown, setShown] = createSignal(false);
   let closing = 0;
   let finishNow: (() => void) | undefined;
+  let frameEl: HTMLDivElement | undefined;
+  // Ends the swap in progress: its morph, the old card's picture, what watches the content.
+  let endSwap: (() => void) | undefined;
+  // The old card's picture, while it fades out over this card.
+  let ghostEl: HTMLElement | undefined;
 
   // `rendered` is the page mounted: it outlasts `props.page` on the way back,
   // until the slide ends. The root stays mounted underneath, hidden once a
@@ -199,10 +222,12 @@ export function Sheet(props: SheetProps) {
     const open = props.open;
     if (!dialog) return;
     let swapFrom: Box | undefined;
+    let swapPicture: Picture | undefined;
     if (open) {
       closing++;
       delete dialog.dataset.closing;
       finishNow = undefined;
+      endSwap?.();
       // A swap: another sheet is leaving, or is closed in the same breath.
       // It goes at once and this one appears over the same, constant scrim (no
       // fade-in): its surface opaque from the first frame, growing or
@@ -216,8 +241,10 @@ export function Sheet(props: SheetProps) {
         const leaving = others.filter((p) => p.dialog()?.dataset.closing !== undefined);
         const staying = others.filter((p) => p.dialog()?.dataset.closing === undefined);
         const boxes = new Map(others.map((p) => [p, boxOf(p.dialog() as HTMLElement)]));
-        for (const p of leaving) p.cut();
+        // Its picture first: cutting it unmounts the content.
         const first = leaving[0];
+        if (first) swapPicture = first.snapshot();
+        for (const p of leaving) p.cut();
         if (first) swapFrom = boxes.get(first);
         else if (staying.length > 0) {
           // The caller may open before it closes (one batch): decide once its
@@ -230,10 +257,11 @@ export function Sheet(props: SheetProps) {
               const d = p.dialog();
               return !d?.open || d.dataset.closing !== undefined;
             });
-            for (const p of gone) p.cut();
             const goneFirst = gone[0];
+            const picture = goneFirst?.snapshot();
+            for (const p of gone) p.cut();
             const box = goneFirst && boxes.get(goneFirst);
-            if (box) swapIn(box);
+            if (box) swapIn(box, picture);
           });
         }
       }
@@ -245,7 +273,7 @@ export function Sheet(props: SheetProps) {
       }
       if (!stack.includes(dialog)) stack.push(dialog);
       syncScrims();
-      if (swapFrom) swapIn(swapFrom);
+      if (swapFrom) swapIn(swapFrom, swapPicture);
       // Fallback where showModal's own autofocus pass misses the field.
       const field = dialog.querySelector<HTMLElement>("[autofocus]");
       if (field && document.activeElement !== field) field.focus();
@@ -259,6 +287,7 @@ export function Sheet(props: SheetProps) {
       const token = ++closing;
       const finish = () => {
         if (token !== closing) return;
+        endSwap?.();
         delete el.dataset.closing;
         if (typeof el.close === "function") el.close();
         else el.removeAttribute("open");
@@ -279,35 +308,177 @@ export function Sheet(props: SheetProps) {
   });
 
   // A swap: this is the card replacing another. Its surface is opaque from the
-  // first frame (only the content fades, in CSS); the box animates from the old
-  // card's to its own, position included for a different placement.
-  const swapIn = (from: Box) => {
+  // first frame and its content is whole beneath a still picture of the old
+  // card's, which fades out (the dissolve never has a frame with neither, and
+  // the page never shows through). The box animates from the old card's to its
+  // own, position included for a different placement. Its own is the one the
+  // content gives once rendered: content that lands while the card moves (the
+  // Finder's songs) moves the target, from where the card is now.
+  const swapIn = (from: Box, picture?: Picture) => {
     const el = dialog;
     if (!el) return;
+    endSwap?.();
     el.dataset.swap = "";
     if (typeof el.animate !== "function") return;
     if (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches)
       return;
-    const to = boxOf(el);
-    if (to.width === from.width && to.height === from.height && to.x === from.x && to.y === from.y)
-      return;
+    const duration = Number.parseFloat(motion("--motion-medium", "250")) || 250;
+    const easing = motion("--motion-emphasized", "ease");
+
+    let ghostTimer: ReturnType<typeof setTimeout> | undefined;
+    const dropGhost = () => {
+      clearTimeout(ghostTimer);
+      ghostEl?.remove();
+      ghostEl = undefined;
+    };
+    if (picture) {
+      ghostEl?.remove();
+      const { ghost, scrolls } = picture;
+      ghostEl = ghost;
+      el.append(ghost);
+      ghost.querySelectorAll<HTMLElement>(".sheet-content").forEach((content, i) => {
+        content.scrollTop = scrolls[i] ?? 0;
+      });
+      ghost.addEventListener("animationend", (event) => {
+        if (event.target === ghost) dropGhost();
+      });
+      ghostTimer = setTimeout(
+        dropGhost,
+        (Number.parseFloat(motion("--motion-short", "150")) || 150) + 250,
+      );
+    }
+
     const frame = (b: Box, dx: number, dy: number) => ({
       width: `${b.width}px`,
       height: `${b.height}px`,
       transform: `translate(${dx}px, ${dy}px)`,
     });
-    el.dataset.morphing = "";
-    const done = () => delete el.dataset.morphing;
-    const run = el.animate([frame(from, from.x - to.x, from.y - to.y), frame(to, 0, 0)], {
-      duration: Number.parseFloat(motion("--motion-medium", "250")) || 250,
-      easing: motion("--motion-emphasized", "ease"),
+    let target = boxOf(el);
+    let run: Animation | undefined;
+    const launch = (a: Box, b: Box, ms: number, at?: number) => {
+      target = b;
+      if (sameBox(a, b)) {
+        delete el.dataset.morphing;
+        return;
+      }
+      el.dataset.morphing = "";
+      const mine = el.animate([frame(a, a.x - b.x, a.y - b.y), frame(b, 0, 0)], {
+        duration: ms,
+        easing,
+      });
+      if (mine && at !== undefined) mine.currentTime = at;
+      run = mine;
+      const done = () => {
+        if (run !== mine) return;
+        run = undefined;
+        delete el.dataset.morphing;
+      };
+      void mine?.finished.then(done, done);
+    };
+    launch(from, target, duration);
+
+    // The content changed size: measure the card as it now naturally is (the
+    // animation off for the reading) and carry on from the box it is in.
+    const retarget = () => {
+      const was = target;
+      const going = run;
+      const now = going ? boxOf(el) : was;
+      const at = going ? Number(going.currentTime ?? 0) : 0;
+      going?.cancel();
+      run = undefined;
+      const to = boxOf(el);
+      if (sameBox(to, was)) {
+        // Nothing moved: put the same animation back, where it was.
+        if (going) launch(from, was, duration, at);
+        return;
+      }
+      launch(now, to, going ? Math.max(MIN_RETARGET_MS, duration - at) : duration);
+    };
+    let unwatch: (() => void) | undefined;
+    const content = el.querySelector(".sheet-pages > .sheet-content:not(.sheet-page-off)");
+    if (content && typeof ResizeObserver !== "undefined") {
+      // Its children, not the content itself: that is the card's size, which this animates.
+      const sizes = new ResizeObserver(retarget);
+      const seen = new Set<Element>();
+      const observe = () => {
+        for (const child of content.children)
+          if (!seen.has(child)) {
+            seen.add(child);
+            sizes.observe(child);
+          }
+      };
+      observe();
+      const added =
+        typeof MutationObserver === "function"
+          ? new MutationObserver(() => {
+              observe();
+              retarget();
+            })
+          : undefined;
+      added?.observe(content, { childList: true });
+      const stop = setTimeout(() => unwatch?.(), SETTLE_MS);
+      unwatch = () => {
+        clearTimeout(stop);
+        sizes.disconnect();
+        added?.disconnect();
+        unwatch = undefined;
+      };
+    }
+    const end = () => {
+      if (endSwap !== end) return;
+      endSwap = undefined;
+      unwatch?.();
+      dropGhost();
+      run?.cancel();
+      run = undefined;
+      delete el.dataset.morphing;
+    };
+    endSwap = end;
+  };
+
+  // What the card looks like now, for the card that replaces it: its content,
+  // still, and whatever of an earlier picture is still fading over it.
+  const snapshot = (): Picture | undefined => {
+    const el = dialog;
+    const frame = frameEl;
+    if (!el?.open || !frame || typeof el.animate !== "function") return undefined;
+    if (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches)
+      return undefined;
+    const ghost = document.createElement("div");
+    ghost.className = "sheet-ghost";
+    ghost.setAttribute("aria-hidden", "true");
+    ghost.setAttribute("inert", "");
+    ghost.style.width = `${el.offsetWidth}px`;
+    ghost.style.height = `${el.offsetHeight}px`;
+    const copy = frame.cloneNode(true) as HTMLElement;
+    // A copy is not a second field, nor a second target for a label or Tab.
+    for (const part of copy.querySelectorAll("[id], [autofocus]")) {
+      part.removeAttribute("id");
+      part.removeAttribute("autofocus");
+    }
+    const kinds = "input, textarea, select";
+    const fields = frame.querySelectorAll<HTMLInputElement>(kinds);
+    copy.querySelectorAll<HTMLInputElement>(kinds).forEach((field, i) => {
+      const source = fields[i];
+      if (!source) return;
+      field.value = source.value;
+      field.checked = source.checked;
     });
-    void run?.finished.then(done, done);
+    ghost.append(copy);
+    if (ghostEl?.isConnected) {
+      const older = ghostEl.cloneNode(true) as HTMLElement;
+      older.style.opacity = getComputedStyle(ghostEl).opacity;
+      older.style.animation = "none";
+      ghost.append(older);
+    }
+    const scrolls = [...frame.querySelectorAll(".sheet-content")].map((c) => c.scrollTop);
+    return { ghost, scrolls };
   };
 
   // What a replacing sheet calls: end this one's exit now.
   const peer: Peer = {
     dialog: () => dialog,
+    snapshot,
     cut: () => {
       if (dialog?.open && finishNow && dialog.dataset.closing !== undefined) finishNow();
     },
@@ -361,7 +532,7 @@ export function Sheet(props: SheetProps) {
       {/* `props.open` too: the content must exist when showModal() runs, or the
           browser finds no [autofocus] field and focuses the dialog. */}
       <Show when={props.open || shown()}>
-        <div class="sheet-frame">
+        <div class="sheet-frame" ref={frameEl}>
           {/* The header is not part of what scrolls: it cannot be scrolled away,
               by a wheel or by scrollIntoView, and the card ends at the last control. */}
           <div class="sheet-header">
