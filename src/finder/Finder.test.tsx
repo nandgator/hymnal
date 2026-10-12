@@ -233,12 +233,26 @@ describe("Finder", () => {
     });
 
     it("keeps Home and End for the caret once something is typed", async () => {
-      renderBook(60);
+      render(() => (
+        <Finder
+          hymnbookId="book"
+          store={fakeStore({
+            listHymns: async () => book(60),
+            searchLyrics: async () => [
+              { number: 3, title: "Song Number 3", snippet: "a" },
+              { number: 4, title: "Song Number 4", snippet: "b" },
+            ],
+          })}
+          userState={fakeUserState()}
+          onSelect={vi.fn()}
+        />
+      ));
       await screen.findByRole("group", { name: "All songs" });
       fireEvent.input(find(), { target: { value: "Song" } });
       await waitFor(() => expect(options().length).toBeGreaterThan(0));
+      const before = selectedOption()?.id;
       key("End");
-      expect(selectedOption()).toBeUndefined();
+      expect(selectedOption()?.id).toBe(before);
     });
 
     it("the quick switcher shows no list of the book with nothing typed", async () => {
@@ -305,20 +319,24 @@ describe("Finder", () => {
       toEnd();
       await waitFor(() => expect(searchMore).toHaveBeenCalledWith("book", "lantern", 30));
       expect(searchMore).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        toEnd();
+        expect(lastOption()).toHaveAttribute("aria-setsize", "42");
+      });
       await screen.findByText("End of results");
-      toEnd();
       expect(lastOption()).toHaveTextContent("#42");
-      expect(lastOption()).toHaveAttribute("aria-setsize", "42");
     });
 
     it("lists no song twice when a page repeats one", async () => {
       setup(async () => ({ results: page(28, 5), more: false }));
       await typeLantern();
       toEnd();
+      await waitFor(() => {
+        toEnd();
+        expect(lastOption()).toHaveAttribute("aria-setsize", "32");
+      });
       await screen.findByText("End of results");
-      toEnd();
       expect(lastOption()).toHaveTextContent("#32");
-      expect(lastOption()).toHaveAttribute("aria-setsize", "32");
     });
 
     it("pages again while more follow", async () => {
@@ -330,10 +348,16 @@ describe("Finder", () => {
       await typeLantern();
       toEnd();
       await waitFor(() => expect(searchMore).toHaveBeenCalledTimes(1));
-      await waitFor(() => expect(lastOption()).toHaveAttribute("aria-setsize", "60"));
-      toEnd();
+      await waitFor(() => {
+        toEnd();
+        expect(lastOption()).toHaveAttribute("aria-setsize", "60");
+      });
       await waitFor(() => expect(searchMore).toHaveBeenCalledTimes(2));
       expect(searchMore).toHaveBeenLastCalledWith("book", "lantern", 60);
+      await waitFor(() => {
+        toEnd();
+        expect(lastOption()).toHaveAttribute("aria-setsize", "90");
+      });
       await screen.findByText("End of results");
     });
 
@@ -685,8 +709,8 @@ describe("Finder", () => {
     await screen.findByRole("group", { name: "All songs" });
 
     fireEvent.input(find(), { target: { value: "grace" } });
+    await waitFor(() => expect(searchLyrics).toHaveBeenCalledWith("book", "grace"));
     expect(await screen.findByRole("option", { name: /Forty-Second Hymn/ })).toBeInTheDocument();
-    expect(searchLyrics).toHaveBeenCalledWith("book", "grace");
   });
 
   it("keeps the list while the next query is pending, and empties it only for no results", async () => {

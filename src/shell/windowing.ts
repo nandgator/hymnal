@@ -193,7 +193,6 @@ export function windowed(options: WindowedOptions): Windowed {
     update,
     viewport,
     reveal(index) {
-      measure();
       const top = scrollTop();
       const target = revealOffset(
         options.layout(),
@@ -208,9 +207,8 @@ export function windowed(options: WindowedOptions): Windowed {
       report(target + listTop);
     },
     toStart() {
-      measure();
-      if (scrollTop() > listTop) scrollTo(0);
-      report(Math.min(scrollTop(), listTop));
+      if (scrollTop() > 0) scrollTo(0);
+      report(0);
     },
     stop() {
       stopped = true;

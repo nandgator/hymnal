@@ -1352,6 +1352,53 @@ input[type="checkbox"].switch:disabled {
   line-height: 1.6;
 }
 
+/* The windowed list (SDD-0001 §13.2, DESIGN.md): every row a fixed height, so the
+   Finder knows where each sits without measuring one. Heights are in rem, and the
+   Finder's plan (Finder.tsx: OPTION_REM, HEADING_REM, STATUS_REM) says the same. A
+   group's heading sticks under the field; spacers stand for the rows not rendered. */
+.finder-windowed .finder-group:not([role="presentation"]) {
+  display: flex;
+  flex-direction: column;
+}
+
+.finder-windowed .finder-group-heading {
+  position: sticky;
+  top: var(--finder-stick-top);
+  z-index: 1;
+  flex: none;
+  box-sizing: border-box;
+  height: 2.75rem;
+  padding-block-end: var(--space-xxs);
+  background-color: var(--finder-bg);
+}
+
+.finder-windowed .finder-option {
+  flex: none;
+  box-sizing: border-box;
+  height: 3.5rem;
+  min-height: 0;
+}
+
+.finder-spacer {
+  flex: none;
+}
+
+/* The line that ends a list which pages: quiet, and a tap on a failure tries again. */
+.finder-status {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 3rem;
+  line-height: 1.6;
+}
+
+.finder-status[data-state="failed"] {
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+}
+
 /* More in a book: an action among the songs, in the accent. */
 .finder-more {
   color: var(--md-sys-color-primary);
@@ -1363,6 +1410,12 @@ input[type="checkbox"].switch:disabled {
   min-width: 3.5rem;
   color: var(--md-sys-color-on-surface-variant);
   font-variant-numeric: tabular-nums;
+}
+
+/* The song up now, in a list of the whole book. */
+.finder-option[aria-current="true"] .finder-number {
+  color: var(--md-sys-color-primary);
+  font-weight: 500;
 }
 
 /* A result's title and its muted matched line are two flex items, each its
@@ -4045,9 +4098,18 @@ html[data-scrolling],
 }
 
 .finder {
+  /* What the windowed list's headings are drawn on, and where they stick: just under
+     the field, whose height the Finder reports in --finder-form-h. */
+  --finder-bg: var(--md-sys-color-surface);
+  --finder-stick-top: calc(var(--switcher-height, 0px) + var(--finder-form-h, 4.5rem));
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+}
+
+.sheet .finder {
+  --finder-bg: var(--md-sys-color-surface-container-low);
+  --finder-stick-top: calc(var(--finder-form-h, 4.5rem) - var(--space-xs));
 }
 
 /* Sticks under the switcher row (its height measured into
