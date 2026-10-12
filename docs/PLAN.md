@@ -170,5 +170,3 @@ only, here:
   is Settings' last section; keymap scopes (the Output and Present Here act only
   on presentation keys); Copy Diagnostics answers in a snackbar; groups glide
   their width (no View Transitions); Recents rows stay in view
-- 2026-10-07 — Withdrawn by the maintainer: the source check (ADR-0029 point 4),
-  from the app and the CLI
