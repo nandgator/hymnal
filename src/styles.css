@@ -3571,8 +3571,12 @@ html[data-scrolling],
   flex: 1;
   min-height: 0;
   scroll-padding-block-end: 5rem;
-  padding: var(--space-xs) var(--space-lg) var(--sheet-pad-bottom);
+  /* A notice over the sheet (Snackbar.tsx) leaves its height clear at the end,
+     so it never covers the sheet's last actions. */
+  padding: var(--space-xs) var(--space-lg)
+    calc(var(--sheet-pad-bottom) + var(--notice-clearance, 0px));
   overflow-y: auto;
+  transition: padding-block-end var(--motion-medium) var(--motion-standard);
 }
 
 .sheet-header {

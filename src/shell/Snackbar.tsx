@@ -15,6 +15,9 @@ export interface SnackbarProps {
 /** The leave animation's length, plus a little: the fallback when none runs. */
 const LEAVE_MS = 300;
 
+/** How far the card rises in (styles.css notice-in): a measure taken early allows for it. */
+const RISE_PX = 12;
+
 /**
  * Hosts the one notice (DESIGN.md § Snackbar): shows `notice` while there is
  * one, and keeps the last one mounted while it slides away, so it leaves as
@@ -31,18 +34,43 @@ export function SnackbarHost(props: { notice: SnackbarProps | undefined }) {
   // browser hits the sheet's control under it) and no focus. So the notice
   // lives inside the sheet on top while one is open, and goes home when the
   // last closes. Moving it hides a popover, so it is shown again.
+  //
+  // The notice is fixed to the viewport, so it can lie over the foot of the
+  // sheet and hide its actions (Load Book). The sheet therefore keeps the
+  // card's height clear at the end of its content: `--notice-clearance`.
+  let homeNode: ParentNode | null | undefined;
+  const reserve = () => {
+    const sheet = anchor?.parentNode;
+    if (!(sheet instanceof HTMLElement) || sheet === homeNode) return;
+    const card = region?.querySelector(".snackbar");
+    const sheetBox = sheet.getBoundingClientRect();
+    const cardBox = card?.getBoundingClientRect();
+    let clearance = 0;
+    if (cardBox && !leaving() && cardBox.right > sheetBox.left && cardBox.left < sheetBox.right)
+      // The card is mid-rise when first measured: a little more than it is.
+      clearance = Math.max(0, sheetBox.bottom - cardBox.top + RISE_PX);
+    if (clearance > 0) sheet.style.setProperty("--notice-clearance", `${Math.round(clearance)}px`);
+    else sheet.style.removeProperty("--notice-clearance");
+  };
+
   onMount(() => {
-    const home = anchor?.parentNode;
+    homeNode = anchor?.parentNode;
+    const home = homeNode;
     if (!anchor || !home) return;
     const place = () => {
       const target = topSheet() ?? home;
       if (!anchor || anchor.parentNode === target) return;
+      if (anchor.parentNode instanceof HTMLElement)
+        anchor.parentNode.style.removeProperty("--notice-clearance");
       target.appendChild(anchor);
       queueMicrotask(() => {
         if (region?.isConnected && !region.matches(":popover-open")) region.showPopover?.();
+        reserve();
       });
     };
     place();
+    window.addEventListener("resize", reserve);
+    onCleanup(() => window.removeEventListener("resize", reserve));
     const watch = new MutationObserver(place);
     watch.observe(document, {
       attributes: true,
@@ -53,6 +81,12 @@ export function SnackbarHost(props: { notice: SnackbarProps | undefined }) {
       watch.disconnect();
       if (anchor?.parentNode !== home) home.appendChild(anchor as Node);
     });
+  });
+
+  createEffect(() => {
+    shown();
+    leaving();
+    queueMicrotask(reserve);
   });
 
   createEffect(() => {

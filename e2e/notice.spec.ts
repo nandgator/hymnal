@@ -65,17 +65,19 @@ test("a notice over the Load Books sheet leaves its buttons in reach", async ({ 
   await expect(gotIt).toBeVisible();
 
   // The notice covers no button of the sheet: each one is what a tap reaches.
-  const covered = await dialog.evaluate((sheet) =>
-    [...sheet.querySelectorAll("button:not(:disabled)")]
-      .filter((button) => {
-        const box = button.getBoundingClientRect();
-        if (box.width === 0 || box.bottom < 0 || box.top > innerHeight) return false;
-        const at = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
-        return !(button === at || button.contains(at));
-      })
-      .map((button) => button.textContent?.trim()),
-  );
-  expect(covered).toEqual([]);
+  const covered = () =>
+    dialog.evaluate((sheet) =>
+      [...sheet.querySelectorAll("button:not(:disabled)")]
+        .filter((button) => {
+          const box = button.getBoundingClientRect();
+          if (box.width === 0 || box.bottom < 0 || box.top > innerHeight) return false;
+          const at = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+          return !(button === at || button.contains(at));
+        })
+        .map((button) => button.textContent?.trim()),
+    );
+  // The sheet makes room as the notice settles, so poll.
+  await expect.poll(covered).toEqual([]);
 
   await load.click();
   await expect(dialog).toBeHidden();
