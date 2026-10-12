@@ -1013,8 +1013,9 @@ logic itself is worker code, not unit tested for the same reason as the rest of
 **Decided
 ([ADR-0032](../decisions/0032-one-search-the-finder-searches-every-source.md)):
 the Finder is the one search, over every held book, its results grouped by
-source.** What follows replaces "the current book" in the lyric path above; the
-number path is unchanged and stays in the current book.
+source.** What follows replaces "the current book" in the lyric path above. The
+number path is widened the same way by the ADR's amendment of 2026-10-12: see _A
+number_ below.
 
 **The worker.** `searchAll(query, currentKey)` runs `searchLyrics`'s match over
 every held book whose state is `ok`, each capped at `SEARCH_LIMIT`, and returns
@@ -1040,15 +1041,25 @@ groups the same way.
 The shell's `chooseHymn` makes that book current and opens the song in one step
 (most of Board #19). While live it is a pick like any other Finder pick (§16).
 
+**A number.** A typed number is looked up in every held book:
+`searchNumber(typed, currentKey)` returns, per book in the same order as
+`searchAll`, the songs numbered `typed`, then those it starts (`numberMatches`,
+at most eight a book). The current book's group is built at once from its own
+list and the others join when read, so Enter never waits: it opens the current
+book's song, or, when that book has no such song, the number there (Presenter
+reports it), never another book's. The current book's exact match is
+highlighted; the arrow keys reach the other books' rows, and a pick hands its
+book. Present Here's switcher and a single book keep the current book alone.
+
 **As built.** Groups and headings show only when more than one book is held and
-words are typed; a number, or nothing typed, is the current book's alone, and
-the line under the field then names that book (it says _all books_ only for
-words). Under a heading the listbox holds `role="group"` wrappers, labelled by
-the heading (the actions' group by "Actions"); More in is an option. Opening a
-group keeps the highlight where it was. Present Here's switcher shows three
-songs a book (five when one book), without More in. The sources list is
-`src/finder/sources.ts`; `Finder` takes `bookCount` and
-`onSelect(number, book)`.
+something is typed, words or a number; with nothing typed the Finder lists the
+current book's songs and recents, and the line under the field names that book
+(it says _all books_ once something is typed). Under a heading the listbox holds
+`role="group"` wrappers, labelled by the heading (the actions' group by
+"Actions"); More in is an option. Opening a group keeps the highlight where it
+was. Present Here's switcher shows three songs a book (five when one book),
+without More in. The sources list is `src/finder/sources.ts`; `Finder` takes
+`bookCount` and `onSelect(number, book)`.
 
 **Sources.** The groups come from a list of sources, each searched on its own;
 books are the only source built. Arrangements (#23), the queue (#22),
@@ -1706,9 +1717,13 @@ workspace, the dock.
   header's picker or the Library) aims the Finder at it and opens the Finder
   (the picker over the hymn, if one is up); the crumb keeps the hymn's own book
   until a hymn is picked. Board #19, closed: a lyric result in another book
-  swaps book and song in one step (§13.1); a number in another book is the
-  header's picker, which aims the Finder at that book, then the number. No
-  selector inside the Finder: numbers are per book (ADR-0032).
+  swaps book and song in one step (§13.1); a number is suggested from every book
+  (ADR-0032, amended 2026-10-12), so the header's picker is not needed to reach
+  another book's number. No selector inside the Finder. The Hymnbooks sheet
+  opens on a search field (focused, as in Search and Settings, phones too) that
+  filters the list by title: every word typed must be in the title, ignoring
+  case and Latin accents, and Malayalam as it is (`matchText.ts`); nothing
+  matching says so, and closing the sheet clears it.
 
 ### 16.5 Keyboard shortcuts
 
