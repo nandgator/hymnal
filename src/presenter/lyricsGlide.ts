@@ -1,16 +1,19 @@
-// The Lyrics list's current-part tint, and the scroll that centres it.
+// The Lyrics list's current-part tint, and the scroll that keeps it in view.
 //
-// A step that scrolls moves only the scroll: the card stays on its part, in the
-// list's own coordinates, so it never slides across text that is itself
-// moving. The old part's card (a ghost, left where it was) fades out as the new
-// part's fades in, both riding the scroll. One Web Animation is the clock (the
-// new card's fade), and the scroll reads its eased progress each frame, so the
-// two can never drift apart (and a paused, seeked animation moves both). A
-// step far from where the card is (a wrap, Home, End, a distant part) is the
-// same, a little longer by the distance (a sweep). A step with next to no
-// scroll has no moving text to cross, so the card glides on its own, its
-// leading edge arriving before its trailing edge. A list shown anew, and
-// reduced motion, show the end state. The text's colour change
+// Every step glides the card from the old part to the new: its leading edge
+// arrives before its trailing edge, so it stretches over the new part, then
+// lets go of the old. The list does not re-centre on each step. It scrolls
+// only when the new part (with a margin) would not be fully showing, and then
+// the least that shows it, or to the part's top when it is taller than the
+// list. The card glides in the list's own coordinates while the list scrolls
+// under it, one Web Animation as the clock (the card's glide) and the scroll
+// reading its eased progress each frame, so the two never drift apart (and a
+// paused, seeked animation moves both). On screen the card travels its real
+// distance; each edge is eased in screen space so it only ever moves toward
+// where it ends. A step far from where the card is (a wrap, Home, End, a
+// distant part) is the same, a little longer by the distance (a sweep). A list
+// shown anew, Back to Current and a list shown after being hidden do centre
+// the part, and reduced motion shows the end state. The text's colour change
 // keeps to the tint: it eases with the glide (styles.css),
 // and goes at once when the tint snaps (`data-tint` on the list).
 
@@ -26,9 +29,7 @@ import {
   shownBox,
 } from "./glideGeometry.ts";
 
-// "carry": the card stays on its part and cross-fades with the old one's ghost
-// while the scroll moves it into place.
-export type TintMode = "snap" | "glide" | "carry";
+export type TintMode = "snap" | "glide";
 export type ScrollMode = "snap" | "glide";
 
 export interface GlidePlan {
@@ -49,14 +50,7 @@ export interface GlideInput {
   viewport: number;
   // Back to Current: the scroll glides however far it is.
   back?: boolean;
-  // A cross-fade is still under way: the next step carries too, so the card
-  // never jumps back to full strength.
-  carrying?: boolean;
 }
-
-// Less scroll than this and the card glides on its own: there is no moving
-// text for it to cross.
-export const CARRY_MIN_SCROLL = 8;
 
 /** What a step does: glide (a far jump sweeps, longer) or snap. Pure, for tests. */
 export function planGlide(input: GlideInput): GlidePlan {
@@ -66,9 +60,6 @@ export function planGlide(input: GlideInput): GlidePlan {
   // A card that has not moved has nothing to sweep: a far scroll just lands
   // (Back to Current glides it instead).
   if (input.tintTravel === 0 && farScroll) return { tint: "glide", scroll: "snap" };
-  if (input.tintTravel > 0 && (input.scrollTravel >= CARRY_MIN_SCROLL || input.carrying)) {
-    return { tint: "carry", scroll: "glide" };
-  }
   return { tint: "glide", scroll: "glide" };
 }
 
@@ -100,16 +91,38 @@ export function scrollTargetTop(input: {
   return Math.min(max, Math.max(0, raw));
 }
 
+/**
+ * The scrollTop that shows an element with a margin above and below, the
+ * least scroll from `current`: none if it shows already, its top (no margin)
+ * if it is taller than the list. The margin gives way for an element that
+ * nearly fills the list, so it is centred rather than clipped.
+ */
+export function scrollIntoViewTop(input: {
+  top: number;
+  height: number;
+  viewport: number;
+  scrollHeight: number;
+  current: number;
+  margin: number;
+}): number {
+  const { top, height, viewport, current } = input;
+  const max = Math.max(0, input.scrollHeight - viewport);
+  const clamp = (v: number) => Math.min(max, Math.max(0, v));
+  if (height > viewport) return clamp(top);
+  const margin = Math.max(0, Math.min(input.margin, (viewport - height) / 2));
+  if (top - margin < current) return clamp(top - margin);
+  if (top + height + margin > current + viewport) return clamp(top + height + margin - viewport);
+  return clamp(current);
+}
+
 interface ListState {
   // Where the tint settles: the end state, whatever is animating.
   box: Box | null;
   scrollTo: number | null;
   anim: Animation | null;
   stopScroll: (() => void) | null;
-  // The last step cross-faded, and may be fading still.
-  carry: boolean;
-  // Old cards fading out where they were.
-  ghosts: Set<HTMLElement>;
+  // The glide under way (or last) centres its part, not just shows it.
+  centre: boolean;
   // The list was hidden at the last step: centre it, unanimated, on show.
   centrePending: boolean;
   // The size observer, and the block it watches besides the list: the
@@ -127,8 +140,7 @@ const stateOf = (list: HTMLElement): ListState => {
       scrollTo: null,
       anim: null,
       stopScroll: null,
-      carry: false,
-      ghosts: new Set(),
+      centre: false,
       centrePending: false,
       observer: null,
       watched: null,
@@ -217,42 +229,9 @@ export function edgeBoxes(
 }
 
 const tintOf = (list: HTMLElement) =>
-  list.querySelector<HTMLElement>(":scope > .seq-tint:not(.seq-ghost)") ?? undefined;
-
-function clearGhosts(state: ListState) {
-  for (const ghost of state.ghosts) ghost.remove();
-  state.ghosts.clear();
-}
-
-// The card as it is now, left behind where it is to fade out: a copy at its
-// place and strength, in the list's coordinates, so it rides the scroll.
-function leaveGhost(
-  state: ListState,
-  tint: HTMLElement,
-  at: Box,
-  strength: number,
-  timing: { duration: number; easing: string },
-) {
-  const ghost = tint.cloneNode(false) as HTMLElement;
-  ghost.classList.add("seq-ghost");
-  ghost.removeAttribute("style");
-  paint(ghost, at);
-  tint.after(ghost);
-  state.ghosts.add(ghost);
-  const gone = () => {
-    ghost.remove();
-    state.ghosts.delete(ghost);
-  };
-  if (typeof ghost.animate !== "function") return gone();
-  const fade = ghost.animate([{ opacity: strength }, { opacity: 0 }], {
-    ...timing,
-    fill: "forwards",
-  });
-  onSettle(fade, gone);
-}
+  list.querySelector<HTMLElement>(":scope > .seq-tint") ?? undefined;
 
 function stop(state: ListState) {
-  state.carry = false;
   state.stopScroll?.();
   state.stopScroll = null;
   state.anim?.cancel();
@@ -288,8 +267,30 @@ function targetsOf(list: HTMLElement) {
   };
 }
 
-function scrollToFor(list: HTMLElement, targets: NonNullable<ReturnType<typeof targetsOf>>) {
+// The share of the list's height kept clear above and below the part a step
+// scrolls to.
+const MARGIN = 0.15;
+
+/** Where the list scrolls for the current part: its centre (a list shown
+ * anew, Back to Current), or, for a step, the least scroll that shows it with
+ * a margin, counted from where the list is (`from`). */
+function scrollToFor(
+  list: HTMLElement,
+  targets: NonNullable<ReturnType<typeof targetsOf>>,
+  centre: boolean,
+  from: number,
+) {
   const at = boxOf(targets.el, list);
+  if (!centre) {
+    return scrollIntoViewTop({
+      top: at.y,
+      height: at.h,
+      viewport: list.clientHeight,
+      scrollHeight: list.scrollHeight,
+      current: from,
+      margin: list.clientHeight * MARGIN,
+    });
+  }
   return scrollTargetTop({
     top: at.y,
     height: at.h,
@@ -346,9 +347,10 @@ function rideScroll(list: HTMLElement, state: ListState, anim: Animation, to: nu
 }
 
 /**
- * Bring the list's current part into view: the tint glides there as the
- * scroll lands. `still` skips the motion (a list shown anew, or an update
- * that isn't a step).
+ * Bring the list's current part into view: the tint glides there, the list
+ * scrolling the least that shows it. `still` skips the motion and centres the
+ * part (a list shown anew, or an update that isn't a step); `back` (Back to
+ * Current) centres it too, gliding.
  */
 export function glideLyrics(list: HTMLElement, options: { still: boolean; back?: boolean }) {
   const state = stateOf(list);
@@ -357,7 +359,6 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean; back?:
   watchCurrent(state, targets?.block ?? null);
   if (!targets) {
     stop(state);
-    clearGhosts(state);
     state.box = null;
     state.scrollTo = null;
     if (tint) paint(tint, null);
@@ -369,7 +370,15 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean; back?:
   }
   state.centrePending = false;
   const to = boxOf(targets.block, list);
-  const scrollTo = scrollToFor(list, targets);
+  // A step is counted from where the scroll is going, if it is under way.
+  const centre = options.still || !!options.back;
+  const heading = state.stopScroll !== null && state.scrollTo !== null;
+  const scrollTo = scrollToFor(
+    list,
+    targets,
+    centre,
+    heading ? Number(state.scrollTo) : list.scrollTop,
+  );
   // An update that isn't a step while a glide is already heading here:
   // leave it be.
   if (options.still && state.anim && sameBox(state.box, to) && state.scrollTo === scrollTo) {
@@ -384,7 +393,6 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean; back?:
     scrollTravel: Math.abs(scrollTo - list.scrollTop),
     viewport: list.clientHeight,
     back: options.back,
-    carrying: state.carry,
   });
   const timing = glideTiming(list);
   const scrolling = Math.abs(scrollTo - scrolledFrom);
@@ -395,12 +403,8 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean; back?:
         Math.max(Math.abs(to.y - (from ?? to).y), scrolling),
         list.clientHeight,
       );
-  // The card as it was is left to fade where it stood, at the strength it
-  // has (read before the old glide is let go).
-  const strength = tint ? Number.parseFloat(getComputedStyle(tint).opacity) : 1;
-  if (plan.tint === "snap") clearGhosts(state);
   stop(state);
-  state.carry = plan.tint === "carry";
+  state.centre = centre;
   state.box = to;
   state.scrollTo = scrollTo;
   if (tint) paint(tint, to);
@@ -425,18 +429,11 @@ export function glideLyrics(list: HTMLElement, options: { still: boolean; back?:
     ease && !sameBox(start, to)
       ? edgeBoxes(start, to, ease, EDGE_STEPS, { from: scrolledFrom, to: scrollTo })
       : [start, to];
-  // Carried, the card does not move: it fades in on its part, on the clock.
-  const anim =
-    plan.tint === "carry"
-      ? tint.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing })
-      : tint.animate(
-          boxes.map((b, i) => ({ ...frame(b), offset: i / (boxes.length - 1) })),
-          { duration, easing },
-        );
+  const anim = tint.animate(
+    boxes.map((b, i) => ({ ...frame(b), offset: i / (boxes.length - 1) })),
+    { duration, easing },
+  );
   state.anim = anim;
-  if (plan.tint === "carry" && from) {
-    leaveGhost(state, tint, from, Number.isNaN(strength) ? 1 : strength, { ...timing, duration });
-  }
   const settle = () => {
     if (state.anim === anim) state.anim = null;
   };
@@ -475,7 +472,12 @@ export function watchTint(list: HTMLElement): () => void {
     // stays part-way.
     const gliding = state.stopScroll !== null;
     const targets = centre || gliding ? targetsOf(list) : null;
-    const scrollTo = targets && list.clientHeight > 0 ? scrollToFor(list, targets) : null;
+    // A step in flight keeps to its own kind of scroll; a list shown after
+    // being hidden centres.
+    const scrollTo =
+      targets && list.clientHeight > 0
+        ? scrollToFor(list, targets, centre || state.centre, state.scrollTo ?? list.scrollTop)
+        : null;
     if (sameBox(box, state.box) && !centre && (!gliding || scrollTo === state.scrollTo)) return;
     stop(state);
     state.box = box;
@@ -497,7 +499,6 @@ export function watchTint(list: HTMLElement): () => void {
     state.observer = null;
     state.watched = null;
     stop(state);
-    clearGhosts(state);
     states.delete(list);
   };
 }
