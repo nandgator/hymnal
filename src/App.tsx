@@ -79,6 +79,7 @@ import {
   SHORTCUTS,
   withKey,
 } from "./shell/keymap.ts";
+import { fold } from "./shell/matchText.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { moveOutputTo, openOutputWindow } from "./shell/openOutput.ts";
 import { createOutputScreens, mayHaveSecondScreen } from "./shell/outputScreens.ts";
@@ -248,6 +249,12 @@ function Operator(props: Shared) {
   const [menuOpen, setMenuOpen] = createSignal(false);
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [bookPickerOpen, setBookPickerOpen] = createSignal(false);
+  // What the Hymnbooks sheet's field holds: the list shows the books whose title has every
+  // word typed. Closing the sheet clears it, so it opens on all the books.
+  const [bookFilter, setBookFilter] = createSignal("");
+  createEffect(() => {
+    if (!bookPickerOpen()) setBookFilter("");
+  });
   const [hymnPickerOpen, setHymnPickerOpen] = createSignal(false);
   const [commandMenuOpen, setCommandMenuOpen] = createSignal(false);
   // Keyboard Shortcuts is a page inside the Settings, Menu or Search sheet, not a
@@ -910,6 +917,13 @@ function Operator(props: Shared) {
   };
 
   const installed = readable;
+  const filteredBooks = () => {
+    const words = fold(bookFilter()).split(/\s+/).filter(Boolean);
+    return installed().filter((book) => {
+      const title = fold(book.title);
+      return words.every((word) => title.includes(word));
+    });
+  };
   // Choosing a book, from the header or the Library, aims the Finder at it and
   // opens the Finder (§16.4). The song up, the crumb and the Output stay as they
   // are until a song is picked, so the audience never sees an empty screen
@@ -1590,6 +1604,19 @@ function Operator(props: Shared) {
           title="Hymnbooks"
           placement={expanded() ? "center" : "bottom"}
         >
+          <label class="text-field">
+            <input
+              type="search"
+              placeholder="Search hymnbooks"
+              aria-label="Search hymnbooks"
+              autofocus
+              value={bookFilter()}
+              onInput={(event) => setBookFilter(event.currentTarget.value)}
+            />
+          </label>
+          <Show when={filteredBooks().length === 0}>
+            <p class="body-large on-surface-variant">No hymnbooks match “{bookFilter().trim()}”.</p>
+          </Show>
           <ul
             class="list glide-list"
             ref={(el) =>
@@ -1601,7 +1628,7 @@ function Operator(props: Shared) {
               )
             }
           >
-            <For each={installed()}>
+            <For each={filteredBooks()}>
               {(book) => (
                 <li>
                   <button

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { HymnbookId, HymnNumber, HymnSource } from "../domain/types.ts";
@@ -31,6 +31,7 @@ function fakeStore(overrides: Partial<ContentStore> = {}): ContentStore {
       const results = await store.searchLyrics(key, query);
       return results.length ? [{ key, title: key, results }] : [];
     },
+    searchNumber: async () => [],
     ...overrides,
   };
   return store;
@@ -772,18 +773,106 @@ describe("Finder", () => {
       await type("line");
       expect(find()).toHaveAccessibleDescription("Searching all books");
       fireEvent.input(find(), { target: { value: "12" } });
+      expect(find()).toHaveAccessibleDescription("Searching all books");
+      fireEvent.input(find(), { target: { value: "" } });
       expect(find()).toHaveAccessibleDescription("Searching Current Book");
     });
 
-    it("a number is the current book's alone: suggested from it, no other book searched", async () => {
-      const { searchAll, store } = threeBooks();
-      const onSelect = renderMany({}, store);
-      fireEvent.input(find(), { target: { value: "42" } });
-      await screen.findByRole("option", { name: /Forty-Second Hymn/ });
-      expect(screen.queryByRole("group")).not.toBeInTheDocument();
-      fireEvent.submit(find().closest("form") as HTMLFormElement);
-      expect(onSelect).toHaveBeenCalledWith(42, "cur");
-      expect(searchAll).not.toHaveBeenCalled();
+    describe("a number (ADR-0032, amended)", () => {
+      const num = (title: string, number: number) => ({ number, title, snippet: "" });
+      /** Other books holding 42 and 421; the current book holds 42 only. */
+      const numberHits = (): BookHits[] => [
+        { key: "cur", title: "Current Book", results: [num("Forty-Second Hymn", 42)] },
+        {
+          key: "two",
+          title: "Second Book",
+          results: [num("Second Forty-Two", 42), num("Second 421", 421)],
+        },
+        { key: "three", title: "Third Book", results: [num("Third Forty-Two", 42)] },
+      ];
+      const withNumbers = (
+        searchNumber = vi.fn(async (_n: string, _k: string) => numberHits()),
+      ) => ({
+        searchNumber,
+        store: fakeStore({ searchNumber }),
+      });
+      const submitForm = () => fireEvent.submit(find().closest("form") as HTMLFormElement);
+
+      it("suggests the number from every book, grouped, the current book first and its exact match highlighted", async () => {
+        const { searchNumber, store } = withNumbers();
+        renderMany({}, store);
+        fireEvent.input(find(), { target: { value: "42" } });
+        await screen.findByRole("option", { name: /Second Forty-Two/ });
+        expect(searchNumber).toHaveBeenCalledWith("42", "cur");
+        const groups = screen.getAllByRole("group");
+        expect(groups.map((g) => g.getAttribute("aria-label") ?? g.textContent)).toHaveLength(3);
+        expect(groups[0]).toHaveAccessibleName("Current Book");
+        expect(groups[1]).toHaveAccessibleName("Second Book");
+        expect(groups[2]).toHaveAccessibleName("Third Book");
+        // Exact first, then the prefix matches.
+        expect(
+          group("Second Book")
+            .getAllByRole("option")
+            .map((o) => o.textContent),
+        ).toEqual([expect.stringContaining("Second Forty-Two"), expect.stringContaining("421")]);
+        expect(selected()).toBe(0);
+        expect(options()[0]).toHaveTextContent("Forty-Second Hymn");
+      });
+
+      it("Enter opens the current book's song, even before the other books have answered", async () => {
+        const searchNumber = vi.fn(() => new Promise<BookHits[]>(() => {}));
+        const onSelect = renderMany({}, withNumbers(searchNumber).store);
+        fireEvent.input(find(), { target: { value: "42" } });
+        await screen.findByRole("option", { name: /Forty-Second Hymn/ });
+        submitForm();
+        expect(onSelect).toHaveBeenCalledWith(42, "cur");
+      });
+
+      it("Enter on a number the current book lacks opens it there, not another book's song", async () => {
+        const onSelect = renderMany(
+          {},
+          fakeStore({
+            listHymns: async () => [],
+            searchNumber: async () => [
+              { key: "two", title: "Second Book", results: [num("Second Forty-Two", 42)] },
+            ],
+          }),
+        );
+        fireEvent.input(find(), { target: { value: "42" } });
+        await screen.findByRole("option", { name: /Second Forty-Two/ });
+        submitForm();
+        expect(onSelect).toHaveBeenCalledWith(42, "cur");
+      });
+
+      it("the arrow keys reach another book's row, and picking it hands that book", async () => {
+        const onSelect = renderMany({}, withNumbers().store);
+        fireEvent.input(find(), { target: { value: "42" } });
+        await screen.findByRole("option", { name: /Second Forty-Two/ });
+        fireEvent.keyDown(find(), { key: "ArrowDown" });
+        expect(options()[1]).toHaveTextContent("Second Forty-Two");
+        expect(selected()).toBe(1);
+        submitForm();
+        expect(onSelect).toHaveBeenLastCalledWith(42, "two");
+        fireEvent.mouseDown(group("Third Book").getByRole("option", { name: /Third Forty-Two/ }));
+        expect(onSelect).toHaveBeenLastCalledWith(42, "three");
+      });
+
+      it("with one book held, or in the quick switcher, only the current book is suggested", async () => {
+        const { searchNumber, store } = withNumbers();
+        const onSelect = renderMany({ bookCount: 1 }, store);
+        fireEvent.input(find(), { target: { value: "42" } });
+        await screen.findByRole("option", { name: /Forty-Second Hymn/ });
+        expect(screen.queryByRole("group")).not.toBeInTheDocument();
+        expect(find()).toHaveAccessibleDescription("Searching Current Book");
+        submitForm();
+        expect(onSelect).toHaveBeenCalledWith(42, "cur");
+        cleanup();
+        renderMany({ compact: true, bookTitle: undefined }, store);
+        fireEvent.input(find(), { target: { value: "42" } });
+        await screen.findByRole("option", { name: /Forty-Second Hymn/ });
+        expect(options()).toHaveLength(1);
+        expect(searchNumber).not.toHaveBeenCalled();
+      });
     });
 
     it("in the command menu the actions come first, in a group of their own", async () => {

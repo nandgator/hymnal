@@ -115,6 +115,9 @@ only, here:
 
 ## Log
 
+- 2026-10-12 — the Finder suggests a typed number from every book, the current
+  book's exact match first and Enter unchanged (ADR-0032, amended); the
+  Hymnbooks sheet has a search field that filters by title
 - 2026-10-12 — the maintainer's review of From Text: Add to picks from the
   language's list (one PickList); an open list dims and blurs the card behind
   it; the review after From Text says Back; your books open like any book, with

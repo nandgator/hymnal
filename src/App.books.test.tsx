@@ -102,6 +102,58 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     expect(await crumbs.findByText("Hymns of Fellowship")).toBeInTheDocument();
   });
 
+  describe("the hymnbook picker's search field", () => {
+    const openPicker = async () => {
+      mocks.rows = [
+        first(),
+        second(),
+        second({ key: "k2", title: "Cantiques Français — Édition", songs: 90 }),
+        second({ key: "k3", title: "മലയാളം ഗീതങ്ങൾ", language: "ml", script: "Mlym" }),
+      ];
+      render(() => <App />);
+      const crumbs = within(await screen.findByRole("navigation", { name: "Hymnbook and song" }));
+      fireEvent.click(await crumbs.findByRole("button", { name: /Mocked Hymnbook/ }));
+      return within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
+    };
+    const search = (books: ReturnType<typeof within>) =>
+      books.getByRole("searchbox", { name: "Search hymnbooks" });
+    const type = (books: ReturnType<typeof within>, value: string) =>
+      fireEvent.input(search(books), { target: { value } });
+
+    it("has the field at the top and focuses it on open", async () => {
+      const books = await openPicker();
+      expect(search(books)).toHaveFocus();
+      expect(books.getAllByRole("button", { name: /songs/ })).toHaveLength(4);
+    });
+
+    it("filters the books by title, ignoring case and accents", async () => {
+      const books = await openPicker();
+      type(books, "FELLOW");
+      expect(books.getAllByRole("button", { name: /songs/ })).toHaveLength(1);
+      expect(books.getByRole("button", { name: /Hymns of Fellowship/ })).toBeInTheDocument();
+      type(books, "francais edition");
+      expect(books.getByRole("button", { name: /Cantiques/ })).toBeInTheDocument();
+      expect(books.getAllByRole("button", { name: /songs/ })).toHaveLength(1);
+    });
+
+    it("finds a Malayalam title", async () => {
+      const books = await openPicker();
+      type(books, "ഗീതങ്ങൾ");
+      expect(books.getAllByRole("button", { name: /songs/ })).toHaveLength(1);
+      expect(books.getByRole("button", { name: /മലയാളം/ })).toBeInTheDocument();
+    });
+
+    it("says so when no book matches, and a cleared field lists them all again", async () => {
+      const books = await openPicker();
+      type(books, "zzz");
+      expect(books.queryAllByRole("button", { name: /songs/ })).toHaveLength(0);
+      expect(books.getByText(/No hymnbooks match/)).toBeInTheDocument();
+      type(books, "");
+      expect(books.getAllByRole("button", { name: /songs/ })).toHaveLength(4);
+      expect(books.queryByText(/No hymnbooks match/)).not.toBeInTheDocument();
+    });
+  });
+
   describe("a book chosen is where the search looks; the song's book stays the song's", () => {
     const crumbs = () => within(screen.getByRole("navigation", { name: "Hymnbook and song" }));
 

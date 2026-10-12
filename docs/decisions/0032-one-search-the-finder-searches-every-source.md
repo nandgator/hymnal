@@ -52,3 +52,19 @@ Chosen: **the Finder is the one search.**
 - Bad: each query opens and searches every book. Books are few and each search
   is capped, and the worker keeps connections open, but it is measured, not
   assumed (SDD-0001 §13).
+
+## Amendment, 2026-10-12: a number is searched in every book too
+
+Approved by the maintainer. Point 1's second sentence, that a number goes only
+to the current book, is superseded. A typed number now **suggests the songs with
+that number, then those it starts, from every held book**, grouped as in point
+2: the current book's group first, its exact match highlighted. The fast path
+stays (a number, Enter opens the current book's song, as it does when the
+current book has no such song); a song in another book is one arrow key and
+Enter away, and picking it hands its book. The line under the field says _all
+books_ for a number too. The current book's suggestions come from its own list
+at once; the others join when they have been read. One book held, and Present
+Here's switcher, are unchanged: a number is the current book's alone there.
+
+Numbers are still per book: the same number in two books are two songs, each
+under its own heading.
