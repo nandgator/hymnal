@@ -1069,50 +1069,55 @@ view is close enough to the frame to need a smaller unit.
   (Today, Yesterday, Before) with them; the rising row passes over the rows it
   crosses, not under; a heading whose group emptied fades out where it stood
   (150ms). A menu grows from its button and shrinks back to it, quicker (150ms,
-  the exit easing); a sheet rises over a blurred page and sinks away on close;
-  every control's change of state eases. **Sheet pages** (nested navigation
-  inside one sheet, `Sheet`'s `page`): the one `<dialog>` stays open, so the
-  scrim never blinks, and its content pushes and pops. It is the tab switch's
-  timing (`tab-in`: 250ms, the emphasised easing, a fade) with the Repeat
-  count's travel and 2px blur (`roll-in-*`): the new page comes from the
-  inline-end (2.5rem), the old one steps 1.5rem toward the inline-start, both
-  fading through the blur; Back is the mirror; the header's title cross-fades;
-  the sheet's height eases between the two pages' heights (capped by the sheet's
-  own maximum, so two tall pages hold still). Focus moves to the new page's
-  heading, and Back returns it to the row it left. Reduced motion is a
-  crossfade: no travel, blur or height glide. The root stays mounted underneath,
-  so its scroll position survives. **Press**: a control gives a little under the
-  finger (96%) at once and springs back with a slight overshoot, Material 3
-  Expressive's press kept small; an icon that changes meaning (Blank to Restore)
-  turns in. The Repeat count is a rolling number (an odometer): the old count
-  rolls out as the new one rolls in, up as it grows and down on Undo. **Reset**
-  counts it down through the numbers (×9, ×8 … ×1), the first at once and each
-  pause shorter, the whole run capped at about 450ms however large the count (a
-  big count skips numbers), then the ×N fades; the last Undo rolls to ×1 and
-  fades too. The state (and the Output) change at once, only the display counts;
-  reduced motion has no countdown, the number just fades; the count's room
-  stays, so Undo and Reset never move. Moving to another part follows the count
-  at once. It is in the text colour, not Repeat's primary: coloured text means a
-  control. Each rail section eases in on arrival, the Library as the Operator.
-  In the command menu the highlight follows a moving pointer and leaves with it;
-  Enter then takes the top match (§ Interaction states). Reduced motion shows
-  the end state, with what appears and goes keeping its fade: a menu, a sheet
-  and its scrim, a tab's content and a notice fade and lose their zoom, rise and
-  sink. **The Lyrics tint** slides and resizes with the scroll in 250ms
-  (`lyricsGlide.ts`: one animation clocks both, so they land together; translate
-  and height, never scaleY, which warps the corners). Its leading edge arrives
-  first and the trailing edge follows, so it stretches over the new part, then
-  lets go of the old; a jump of more than a screen sweeps, a little longer. The
-  text changes colour in those same 250ms and easing, so the part the tint
-  leaves dims and the one it reaches brightens as the tint passes, never ahead
-  or behind it. **Full Song's tint** (SDD-0005, the Output) does the same within
-  a column. Across columns it fades, overlapped so some part is always lit: the
-  old tint fades out in place over the first 60%, the new one fades in over the
-  last 80% travelling 1.6em from the left, the text following in step. A page
-  turn is a handoff within 250ms: the old page fades out over the first 110ms,
-  the new one rises 12px and fades in from 90ms (a 20ms overlap at low opacity,
-  so text never doubles), the tint going out and coming in with its pages.
-  Reduced motion shows the end state.
+  the exit easing); a sheet rises over a blurred page and sinks away on close; a
+  sheet that replaces another (Settings and Search) keeps the scrim still and
+  the card opaque: the card morphs once to the new size (late content, such as
+  the Finder's rows, retargets it), the old content is gone at once and the new
+  settles in on the card (scale 0.98 to 1 and opacity 0.4 to 1, 180ms, the
+  emphasised easing, from the top centre), so the two never read over each
+  other; reduced motion switches at once, with no scale; every control's change
+  of state eases. **Sheet pages** (nested navigation inside one sheet, `Sheet`'s
+  `page`): the one `<dialog>` stays open, so the scrim never blinks, and its
+  content pushes and pops. It is the tab switch's timing (`tab-in`: 250ms, the
+  emphasised easing, a fade) with the Repeat count's travel and 2px blur
+  (`roll-in-*`): the new page comes from the inline-end (2.5rem), the old one
+  steps 1.5rem toward the inline-start, both fading through the blur; Back is
+  the mirror; the header's title cross-fades; the sheet's height eases between
+  the two pages' heights (capped by the sheet's own maximum, so two tall pages
+  hold still). Focus moves to the new page's heading, and Back returns it to the
+  row it left. Reduced motion is a crossfade: no travel, blur or height glide.
+  The root stays mounted underneath, so its scroll position survives. **Press**:
+  a control gives a little under the finger (96%) at once and springs back with
+  a slight overshoot, Material 3 Expressive's press kept small; an icon that
+  changes meaning (Blank to Restore) turns in. The Repeat count is a rolling
+  number (an odometer): the old count rolls out as the new one rolls in, up as
+  it grows and down on Undo. **Reset** counts it down through the numbers (×9,
+  ×8 … ×1), the first at once and each pause shorter, the whole run capped at
+  about 450ms however large the count (a big count skips numbers), then the ×N
+  fades; the last Undo rolls to ×1 and fades too. The state (and the Output)
+  change at once, only the display counts; reduced motion has no countdown, the
+  number just fades; the count's room stays, so Undo and Reset never move.
+  Moving to another part follows the count at once. It is in the text colour,
+  not Repeat's primary: coloured text means a control. Each rail section eases
+  in on arrival, the Library as the Operator. In the command menu the highlight
+  follows a moving pointer and leaves with it; Enter then takes the top match (§
+  Interaction states). Reduced motion shows the end state, with what appears and
+  goes keeping its fade: a menu, a sheet and its scrim, a tab's content and a
+  notice fade and lose their zoom, rise and sink. **The Lyrics tint** slides and
+  resizes with the scroll in 250ms (`lyricsGlide.ts`: one animation clocks both,
+  so they land together; translate and height, never scaleY, which warps the
+  corners). Its leading edge arrives first and the trailing edge follows, so it
+  stretches over the new part, then lets go of the old; a jump of more than a
+  screen sweeps, a little longer. The text changes colour in those same 250ms
+  and easing, so the part the tint leaves dims and the one it reaches brightens
+  as the tint passes, never ahead or behind it. **Full Song's tint** (SDD-0005,
+  the Output) does the same within a column. Across columns it fades, overlapped
+  so some part is always lit: the old tint fades out in place over the first
+  60%, the new one fades in over the last 80% travelling 1.6em from the left,
+  the text following in step. A page turn is a handoff within 250ms: the old
+  page fades out over the first 110ms, the new one rises 12px and fades in from
+  90ms (a 20ms overlap at low opacity, so text never doubles), the tint going
+  out and coming in with its pages. Reduced motion shows the end state.
 - **Motion tokens** (`src/styles.css`, `:root`): `--motion-emphasized`
   `cubic-bezier(0.2, 0, 0, 1)` for what moves (glides, enters, selection);
   `--motion-exit` `cubic-bezier(0.3, 0, 0.8, 0.15)` for what leaves;
