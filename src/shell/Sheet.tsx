@@ -148,6 +148,7 @@ export function Sheet(props: SheetProps) {
   let rootEl: HTMLDivElement | undefined;
   let pageEl: HTMLDivElement | undefined;
   let titleEl: HTMLHeadingElement | undefined;
+  let mainTitleEl: HTMLHeadingElement | undefined;
   let rootOff = false;
   let opener: Element | null = null;
   let settle: (() => void) | undefined;
@@ -289,7 +290,13 @@ export function Sheet(props: SheetProps) {
       if (swapFrom) swapIn(swapFrom, carry);
       // Fallback where showModal's own autofocus pass misses the field.
       const field = dialog.querySelector<HTMLElement>("[autofocus]");
-      if (field && document.activeElement !== field) field.focus();
+      if (field) {
+        if (document.activeElement !== field) field.focus();
+      } else {
+        // No field to type in: the title, not the Close button (no ring; Tab
+        // then goes to the first control).
+        mainTitleEl?.focus({ preventScroll: true });
+      }
     } else if (dialog.open) {
       delete dialog.dataset.swap;
       // Motion explains the change (PRINCIPLES.md): the sheet sinks away and
@@ -511,7 +518,12 @@ export function Sheet(props: SheetProps) {
           <div class="sheet-header">
             <div class="sheet-titles" classList={{ "sheet-titles-nested": !!props.page }}>
               {/* biome-ignore lint/a11y/useHeadingContent: hidden only while its page covers it; it has text */}
-              <h2 class="title-medium sheet-title" aria-hidden={props.page ? "true" : undefined}>
+              <h2
+                class="title-medium sheet-title"
+                ref={mainTitleEl}
+                tabindex="-1"
+                aria-hidden={props.page ? "true" : undefined}
+              >
                 {props.title}
               </h2>
               <Show when={rendered()}>

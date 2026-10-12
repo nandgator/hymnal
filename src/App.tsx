@@ -1676,6 +1676,7 @@ function Operator(props: Shared) {
           onBack={() => setShortcuts(undefined)}
         >
           <Settings
+            autofocus
             controller={preferences}
             screens={screens}
             onShowShortcuts={() => showShortcuts("settings")}
