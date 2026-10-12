@@ -68,7 +68,6 @@ import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { autoHover } from "./shell/autoHover.ts";
 import { titleCase } from "./shell/case.ts";
 import { RootBoundary } from "./shell/ErrorScreen.tsx";
-import { fold } from "./shell/fold.ts";
 import { glideList } from "./shell/glideList.ts";
 import { hoverButton, hoverGroup } from "./shell/hoverGlide.ts";
 import { KeyCombo } from "./shell/KeyCombo.tsx";
@@ -80,6 +79,7 @@ import {
   SHORTCUTS,
   withKey,
 } from "./shell/keymap.ts";
+import { fold } from "./shell/matchText.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { moveOutputTo, openOutputWindow } from "./shell/openOutput.ts";
 import { createOutputScreens, mayHaveSecondScreen } from "./shell/outputScreens.ts";

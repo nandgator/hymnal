@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fold } from "./fold.ts";
+import { fold } from "./matchText.ts";
 
 describe("fold", () => {
   it("ignores case and Latin accents", () => {
