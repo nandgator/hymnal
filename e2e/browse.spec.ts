@@ -26,30 +26,42 @@ test("the Finder lists the whole book in a window: scroll to the end, open a lat
   const box = await openFinder(page);
   const options = listbox(page).getByRole("option");
 
-  // Songs, not just twenty: the list reaches number 40 on screen scroll, and the DOM stays small.
-  await expect(
-    listbox(page).getByRole("option", { name: "#1 Invented Hymn 1", exact: true }),
-  ).toBeVisible();
+  // The list is the book and the actions, in a window: a few dozen options in the DOM.
+  await expect(options.first()).toHaveAttribute("aria-setsize", /^\d+$/);
+  const total = Number(await options.first().getAttribute("aria-setsize"));
+  expect(total).toBeGreaterThan(COUNT);
   expect(await options.count()).toBeLessThan(80);
-  await expect(options.first()).toHaveAttribute("aria-setsize", /\d+/);
 
-  // Scrolling by hand brings later songs in and drops the earlier.
-  await listbox(page).hover();
-  await page.mouse.wheel(0, 6000);
-  await expect(listbox(page).getByRole("option", { name: /^#1 / })).toHaveCount(0);
-  expect(await options.count()).toBeLessThan(80);
-  const posinsets = await options.evaluateAll((all) =>
-    all.map((o) => Number(o.getAttribute("aria-posinset"))),
-  );
-  expect(Math.min(...posinsets)).toBeGreaterThan(20);
-
-  // End reaches the last song; opening it opens song 300.
+  // End reaches the last song, and only the last songs are in the DOM.
   await box.press("End");
   const last = listbox(page).getByRole("option", {
     name: `#${COUNT} Invented Hymn ${COUNT}`,
     exact: true,
   });
   await expect(last).toBeVisible();
+  await expect(last).toHaveAttribute("aria-selected", "true");
+  await expect(last).toHaveAttribute("aria-posinset", String(total));
+  expect(await options.count()).toBeLessThan(80);
+  await expect(listbox(page).getByRole("option", { name: /^#1 / })).toHaveCount(0);
+
+  // Home goes back; a wheel scroll by hand brings later songs in and drops the earlier.
+  await box.press("Home");
+  await expect(options.first()).toHaveAttribute("aria-posinset", "1");
+  await listbox(page).hover();
+  await page.mouse.wheel(0, 9000);
+  await expect
+    .poll(async () =>
+      Math.min(
+        ...(await options.evaluateAll((all) =>
+          all.map((o) => Number(o.getAttribute("aria-posinset"))),
+        )),
+      ),
+    )
+    .toBeGreaterThan(60);
+  expect(await options.count()).toBeLessThan(80);
+
+  // End again, then Enter opens the last song.
+  await box.press("End");
   await expect(last).toHaveAttribute("aria-selected", "true");
   await page.keyboard.press("Enter");
   await expect(
@@ -70,11 +82,14 @@ test("a search that has more than a page scrolls on past 30", async ({ page }) =
   await expect(options.first()).toHaveAttribute("aria-setsize", "30");
 
   // The next pages arrive as the end is reached: 30, 60, then the last 20.
+  const end = listbox(page).getByText("End of results");
+  await expect(async () => {
+    await box.press("Control+End");
+    await expect(end).toBeVisible({ timeout: 1500 });
+  }).toPass({ timeout: 20_000 });
   await box.press("Control+End");
-  await expect(options.last()).toHaveAttribute("aria-setsize", /^(60|80)$/);
-  await box.press("Control+End");
-  await expect(listbox(page).getByText("End of results")).toBeVisible();
   await expect(options.last()).toHaveAttribute("aria-setsize", String(SHARED));
+  await expect(options.last()).toHaveAttribute("aria-posinset", String(SHARED));
 
   // No song twice: every position in the window is distinct.
   const numbers = await options.evaluateAll((all) =>
