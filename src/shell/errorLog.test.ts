@@ -24,4 +24,32 @@ describe("installErrorLogging", () => {
     expect(log).not.toHaveBeenCalled();
     window.removeEventListener("error", keep);
   });
+
+  it("does not log the browser's benign ResizeObserver loop message", () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    // The runner reports an uncancelled error as a failure: only the ones under test are not.
+    const keep = (event: Event) => {
+      const { message, error } = event as ErrorEvent;
+      if (error || !/loop/.test(message)) event.preventDefault();
+    };
+    window.addEventListener("error", keep);
+    const remove = installErrorLogging();
+    for (const message of [
+      "ResizeObserver loop completed with undelivered notifications.",
+      "ResizeObserver loop limit exceeded",
+    ]) {
+      const event = new ErrorEvent("error", { message, cancelable: true });
+      window.dispatchEvent(event);
+      // Cancelled, so the browser does not report it either (WebKit does, as a page error).
+      expect(event.defaultPrevented).toBe(true);
+    }
+    expect(log).not.toHaveBeenCalled();
+    // Only that message: another is logged, and so is one carrying an error.
+    window.dispatchEvent(new ErrorEvent("error", { message: "ResizeObserver is not defined" }));
+    const error = new Error("ResizeObserver loop: thrown on purpose");
+    window.dispatchEvent(new ErrorEvent("error", { error, message: error.message }));
+    expect(log).toHaveBeenCalledTimes(2);
+    remove();
+    window.removeEventListener("error", keep);
+  });
 });

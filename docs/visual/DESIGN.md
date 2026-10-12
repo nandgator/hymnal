@@ -764,10 +764,13 @@ view is close enough to the frame to need a smaller unit.
   Presenter's stage, so the transport at the stage's foot is never covered; on a
   phone the full width less the 16px gutters, **above the dock** and the safe
   area). It is fixed, so it never moves the layout and covers only the foot of
-  the lyrics briefly. It **enters** rising from below with a fade (250ms,
-  emphasised easing) and **leaves** the same way reversed (150ms); with reduced
-  motion it only fades. Its action and close wear the shared hover layer as a
-  group (Interaction states). In forced colours it gains a 1px CanvasText
+  the lyrics briefly. Over an open sheet it would also cover the sheet's last
+  actions, so the sheet keeps the card's height clear at the end of its content
+  (`--notice-clearance`, measured when the card shows or the window resizes, and
+  eased away when it leaves). It **enters** rising from below with a fade
+  (250ms, emphasised easing) and **leaves** the same way reversed (150ms); with
+  reduced motion it only fades. Its action and close wear the shared hover layer
+  as a group (Interaction states). In forced colours it gains a 1px CanvasText
   border. One at a time, the update first, then the keep-your-file note, then
   Safari's, and **never while the Output is live** (On Air or Blanked). It takes
   no focus; a persistent live region announces its message. Keyboard: Esc puts

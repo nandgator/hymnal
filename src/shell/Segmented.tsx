@@ -1,4 +1,4 @@
-import { createEffect, createUniqueId, For, onCleanup } from "solid-js";
+import { createEffect, For, onCleanup } from "solid-js";
 import { glideList } from "./glideList.ts";
 
 export interface SegmentedProps<T extends string> {
@@ -11,12 +11,31 @@ export interface SegmentedProps<T extends string> {
   tight?: boolean;
 }
 
+/** The radio names in use now: a name is freed when its control goes. */
+const taken = new Set<string>();
+
+/**
+ * A radio group name that is the same on every mount of a use-site (its
+ * legend) and never shared by two controls mounted together. A fresh unique
+ * name per mount leaves the browser a new radio group each time, which it keeps
+ * for the document's lifetime.
+ */
+function claimName(legend: string): string {
+  const base = `segmented-${legend.replace(/\W+/g, "-").toLowerCase()}`;
+  let name = base;
+  for (let n = 2; taken.has(name); n++) name = `${base}-${n}`;
+  taken.add(name);
+  const claimed = name;
+  onCleanup(() => taken.delete(claimed));
+  return name;
+}
+
 /**
  * An MD3 segmented button on native radios, as Settings draws them: its hover
  * highlight and its selected pill each glide from segment to segment.
  */
 export function Segmented<T extends string>(props: SegmentedProps<T>) {
-  const name = createUniqueId();
+  const name = claimName(props.legend);
   return (
     <fieldset
       class="segmented"
