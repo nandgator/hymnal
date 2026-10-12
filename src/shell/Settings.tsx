@@ -296,6 +296,8 @@ function radioAsWas(layer: HTMLElement, index: number) {
 export interface SettingsProps {
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
   userState?: UserState;
+  /** Focus the search field when the sheet opens (the Settings sheet, not the Menu's copy). */
+  autofocus?: boolean;
   /** The shell's shared controller; without one, Settings makes its own. */
   controller?: PreferencesController;
   /** The shell's shared screens (ADR-0028); without one, Settings makes its own. */
@@ -472,6 +474,7 @@ export function Settings(props: SettingsProps) {
           type="search"
           placeholder="Search settings"
           aria-label="Search settings"
+          autofocus={props.autofocus}
           value={query()}
           onInput={(event) => setQuery(event.currentTarget.value)}
         />
