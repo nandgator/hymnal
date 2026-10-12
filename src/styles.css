@@ -3240,8 +3240,8 @@ html[data-scrolling],
   }
 }
 
-@keyframes sheet-swap-content {
-  from {
+@keyframes sheet-ghost-out {
+  to {
     opacity: 0;
   }
 }
@@ -3305,11 +3305,6 @@ html[data-scrolling],
     to {
       opacity: 0;
     }
-  }
-
-  /* A swap has no motion at all: the card is simply the other card. */
-  .sheet[data-swap] > .sheet-frame {
-    animation: none;
   }
 
   @keyframes tab-in {
@@ -3585,8 +3580,21 @@ html[data-scrolling],
   overflow-y: auto;
 }
 
-.sheet[data-swap] > .sheet-frame {
-  animation: sheet-swap-content var(--motion-short) var(--motion-standard);
+/* The old card's content, a still picture of it, dissolving off the new
+   card's (Sheet.tsx): opaque to begin with, so the new content comes through
+   as it goes and no frame is empty. It is a picture: nothing in it takes a
+   click or a key. */
+.sheet-ghost {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--md-sys-color-surface-container-low);
+  pointer-events: none;
+  animation: sheet-ghost-out var(--motion-short) var(--motion-standard) forwards;
 }
 
 .sheet-header {
