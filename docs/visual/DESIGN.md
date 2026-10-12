@@ -1459,7 +1459,7 @@ switcher the headings are 13px and each book shows three rows.
 
 **Finder, a whole book** (SDD-0001 §13.2). Nothing typed, Recents sit on top and
 **All songs** below: every song of the book in one list that scrolls inside the
-sheet (or the page, in Present). It is windowed: only the rows in view and eight
+sheet (or the page, in Present). It is windowed: only the rows in view and six
 either side exist, over spacers that keep the scroll bar honest. Rows are a
 fixed 3.5rem, headings 2.75rem, so nothing is measured when a sheet opens or
 while it scrolls. A group heading (a language of Assorted Hymns, or **All

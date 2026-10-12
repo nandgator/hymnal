@@ -117,6 +117,9 @@ function scrollerOf(list: HTMLElement): HTMLElement | null {
   return null;
 }
 
+/** While scrolling, where the list starts is read again at most this often (ms). */
+const REMEASURE_MS = 250;
+
 export function windowed(options: WindowedOptions): Windowed {
   const { list } = options;
   const scroller = scrollerOf(list);
@@ -128,6 +131,8 @@ export function windowed(options: WindowedOptions): Windowed {
 
   // Where the list starts in the scroller's content, in px: read when something resizes.
   let listTop = 0;
+  let measuredAt = Number.NEGATIVE_INFINITY;
+  const now = () => (typeof performance === "object" ? performance.now() : Date.now());
   let stopped = false;
   let pending = false;
   let last: Range | undefined;
@@ -141,6 +146,9 @@ export function windowed(options: WindowedOptions): Windowed {
 
   const measure = () => {
     const rect = list.getBoundingClientRect();
+    // Not laid out (a test, or a list not shown): there is nothing to read.
+    if (rect.width === 0 && rect.height === 0) return;
+    measuredAt = now();
     if (scroller) {
       const box = scroller.getBoundingClientRect();
       listTop = rect.top - box.top - scroller.clientTop + scroller.scrollTop;
@@ -163,7 +171,11 @@ export function windowed(options: WindowedOptions): Windowed {
     pending = true;
     frame(() => {
       pending = false;
-      if (!stopped) update();
+      if (stopped) return;
+      // The list may have moved without a resize (a page sliding in, content loading above):
+      // read where it is again now and then, never on every frame.
+      if (now() - measuredAt > REMEASURE_MS) measure();
+      update();
     });
   };
 
@@ -193,6 +205,7 @@ export function windowed(options: WindowedOptions): Windowed {
     update,
     viewport,
     reveal(index) {
+      measure();
       const top = scrollTop();
       const target = revealOffset(
         options.layout(),

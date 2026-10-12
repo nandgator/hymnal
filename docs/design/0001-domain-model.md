@@ -1080,14 +1080,15 @@ browsed. Nothing typed, the Finder shows Recents on top and, below, **All
 songs**: every song of the book in one list that scrolls inside the Finder (the
 sheet's content, or the page when the Finder fills Present), replacing the first
 twenty ("From the start", `OPENING_SONGS`, gone). A lyric search scrolls on past
-its first 30.
+its first 30. In the command menu (§16.5) the order is Recents, the actions,
+then All songs, so the songs start a screen down.
 
 **One windowed listbox.** The list under the field is the same `role="listbox"`
-for browsing and for results, and only the rows in view, plus an overscan of
-eight rows either side, are in the DOM. Spacers of the missing height keep the
-scroll bar true. The window is a small module, `windowing.ts` in `src/shell`:
-pure maths over a layout of heights (`layoutOf`, `windowOf`, `revealOffset`, a
-binary search over offsets), and a controller that finds the nearest scrolling
+for browsing and for results, and only the rows in view, plus an overscan of six
+rows either side, are in the DOM. Spacers of the missing height keep the scroll
+bar true. The window is a small module, `windowing.ts` in `src/shell`: pure
+maths over a layout of heights (`layoutOf`, `windowOf`, `revealOffset`, a binary
+search over offsets), and a controller that finds the nearest scrolling
 ancestor, listens to its scroll once per frame, and reports a range only when it
 changes. No dependency: the list is a few dozen lines of maths, and a library's
 measuring of every row (the cost this must avoid) is what it would add.
@@ -1095,10 +1096,12 @@ measuring of every row (the cost this must avoid) is what it would add.
 **Fixed heights, nothing measured per row.** An option is 3.5rem and a heading
 2.75rem, a status line 3rem, set in CSS and read once as rem in pixels (and
 again when the scroller resizes). The book is never measured on open, and a
-scroll does no layout read: the list's offset in its scroller is cached and
-re-read only when the scroller or the Finder changes size. A title or a snippet
-is one line, cut with an ellipsis, so heights never vary; Malayalam glyphs keep
-their room inside the row and clear the number column as before.
+scroll does no per-frame layout read: the list's offset in its scroller is
+cached, and read again when the scroller or the Finder changes size, when a row
+is revealed, and at most four times a second while scrolling (a page sliding in
+moves the list without resizing it). A title or a snippet is one line, cut with
+an ellipsis, so heights never vary; Malayalam glyphs keep their room inside the
+row and clear the number column as before.
 
 **Order and headings.** The order is the book's (`listHymns`): by number;
 Assorted Hymns by language, then title (SDD-0004 §17). Where the book has
@@ -1125,10 +1128,10 @@ within the overscan, the Finder asks the worker for the next page of that book
 so pages never overlap) and appends it in place; the highlight and the scroll
 position stay. A group that is not yet opened (More in, §13.1) pages once it is.
 While a page loads the list ends in a quiet "Loading more", on failure in "Could
-not load more. Try again", which a tap or Enter retries, and, once a search has
-paged to its end, in "End of results". A new query throws away the pages, in
-flight ones included; a song is never listed twice. The quick switcher (§16.7)
-is unchanged: a short list, no browsing, no paging.
+not load more. Try again", which a tap retries, and, once a search has paged to
+its end, in "End of results". A new query throws away the pages, in flight ones
+included; a song is never listed twice. The quick switcher (§16.7) is unchanged:
+a short list, no browsing, no paging.
 
 **Testing.** Unit: the maths (offsets, range, reveal, overscan, an empty list);
 the controller on a stub scroller; `searchBook` pages (offset, `more`, no

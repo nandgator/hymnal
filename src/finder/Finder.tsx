@@ -52,9 +52,9 @@ const OPTION_REM = 3.5;
 const HEADING_REM = 2.75;
 const STATUS_REM = 3;
 /** Rows kept either side of the view. */
-const OVERSCAN_ROWS = 8;
+const OVERSCAN_ROWS = 6;
 /** Slots rendered before the list has been placed: enough to fill a tall sheet. */
-const FIRST_SLOTS = 24;
+const FIRST_SLOTS = 18;
 /** The group a browsed book's songs are in when the book has no languages. */
 const ALL_SONGS = "All songs";
 
