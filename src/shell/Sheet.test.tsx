@@ -440,6 +440,39 @@ describe("Sheet", () => {
         expect(cancel.mock.calls.length).toBeGreaterThanOrEqual(2);
       });
 
+      it("carries on from where the leaving content's settle had got to, so a swap mid-settle neither dips nor jumps", () => {
+        const { setA, setB } = pair();
+        animate.mockImplementation(() => ({
+          cancel: vi.fn(),
+          playState: "running",
+          finished: new Promise(() => {}),
+        }));
+        const real = window.getComputedStyle.bind(window);
+        vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
+          const style = real(el, pseudo);
+          if (!(el as HTMLElement).classList?.contains("sheet-frame")) return style;
+          return new Proxy(style, {
+            get: (target, key) =>
+              key === "opacity"
+                ? "0.8"
+                : key === "transform"
+                  ? "matrix(0.99, 0, 0, 0.99, 0, 0)"
+                  : Reflect.get(target, key),
+          });
+        });
+        setA(true);
+        setA(false);
+        setB(true);
+        // B is mid-settle (0.8, scale 0.99) when A takes the card back.
+        setB(false);
+        setA(true);
+        const mine = settles();
+        expect(mine).toHaveLength(2);
+        expect(mine[0]?.call[0][0]).toMatchObject({ opacity: 0.4, transform: "scale(0.98)" });
+        expect(mine[1]?.call[0][0]).toMatchObject({ opacity: 0.8, transform: "scale(0.99)" });
+        vi.restoreAllMocks();
+      });
+
       it("morphs to the height the new content has once it is rendered, not the one it has as it mounts", async () => {
         const { setA, setB, resize } = growing();
         setA(true);
