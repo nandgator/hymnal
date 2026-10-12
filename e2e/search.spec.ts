@@ -37,6 +37,7 @@ test("search every book: grouped, found under each, a pick in the other book ope
   let box = await openFinder(page);
   await box.fill("1");
   await listbox(page)
+    .getByRole("group", { name: BOOK_TITLE })
     .getByRole("option", { name: /#1 Lantern Morning/ })
     .click();
   await expect(page.getByRole("heading", { name: "Lantern Morning #1" })).toBeVisible();
@@ -74,14 +75,27 @@ test("search every book: grouped, found under each, a pick in the other book ope
   await expect(crumb(page)).toContainText(SECOND_TITLE);
   await expect(crumb(page)).not.toContainText(BOOK_TITLE);
 
-  // A number still searches the current book alone: no groups, no other book.
+  // A number is searched in every book too (ADR-0032, amended 2026-10-12): the
+  // current book's group first, the other book's joining when it has been read.
   box = await openFinder(page);
   await box.fill("2");
-  await expect(results.getByRole("option")).toHaveCount(1);
-  await expect(results.getByRole("option")).toContainText("Quay Song");
-  await expect(results.getByRole("group")).toHaveCount(0);
-  await expect(page.getByText("Searching all books")).toHaveCount(0);
-  await expect(page.locator(".finder-scope")).toContainText(SECOND_TITLE);
+  await expect(page.getByText("Searching all books")).toBeVisible();
+  await expect(page.locator(".finder-scope")).toContainText(/all books/i);
+  const numbers = results.getByRole("group");
+  await expect(numbers).toHaveCount(2);
+  await expect(numbers.nth(0)).toContainText(SECOND_TITLE);
+  await expect(numbers.nth(1)).toContainText(BOOK_TITLE);
+  await expect(numbers.nth(0).getByRole("option")).toHaveCount(1);
+  await expect(numbers.nth(0).getByRole("option")).toContainText("Quay Song");
+  await expect(numbers.nth(1).getByRole("option")).toContainText("River Of Stones");
+
+  // A pick in the other book hands its book.
+  await numbers
+    .nth(1)
+    .getByRole("option", { name: /River Of Stones/ })
+    .click();
+  await expect(page.getByRole("heading", { name: "River Of Stones #2" })).toBeVisible();
+  await expect(crumb(page)).toContainText(BOOK_TITLE);
 
   expect(errors).toEqual([]);
 });
