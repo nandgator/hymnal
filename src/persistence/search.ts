@@ -15,6 +15,24 @@ export interface BookHits {
   results: SearchResult[];
 }
 
+/**
+ * A book's songs for a typed number: the exact number first, then those it starts
+ * ("4" finds 4, then 42, 421), in the book's order, at most `limit`.
+ */
+export function numberMatches(
+  songs: readonly { number: number; title: string }[],
+  typed: string,
+  limit = 8,
+): SearchResult[] {
+  const exact = songs.filter((song) => String(song.number) === typed);
+  const prefixed = songs.filter(
+    (song) => String(song.number).startsWith(typed) && String(song.number) !== typed,
+  );
+  return [...exact, ...prefixed]
+    .slice(0, limit)
+    .map((song) => ({ number: song.number, title: song.title, snippet: "" }));
+}
+
 /** At most this many results from one book: a common word matches hundreds of hymns. */
 export const SEARCH_LIMIT = 30;
 

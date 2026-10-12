@@ -56,7 +56,13 @@ import {
   renameOwn,
   startRegistry,
 } from "./registry.ts";
-import { type BookHits, type SearchResult, searchBook, searchBooks } from "./search.ts";
+import {
+  type BookHits,
+  numberMatches,
+  type SearchResult,
+  searchBook,
+  searchBooks,
+} from "./search.ts";
 
 export type { BookHits, HymnSummary, SearchResult };
 
@@ -91,6 +97,11 @@ export interface ContentStore {
    * match, or one that cannot be read, is left out.
    */
   searchAll(query: string, currentKey: HymnbookId): Promise<BookHits[]>;
+  /**
+   * The songs numbered `typed`, or starting with it, in every held book whose state is `ok`
+   * (ADR-0032, amended): the same order as `searchAll`, a book with none left out.
+   */
+  searchNumber(typed: string, currentKey: HymnbookId): Promise<BookHits[]>;
 }
 
 /** A progress callback from the page, which a closed page or a released proxy must not break. */
@@ -634,6 +645,14 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     if (!ctx || query.trim() === "") return [];
     return searchBooks(listBooks(ctx), currentKey, (book) =>
       searchBook(sqlOf(this.#open(book.key)), query),
+    );
+  }
+
+  async searchNumber(typed: string, currentKey: HymnbookId): Promise<BookHits[]> {
+    const ctx = this.#liveCtx;
+    if (!ctx || !/^\d+$/.test(typed)) return [];
+    return searchBooks(listBooks(ctx), currentKey, (book) =>
+      numberMatches(listSummaries(sqlOf(this.#open(book.key)), book.kind === "own"), typed),
     );
   }
 

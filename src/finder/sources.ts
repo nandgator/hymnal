@@ -1,5 +1,5 @@
 import type { HymnbookId, HymnNumber } from "../domain/types.ts";
-import type { ContentStore } from "../persistence/content-store.ts";
+import type { BookHits, ContentStore } from "../persistence/content-store.ts";
 
 /** One song a source found. `book` is where it lives: picking it hands that book on. */
 export interface FinderItem {
@@ -33,25 +33,34 @@ export interface SearchContext {
 export interface FinderSource {
   id: string;
   search(query: string, context: SearchContext): Promise<FinderGroup[]>;
+  /** The songs numbered `typed` or starting with it (ADR-0032, amended); a source without
+   * numbers leaves this out. */
+  searchNumber?(typed: string, context: SearchContext): Promise<FinderGroup[]>;
 }
+
+/** A book's hits as a group of its own. */
+const bookGroups = (hits: BookHits[], currentKey: HymnbookId): FinderGroup[] =>
+  hits.map((book) => ({
+    id: book.key,
+    title: book.title,
+    current: book.key === currentKey,
+    items: book.results.map((result) => ({
+      number: result.number,
+      title: result.title,
+      // The matched line is often the first line, which is the title.
+      snippet: result.snippet && result.snippet !== result.title ? result.snippet : undefined,
+      book: book.key,
+    })),
+  }));
 
 /** Every held book, the current one first. */
 const bookSource: FinderSource = {
   id: "books",
   async search(query, { store, currentKey }) {
-    const hits = await store.searchAll(query, currentKey);
-    return hits.map((book) => ({
-      id: book.key,
-      title: book.title,
-      current: book.key === currentKey,
-      items: book.results.map((result) => ({
-        number: result.number,
-        title: result.title,
-        // The matched line is often the first line, which is the title.
-        snippet: result.snippet !== result.title ? result.snippet : undefined,
-        book: book.key,
-      })),
-    }));
+    return bookGroups(await store.searchAll(query, currentKey), currentKey);
+  },
+  async searchNumber(typed, { store, currentKey }) {
+    return bookGroups(await store.searchNumber(typed, currentKey), currentKey);
   },
 };
 
@@ -65,4 +74,14 @@ export async function searchSources(
 ): Promise<FinderGroup[]> {
   const found = await Promise.all(sources.map((source) => source.search(query, context)));
   return found.flat();
+}
+
+/** The sources' groups for a typed number, in the sources' order. */
+export async function searchSourcesByNumber(
+  sources: readonly FinderSource[],
+  typed: string,
+  context: SearchContext,
+): Promise<FinderGroup[]> {
+  const found = await Promise.all(sources.map((source) => source.searchNumber?.(typed, context)));
+  return found.flatMap((groups) => groups ?? []);
 }

@@ -24,6 +24,7 @@ import {
   type FinderSource,
   SOURCES,
   searchSources,
+  searchSourcesByNumber,
 } from "./sources.ts";
 
 /** How long typing must pause before a lyric search runs. */
@@ -172,12 +173,32 @@ export function Finder(props: FinderProps) {
         : Promise.resolve([]),
   );
 
-  // Several books held: the lyric results are grouped under their books' titles.
-  const grouped = () => (props.bookCount ?? 1) > 1 && !isNumber();
+  // Several books held (and not the switcher, for a number): the results are grouped
+  // under their books' titles.
+  const manyBooks = () => (props.bookCount ?? 1) > 1;
+  const grouped = () => manyBooks() && (!isNumber() || !props.compact);
+
+  // A number is also looked up in the other books (ADR-0032, amended). The current book's
+  // suggestions come from its own list at once; these join when they arrive, and never
+  // hold the fast path up.
+  const [numberResults] = createResource(
+    () => (isNumber() && !props.compact && manyBooks() ? trimmed() : undefined),
+    (typed): Promise<FinderGroup[]> =>
+      searchSourcesByNumber(props.sources ?? SOURCES, typed, {
+        store: store(),
+        currentKey: id(),
+      }).catch(() => []),
+  );
+  const otherNumberGroups = (): FinderGroup[] =>
+    numberResults.loading || !isNumber()
+      ? []
+      : (numberResults() ?? [])
+          .filter((group) => group.id !== id())
+          .map((group) => ({ ...group, current: false }));
 
   // While the next lyric search is pending (the pause before it, or its read)
   // the last results stay: only a result set that is empty empties the list.
-  // A number is a suggestion in the current book alone: numbers are per book.
+  // A number is suggested from the current book first, then the other books.
   const groups = createMemo((prev: FinderGroup[]): FinderGroup[] => {
     if (isNumber()) {
       const typed = trimmed();
@@ -189,7 +210,10 @@ export function Finder(props: FinderProps) {
       const items = [...exact, ...prefixed]
         .slice(0, props.compact ? COMPACT_ROWS : NUMBER_SUGGESTIONS)
         .map((hymn) => ({ number: hymn.number, title: hymn.title, book: id() }));
-      return items.length ? [{ id: id(), title: "", current: true, items }] : [];
+      return [
+        ...(items.length ? [{ id: id(), title: props.bookTitle ?? "", current: true, items }] : []),
+        ...otherNumberGroups(),
+      ];
     }
     if (!trimmed()) return [];
     if (!lyricQuery() || lyricResults.loading) return prev;
@@ -245,7 +269,7 @@ export function Finder(props: FinderProps) {
   createEffect(() => {
     groups();
     commandRows();
-    setActiveIndex(trimmed() ? 0 : undefined);
+    setActiveIndex(trimmed() && !numberNotHere() ? 0 : undefined);
   });
 
   // The switcher's rows come and go with a motion (DESIGN.md § Output view): a
@@ -327,15 +351,23 @@ export function Finder(props: FinderProps) {
         : { role: "group" as const, "aria-labelledby": headingId(group) };
   /** The scope line: all books while words are typed; the current book while a number is
    * (numbers are per book) or nothing is, since its songs and recents are what is listed. */
-  const scope = () =>
-    (props.bookCount ?? 1) > 1 && !props.compact && trimmed() && !isNumber()
-      ? "all books"
-      : props.bookTitle;
+  const scope = () => (manyBooks() && !props.compact && trimmed() ? "all books" : props.bookTitle);
+
+  // A number the current book has no song for: its top match would be another book's, and
+  // Enter must not open that. With nothing highlighted, Enter opens the number here.
+  const numberNotHere = () =>
+    isNumber() &&
+    !props.compact &&
+    manyBooks() &&
+    !groups().some((group) => group.current && group.items.length > 0);
 
   const choose = () => {
     // The highlight may point past a list that has just shrunk: the last row is taken.
     const list = rows();
-    const row = list[Math.min(active() ?? 0, list.length - 1)];
+    const row =
+      active() === undefined && numberNotHere()
+        ? undefined
+        : list[Math.min(active() ?? 0, list.length - 1)];
     if (row) return pick(row);
     // A number with no suggestion still opens — Presenter reports it if no
     // such hymn exists.
