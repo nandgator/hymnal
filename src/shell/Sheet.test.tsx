@@ -88,7 +88,12 @@ describe("Sheet", () => {
         </>
       ));
       const [first, second] = Array.from(view.container.querySelectorAll("dialog"));
-      return { setA, setB, first: first as HTMLDialogElement, second: second as HTMLDialogElement };
+      return {
+        setA,
+        setB,
+        first: first as HTMLDialogElement,
+        second: second as HTMLDialogElement,
+      };
     }
 
     it("opens from nothing and closes to nothing with the usual motion", () => {
@@ -125,7 +130,10 @@ describe("Sheet", () => {
 
   describe("sheets stacked and swapped", () => {
     // Same stand-ins as above; the cards have sizes so a swap can morph.
-    const sizes: Record<string, [number, number]> = { Settings: [576, 400], Search: [576, 200] };
+    const sizes: Record<string, [number, number]> = {
+      Settings: [576, 400],
+      Search: [576, 200],
+    };
     const saved = Object.getOwnPropertyDescriptors(HTMLElement.prototype);
     const animate = vi.fn();
     // The height a card has right now while an animation holds it, by label.
@@ -197,9 +205,24 @@ describe("Sheet", () => {
         </>
       ));
       const [first, second] = Array.from(view.container.querySelectorAll("dialog"));
-      return { setA, setB, first: first as HTMLDialogElement, second: second as HTMLDialogElement };
+      return {
+        setA,
+        setB,
+        first: first as HTMLDialogElement,
+        second: second as HTMLDialogElement,
+      };
     }
     const settled = () => Promise.resolve();
+    // The card's morph: animate calls on a dialog (the content's settle runs on its frame).
+    const morphs = () =>
+      animate.mock.calls.filter((_, i) => animate.mock.contexts[i] instanceof HTMLDialogElement);
+    const settles = () =>
+      animate.mock.calls
+        .map((call, i) => ({
+          call: call as [Record<string, string>[], KeyframeAnimationOptions],
+          el: animate.mock.contexts[i] as HTMLElement,
+        }))
+        .filter(({ el }) => el.classList.contains("sheet-frame"));
 
     it("gives the scrim to the lowest of two stacked sheets only, so the dim and blur never double", async () => {
       const { setA, setB, first, second } = pair();
@@ -259,9 +282,9 @@ describe("Sheet", () => {
       setA(false);
       setB(true);
       expect(second.hasAttribute("data-swap")).toBe(true);
-      expect(animate).toHaveBeenCalledTimes(1);
-      const [keyframes] = animate.mock.calls[0] as [Record<string, string>[]];
-      expect(animate.mock.contexts[0]).toBe(second);
+      expect(morphs()).toHaveLength(1);
+      const [keyframes] = morphs()[0] as [Record<string, string>[]];
+      expect(animate.mock.contexts[animate.mock.calls.indexOf(morphs()[0] as never)]).toBe(second);
       expect(keyframes[0]).toMatchObject({ width: "576px", height: "400px" });
       expect(keyframes[1]).toMatchObject({ width: "576px", height: "200px" });
       // Only height and position move; nothing on the dialog fades.
@@ -276,7 +299,7 @@ describe("Sheet", () => {
         first.setA(false);
       });
       await settled();
-      expect(animate).toHaveBeenCalledTimes(1);
+      expect(morphs()).toHaveLength(1);
     });
 
     it("does not morph a swap under reduced motion", () => {
@@ -341,32 +364,80 @@ describe("Sheet", () => {
         const resize = () => {
           for (const callback of callbacks) callback();
         };
-        return { setA, setB, resize, first, second: second as HTMLDialogElement, view };
+        return {
+          setA,
+          setB,
+          resize,
+          first,
+          second: second as HTMLDialogElement,
+          view,
+        };
       }
 
-      it("keeps the outgoing card's content over the incoming one while it fades, so no frame is blank", () => {
+      it("settles the new content in on the card: a short scale and fade on the frame, anchored at the top centre", () => {
         const { setA, setB, second } = pair();
         setA(true);
         setA(false);
         setB(true);
-        const ghost = second.querySelector(".sheet-ghost");
-        expect(ghost).not.toBeNull();
-        expect(ghost?.textContent).toContain("Settings body");
-        // Only a picture: nothing in it is reachable or announced.
-        expect(ghost?.getAttribute("aria-hidden")).toBe("true");
-        expect(ghost?.hasAttribute("inert")).toBe(true);
-        // The new content is not what fades in: it is there, whole, beneath.
-        expect(second.querySelector(".sheet-frame")?.textContent).toContain("Search body");
-        fireEvent.animationEnd(ghost as Element);
-        expect(second.querySelector(".sheet-ghost")).toBeNull();
+        const [settle] = settles();
+        expect(settle?.el.parentElement).toBe(second);
+        const [keyframes, options] = settle?.call ?? [[], {}];
+        expect(keyframes[0]).toMatchObject({
+          opacity: 0.4,
+          transform: "scale(0.98)",
+        });
+        expect(keyframes[keyframes.length - 1]).toMatchObject({
+          opacity: 1,
+          transform: "scale(1)",
+        });
+        expect(options.duration).toBeGreaterThanOrEqual(150);
+        expect(options.duration).toBeLessThanOrEqual(220);
+        expect(options.easing).toBeTruthy();
+        expect(settle?.el.style.transformOrigin).toBe("50% 0");
+        // The card itself never fades.
+        for (const [frames] of morphs() as [Record<string, string>[]][])
+          for (const frame of frames) expect(frame).not.toHaveProperty("opacity");
       });
 
-      it("has no ghost for a swap under reduced motion", () => {
+      it("never shows the old content over the new: nothing of it is left once the swap starts", () => {
+        const { setA, setB, first, second } = pair();
+        setA(true);
+        setA(false);
+        setB(true);
+        expect(second.querySelector(".sheet-ghost")).toBeNull();
+        expect(second.textContent).not.toContain("Settings body");
+        expect(first.textContent).not.toContain("Settings body");
+        expect(second.querySelector(".sheet-frame")?.textContent).toContain("Search body");
+      });
+
+      it("has no scale and no settle for a swap under reduced motion", () => {
         const reduced = pair(true);
         reduced.setA(true);
         reduced.setA(false);
         reduced.setB(true);
+        expect(settles()).toHaveLength(0);
         expect(reduced.second.querySelector(".sheet-ghost")).toBeNull();
+        expect(reduced.second.textContent).not.toContain("Settings body");
+      });
+
+      it("starts each settle afresh in a quick alternation, ending the one before", () => {
+        const { setA, setB } = pair();
+        const cancel = vi.fn();
+        animate.mockImplementation(() => ({
+          cancel,
+          finished: new Promise(() => {}),
+        }));
+        setA(true);
+        setA(false);
+        setB(true);
+        setB(false);
+        setA(true);
+        setA(false);
+        setB(true);
+        expect(settles()).toHaveLength(3);
+        for (const { call } of settles()) expect(call[0][0]).toMatchObject({ opacity: 0.4 });
+        // Each new swap ends the previous settle rather than stacking on it.
+        expect(cancel.mock.calls.length).toBeGreaterThanOrEqual(2);
       });
 
       it("morphs to the height the new content has once it is rendered, not the one it has as it mounts", async () => {
@@ -376,16 +447,17 @@ describe("Sheet", () => {
         setB(true);
         await settled();
         resize();
-        const last = animate.mock.calls[animate.mock.calls.length - 1] as [
-          Record<string, string>[],
-        ];
+        const last = morphs()[morphs().length - 1] as [Record<string, string>[]];
         expect(last[0][last[0].length - 1]).toMatchObject({ height: "400px" });
       });
 
       it("retargets from the box the card has now, not the old card's, when its content lands mid-morph", async () => {
         const { setA, setB, resize } = growing();
         const cancel = vi.fn();
-        animate.mockImplementation(() => ({ cancel, finished: new Promise(() => {}) }));
+        animate.mockImplementation(() => ({
+          cancel,
+          finished: new Promise(() => {}),
+        }));
         setA(true);
         setA(false);
         setB(true);
@@ -395,9 +467,7 @@ describe("Sheet", () => {
         cancel.mockImplementation(() => delete midway.Search);
         resize();
         expect(cancel).toHaveBeenCalled();
-        const last = animate.mock.calls[animate.mock.calls.length - 1] as [
-          Record<string, string>[],
-        ];
+        const last = morphs()[morphs().length - 1] as [Record<string, string>[]];
         expect(last[0][0]).toMatchObject({ height: "300px" });
         expect(last[0][last[0].length - 1]).toMatchObject({ height: "400px" });
       });
@@ -410,7 +480,12 @@ describe("Sheet", () => {
       const [open, setOpen] = createSignal(true);
       const [page, setPage] = createSignal<SheetPage | undefined>(
         direct
-          ? { id: "keys", title: "Keyboard Shortcuts", content: () => <p>Keys</p>, direct: true }
+          ? {
+              id: "keys",
+              title: "Keyboard Shortcuts",
+              content: () => <p>Keys</p>,
+              direct: true,
+            }
           : undefined,
       );
       const onClose = vi.fn(() => setOpen(false));
@@ -420,7 +495,11 @@ describe("Sheet", () => {
           <button
             type="button"
             onClick={() =>
-              setPage({ id: "keys", title: "Keyboard Shortcuts", content: () => <p>Keys</p> })
+              setPage({
+                id: "keys",
+                title: "Keyboard Shortcuts",
+                content: () => <p>Keys</p>,
+              })
             }
           >
             Keyboard Shortcuts row
@@ -467,7 +546,9 @@ describe("Sheet", () => {
 
     it("moves focus to the page's heading, and Back returns it to the row", () => {
       nested();
-      const row = screen.getByRole("button", { name: "Keyboard Shortcuts row" });
+      const row = screen.getByRole("button", {
+        name: "Keyboard Shortcuts row",
+      });
       row.focus();
       fireEvent.click(row);
       return Promise.resolve()
