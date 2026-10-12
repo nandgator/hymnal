@@ -117,6 +117,14 @@ only, here:
 
 ## Log
 
+- 2026-10-12 — CI e2e was red on 10aef1e (121 commits unrun): the search e2e now
+  describes a number across books; a notice over a sheet leaves its actions in
+  reach (clearance padding); the benign ResizeObserver loop notice is not logged
+  as an error; Segmented radios keep one name per use-site (a Chromium
+  radio-group creep of ~1 KB per swap). Performance watch (Chromium, 200 reps):
+  heap 4-5 MB, nodes and listeners flat, no leak; idle 1.7% of a core; sheet
+  open (~90 ms task) and swap cost are Board #67. Open: Chromium warns
+  `Invalid keyframe value … NaNpx` in the sheet morph
 - 2026-10-12 — fix: a notice over a sheet took no tap (Got It pressed the
   control under it; Chromium and Firefox reproduce, Safari reported): a modal
   dialog makes everything outside it inert, so the notice now lives inside the
