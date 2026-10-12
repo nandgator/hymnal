@@ -320,7 +320,7 @@ describe("App", () => {
     // Cleared, the actions and the book's songs are back.
     fireEvent.input(box, { target: { value: "" } });
     expect(within(menu).getByRole("option", { name: /Blank the Output/ })).toBeInTheDocument();
-    expect(within(menu).getByRole("heading", { name: "Songs" })).toBeInTheDocument();
+    expect(within(menu).getByRole("group", { name: "All songs" })).toBeInTheDocument();
   });
 
   it("toggles the Output's reading band from the command menu, kept in preferences", async () => {

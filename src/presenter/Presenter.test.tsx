@@ -57,6 +57,7 @@ function fakeStore(overrides: Partial<ContentStore> = {}): ContentStore {
     searchLyrics: async () => [],
     searchAll: async () => [],
     searchNumber: async () => [],
+    searchMore: async () => ({ results: [], more: false }),
     ...overrides,
   };
 }
