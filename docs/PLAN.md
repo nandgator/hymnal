@@ -62,7 +62,6 @@ Ordered. Top unblocked item is next.
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
 | 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                                                              | another machine     |
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                      | maintainer: devices |
-| 66  | Browse a whole book: the Finder's opening list is windowed scrolling over every song, not the first 20; lyrics search scrolls on past 30 (fetched on demand). User, 2026-10-12        | —                   |
 | 67  | Sheet animation cost: sheet open has a ~90 ms long task (showModal + layout reads); a swap animates height and width on the main thread (performance watch, 2026-10-12). Low priority | —                   |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks); removing one song from your books (its UI left with OwnSheet, ADR-0033 §6)                                               | —                   |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                         | —                   |
@@ -117,6 +116,9 @@ only, here:
 
 ## Log
 
+- 2026-10-12 — #66 done: the Finder lists the whole book windowed (Recents on
+  top, sticky headings, 24-28 rows in the DOM of a 1,000-song book); lyric
+  search pages on past 30 (SDD-0001 §13.2). Quick switcher unchanged
 - 2026-10-12 — CI e2e was red on 10aef1e (121 commits unrun): the search e2e now
   describes a number across books; a notice over a sheet leaves its actions in
   reach (clearance padding); the benign ResizeObserver loop notice is not logged
