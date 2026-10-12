@@ -8,7 +8,7 @@ import { libraryOrder } from "../domain/own.ts";
 import { insertRows, packageRows } from "../domain/package-rows.ts";
 import type { HymnSource } from "../domain/types.ts";
 import type { BookRow } from "./registry.ts";
-import { SEARCH_LIMIT, searchBook, searchBooks, searchOrder } from "./search.ts";
+import { numberMatches, SEARCH_LIMIT, searchBook, searchBooks, searchOrder } from "./search.ts";
 
 const song = (number: number, line: string): HymnSource => ({
   number,
@@ -160,5 +160,23 @@ describe("searchBooks", () => {
 
   it("finds nothing in no books", () => {
     expect(searchBooks([], "x", find("lord"))).toEqual([]);
+  });
+});
+
+describe("numberMatches", () => {
+  const songs = [4, 42, 421, 5, 142].map((number) => ({ number, title: `Song ${number}` }));
+
+  it("lists the exact number first, then the numbers it starts, never one it only appears in", () => {
+    expect(numberMatches(songs, "42").map((r) => r.number)).toEqual([42, 421]);
+    expect(numberMatches(songs, "4").map((r) => r.number)).toEqual([4, 42, 421]);
+  });
+
+  it("finds nothing for a number no song has or starts", () => {
+    expect(numberMatches(songs, "9")).toEqual([]);
+  });
+
+  it("caps the list", () => {
+    const many = Array.from({ length: 30 }, (_, i) => ({ number: 100 + i, title: "x" }));
+    expect(numberMatches(many, "1", 8)).toHaveLength(8);
   });
 });
