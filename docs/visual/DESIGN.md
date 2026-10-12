@@ -1457,6 +1457,19 @@ the field reads _Searching all books_ while words are typed and names the
 current book otherwise. With one book there are no headings. In the quick
 switcher the headings are 13px and each book shows three rows.
 
+**Finder, a whole book** (SDD-0001 §13.2). Nothing typed, Recents sit on top and
+**All songs** below: every song of the book in one list that scrolls inside the
+sheet (or the page, in Present). It is windowed: only the rows in view and eight
+either side exist, over spacers that keep the scroll bar honest. Rows are a
+fixed 3.5rem, headings 2.75rem, so nothing is measured when a sheet opens or
+while it scrolls. A group heading (a language of Assorted Hymns, or **All
+songs**) is the one muted `label-large` line and sticks under the field. A
+search that has more than a page ends in a quiet line, _Loading more_ in
+`on-surface-variant`, then _End of results_; nothing animates for it. Reduced
+motion changes nothing here: the highlight jumps to a row the arrow keys reach,
+at once. Check the worst case: a title that just fits beside a wide number, and
+Malayalam conjuncts, at 390 wide and in the dark theme.
+
 ## Elevation & Depth
 
 | Level             | Treatment                                   | Use                                      |
