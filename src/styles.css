@@ -492,6 +492,100 @@ button:disabled {
   overscroll-behavior: contain;
 }
 
+/* Scroll edge fades (DESIGN.md § Register): a region that scrolls fades its top
+   and bottom edge in proportion to how far it can go that way: no fade at the
+   top at the start, none at the bottom at the end, each growing over the first
+   (last) 24px of scroll. One mask, two numbers: --fade-a (scrolled away from
+   the start) and --fade-b (still ahead). Browsers with scroll-driven animations
+   take them from the region's own scroll position, off the main thread;
+   scrollFade.ts sets them elsewhere. The selectors are scrollFade.ts's
+   FADE_REGIONS (a test keeps them one list). A sticky bar at an edge is that
+   edge itself: it is not faded, so the fade there is off (--fade-*-on: 0). */
+@property --fade-a {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --fade-b {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@keyframes scroll-fade-away {
+  from {
+    --fade-a: 0;
+  }
+
+  to {
+    --fade-a: 1;
+  }
+}
+
+@keyframes scroll-fade-ahead {
+  from {
+    --fade-b: 1;
+  }
+
+  to {
+    --fade-b: 0;
+  }
+}
+
+:where(
+  .shell-main,
+  .area-body,
+  .sheet-content,
+  .sequence,
+  .stage .parts-navigator > section,
+  .pick-list,
+  .present-switcher .finder
+) {
+  --fade-size: 24px;
+  mask-image: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / calc(1 - var(--fade-top, var(--fade-a)) * var(--fade-top-on, 1))) 0,
+    #000 var(--fade-size),
+    #000 calc(100% - var(--fade-size)),
+    rgb(0 0 0 / calc(1 - var(--fade-bottom, var(--fade-b)) * var(--fade-bottom-on, 1))) 100%
+  );
+}
+
+@supports (animation-timeline: scroll()) {
+  :where(
+    .shell-main,
+    .area-body,
+    .sheet-content,
+    .sequence,
+    .stage .parts-navigator > section,
+    .pick-list,
+    .present-switcher .finder
+  ) {
+    animation:
+      scroll-fade-away linear both,
+      scroll-fade-ahead linear both;
+    animation-timeline: scroll(self), scroll(self);
+    animation-range:
+      0px 24px,
+      calc(100% - 24px) 100%;
+  }
+}
+
+/* The page's top edge is the switcher row, sticky and opaque; a sheet that holds
+   a Finder has its field stuck there. */
+:where(.shell-main, .sheet-content:has(.finder-form)) {
+  --fade-top-on: 0;
+}
+
+/* The quick switcher's list grows up from its field, which sits at the foot: the
+   far edge is the top, and the field is no edge to fade. */
+:where(.present-switcher .finder) {
+  --fade-top: var(--fade-b);
+  --fade-bottom: var(--fade-a);
+  --fade-bottom-on: 0;
+}
+
 /* MD3 navigation rail: 80px, icon in an indicator pill, label beneath. */
 .nav-rail {
   position: sticky;

@@ -1,4 +1,5 @@
 import { createEffect, createSignal, type JSX, on, onCleanup, Show, untrack } from "solid-js";
+import { isScrollFade } from "./scrollFade.ts";
 import { hoverButton } from "./hoverGlide.ts";
 
 /**
@@ -330,7 +331,8 @@ export function Sheet(props: SheetProps) {
       }
       el.dataset.closing = "";
       syncScrims();
-      const running = el.getAnimations({ subtree: true });
+      // A scroll fade's animation never ends: the card does not wait for it.
+      const running = el.getAnimations({ subtree: true }).filter((a) => !isScrollFade(a));
       if (running.length === 0) finish();
       else void Promise.allSettled(running.map((a) => a.finished)).then(finish);
     }
