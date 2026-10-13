@@ -97,8 +97,8 @@ import {
   restartIfAllowed,
   type ScreenNoticeId,
 } from "./shell/updates.ts";
-import { workspaceOf } from "./shell/workspace.ts";
 import { visibleInterval } from "./shell/visibleInterval.ts";
+import { workspaceOf } from "./shell/workspace.ts";
 
 /** The app's top-level sections (DESIGN.md § Structure, layer 1). Feedback
  * and Updates are reserved here, not built (PLAN Board #16, #18). */
