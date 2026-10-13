@@ -1340,6 +1340,19 @@ hymnal rather than a chat app or a console. So:
   macOS and Windows 11 already behave, so nobody meets it for the first time
   here. The gutter stays reserved, so nothing shifts. Reduced-motion users get
   the change without the fade.
+- **Scroll edges fade.** A scrolling region (a sheet's body, Settings, the
+  Hymnbooks and Finder lists, the Operator's panes, the quick switcher's list)
+  fades its top and bottom edge in proportion to how far it can still go that
+  way: nothing at the top at the start, nothing at the bottom at the end, each
+  growing over 24px of scroll. One mask and one shared rule (`scrollFade.ts`
+  lists the regions; styles.css has the rule); where the browser has
+  scroll-driven animations the region's own scroll position drives it, off the
+  main thread, and elsewhere one rAF-throttled helper sets the same two numbers.
+  A sticky bar at an edge is that edge and is never faded: the page's top (the
+  switcher row) and a sheet that holds a Finder (its field) fade at the bottom
+  only; the quick switcher's list, which grows up from its field, fades at the
+  top only, over its own blurred backdrop. It is a static state of the scroll
+  position, not a motion, so reduced motion keeps it.
 - **Flat before raised.** Hairline `outline-variant` borders separate layers
   (switcher row, rail, dock); shadow is reserved for things that float (menus,
   sheets, the snackbar, Back to Current).

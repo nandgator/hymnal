@@ -116,6 +116,13 @@ only, here:
 
 ## Log
 
+- 2026-10-13 — the maintainer's review: the Finder's "Searching" line is gone
+  (search is always all books); the quick switcher's field is held at the foot
+  of its scroller, on the ground (it scrolled out of view when results
+  overflowed); the repeat count fades after ×2, ×1 is never shown; copy rules
+  for backup/back up and the ellipsis (DESIGN.md § Words); More in is a quiet
+  row with a chevron; scroll regions fade their edges (scrollFade.ts; a
+  scroll-driven animation, a rAF helper in Firefox). Board #68 chips not built
 - 2026-10-12 — #66 done: the Finder lists the whole book windowed (Recents on
   top, sticky headings, 24-28 rows in the DOM of a 1,000-song book); lyric
   search pages on past 30 (SDD-0001 §13.2). Quick switcher unchanged
@@ -169,16 +176,3 @@ only, here:
   real book, one per device, mixed languages (`mul`), each song's language in
   the package, stable numbers shown in language-then-title order, From Text's
   one song the only way in; ADR-0031
-- 2026-10-08 — Docs brought up to date: README rewritten (the beta, features,
-  commands); arc42, SDDs, DESIGN.md, CLAUDE.md and the agents' files audited
-  against the code; this file trimmed to its rules
-- 2026-10-08 — The maintainer's second pass: while live the song stays mounted
-  in other sections, so the Output keeps it and its keys still drive it, and a
-  book loads mid-service without touching it; a far jump sweeps the card (the
-  maintainer's choice over #55's fade); the language list floats; a dismissed
-  file picker no longer closes its sheet; the rest of the sample offered under
-  the list
-- 2026-10-07 — #53–57, the maintainer's review: sheets hug their content; About
-  is Settings' last section; keymap scopes (the Output and Present Here act only
-  on presentation keys); Copy Diagnostics answers in a snackbar; groups glide
-  their width (no View Transitions); Recents rows stay in view
