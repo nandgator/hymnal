@@ -67,6 +67,7 @@ import {
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { autoHover } from "./shell/autoHover.ts";
 import { titleCase } from "./shell/case.ts";
+import { EmptyCard } from "./shell/EmptyCard.tsx";
 import { RootBoundary } from "./shell/ErrorScreen.tsx";
 import { glideList } from "./shell/glideList.ts";
 import { hoverButton, hoverGroup } from "./shell/hoverGlide.ts";
@@ -257,17 +258,22 @@ function Operator(props: Shared) {
   createEffect(() => {
     if (!bookPickerOpen()) setBookFilter("");
   });
-  const [hymnPickerOpen, setHymnPickerOpen] = createSignal(false);
   const [commandMenuOpen, setCommandMenuOpen] = createSignal(false);
   // Keyboard Shortcuts is a page inside the Settings, Menu or Search sheet, not a
   // sheet of its own: pushed from its row (Back returns), or `direct` when
   // the sheet was opened on it (? and the command), where it says Close.
-  const [shortcuts, setShortcuts] = createSignal<{ host: ShortcutsHost; direct: boolean }>();
+  const [shortcuts, setShortcuts] = createSignal<{
+    host: ShortcutsHost;
+    direct: boolean;
+  }>();
 
   // H: light the whole song, or only the current part, live.
   const toggleHighlight = () => {
     const prefs = preferences.preferences();
-    preferences.update({ ...prefs, highlight: highlightOf(prefs) === "song" ? "part" : "song" });
+    preferences.update({
+      ...prefs,
+      highlight: highlightOf(prefs) === "song" ? "part" : "song",
+    });
   };
 
   // The Output follows Presentation settings live, and a late Output gets
@@ -318,7 +324,10 @@ function Operator(props: Shared) {
   let hereWasFullscreen = false;
   // Where keyboard lock is supported, Esc reaches the page, so it can close
   // the switcher before it leaves; elsewhere the browser's own Esc leaves.
-  type KeyboardLock = { lock?: (keys: string[]) => Promise<void>; unlock?: () => void };
+  type KeyboardLock = {
+    lock?: (keys: string[]) => Promise<void>;
+    unlock?: () => void;
+  };
   const keyboardLock = () => (navigator as Navigator & { keyboard?: KeyboardLock }).keyboard;
   const onHereFullscreen = () => {
     if (!presentingHere()) return;
@@ -544,9 +553,15 @@ function Operator(props: Shared) {
   // A burst of events is one change, judged once it settles; nothing is ever
   // moved while live without the person asking.
   const [offered, setOffered] = createSignal<ScreenInfo>();
-  let reviewed: ScreensSnapshot = { screens: screens.screens(), extended: screens.extended() };
+  let reviewed: ScreensSnapshot = {
+    screens: screens.screens(),
+    extended: screens.extended(),
+  };
   const review = () => {
-    const after: ScreensSnapshot = { screens: screens.screens(), extended: screens.extended() };
+    const after: ScreensSnapshot = {
+      screens: screens.screens(),
+      extended: screens.extended(),
+    };
     const before = reviewed;
     reviewed = after;
     const result = reviewScreens({
@@ -579,7 +594,10 @@ function Operator(props: Shared) {
         // The screens becoming known (Detect Screens, a permission granted
         // before) is a baseline, not a change.
         if (reviewed.screens.length === 0 && screens.screens().length > 0)
-          reviewed = { screens: screens.screens(), extended: screens.extended() };
+          reviewed = {
+            screens: screens.screens(),
+            extended: screens.extended(),
+          };
         clearTimeout(reviewTimer);
         reviewTimer = setTimeout(review, SCREENS_SETTLE_MS);
       },
@@ -671,7 +689,10 @@ function Operator(props: Shared) {
   const restartApp = () =>
     restartIfAllowed({ ready: appUpdates.ready(), live: presence.live() }, appUpdates.restart);
   const dismissHomeScreenHint = () =>
-    preferences.update({ ...preferences.preferences(), homeScreenHintDismissed: true });
+    preferences.update({
+      ...preferences.preferences(),
+      homeScreenHintDismissed: true,
+    });
   const dismissNotice = () => {
     const shown = notice();
     if (shown === "update") setUpdateDismissed(true);
@@ -712,7 +733,12 @@ function Operator(props: Shared) {
     // The audience sees this tab: notices queue until it is left (§16.7).
     if (presentingHere()) return undefined;
     const said = toast();
-    if (said) return { message: said, action: "Got It", onAction: () => setToast(undefined) };
+    if (said)
+      return {
+        message: said,
+        action: "Got It",
+        onAction: () => setToast(undefined),
+      };
     const failed = outputFailed();
     if (failed)
       return {
@@ -756,7 +782,12 @@ function Operator(props: Shared) {
             : undefined,
       };
     const note = libraryNote();
-    if (note) return { message: note, action: "Got It", onAction: () => setLibraryNote(undefined) };
+    if (note)
+      return {
+        message: note,
+        action: "Got It",
+        onAction: () => setLibraryNote(undefined),
+      };
     const picked = notice();
     if (picked === "update")
       return {
@@ -767,7 +798,11 @@ function Operator(props: Shared) {
         onDismiss: () => setUpdateDismissed(true),
       };
     if (picked === "keep-file")
-      return { message: noticeMessage(), action: "Got It", onAction: () => setKeepFile(false) };
+      return {
+        message: noticeMessage(),
+        action: "Got It",
+        onAction: () => setKeepFile(false),
+      };
     if (picked === "keep-own")
       return {
         message: noticeMessage(),
@@ -780,7 +815,11 @@ function Operator(props: Shared) {
         onDismiss: () => setKeepOwn(false),
       };
     if (picked === "safari-hint")
-      return { message: noticeMessage(), action: "Got It", onAction: dismissHomeScreenHint };
+      return {
+        message: noticeMessage(),
+        action: "Got It",
+        onAction: dismissHomeScreenHint,
+      };
     return undefined;
   };
   const presenting = () => section() === "present" && !!hymnNumber();
@@ -802,7 +841,6 @@ function Operator(props: Shared) {
     setMenuOpen(false);
     setSettingsOpen(false);
     setBookPickerOpen(false);
-    setHymnPickerOpen(false);
     setCommandMenuOpen(false);
     setShortcuts(undefined);
   };
@@ -896,7 +934,7 @@ function Operator(props: Shared) {
     batch(() => {
       setHymnNumber(number);
       setPresentedKey(book);
-      setHymnPickerOpen(false);
+      setCommandMenuOpen(false);
       setSection("present");
     });
 
@@ -909,13 +947,13 @@ function Operator(props: Shared) {
       chooseHymn(number, book);
     });
 
-  // "Find a song", from anywhere: Present, plus the picker over the current
+  // "Find a song", from anywhere: Present, plus the Finder sheet over the current
   // hymn if one is up. With none, Present already is the Finder, and a
-  // picker on top would only duplicate it.
+  // sheet on top would only duplicate it.
   const findHymn = () => {
     setSection("present");
     setMenuOpen(false);
-    if (hymnNumber()) setHymnPickerOpen(true);
+    if (hymnNumber()) openSheet(setCommandMenuOpen);
   };
 
   const installed = readable;
@@ -944,17 +982,10 @@ function Operator(props: Shared) {
     if (song !== undefined && song !== currentKey() && hymnNumber()) setCurrentKey(song);
   };
   createEffect(
-    on(
-      () => hymnPickerOpen() || commandMenuOpen(),
-      (open, was) => {
-        if (!open && was) scopeToSong();
-      },
-    ),
+    on(commandMenuOpen, (open, was) => {
+      if (!open && was) scopeToSong();
+    }),
   );
-  const openHymnPicker = () => {
-    scopeToSong();
-    setHymnPickerOpen(true);
-  };
   // Settings, scrolled to a section once the sheet is up (About is its last).
   const openSettings = (at?: "about" | "backup") => {
     openSheet(setSettingsOpen);
@@ -1024,11 +1055,26 @@ function Operator(props: Shared) {
       ...(shownNotice === "update"
         ? [{ label: "Restart to update", run: run(restartApp) }]
         : shownNotice === "keep-file"
-          ? [{ label: "Dismiss the storage note", run: run(() => setKeepFile(false)) }]
+          ? [
+              {
+                label: "Dismiss the storage note",
+                run: run(() => setKeepFile(false)),
+              },
+            ]
           : shownNotice === "keep-own"
-            ? [{ label: "Dismiss the storage note", run: run(() => setKeepOwn(false)) }]
+            ? [
+                {
+                  label: "Dismiss the storage note",
+                  run: run(() => setKeepOwn(false)),
+                },
+              ]
             : shownNotice === "safari-hint"
-              ? [{ label: "Dismiss the Home Screen note", run: run(dismissHomeScreenHint) }]
+              ? [
+                  {
+                    label: "Dismiss the Home Screen note",
+                    run: run(dismissHomeScreenHint),
+                  },
+                ]
               : []),
       {
         label: blanked() ? "Restore the Output" : "Blank the Output",
@@ -1082,7 +1128,12 @@ function Operator(props: Shared) {
                 ]
               : []),
             ...(presenterActions()?.canResetRepeats()
-              ? [{ label: "Reset repeat", run: run(() => presenterActions()?.resetRepeats()) }]
+              ? [
+                  {
+                    label: "Reset repeat",
+                    run: run(() => presenterActions()?.resetRepeats()),
+                  },
+                ]
               : []),
           ]
         : []),
@@ -1158,10 +1209,17 @@ function Operator(props: Shared) {
         label: cues.fade ? "Keep the details on the Output" : "Fade the details on the Output",
         run: run(() => preferences.setCue("fade", !cues.fade)),
       },
-      { label: "Switch hymnbook", run: run(() => openSheet(setBookPickerOpen)) },
+      {
+        label: "Switch hymnbook",
+        run: run(() => openSheet(setBookPickerOpen)),
+      },
       { label: "Library", run: run(() => go("library")) },
       { label: "About", run: run(() => openSettings("about")) },
-      { label: "Settings", hint: keyHint("settings"), run: run(() => openSheet(setSettingsOpen)) },
+      {
+        label: "Settings",
+        hint: keyHint("settings"),
+        run: run(() => openSheet(setSettingsOpen)),
+      },
       ...(canAdjustScale(prefs, 1)
         ? [
             {
@@ -1375,7 +1433,7 @@ function Operator(props: Shared) {
                       type="button"
                       class="crumb crumb-hymn"
                       aria-haspopup="dialog"
-                      onClick={openHymnPicker}
+                      onClick={openCommandMenu}
                     >
                       <span class="crumb-number">#{current().number}</span>
                       <span class="crumb-text">{titleCase(current().title)}</span>
@@ -1469,7 +1527,9 @@ function Operator(props: Shared) {
 
           <main
             class="workspace"
-            classList={{ "workspace-full": section() === "present" && !!hymnNumber() }}
+            classList={{
+              "workspace-full": section() === "present" && !!hymnNumber(),
+            }}
           >
             <Switch>
               <Match when={section() === "library"}>
@@ -1491,20 +1551,41 @@ function Operator(props: Shared) {
                   onNotice={setLibraryNote}
                   textBook={preferences.preferences().textBook}
                   onTextBook={(key) =>
-                    preferences.update({ ...preferences.preferences(), textBook: key })
+                    preferences.update({
+                      ...preferences.preferences(),
+                      textBook: key,
+                    })
                   }
                   onRestore={restoreFile}
                 />
               </Match>
               <Match when={section() === "present" && !hymnNumber()}>
                 {hymnbook() && (
-                  <Finder
-                    recentsVersion={recentsVersion()}
-                    hymnbookId={currentKey() as string}
-                    bookTitle={hymnbook()?.title}
-                    bookCount={installed().length}
-                    onSelect={pickHymn}
-                  />
+                  <>
+                    <Show
+                      when={presentingOutput()}
+                      fallback={
+                        <EmptyCard kind="song" title="No song selected">
+                          Pick one below, or type its number.
+                        </EmptyCard>
+                      }
+                    >
+                      <EmptyCard
+                        kind="live"
+                        title="Nothing live"
+                        action={{ label: "End Live", onClick: endLive }}
+                      >
+                        The Output is blank. Pick a song to put it there.
+                      </EmptyCard>
+                    </Show>
+                    <Finder
+                      recentsVersion={recentsVersion()}
+                      hymnbookId={currentKey() as string}
+                      bookTitle={hymnbook()?.title}
+                      bookCount={installed().length}
+                      onSelect={pickHymn}
+                    />
+                  </>
                 )}
               </Match>
             </Switch>
@@ -1523,7 +1604,7 @@ function Operator(props: Shared) {
                   hymnNumber={hymnNumber() as HymnNumber}
                   hymnbookId={presentedKey() as string}
                   onLoaded={setHymn}
-                  onBack={openHymnPicker}
+                  onBack={openCommandMenu}
                   blanked={blanked()}
                   onToggleBlank={toggleBlank}
                   held={held()}
@@ -1536,7 +1617,10 @@ function Operator(props: Shared) {
                   panes={preferences.preferences().panes}
                   workspace={preferences.preferences().workspace}
                   onWorkspaceChange={(workspace) =>
-                    preferences.update({ ...preferences.preferences(), workspace })
+                    preferences.update({
+                      ...preferences.preferences(),
+                      workspace,
+                    })
                   }
                   onSelectHymn={(number) => chooseHymn(number, presentedKey())}
                   scrollSync={preferences.preferences().scrollSync ?? true}
@@ -1555,24 +1639,6 @@ function Operator(props: Shared) {
         </div>
 
         <Sheet
-          open={hymnPickerOpen()}
-          onClose={() => setHymnPickerOpen(false)}
-          title="Go to a Song"
-          placement={expanded() ? "center" : "bottom"}
-        >
-          <Show when={hymnbook()}>
-            <Finder
-              recentsVersion={recentsVersion()}
-              hymnbookId={currentKey() as string}
-              bookTitle={hymnbook()?.title}
-              bookCount={installed().length}
-              current={hymnNumber()}
-              onSelect={pickHymn}
-            />
-          </Show>
-        </Sheet>
-
-        <Sheet
           open={commandMenuOpen()}
           onClose={() => setCommandMenuOpen(false)}
           title="Search"
@@ -1586,13 +1652,9 @@ function Operator(props: Shared) {
             bookTitle={hymnbook()?.title}
             bookCount={installed().length}
             current={hymnNumber()}
-            onSelect={(number, book) => {
-              // Closing it and choosing are one step: the scope must not be put back first.
-              batch(() => {
-                setCommandMenuOpen(false);
-                pickHymn(number, book);
-              });
-            }}
+            // Closing it and choosing are one step (chooseHymn): the scope must not be
+            // put back first.
+            onSelect={pickHymn}
             commands={commands().map((command) => ({
               ...command,
               label: titleCase(command.label),

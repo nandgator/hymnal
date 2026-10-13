@@ -488,7 +488,7 @@ view is close enough to the frame to need a smaller unit.
      section of Settings. Reserved, not built: Feedback and corrections.
   2. **Switcher row**, Supabase's org/project breadcrumb: **Hymnbook ▾ / #908
      Title ▾**. Each crumb is a picker. The hymnbook picker lists installed
-     books; the hymn picker is quick-find (number or lyrics). Choosing either
+     books; the hymn crumb opens the Finder (number or lyrics). Choosing either
      **hot-swaps in place**: the Operator stays, the Output follows (snapping to
      the new hymn, never scrolling from the old one), and nothing is reopened or
      repositioned mid-service. On a phone (MD3 compact, under 600dp) with a hymn
@@ -1328,6 +1328,14 @@ hymnal rather than a chat app or a console. So:
   (8px), not M3's default pill.
 - **Pickers keep their bearings.** The switcher row and the search bar stay put;
   results and Recent scroll beneath them.
+- **Empty states are cards**: a flat line-art picture (one stroke weight,
+  `currentColor`, the primary on the one detail that is missing), a short
+  heading, one helpful line and, where something can be done, a tonal button.
+  Five: no song selected, no books (Bring a songbook), no recent songs, no
+  matches (Clear Search), nothing live (End Live). The picture is decoration
+  (`aria-hidden`); the text says it. The card sits beside its picture so a list
+  below stays in reach. Headings are sentence case, buttons Title Case (§
+  Words). One component, `EmptyCard`; add a picture there, not a raster.
 - **Search looks one way everywhere**: the switcher row's bar, filled tonal, no
   outline, a leading search icon, a 2px primary ring on focus. Only the switcher
   row's shows its key cap. No Find button: results come as you type, and Enter

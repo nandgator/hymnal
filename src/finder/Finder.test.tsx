@@ -106,7 +106,7 @@ describe("Finder", () => {
     expect(rows.length).toBeGreaterThan(5);
     expect(rows.length).toBeLessThan(60);
     expect(rows[0]).toHaveTextContent("#1");
-    expect(screen.queryByText("No recent songs yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No recent songs yet")).not.toBeInTheDocument();
     // Recents has nothing to say, so it says nothing: no heading over an empty list.
     expect(screen.queryByRole("heading", { name: "Recents" })).not.toBeInTheDocument();
     // Every option says where it is in the whole book.
@@ -146,7 +146,7 @@ describe("Finder", () => {
     expect(
       recentsHeading.compareDocumentPosition(songs) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(screen.queryByText("No recent songs yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No recent songs yet")).not.toBeInTheDocument();
   });
 
   it("hides the songs once something is typed, and brings them back when it is cleared", async () => {
@@ -608,7 +608,13 @@ describe("Finder", () => {
 
     submit("nothing like this");
 
-    expect(await screen.findByText('No matches for "nothing like this".')).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "No matches for “nothing like this”" }),
+    ).toBeInTheDocument();
+    // Clear Search empties the box and brings the book back.
+    fireEvent.click(screen.getByRole("button", { name: "Clear Search" }));
+    expect(screen.getByRole("combobox")).toHaveValue("");
+    expect(await screen.findByRole("group", { name: "All songs" })).toBeInTheDocument();
   });
 
   it("picking a recent hands its number straight to onSelect", async () => {

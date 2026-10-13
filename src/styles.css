@@ -2896,10 +2896,6 @@ input[type="checkbox"].switch:disabled {
   white-space: nowrap;
 }
 
-.recents-empty {
-  padding-inline: var(--space-md);
-}
-
 /* MD3 segmented button on native radios. A segment's width always has room
    for the checkmark (a hidden copy of the label, with the slot, sizes it), so
    selection never changes a width (DESIGN.md § Stability); the visible face
@@ -6384,4 +6380,44 @@ fieldset.book-main {
 }
 .presenter-host[hidden] {
   display: none;
+}
+
+/* An empty state: a picture and a few words, side by side so a list below stays in
+   reach (EmptyCard.tsx). The picture is the text's colour, with the primary on the one
+   detail that says what is missing. */
+.empty-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  color: var(--md-sys-color-on-surface-variant);
+}
+.empty-illustration {
+  width: 4.5rem;
+  height: 4.5rem;
+  flex: none;
+}
+.empty-illustration .empty-accent {
+  stroke: var(--md-sys-color-primary);
+}
+.empty-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.empty-text h2 {
+  color: var(--md-sys-color-on-surface);
+}
+.empty-text .btn-tonal {
+  margin-block-start: var(--space-xs);
+}
+/* The first run's card, where the picture leads. */
+.lib-empty .empty-illustration {
+  width: 6rem;
+  height: 6rem;
+  color: var(--md-sys-color-on-surface-variant);
 }

@@ -67,6 +67,30 @@ describe("App", () => {
     expect(await screen.findByRole("button", { name: /#1\s*Mocked Hymn/ })).toBeInTheDocument();
   });
 
+  it("Present with no song up says so, in a card; the picture is decoration", async () => {
+    render(() => <App />);
+    await openFinder();
+
+    expect(await screen.findByRole("heading", { name: "No song selected" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Nothing live" })).not.toBeInTheDocument();
+    expect(document.querySelector(".empty-illustration")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("with the Output open and no song up, the card says nothing is live and can end it", async () => {
+    render(() => <App />);
+    await openFinder();
+    const output = new BroadcastChannel("hymnal-output");
+    output.postMessage({ type: "hello", id: "test-output" });
+
+    expect(await screen.findByRole("heading", { name: "Nothing live" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "No song selected" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "End Live" }));
+    // The Output window answers End Live by closing.
+    output.postMessage({ type: "bye", id: "test-output" });
+    expect(await screen.findByRole("heading", { name: "No song selected" })).toBeInTheDocument();
+    output.close();
+  });
+
   it("hot-swaps to another hymn from the switcher row, staying in the Presenter (SDD-0001 §16.4)", async () => {
     render(() => <App />);
     await openFinder();
@@ -76,8 +100,8 @@ describe("App", () => {
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
 
     fireEvent.click(await screen.findByRole("button", { name: /#1\s*Mocked Hymn/ }));
-    const picker = within(await screen.findByRole("dialog", { name: "Go to a Song" }));
-    fireEvent.input(picker.getByRole("combobox", { name: "Find a song" }), {
+    const picker = within(await screen.findByRole("dialog", { name: "Search" }));
+    fireEvent.input(picker.getByRole("combobox"), {
       target: { value: "2" },
     });
     fireEvent.submit(picker.getByRole("combobox").closest("form") as HTMLFormElement);
