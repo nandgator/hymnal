@@ -104,6 +104,24 @@ describe("RecentsList", () => {
       expect(row).toHaveTextContent("Minutes ago");
     });
 
+    it("does not tick while the page is hidden, and ages the words at once on return", async () => {
+      pinned();
+      let state: DocumentVisibilityState = "visible";
+      vi.spyOn(document, "visibilityState", "get").mockImplementation(() => state);
+      mount([noon - 5_000]);
+      const row = await screen.findByRole("button", { name: /Hymn 40/ });
+      state = "hidden";
+      document.dispatchEvent(new Event("visibilitychange"));
+      expect(vi.getTimerCount()).toBe(0);
+      vi.advanceTimersByTime(90_000);
+      expect(row).toHaveTextContent("Just now");
+      state = "visible";
+      document.dispatchEvent(new Event("visibilitychange"));
+      expect(row).toHaveTextContent("Minutes ago");
+      expect(vi.getTimerCount()).toBe(1);
+      vi.restoreAllMocks();
+    });
+
     it("stops its refresh when unmounted", async () => {
       pinned();
       const view = mount([noon - 5_000]);

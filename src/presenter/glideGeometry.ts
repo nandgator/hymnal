@@ -57,7 +57,17 @@ export function shownBox(layer: HTMLElement, anim: Animation | null, box: Box | 
   if (!anim || !box) return box;
   const cs = getComputedStyle(layer);
   const m = new DOMMatrix(cs.transform === "none" ? undefined : cs.transform);
-  return { x: m.m41, y: m.m42, w: Number.parseFloat(cs.width), h: Number.parseFloat(cs.height) };
+  // `auto` (display: none) or nothing (detached) is not a length: the box stands in.
+  const length = (value: string, fallback: number) => {
+    const n = Number.parseFloat(value);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  return {
+    x: Number.isFinite(m.m41) ? m.m41 : box.x,
+    y: Number.isFinite(m.m42) ? m.m42 : box.y,
+    w: length(cs.width, box.w),
+    h: length(cs.height, box.h),
+  };
 }
 
 export const prefersReducedMotion = () =>

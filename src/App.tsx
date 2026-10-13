@@ -99,6 +99,7 @@ import {
   restartIfAllowed,
   type ScreenNoticeId,
 } from "./shell/updates.ts";
+import { visibleInterval } from "./shell/visibleInterval.ts";
 import { workspaceOf } from "./shell/workspace.ts";
 
 /** The app's top-level sections (DESIGN.md § Structure, layer 1). Feedback
@@ -608,7 +609,9 @@ function Operator(props: Shared) {
   // Where the Output really is, from its own position: dragged to another
   // screen, that is where it is "placed" now.
   onMount(() => {
-    const timer = setInterval(() => {
+    // Not while this page is hidden: the position is only read to paint
+    // "placed on" here, and it is read at once when the page is shown again.
+    const stop = visibleInterval(() => {
       const win = outputWin;
       const known = screens.screens();
       // Its own report is better than a window position, which is 0 on Wayland.
@@ -621,7 +624,7 @@ function Operator(props: Shared) {
       );
       if (at && !(placedOn() && sameKey(at, placedOn() as ScreenKey))) setPlacedOn(keyOf(at));
     }, TRACK_MS);
-    onCleanup(() => clearInterval(timer));
+    onCleanup(stop);
   });
   const moveTo = async (screen: ScreenInfo) => {
     if (await moveOutputTo(screen, OUTPUT_WINDOW_NAME, outputWin)) setPlacedOn(keyOf(screen));

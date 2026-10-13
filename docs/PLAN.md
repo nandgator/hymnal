@@ -129,6 +129,12 @@ only, here:
   for backup/back up and the ellipsis (DESIGN.md § Words); More in is a quiet
   row with a chevron; scroll regions fade their edges (scrollFade.ts; a
   scroll-driven animation, a rAF helper in Firefox). Board #68 chips not built
+- 2026-10-13 — follow-ups: `shownBox` no longer hands a `NaNpx` to a glide when
+  the layer has no computed size (the one source found; the warning did not
+  reproduce in 40 sheet swaps, so unconfirmed); the 2 s Output-position poll and
+  the 30 s Recents refresh pause while the page is hidden and catch up on return
+  (`visibleInterval`); the Firefox-only browse e2e flake was the test's single
+  9000px wheel (Firefox scrolls it 542 or 9296 px), not the window
 - 2026-10-12 — #66 done: the Finder lists the whole book windowed (Recents on
   top, sticky headings, 24-28 rows in the DOM of a 1,000-song book); lyric
   search pages on past 30 (SDD-0001 §13.2). Quick switcher unchanged
