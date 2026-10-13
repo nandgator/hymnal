@@ -50,6 +50,26 @@ test("load a book, find songs, open one", async ({ page }) => {
   await expect(page.getByRole("region", { name: "Jump to part" })).toBeVisible();
 });
 
+test("empty states are cards: no books, no song selected, no matches", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Bring a songbook" })).toBeVisible();
+  await expect(page.locator(".lib-empty .empty-illustration")).toBeVisible();
+  await loadBook(page);
+
+  // Choosing the book opens the Finder in Present, with nothing up.
+  await books(page)
+    .getByRole("button", { name: new RegExp(`^${BOOK_TITLE}`) })
+    .click();
+  await expect(page.getByRole("heading", { name: "No song selected" })).toBeVisible();
+
+  const box = await openFinder(page);
+  await box.fill("zzzzqq");
+  await expect(page.getByRole("heading", { name: "No matches for “zzzzqq”" })).toBeVisible();
+  await page.getByRole("button", { name: "Clear Search" }).click();
+  await expect(box).toHaveValue("");
+  await expect(page.getByRole("heading", { name: /^No matches/ })).toBeHidden();
+});
+
 test("present: Go Live, then the Output window follows Next part", async ({ page, context }) => {
   await page.goto("/");
   await loadBook(page);

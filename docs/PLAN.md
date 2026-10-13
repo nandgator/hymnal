@@ -58,25 +58,24 @@ to drop the songs from old commits is the maintainer's own later step
 
 Ordered. Top unblocked item is next.
 
-| #   | Task                                                                                                                                                                                          | Blocked by          |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                                                                      | another machine     |
-| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                              | maintainer: devices |
-| 67  | Sheet animation cost: sheet open has a ~90 ms long task (showModal + layout reads); a swap animates height and width on the main thread (performance watch, 2026-10-12). Low priority         | —                   |
-| 68  | Search filter chips under the box (This book, All books, chosen books); default All books. Replaces the "Searching ..." line, which goes now (maintainer, 2026-10-13)                         | -                   |
-| 69  | Finder modes: songs by default, `>` or Ctrl+Shift+P switches to commands, each with a muted heading; songs and commands no longer mix (design chosen, 2026-10-13)                             | -                   |
-| 70  | Drop the "Go to a Song" page (the Finder opens directly); empty-state cards with SVG illustrations where a list can be empty: no song, no books, no recents, no results, no Live (2026-10-13) | -                   |
-| 71  | Scroll edge fades: every scroll region fades its top and bottom edge in proportion to how far it can scroll (2026-10-13)                                                                      | -                   |
-| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks); removing one song from your books (its UI left with OwnSheet, ADR-0033 §6)                                                       | —                   |
-| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                 | —                   |
-| 16  | Feedback and corrections from users — where collected: TBD                                                                                                                                    | —                   |
-| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                                                                   | —                   |
-| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                                                                | —                   |
-| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                                                                       | —                   |
-| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                                                                    | Phase 2             |
-| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                                                                 | content             |
-| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                                                                 | —                   |
-| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                                                                        | —                   |
+| #   | Task                                                                                                                                                                                  | Blocked by          |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                                                              | another machine     |
+| 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                      | maintainer: devices |
+| 67  | Sheet animation cost: sheet open has a ~90 ms long task (showModal + layout reads); a swap animates height and width on the main thread (performance watch, 2026-10-12). Low priority | —                   |
+| 68  | Search filter chips under the box (This book, All books, chosen books); default All books. Replaces the "Searching ..." line, which goes now (maintainer, 2026-10-13)                 | -                   |
+| 69  | Finder modes: songs by default, `>` or Ctrl+Shift+P switches to commands, each with a muted heading; songs and commands no longer mix (design chosen, 2026-10-13)                     | -                   |
+| 71  | Scroll edge fades: every scroll region fades its top and bottom edge in proportion to how far it can scroll (2026-10-13)                                                              | -                   |
+| 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks); removing one song from your books (its UI left with OwnSheet, ADR-0033 §6)                                               | —                   |
+| 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                         | —                   |
+| 16  | Feedback and corrections from users — where collected: TBD                                                                                                                            | —                   |
+| 18  | Over-the-air update notices (as Supabase announces changes)                                                                                                                           | —                   |
+| 22  | Service queue: line up hymns for a service (a supporting pane)                                                                                                                        | —                   |
+| 23  | Arrangements: reorder parts, repeat a part, a line or a run of lines; saved per song (SDD-0001 §8 note)                                                                               | —                   |
+| 24  | Lyrics interchange (OpenLyrics, LRC); timing per recording                                                                                                                            | Phase 2             |
+| 25  | Stage outputs for musicians: lyrics + chords, score, notation                                                                                                                         | content             |
+| 37  | Interface languages and right-to-left: UI strings translated, mirrored layout                                                                                                         | —                   |
+| 40  | Typo-tolerant search: near matches ranked after exact ones (FTS5 is prefix-only today)                                                                                                | —                   |
 
 14–15 sit past the scope guard below. 16–25 and 37–40 are notes, not scheduled:
 the shell reserves room for them (DESIGN.md § Structure).
@@ -120,6 +119,9 @@ only, here:
 
 ## Log
 
+- 2026-10-13 — #70 done: the "Go to a Song" sheet is gone (the crumb and Back
+  open the Finder, the Search sheet); empty states are cards with line-art
+  illustrations (`EmptyCard`).
 - 2026-10-13 — the maintainer's review: the Finder's "Searching" line is gone
   (search is always all books); the quick switcher's field is held at the foot
   of its scroller, on the ground (it scrolled out of view when results
@@ -167,16 +169,3 @@ only, here:
   `App.test.tsx` is split by area over a shared testkit; the hint and notice
   waits use fake timers; 34 DOM-free files run in node without isolation (an
   allowlist in `vitest.config.ts`, new files isolated by default)
-- 2026-10-10 — #38 done, with an e2e on three engines: the Finder searches every
-  book (`searchAll`, about 12 ms at worst over the Malayalam book), results
-  grouped under book titles, the current book first, five then More in for the
-  others, three a book in Present Here; a pick in another book makes it current
-  and opens the song (most of #19). Shaped with the maintainer: the Finder is
-  the one search; later sources (arrangements, the queue, annotations) join as
-  groups; ADR-0032
-- 2026-10-10 — #58 done, with an e2e on three engines: Assorted Hymns stored,
-  added from From Text, listed, removed and restored by merge; the sample's
-  release renamed `sample-1`. Shaped with the maintainer: Assorted Hymns is a
-  real book, one per device, mixed languages (`mul`), each song's language in
-  the package, stable numbers shown in language-then-title order, From Text's
-  one song the only way in; ADR-0031
