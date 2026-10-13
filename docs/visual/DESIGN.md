@@ -1097,32 +1097,33 @@ view is close enough to the frame to need a smaller unit.
   changes meaning (Blank to Restore) turns in. The Repeat count is a rolling
   number (an odometer): the old count rolls out as the new one rolls in, up as
   it grows and down on Undo. **Reset** counts it down through the numbers (×9,
-  ×8 … ×1), the first at once and each pause shorter, the whole run capped at
+  ×8 … ×2), the first at once and each pause shorter, the whole run capped at
   about 450ms however large the count (a big count skips numbers), then the ×N
-  fades; the last Undo rolls to ×1 and fades too. The state (and the Output)
-  change at once, only the display counts; reduced motion has no countdown, the
-  number just fades; the count's room stays, so Undo and Reset never move.
-  Moving to another part follows the count at once. It is in the text colour,
-  not Repeat's primary: coloured text means a control. Each rail section eases
-  in on arrival, the Library as the Operator. In the command menu the highlight
-  follows a moving pointer and leaves with it; Enter then takes the top match (§
-  Interaction states). Reduced motion shows the end state, with what appears and
-  goes keeping its fade: a menu, a sheet and its scrim, a tab's content and a
-  notice fade and lose their zoom, rise and sink. **The Lyrics tint** slides and
-  resizes with the scroll in 250ms (`lyricsGlide.ts`: one animation clocks both,
-  so they land together; translate and height, never scaleY, which warps the
-  corners). Its leading edge arrives first and the trailing edge follows, so it
-  stretches over the new part, then lets go of the old; a jump of more than a
-  screen sweeps, a little longer. The text changes colour in those same 250ms
-  and easing, so the part the tint leaves dims and the one it reaches brightens
-  as the tint passes, never ahead or behind it. **Full Song's tint** (SDD-0005,
-  the Output) does the same within a column. Across columns it fades, overlapped
-  so some part is always lit: the old tint fades out in place over the first
-  60%, the new one fades in over the last 80% travelling 1.6em from the left,
-  the text following in step. A page turn is a handoff within 250ms: the old
-  page fades out over the first 110ms, the new one rises 12px and fades in from
-  90ms (a 20ms overlap at low opacity, so text never doubles), the tint going
-  out and coming in with its pages. Reduced motion shows the end state.
+  fades; the last Undo fades from ×2 too. ×1 is no repeat and is never shown.
+  The state (and the Output) change at once, only the display counts; reduced
+  motion has no countdown, the number just fades; the count's room stays, so
+  Undo and Reset never move. Moving to another part follows the count at once.
+  It is in the text colour, not Repeat's primary: coloured text means a control.
+  Each rail section eases in on arrival, the Library as the Operator. In the
+  command menu the highlight follows a moving pointer and leaves with it; Enter
+  then takes the top match (§ Interaction states). Reduced motion shows the end
+  state, with what appears and goes keeping its fade: a menu, a sheet and its
+  scrim, a tab's content and a notice fade and lose their zoom, rise and sink.
+  **The Lyrics tint** slides and resizes with the scroll in 250ms
+  (`lyricsGlide.ts`: one animation clocks both, so they land together; translate
+  and height, never scaleY, which warps the corners). Its leading edge arrives
+  first and the trailing edge follows, so it stretches over the new part, then
+  lets go of the old; a jump of more than a screen sweeps, a little longer. The
+  text changes colour in those same 250ms and easing, so the part the tint
+  leaves dims and the one it reaches brightens as the tint passes, never ahead
+  or behind it. **Full Song's tint** (SDD-0005, the Output) does the same within
+  a column. Across columns it fades, overlapped so some part is always lit: the
+  old tint fades out in place over the first 60%, the new one fades in over the
+  last 80% travelling 1.6em from the left, the text following in step. A page
+  turn is a handoff within 250ms: the old page fades out over the first 110ms,
+  the new one rises 12px and fades in from 90ms (a 20ms overlap at low opacity,
+  so text never doubles), the tint going out and coming in with its pages.
+  Reduced motion shows the end state.
 - **Motion tokens** (`src/styles.css`, `:root`): `--motion-emphasized`
   `cubic-bezier(0.2, 0, 0, 1)` for what moves (glides, enters, selection);
   `--motion-exit` `cubic-bezier(0.3, 0, 0.8, 0.15)` for what leaves;

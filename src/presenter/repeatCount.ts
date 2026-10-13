@@ -7,6 +7,8 @@ export const COUNTDOWN_MS = 450;
 export const COUNTDOWN_STEPS = 8;
 /** Each pause is this share of the one before: the countdown speeds up. */
 const DECAY = 0.8;
+/** The lowest count ever shown: ×1 is no repeat, so the countdown ends here and fades. */
+const LAST_SHOWN = 2;
 /** The last number is let to roll in before the count fades (ms). */
 const SETTLE_MS = 200;
 
@@ -61,8 +63,8 @@ const fadeMs = () =>
 /**
  * What the Repeat row's ×N shows for the real `count` (1 = no repeat). Only
  * the display lags: a Reset counts down through the numbers in a quick,
- * accelerating run and then the ×N fades, the last Undo rolls to ×1 and
- * fades, and with reduced motion there is no countdown, only the fade. Where
+ * accelerating run to ×2 and then the ×N fades, the last Undo fades from ×2
+ * (×1 is never shown), and with reduced motion there is no countdown, only the fade. Where
  * nothing can be animated (jsdom) it changes at once. `place` names where in
  * the song the count is: moving to another part is no Undo or Reset, so the
  * display follows at once there.
@@ -134,13 +136,14 @@ export function createRepeatDisplay(
           setShown(1);
           return;
         }
+        // ×1 is no repeat and is never shown: the countdown ends on ×2, which then fades.
         // Reduced motion: no countdown, the number as it was just fades.
         if (reduced) {
           fadeOut();
           return;
         }
         const from = untrack(shown);
-        const end = from > 1 ? countDown(from, 1) : 0;
+        const end = from > LAST_SHOWN ? countDown(from, LAST_SHOWN) : 0;
         later(end + SETTLE_MS, fadeOut);
       },
       { defer: true },
