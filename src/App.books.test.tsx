@@ -267,7 +267,6 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       fireEvent.input(picker.getByRole("combobox", { name: "Find a song" }), {
         target: { value: "line" },
       });
-      expect(picker.getByRole("combobox")).toHaveAccessibleDescription("Searching all books");
       const mocked = await picker.findByRole("group", {
         name: "Mocked Hymnbook",
       });
@@ -277,10 +276,6 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       await waitFor(() =>
         expect(mocks.addRecent.mock.calls).toEqual([["mal-ymef-athmeeya-geethangal-16", 2]]),
       );
-      // The Finder is aimed at the new book, which is the song's.
-      fireEvent.click(crumbs().getByRole("button", { name: /#2/ }));
-      const again = within(await screen.findByRole("dialog", { name: "Go to a Song" }));
-      expect(again.getByRole("combobox")).toHaveAccessibleDescription("Searching Mocked Hymnbook");
     });
 
     it("while live, a pick in another book from the command menu puts that song on the Output and records its book", async () => {
@@ -353,9 +348,6 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       const books = within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
       fireEvent.click(books.getByRole("button", { name: /Hymns of Fellowship/ }));
       expect(await screen.findAllByRole("combobox", { name: "Find a song" })).toHaveLength(1);
-      expect(await screen.findByText("Searching", { exact: false })).toHaveTextContent(
-        "Searching Hymns of Fellowship",
-      );
       expect(crumbs().getByRole("button", { name: /Hymns of Fellowship/ })).toBeInTheDocument();
     });
   });

@@ -4135,27 +4135,6 @@ html[data-scrolling],
   display: none;
 }
 
-/* Which book the field searches: one quiet line under it. Its line-height
-   leaves Malayalam conjuncts room inside the clip. */
-.finder-scope {
-  margin: 0;
-  line-height: 1.6;
-  padding: var(--space-xxs) var(--space-md) 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* The line belongs to the field: the gap below the pair is the Finder's own, less a step. */
-.finder-form:has(> .finder-scope) {
-  margin-bottom: calc(-1 * var(--space-xs));
-}
-
-.finder-scope b {
-  color: var(--md-sys-color-on-surface);
-  font-weight: 500;
-}
-
 /* In a sheet: the top of what scrolls, just under the header. */
 .sheet .finder-form {
   top: calc(-1 * var(--space-xs));
@@ -6250,10 +6229,6 @@ fieldset.book-main {
 .present-switcher .finder-group-heading {
   padding: 0.25rem var(--space-md) 0;
   font-size: 0.8125rem;
-}
-
-.present-switcher .finder-scope {
-  display: none;
 }
 
 /* The one live button (DESIGN.md § Go Live): a fixed width, so the search

@@ -518,10 +518,6 @@ export function Finder(props: FinderProps) {
       : group === COMMANDS_GROUP.id
         ? { role: "group" as const, "aria-label": COMMANDS_GROUP.title }
         : { role: "group" as const, "aria-labelledby": headingId(group) };
-  /** The scope line: all books while words are typed; the current book while a number is
-   * (numbers are per book) or nothing is, since its songs and recents are what is listed. */
-  const scope = () => (manyBooks() && !props.compact && trimmed() ? "all books" : props.bookTitle);
-
   // A number the current book has no song for: its top match would be another book's, and
   // Enter must not open that. With nothing highlighted, Enter opens the number here.
   const numberNotHere = () =>
@@ -850,16 +846,8 @@ export function Finder(props: FinderProps) {
             enterkeyhint="search"
             placeholder={props.commands ? "Song number, lyrics or action" : "Song number or lyrics"}
             aria-label={props.commands ? "Find a song or action" : "Find a song"}
-            aria-describedby={scope() ? `${listId}-scope` : undefined}
           />
         </div>
-        <Show when={scope()}>
-          {(title) => (
-            <p class="finder-scope body-medium on-surface-variant" id={`${listId}-scope`}>
-              Searching <b>{title()}</b>
-            </p>
-          )}
-        </Show>
       </form>
 
       <Show when={noMatch()}>

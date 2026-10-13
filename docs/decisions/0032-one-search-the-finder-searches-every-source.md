@@ -61,10 +61,11 @@ that number, then those it starts, from every held book**, grouped as in point
 2: the current book's group first, its exact match highlighted. The fast path
 stays (a number, Enter opens the current book's song, as it does when the
 current book has no such song); a song in another book is one arrow key and
-Enter away, and picking it hands its book. The line under the field says _all
-books_ for a number too. The current book's suggestions come from its own list
-at once; the others join when they have been read. One book held, and Present
-Here's switcher, are unchanged: a number is the current book's alone there.
+Enter away, and picking it hands its book. No line under the field names the
+scope (amended 2026-10-13). The current book's suggestions come from its own
+list at once; the others join when they have been read. One book held, and
+Present Here's switcher, are unchanged: a number is the current book's alone
+there.
 
 Numbers are still per book: the same number in two books are two songs, each
 under its own heading.

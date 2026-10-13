@@ -485,20 +485,6 @@ describe("Finder", () => {
     expect(screen.queryByText("English Opening")).not.toBeInTheDocument();
   });
 
-  it("says which book it searches", async () => {
-    render(() => (
-      <Finder
-        hymnbookId="book"
-        bookTitle="Hymns of Fellowship"
-        store={fakeStore()}
-        userState={fakeUserState()}
-        onSelect={vi.fn()}
-      />
-    ));
-    expect(await screen.findByText("Hymns of Fellowship")).toBeInTheDocument();
-    expect(find()).toHaveAccessibleDescription("Searching Hymns of Fellowship");
-  });
-
   it("shows recents by number, title and when, as the Operator's tab does", async () => {
     const recents: RecentEntry[] = [{ hymnbookId: "book", hymnNumber: 42, viewedAt: 1 }];
     render(() => (
@@ -998,17 +984,6 @@ describe("Finder", () => {
       expect(searchAll).toHaveBeenCalledWith("line", "cur");
     });
 
-    it("says it searches all books while words are typed, and names the book for a number or nothing", async () => {
-      renderMany();
-      expect(find()).toHaveAccessibleDescription("Searching Current Book");
-      await type("line");
-      expect(find()).toHaveAccessibleDescription("Searching all books");
-      fireEvent.input(find(), { target: { value: "12" } });
-      expect(find()).toHaveAccessibleDescription("Searching all books");
-      fireEvent.input(find(), { target: { value: "" } });
-      expect(find()).toHaveAccessibleDescription("Searching Current Book");
-    });
-
     describe("a number (ADR-0032, amended)", () => {
       const num = (title: string, number: number) => ({ number, title, snippet: "" });
       /** Other books holding 42 and 421; the current book holds 42 only. */
@@ -1094,7 +1069,6 @@ describe("Finder", () => {
         fireEvent.input(find(), { target: { value: "42" } });
         await screen.findByRole("option", { name: /Forty-Second Hymn/ });
         expect(screen.queryByRole("group")).not.toBeInTheDocument();
-        expect(find()).toHaveAccessibleDescription("Searching Current Book");
         submitForm();
         expect(onSelect).toHaveBeenCalledWith(42, "cur");
         cleanup();
@@ -1125,7 +1099,6 @@ describe("Finder", () => {
       expect(screen.queryByRole("group")).not.toBeInTheDocument();
       expect(options()).toHaveLength(8);
       expect(screen.queryByText(/More in/)).not.toBeInTheDocument();
-      expect(find()).toHaveAccessibleDescription("Searching Current Book");
       fireEvent.mouseDown(options()[1]);
       expect(onSelect).toHaveBeenCalledWith(2, "cur");
     });

@@ -47,7 +47,6 @@ test("search every book: grouped, found under each, a pick in the other book ope
   box = await openFinder(page);
   await box.fill("lantern");
   const results = listbox(page);
-  await expect(page.getByText("Searching all books")).toBeVisible();
   const first = results.getByRole("group", { name: BOOK_TITLE });
   const second = results.getByRole("group", { name: SECOND_TITLE });
   await expect(first).toBeVisible();
@@ -79,8 +78,6 @@ test("search every book: grouped, found under each, a pick in the other book ope
   // current book's group first, the other book's joining when it has been read.
   box = await openFinder(page);
   await box.fill("2");
-  await expect(page.getByText("Searching all books")).toBeVisible();
-  await expect(page.locator(".finder-scope")).toContainText(/all books/i);
   const numbers = results.getByRole("group");
   await expect(numbers).toHaveCount(2);
   await expect(numbers.nth(0)).toContainText(SECOND_TITLE);
