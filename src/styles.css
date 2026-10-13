@@ -6213,9 +6213,14 @@ fieldset.book-main {
   overflow-y: auto;
 }
 
+/* The list grows up from the field (column-reverse), so the field is held at the
+   foot of the scroller, on the ground so rows pass beneath it: stuck to the top,
+   as in a sheet, it scrolled away and sank below the screen edge. */
 .present-switcher .finder-form {
+  top: auto;
+  bottom: 0;
   flex: none;
-  background-color: transparent;
+  background-color: var(--output-ground);
 }
 
 /* The hover layer drifts and blurs a pixel or two past the list's box. Left
