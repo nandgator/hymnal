@@ -48,16 +48,18 @@ test("the Finder lists the whole book in a window: scroll to the end, open a lat
   await box.press("Home");
   await expect(options.first()).toHaveAttribute("aria-posinset", "1");
   await listbox(page).hover();
-  await page.mouse.wheel(0, 9000);
-  await expect
-    .poll(async () =>
-      Math.min(
-        ...(await options.evaluateAll((all) =>
-          all.map((o) => Number(o.getAttribute("aria-posinset"))),
-        )),
-      ),
-    )
-    .toBeGreaterThan(60);
+  // One wheel event is not one distance: Firefox scrolls a 9000px delta by a page or by
+  // the lot, run to run. Wheel until the window has moved on, as a hand would.
+  const firstShown = async () =>
+    Math.min(
+      ...(await options.evaluateAll((all) =>
+        all.map((o) => Number(o.getAttribute("aria-posinset"))),
+      )),
+    );
+  await expect(async () => {
+    await page.mouse.wheel(0, 3000);
+    expect(await firstShown()).toBeGreaterThan(60);
+  }).toPass({ timeout: 15_000 });
   expect(await options.count()).toBeLessThan(80);
 
   // End again, then Enter opens the last song.
