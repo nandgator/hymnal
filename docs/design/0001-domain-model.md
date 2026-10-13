@@ -984,8 +984,7 @@ There is no Find button.
   closes it). While the box is empty the Finder shows Recents (this book's, when
   there are any, as the shared `RecentsList`) and, below them, **All songs**:
   the whole book, a windowed list (§13.2), each song opening on a tap. With no
-  recents the Recents heading is not shown. A line under the field says which
-  book is searched.
+  recents the Recents heading is not shown.
 - While focus is in the box, the Presenter's shortcuts are off (§16.5): arrow
   keys that move the highlight must never also move the Output.
 
@@ -1031,12 +1030,11 @@ on the others.
 **The view.** Each group has a heading, the book's title. The current book's
 group shows its results as today; every other group shows its first five, and
 **More in _title_** shows the rest of that group in place. In the command menu
-the commands come first, as now. The line under the field says **Searching all
-books** when more than one book is held, and names the book when only one is.
-The arrow keys move through every group as one list, and Enter takes the
-highlighted result, the top one of the first group unless moved. A song held in
-two books is a result in each (ADR-0032). Present Here's compact Finder (§16.7)
-groups the same way.
+the commands come first, as now. No line under the field names the scope: search
+is across all books, and the placeholder says what to type. The arrow keys move
+through every group as one list, and Enter takes the highlighted result, the top
+one of the first group unless moved. A song held in two books is a result in
+each (ADR-0032). Present Here's compact Finder (§16.7) groups the same way.
 
 **Picking a result** hands its book with its number: `onSelect(number, key)`.
 The shell's `chooseHymn` makes that book current and opens the song in one step
@@ -1054,8 +1052,7 @@ book. Present Here's switcher and a single book keep the current book alone.
 
 **As built.** Groups and headings show only when more than one book is held and
 something is typed, words or a number; with nothing typed the Finder lists the
-current book's songs and recents, and the line under the field names that book
-(it says _all books_ once something is typed). Under a heading the listbox holds
+current book's songs and recents. Under a heading the listbox holds
 `role="group"` wrappers, labelled by the heading (the actions' group by
 "Actions"); More in is an option. Opening a group keeps the highlight where it
 was. Present Here's switcher shows three songs a book (five when one book),
@@ -1069,9 +1066,9 @@ group with its own heading, never merged into another source's order.
 
 **Testing.** Unit: `searchAll`'s order, its leaving out of empty and unreadable
 books, the cap per book. Component: the groups and their headings, More in, the
-line under the field, the arrow keys across groups, Enter, a pick in another
-book handing its key, the one-book case unchanged. E2E: two books loaded, a word
-in both found under each, a pick in the other book opens it.
+arrow keys across groups, Enter, a pick in another book handing its key, the
+one-book case unchanged. E2E: two books loaded, a word in both found under each,
+a pick in the other book opens it.
 
 ### 13.2 Browse a whole book (Board #66)
 

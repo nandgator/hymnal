@@ -88,6 +88,7 @@ import { canAdjustScale, createPreferences, OUTPUT_CUES, Settings } from "./shel
 import { Sheet, type SheetPage } from "./shell/Sheet.tsx";
 import { SnackbarHost, type SnackbarProps } from "./shell/Snackbar.tsx";
 import { SwapLabel } from "./shell/SwapLabel.tsx";
+import { installScrollFade } from "./shell/scrollFade.ts";
 import { installScrollReveal } from "./shell/scrollReveal.ts";
 import { type Shared, TabGate } from "./shell/TabGate.tsx";
 import {
@@ -191,6 +192,7 @@ function Operator(props: Shared) {
   const preferences = createPreferences();
   // Scrollbars fade in while a pane scrolls (DESIGN.md § Register).
   installScrollReveal();
+  installScrollFade();
   const [section, setSection] = createSignal<Section>("library");
   // The books held (SDD-0004 §9, §10). The current book is the Finder's scope:
   // the book a search looks in. The presented book is the one the hymn on

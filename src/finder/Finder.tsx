@@ -108,6 +108,17 @@ interface GroupRef {
 
 const COMMANDS_GROUP: GroupRef = { id: "commands", title: "Actions" };
 
+/** The content of a book's "More in" row: a quiet line in the songs' columns, a chevron after it. */
+function MoreIn(props: { title: string }) {
+  return (
+    <>
+      <span class="finder-number" aria-hidden="true" />
+      <span class="finder-title finder-more">More in {props.title}</span>
+      <span class="icon icon-chevron-right finder-more-icon" aria-hidden="true" />
+    </>
+  );
+}
+
 /** One row in the listbox: an action, a hymn, or More in a book. */
 type Row =
   | { kind: "command"; command: Command; group: GroupRef }
@@ -518,10 +529,6 @@ export function Finder(props: FinderProps) {
       : group === COMMANDS_GROUP.id
         ? { role: "group" as const, "aria-label": COMMANDS_GROUP.title }
         : { role: "group" as const, "aria-labelledby": headingId(group) };
-  /** The scope line: all books while words are typed; the current book while a number is
-   * (numbers are per book) or nothing is, since its songs and recents are what is listed. */
-  const scope = () => (manyBooks() && !props.compact && trimmed() ? "all books" : props.bookTitle);
-
   // A number the current book has no song for: its top match would be another book's, and
   // Enter must not open that. With nothing highlighted, Enter opens the number here.
   const numberNotHere = () =>
@@ -778,7 +785,7 @@ export function Finder(props: FinderProps) {
       );
     }
     if (row.kind === "more") {
-      return <span class="finder-title finder-more">More in {row.group.title}</span>;
+      return <MoreIn title={row.group.title} />;
     }
     const hymn = row.item;
     return (
@@ -850,16 +857,8 @@ export function Finder(props: FinderProps) {
             enterkeyhint="search"
             placeholder={props.commands ? "Song number, lyrics or action" : "Song number or lyrics"}
             aria-label={props.commands ? "Find a song or action" : "Find a song"}
-            aria-describedby={scope() ? `${listId}-scope` : undefined}
           />
         </div>
-        <Show when={scope()}>
-          {(title) => (
-            <p class="finder-scope body-medium on-surface-variant" id={`${listId}-scope`}>
-              Searching <b>{title()}</b>
-            </p>
-          )}
-        </Show>
       </form>
 
       <Show when={noMatch()}>
@@ -1080,11 +1079,7 @@ export function Finder(props: FinderProps) {
                                           </>
                                         }
                                       >
-                                        {(book) => (
-                                          <span class="finder-title finder-more">
-                                            More in {book().title}
-                                          </span>
-                                        )}
+                                        {(book) => <MoreIn title={book().title} />}
                                       </Show>
                                     }
                                   >

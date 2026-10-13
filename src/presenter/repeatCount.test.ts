@@ -68,7 +68,7 @@ describe("createRepeatDisplay", () => {
     expect(display.visible()).toBe(false);
   });
 
-  it("a reset counts down through the numbers, then fades, while the count is already 1", () => {
+  it("a reset counts down through the numbers to ×2, then fades: ×1 is never shown", () => {
     vi.useFakeTimers();
     animated();
     const { display, setCount } = make(9);
@@ -78,7 +78,7 @@ describe("createRepeatDisplay", () => {
     expect(display.shown()).toBe(8);
     expect(display.rapid()).toBe(true);
     vi.advanceTimersByTime(COUNTDOWN_MS);
-    expect(display.shown()).toBe(1);
+    expect(display.shown()).toBe(2);
     expect(display.visible()).toBe(true);
     expect(display.fading()).toBe(false);
     vi.advanceTimersByTime(250);
@@ -87,7 +87,7 @@ describe("createRepeatDisplay", () => {
     expect(display.visible()).toBe(false);
   });
 
-  it("the last undo rolls to ×1 and fades; a plain undo just rolls", () => {
+  it("the last undo fades from ×2, never rolling to ×1; a plain undo just rolls", () => {
     vi.useFakeTimers();
     animated();
     const { display, setCount } = make(3);
@@ -96,9 +96,10 @@ describe("createRepeatDisplay", () => {
     expect(display.visible()).toBe(true);
     setCount(1);
     vi.advanceTimersByTime(0);
-    expect(display.shown()).toBe(1);
+    expect(display.shown()).toBe(2);
     expect(display.rapid()).toBe(false);
     vi.advanceTimersByTime(300);
+    expect(display.shown()).toBe(2);
     expect(display.fading()).toBe(true);
     vi.advanceTimersByTime(200);
     expect(display.visible()).toBe(false);

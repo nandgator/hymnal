@@ -1138,7 +1138,7 @@ export function Library(props: LibraryProps) {
           </Show>
           <Show when={rows().some((book) => book.kind === "own")}>
             {" "}
-            Your books have no file: Back Up keeps them.
+            Your books have no file: back up from Settings to keep them.
           </Show>
         </p>
       </Show>
