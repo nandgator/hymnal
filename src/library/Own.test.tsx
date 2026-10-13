@@ -798,7 +798,9 @@ describe("Library footer", () => {
     setup({ rows: [assortedRow()] }).view();
     expect(await screen.findByText(/Books stay on this device\./)).toBeInTheDocument();
     expect(screen.queryByText(/keep its file/)).not.toBeInTheDocument();
-    expect(screen.getByText(/Your books have no file: Back Up keeps them\./)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Your books have no file: back up from Settings to keep them\./),
+    ).toBeInTheDocument();
   });
   it("with only a loaded book held, says to keep its file and nothing of your books", async () => {
     setup({ rows: [loadedRow] }).view();
@@ -809,6 +811,6 @@ describe("Library footer", () => {
     setup({ rows: [loadedRow, assortedRow()] }).view();
     const foot = await screen.findByText(/Books stay on this device\./);
     expect(foot).toHaveTextContent(/keep its file\./);
-    expect(foot).toHaveTextContent(/Your books have no file: Back Up keeps them\./);
+    expect(foot).toHaveTextContent(/Your books have no file: back up from Settings to keep them\./);
   });
 });

@@ -849,7 +849,7 @@ view is close enough to the frame to need a smaller unit.
     waits for the CMS (Board #14). A damaged book of yours has no Load Again,
     since a file would replace it with a book.
   - **The footer** says where the books live. Once a book of yours is held it
-    adds "Your books have no file: Back Up keeps them."
+    adds "Your books have no file: back up from Settings to keep them."
   - **From Text** (Board #34, #61; SDD-0004 §9, §17) is a text button left of
     Load Books (its icon dropped under 600px), and a tonal button under the
     filled one in the empty card. It opens the **text sheet** ("From Text"), a
@@ -1168,7 +1168,12 @@ view is close enough to the frame to need a smaller unit.
   Small-caps area titles stay uppercase. **Song titles** are Title Case wherever
   shown (I Serve a Risen Savior; a bracketed subtitle starts afresh); content
   keeps them in sentence case, which keeps which words are names, and a script
-  without case is left as it is.
+  without case is left as it is. **Backup:** the noun is one word (the Backup
+  section, a backup, Backup from Sun, Sep 27); the verb is two (Back Up on the
+  button, per Title Case; back up in a sentence). **Ellipsis:** a command that
+  asks for more before it acts ends in one (Restore…, Rename…, Remove…, New
+  book…, Other…); a name that only opens a place does not (Load Books,
+  Settings); a status under way has one (Reading…, Packing…).
 - **Output: nothing ever bleeds off the screen.** The type is sized **per hymn**
   so its longest part fits between the 16% bands, then held for the whole hymn,
   so the text never changes size between parts. It's re-fitted on resize and
