@@ -178,7 +178,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       );
       const books = within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
       fireEvent.click(books.getByRole("button", { name: title }));
-      return within(await screen.findByRole("dialog", { name: "Go to a Song" }));
+      return within(await screen.findByRole("dialog", { name: "Search" }));
     };
 
     it("the crumb shows the song's own book, and the other book only after one of its songs is picked", async () => {
@@ -191,7 +191,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       expect(crumbs().queryByRole("button", { name: /Mocked Hymnbook/ })).not.toBeInTheDocument();
       expect(crumbs().getByRole("button", { name: /#1/ })).toBeInTheDocument();
 
-      fireEvent.input(picker.getByRole("combobox", { name: "Find a song" }), {
+      fireEvent.input(picker.getByRole("combobox"), {
         target: { value: "2" },
       });
       fireEvent.submit(picker.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -212,7 +212,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
           name: /^Mocked Hymnbook/,
         }),
       );
-      await screen.findByRole("dialog", { name: "Go to a Song" });
+      await screen.findByRole("dialog", { name: "Search" });
       // Settings opens over the picker, which closes without a pick, and is closed again.
       fireEvent.keyDown(window, { key: ",", ctrlKey: true });
       await screen.findByRole("dialog", { name: "Settings" });
@@ -236,7 +236,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       await waitFor(() => expect(mocks.addRecent).toHaveBeenCalledWith("k1", 1));
       mocks.addRecent.mockClear();
       const picker = await chooseFromHeader(/Mocked Hymnbook/);
-      fireEvent.input(picker.getByRole("combobox", { name: "Find a song" }), {
+      fireEvent.input(picker.getByRole("combobox"), {
         target: { value: "2" },
       });
       fireEvent.submit(picker.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -262,8 +262,8 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
         },
       ]);
       fireEvent.click(crumbs().getByRole("button", { name: /#1/ }));
-      const picker = within(await screen.findByRole("dialog", { name: "Go to a Song" }));
-      fireEvent.input(picker.getByRole("combobox", { name: "Find a song" }), {
+      const picker = within(await screen.findByRole("dialog", { name: "Search" }));
+      fireEvent.input(picker.getByRole("combobox"), {
         target: { value: "line" },
       });
       const mocked = await picker.findByRole("group", {
@@ -314,10 +314,10 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       const picker = await chooseFromHeader(/Mocked Hymnbook/);
       fireEvent.click(picker.getByRole("button", { name: "Close" }));
       await waitFor(() =>
-        expect(screen.queryByRole("dialog", { name: "Go to a Song" })).not.toBeInTheDocument(),
+        expect(screen.queryByRole("dialog", { name: "Search" })).not.toBeInTheDocument(),
       );
       fireEvent.click(crumbs().getByRole("button", { name: /#1/ }));
-      await screen.findByRole("dialog", { name: "Go to a Song" });
+      await screen.findByRole("dialog", { name: "Search" });
     });
 
     it("a book tapped in the Library opens the Finder on it, over the song, focused", async () => {
@@ -330,7 +330,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
           name: /^Mocked Hymnbook/,
         }),
       );
-      const picker = within(await screen.findByRole("dialog", { name: "Go to a Song" }));
+      const picker = within(await screen.findByRole("dialog", { name: "Search" }));
       await waitFor(() => expect(picker.getByRole("combobox")).toHaveFocus());
       // Back on Present, with the song still up and its own book on the crumb.
       expect(crumbs().getByRole("button", { name: /Hymns of Fellowship/ })).toBeInTheDocument();

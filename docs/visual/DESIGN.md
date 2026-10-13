@@ -488,7 +488,7 @@ view is close enough to the frame to need a smaller unit.
      section of Settings. Reserved, not built: Feedback and corrections.
   2. **Switcher row**, Supabase's org/project breadcrumb: **Hymnbook ▾ / #908
      Title ▾**. Each crumb is a picker. The hymnbook picker lists installed
-     books; the hymn picker is quick-find (number or lyrics). Choosing either
+     books; the hymn crumb opens the Finder (number or lyrics). Choosing either
      **hot-swaps in place**: the Operator stays, the Output follows (snapping to
      the new hymn, never scrolling from the old one), and nothing is reopened or
      repositioned mid-service. On a phone (MD3 compact, under 600dp) with a hymn

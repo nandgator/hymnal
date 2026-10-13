@@ -989,10 +989,10 @@ There is no Find button.
   keys that move the highlight must never also move the Output.
 
 **Where it appears.** The Finder fills Present when no song is up. With a song
-up, the same Finder is the picker sheet that the crumb's song button (and
-Presenter's Back to Search) opens, and, with `commands` listed ahead of the
-results, the command menu (§16.5). `compact` is the Present Here quick switcher
-(§16.7).
+up, the same Finder is the Search sheet that the crumb's song button (and
+Presenter's Back to Search) opens, with `commands` listed ahead of the results
+(§16.5). There is no separate "Go to a Song" page. `compact` is the Present Here
+quick switcher (§16.7).
 
 **Picking a hymn** hands its number to `onSelect(number)` and nothing else.
 **Finder never opens or renders the hymn**, and does not record it as recent:

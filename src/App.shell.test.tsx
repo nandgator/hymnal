@@ -76,8 +76,8 @@ describe("App", () => {
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
 
     fireEvent.click(await screen.findByRole("button", { name: /#1\s*Mocked Hymn/ }));
-    const picker = within(await screen.findByRole("dialog", { name: "Go to a Song" }));
-    fireEvent.input(picker.getByRole("combobox", { name: "Find a song" }), {
+    const picker = within(await screen.findByRole("dialog", { name: "Search" }));
+    fireEvent.input(picker.getByRole("combobox"), {
       target: { value: "2" },
     });
     fireEvent.submit(picker.getByRole("combobox").closest("form") as HTMLFormElement);
