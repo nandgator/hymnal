@@ -1456,12 +1456,13 @@ and a snippet in `on-surface-variant`, never a button styled as a button.
 **Finder results, several books** (SDD-0001 §13.1). A lyric search over more
 than one book sets each book's results under its title: one muted `label-large`
 line, ellipsized, with the line-height Malayalam conjuncts need. The current
-book's group is whole; another's shows five rows, then **More in _title_** in
-the accent colour, which opens the group in place without moving the highlight.
-The command menu's actions sit above, in a group with no heading. Search is
-always across all books; the field's placeholder says what to type, and no line
-under it names the scope. With one book there are no headings. In the quick
-switcher the headings are 13px and each book shows three rows.
+book's group is whole; another's shows five rows, then **More in _title_**, a
+quiet row (muted text under the song titles, a chevron after it) that opens the
+group in place without moving the highlight. The command menu's actions sit
+above, in a group with no heading. Search is always across all books; the
+field's placeholder says what to type, and no line under it names the scope.
+With one book there are no headings. In the quick switcher the headings are 13px
+and each book shows three rows.
 
 **Finder, a whole book** (SDD-0001 §13.2). Nothing typed, Recents sit on top and
 **All songs** below: every song of the book in one list that scrolls inside the

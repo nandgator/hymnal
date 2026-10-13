@@ -1399,10 +1399,16 @@ input[type="checkbox"].switch:disabled {
   cursor: pointer;
 }
 
-/* More in a book: an action among the songs, in the accent. */
-.finder-more {
-  color: var(--md-sys-color-primary);
-  font-weight: 500;
+/* More in a book: a quiet row in the songs' rhythm, its text under their titles
+   (an empty number column stands in front), a chevron after it as the
+   affordance. */
+.finder-title.finder-more {
+  flex: 1 1 auto;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.finder-more-icon {
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .finder-number {

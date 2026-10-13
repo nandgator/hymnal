@@ -108,6 +108,17 @@ interface GroupRef {
 
 const COMMANDS_GROUP: GroupRef = { id: "commands", title: "Actions" };
 
+/** The content of a book's "More in" row: a quiet line in the songs' columns, a chevron after it. */
+function MoreIn(props: { title: string }) {
+  return (
+    <>
+      <span class="finder-number" aria-hidden="true" />
+      <span class="finder-title finder-more">More in {props.title}</span>
+      <span class="icon icon-chevron-right finder-more-icon" aria-hidden="true" />
+    </>
+  );
+}
+
 /** One row in the listbox: an action, a hymn, or More in a book. */
 type Row =
   | { kind: "command"; command: Command; group: GroupRef }
@@ -774,7 +785,7 @@ export function Finder(props: FinderProps) {
       );
     }
     if (row.kind === "more") {
-      return <span class="finder-title finder-more">More in {row.group.title}</span>;
+      return <MoreIn title={row.group.title} />;
     }
     const hymn = row.item;
     return (
@@ -1068,11 +1079,7 @@ export function Finder(props: FinderProps) {
                                           </>
                                         }
                                       >
-                                        {(book) => (
-                                          <span class="finder-title finder-more">
-                                            More in {book().title}
-                                          </span>
-                                        )}
+                                        {(book) => <MoreIn title={book().title} />}
                                       </Show>
                                     }
                                   >
