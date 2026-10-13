@@ -15,6 +15,7 @@ import {
 import { titleCase } from "./case.ts";
 import { EMPHASIZED_BEZIER, GLIDE_MS, planCrossings } from "./glide-crossings.ts";
 import { glideList } from "./glideList.ts";
+import { visibleInterval } from "./visibleInterval.ts";
 
 export interface RecentsListProps {
   hymnbookId: HymnbookId;
@@ -72,8 +73,8 @@ export function RecentsList(props: RecentsListProps) {
   // Now, for the words and the groups: it moves on, so a row that was "Just
   // now" ages, and at midnight Today becomes Yesterday, with the list open.
   const [now, setNow] = createSignal(Date.now());
-  const refresh = setInterval(() => setNow(Date.now()), REFRESH_MS);
-  onCleanup(() => clearInterval(refresh));
+  // Not while the page is hidden; the words catch up when it is shown again.
+  onCleanup(visibleInterval(() => setNow(Date.now()), REFRESH_MS));
   const groups = createMemo(() => groupByRecency(recents() ?? [], now()));
   // A song chosen moves to the top: every row, and each group heading, glides
   // from where it was to where it lands (FLIP), a new one fades in, and a

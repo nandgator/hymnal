@@ -113,7 +113,7 @@ describe("RecentsList", () => {
       state = "hidden";
       document.dispatchEvent(new Event("visibilitychange"));
       expect(vi.getTimerCount()).toBe(0);
-      vi.advanceTimersByTime(600_000);
+      vi.advanceTimersByTime(90_000);
       expect(row).toHaveTextContent("Just now");
       state = "visible";
       document.dispatchEvent(new Event("visibilitychange"));
