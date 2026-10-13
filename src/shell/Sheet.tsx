@@ -1,6 +1,6 @@
 import { createEffect, createSignal, type JSX, on, onCleanup, Show, untrack } from "solid-js";
-import { isScrollFade } from "./scrollFade.ts";
 import { hoverButton } from "./hoverGlide.ts";
+import { isScrollFade } from "./scrollFade.ts";
 
 /**
  * A page pushed inside a sheet (nested navigation, e.g. Settings → Keyboard
