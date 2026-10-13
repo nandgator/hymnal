@@ -40,9 +40,9 @@ describe("RecentsList", () => {
         onSelect={() => {}}
       />
     ));
-    expect(screen.queryByText("No recent songs yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No recent songs yet")).not.toBeInTheDocument();
     resolve([]);
-    expect(await screen.findByText("No recent songs yet.")).toBeInTheDocument();
+    expect(await screen.findByText("No recent songs yet")).toBeInTheDocument();
   });
 
   it("shows the last list at once on a remount, with the rest of the screen", async () => {

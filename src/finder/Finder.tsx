@@ -16,6 +16,7 @@ import { languageName } from "../library/books.ts";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import type { UserState } from "../persistence/user-state.ts";
 import { titleCase } from "../shell/case.ts";
+import { EmptyCard } from "../shell/EmptyCard.tsx";
 import { type GlideList, glideList } from "../shell/glideList.ts";
 import { hoverButton } from "../shell/hoverGlide.ts";
 import { KeyCombo } from "../shell/KeyCombo.tsx";
@@ -862,7 +863,15 @@ export function Finder(props: FinderProps) {
       </form>
 
       <Show when={noMatch()}>
-        <p class="body-large">No matches for "{lyricQuery()}".</p>
+        <EmptyCard
+          kind="results"
+          title={`No matches for “${lyricQuery()}”`}
+          action={
+            props.compact ? undefined : { label: "Clear Search", onClick: () => setQuery("") }
+          }
+        >
+          Try a song number, or other words from the lyrics.
+        </EmptyCard>
       </Show>
 
       <Show when={!trimmed() && !props.compact}>

@@ -67,6 +67,7 @@ import {
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { autoHover } from "./shell/autoHover.ts";
 import { titleCase } from "./shell/case.ts";
+import { EmptyCard } from "./shell/EmptyCard.tsx";
 import { RootBoundary } from "./shell/ErrorScreen.tsx";
 import { glideList } from "./shell/glideList.ts";
 import { hoverButton, hoverGroup } from "./shell/hoverGlide.ts";
@@ -1560,13 +1561,31 @@ function Operator(props: Shared) {
               </Match>
               <Match when={section() === "present" && !hymnNumber()}>
                 {hymnbook() && (
-                  <Finder
-                    recentsVersion={recentsVersion()}
-                    hymnbookId={currentKey() as string}
-                    bookTitle={hymnbook()?.title}
-                    bookCount={installed().length}
-                    onSelect={pickHymn}
-                  />
+                  <>
+                    <Show
+                      when={presentingOutput()}
+                      fallback={
+                        <EmptyCard kind="song" title="No song selected">
+                          Pick one below, or type its number.
+                        </EmptyCard>
+                      }
+                    >
+                      <EmptyCard
+                        kind="live"
+                        title="Nothing live"
+                        action={{ label: "End Live", onClick: endLive }}
+                      >
+                        The Output is blank. Pick a song to put it there.
+                      </EmptyCard>
+                    </Show>
+                    <Finder
+                      recentsVersion={recentsVersion()}
+                      hymnbookId={currentKey() as string}
+                      bookTitle={hymnbook()?.title}
+                      bookCount={installed().length}
+                      onSelect={pickHymn}
+                    />
+                  </>
                 )}
               </Match>
             </Switch>

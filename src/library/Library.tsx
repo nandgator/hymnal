@@ -28,6 +28,7 @@ import {
   type LoadReview,
 } from "../persistence/content-store.ts";
 import { userState as defaultUserState, type UserState } from "../persistence/user-state.ts";
+import { EmptyIllustration } from "../shell/EmptyCard.tsx";
 import { glideList } from "../shell/glideList.ts";
 import { AfterDelay, createDelayed, LoadStatus, ProgressBar } from "../shell/Loading.tsx";
 import { Menu } from "../shell/Menu.tsx";
@@ -1154,6 +1155,7 @@ export function Library(props: LibraryProps) {
             when={savingShown()}
             fallback={
               <>
+                <EmptyIllustration kind="books" />
                 <h1 class="display-small">Bring a songbook</h1>
                 <p class="body-large on-surface-variant">
                   Load a songbook file, or type one in.{" "}

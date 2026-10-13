@@ -13,6 +13,7 @@ import {
   type UserState,
 } from "../persistence/user-state.ts";
 import { titleCase } from "./case.ts";
+import { EmptyCard } from "./EmptyCard.tsx";
 import { EMPHASIZED_BEZIER, GLIDE_MS, planCrossings } from "./glide-crossings.ts";
 import { glideList } from "./glideList.ts";
 
@@ -185,7 +186,9 @@ export function RecentsList(props: RecentsListProps) {
         // Only once loaded: while loading, "No recent songs yet" would be
         // untrue for a moment.
         <Show when={recents() && !props.quietWhenEmpty}>
-          <p class="body-large on-surface-variant recents-empty">No recent songs yet.</p>
+          <EmptyCard kind="recents" title="No recent songs yet">
+            Songs you open show up here.
+          </EmptyCard>
         </Show>
       }
     >
