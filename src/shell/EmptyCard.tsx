@@ -1,0 +1,93 @@
+import type { JSX } from "solid-js";
+import { Match, Show, Switch } from "solid-js";
+
+/** The empty states that have a picture. */
+export type EmptyKind = "song" | "books" | "recents" | "results" | "live";
+
+/**
+ * The picture for an empty state: flat line art, one stroke weight, `currentColor` for the
+ * drawing and the theme's primary for the one detail that says what is missing, so it holds
+ * in light and dark. Decorative: the text beside it carries the meaning.
+ */
+export function EmptyIllustration(props: { kind: EmptyKind }) {
+  return (
+    <svg
+      class="empty-illustration"
+      viewBox="0 0 96 96"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <Switch>
+        {/* An open book, and the note that is not yet picked. */}
+        <Match when={props.kind === "song"}>
+          <path d="M48 36C40 30 28 30 16 33V74C28 71 40 71 48 77C56 71 68 71 80 74V33C68 30 56 30 48 36ZM48 36V77" />
+          <g class="empty-accent">
+            <ellipse cx="64" cy="20" rx="4.5" ry="3.5" />
+            <path d="M68.5 20V8L76 11" />
+          </g>
+        </Match>
+        {/* A shelf with a gap where a book goes. */}
+        <Match when={props.kind === "books"}>
+          <path d="M12 76H84M18 76V32H32V76M36 76V24H50V76M18 42H32M36 36H50" />
+          <g class="empty-accent" stroke-dasharray="1 5">
+            <rect x="56" y="34" width="22" height="42" rx="3" />
+          </g>
+        </Match>
+        {/* A clock, nothing on it yet. */}
+        <Match when={props.kind === "recents"}>
+          <circle cx="48" cy="48" r="28" />
+          <path d="M48 12V16M48 80V84M12 48H16M80 48H84" />
+          <path class="empty-accent" d="M48 32V48L58 54" />
+        </Match>
+        {/* A magnifier over nothing. */}
+        <Match when={props.kind === "results"}>
+          <circle cx="42" cy="42" r="22" />
+          <path d="M58 58L80 80" />
+          <path class="empty-accent" d="M34 34L50 50M50 34L34 50" />
+        </Match>
+        {/* A screen with a quiet dot. */}
+        <Match when={props.kind === "live"}>
+          <rect x="12" y="20" width="72" height="46" rx="6" />
+          <path d="M34 78H62M48 66V78" />
+          <circle class="empty-accent" cx="48" cy="43" r="5" />
+        </Match>
+      </Switch>
+    </svg>
+  );
+}
+
+/**
+ * An empty state as a card: the picture, one short heading, one short helpful line and,
+ * where something can be done, a button. The heading is a real heading (the text, not the
+ * picture, is what a reader gets).
+ */
+export function EmptyCard(props: {
+  kind: EmptyKind;
+  title: string;
+  /** The helpful line. */
+  children?: JSX.Element;
+  action?: { label: string; onClick: () => void };
+}) {
+  return (
+    <div class="empty-card">
+      <EmptyIllustration kind={props.kind} />
+      <div class="empty-text">
+        <h2 class="title-medium">{props.title}</h2>
+        <Show when={props.children}>
+          <p class="body-medium on-surface-variant">{props.children}</p>
+        </Show>
+        <Show when={props.action}>
+          {(action) => (
+            <button type="button" class="btn-tonal" onClick={() => action().onClick()}>
+              {action().label}
+            </button>
+          )}
+        </Show>
+      </div>
+    </div>
+  );
+}
