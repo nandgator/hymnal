@@ -35,32 +35,45 @@ test("the sheet Finder's box stays at the top while the list scrolls", async ({ 
   expect(errors).toEqual([]);
 });
 
-// A short window, so the results overflow and the list has to scroll.
-test.describe("short window", () => {
-  test.use({ viewport: { width: 390, height: 420 } });
-  test("the quick switcher box stays at the foot while its list scrolls", async ({ page }) => {
-    const errors = watchErrors(page);
-    await page.goto("/");
-    await loadBook(page, bigBook);
-    await (await openFinder(page)).fill("1");
-    await page.getByRole("option", { name: "#1 Invented Hymn 1" }).click();
-    await page.getByRole("button", { name: "Go Live" }).click();
-    await expect(page.getByRole("region", { name: "Presenting on this screen" })).toBeVisible();
-    await page.keyboard.press("Control+k");
-    const box = page.getByRole("combobox", { name: "Find a song" });
-    await box.fill("lantern");
-    await expect(page.getByRole("option").first()).toBeVisible();
-    const before = await box.evaluate((el) => el.getBoundingClientRect().bottom);
-    expect(before).toBeLessThanOrEqual(420);
-    // Scroll the list away from the field, towards the older rows.
-    const finder = page.locator(".present-switcher .finder");
-    await finder.evaluate((el) => {
-      el.scrollTop = -el.scrollHeight;
-    });
-    await page.waitForTimeout(150);
-    expect(await finder.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
-    const after = await box.evaluate((el) => el.getBoundingClientRect().bottom);
-    expect(Math.abs(after - before)).toBeLessThan(1);
-    expect(errors).toEqual([]);
+// Seven books that share a word: the switcher shows three of each, more than its
+// list has room for at any window height (Firefox's fullscreen presents in a tall one).
+const manyBooks = Array.from({ length: 7 }, (_, n) =>
+  makeBook(
+    `shelf${n}`,
+    `Shelf ${n}`,
+    Array.from({ length: 5 }, (_, i) => ({
+      title: `Shelf ${n} Hymn ${i + 1}`,
+      lines: [`A lantern for number ${i + 1}`, "amen"],
+    })),
+  ),
+);
+
+test("the quick switcher's box stays at the foot while its list scrolls", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto("/");
+  for (const book of manyBooks) await loadBook(page, book);
+  await (await openFinder(page)).fill("1");
+  await page
+    .getByRole("option", { name: /#1 Shelf \d Hymn 1/ })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Go Live" }).click();
+  await expect(page.getByRole("region", { name: "Presenting on this screen" })).toBeVisible();
+  await page.keyboard.press("Control+k");
+  const box = page.getByRole("combobox", { name: "Find a song" });
+  await box.fill("lantern");
+  await expect(page.getByRole("option").first()).toBeVisible();
+  const finder = page.locator(".present-switcher .finder");
+  await expect.poll(() => finder.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+  const height = page.viewportSize()?.height ?? 0;
+  const before = await box.evaluate((el) => el.getBoundingClientRect().bottom);
+  expect(before).toBeLessThanOrEqual(height);
+  // Scroll the list away from the field, towards the older rows.
+  await finder.evaluate((el) => {
+    el.scrollTop = -el.scrollHeight;
   });
+  await page.waitForTimeout(150);
+  const after = await box.evaluate((el) => el.getBoundingClientRect().bottom);
+  expect(Math.abs(after - before)).toBeLessThan(1);
+  expect(errors).toEqual([]);
 });
