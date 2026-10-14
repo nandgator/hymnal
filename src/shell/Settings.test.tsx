@@ -222,8 +222,13 @@ describe("Settings", () => {
     render(() => <Settings userState={fakeUserState()} />);
     await screen.findByText("100%");
     const search = screen.getByRole("searchbox", { name: "Search settings" });
-    const pin = () => screen.getByText("Pin the chorus").closest<HTMLElement>(".settings-row")!;
-    const disclosure = () => pin().closest<HTMLElement>(".settings-disclosure")!;
+    const up = (el: HTMLElement, selector: string) => {
+      const found = el.closest<HTMLElement>(selector);
+      if (!found) throw new Error(`no ${selector} around the element`);
+      return found;
+    };
+    const pin = () => up(screen.getByText("Pin the chorus"), ".settings-row");
+    const disclosure = () => up(pin(), ".settings-disclosure");
     // The search hides the Layout row itself ("pin" is not in it): reach it hidden.
     const layoutChoice = (name: string) =>
       within(screen.getByRole("group", { name: "Layout", hidden: true })).getByRole("radio", {

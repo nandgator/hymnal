@@ -31,11 +31,18 @@ export function EmptyIllustration(props: { kind: EmptyKind }) {
             <path d="M68.5 20V8L76 11" />
           </g>
         </Match>
-        {/* A shelf with a gap where a book goes. */}
+        {/* Hymnals on a shelf (a cross on each spine, one leaning), and the gap where one goes. */}
         <Match when={props.kind === "books"}>
-          <path d="M12 76H84M18 76V32H32V76M36 76V24H50V76M18 42H32M36 36H50" />
+          <path d="M10 78H90" />
+          <rect x="14" y="36" width="13" height="42" rx="1.5" />
+          <rect x="30" y="24" width="15" height="54" rx="1.5" />
+          <g transform="rotate(8 61 78)">
+            <rect x="48" y="32" width="13" height="46" rx="1.5" />
+            <path d="M54.5 40V48M51 43.5H58" />
+          </g>
+          <path d="M20.5 42V50M17 45.5H24M37.5 31V39M33.5 34.5H41.5" />
           <g class="empty-accent" stroke-dasharray="1 5">
-            <rect x="56" y="34" width="22" height="42" rx="3" />
+            <rect x="71" y="38" width="14" height="40" rx="3" />
           </g>
         </Match>
         {/* A clock, nothing on it yet. */}

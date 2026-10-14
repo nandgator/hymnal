@@ -1544,7 +1544,7 @@ describe("Library: the sample (Board #43)", () => {
       const s = setup({ rows: [], sample: [SAMPLE] });
       s.view();
       fireEvent.click(await screen.findByRole("button", { name: "Try the Sample" }));
-      expect(await screen.findByRole("alert")).toHaveTextContent(/couldn’t be fetched/);
+      expect(await screen.findByRole("alert")).toHaveTextContent(/couldn’t be loaded/);
       expect(s.admin.review).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
