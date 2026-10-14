@@ -596,12 +596,13 @@ view is close enough to the frame to need a smaller unit.
     are one row of their own, full width under the Live preview (the preview's
     width, its margins), as the transport's row sits under Parts; Live's heading
     keeps only its "Live" label. On the phone strip they stay at the strip's
-    end. They are the Live actions' one home (the header's button has no menu),
-    and the transport's buttons (§ Buttons): equal-width tonal rounded
-    rectangles on the neutral fill, one 8px gap between every pair, equal in
-    height, in every state. The stage is at most 440px (40% of the width), too
-    narrow for "Present Here" beside an icon in a quarter of the row, so in the
-    row each button stacks its icon over its word (56px tall, the word at 12px).
+    end, all but Touch Lock, which is a row in the strip's expanded panel. They
+    are the Live actions' one home (the header's button has no menu), and the
+    transport's buttons (§ Buttons): equal-width tonal rounded rectangles on the
+    neutral fill, one 8px gap between every pair, equal in height, in every
+    state. The stage is at most 440px (40% of the width), too narrow for
+    "Present Here" beside an icon in a quarter of the row, so in the row each
+    button stacks its icon over its word (56px tall, the word at 12px).
     **Icon-only only where space forces it**: the phone strip (48px squares),
     and any row too narrow even so, decided by the row's own width (rem, so the
     text size counts): under 27rem, where five columns can no longer hold the
