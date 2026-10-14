@@ -218,11 +218,12 @@ describe("Settings", () => {
     }
   });
 
-  it("search skips a setting inside a closed disclosure, and follows the layout as it changes", async () => {
+  it("search opens a closed disclosure that holds a match, and clearing returns it to the person's state", async () => {
     render(() => <Settings userState={fakeUserState()} />);
     await screen.findByText("100%");
     const search = screen.getByRole("searchbox", { name: "Search settings" });
-    const pin = () => screen.getByText("Pin the chorus").closest(".settings-row");
+    const pin = () => screen.getByText("Pin the chorus").closest<HTMLElement>(".settings-row")!;
+    const disclosure = () => pin().closest<HTMLElement>(".settings-disclosure")!;
     // The search hides the Layout row itself ("pin" is not in it): reach it hidden.
     const layoutChoice = (name: string) =>
       within(screen.getByRole("group", { name: "Layout", hidden: true })).getByRole("radio", {
@@ -233,14 +234,33 @@ describe("Settings", () => {
     // Part by part (the default) opens "Pin the chorus".
     fireEvent.input(search, { target: { value: "pin" } });
     expect(pin()).toBeVisible();
+    expect(disclosure()).toHaveAttribute("data-open", "true");
 
-    // Whole song closes it: the search still active, it drops out.
+    // Whole song closes it, the search still active: it shows open all the same, to act on.
     fireEvent.click(layoutChoice("Whole song"));
-    expect(pin()).not.toBeVisible();
+    expect(disclosure()).toHaveAttribute("data-open", "false");
+    expect(disclosure()).toHaveAttribute("data-search", "open");
+    expect(disclosure()).not.toHaveAttribute("inert");
+    expect(disclosure()).not.toHaveAttribute("aria-hidden");
+    expect(pin().hidden).toBe(false);
 
-    // And back: it returns.
+    // Clearing the search returns it to closed: the person's choice is untouched.
+    fireEvent.input(search, { target: { value: "" } });
+    expect(disclosure()).not.toHaveAttribute("data-search");
+    expect(disclosure()).toHaveAttribute("data-open", "false");
+    expect(disclosure()).toHaveAttribute("inert");
+    expect(disclosure()).toHaveAttribute("aria-hidden", "true");
+
+    // A query with no match inside leaves it shut.
+    fireEvent.input(search, { target: { value: "theme" } });
+    expect(disclosure()).not.toHaveAttribute("data-search");
+    expect(disclosure()).toHaveAttribute("inert");
+
+    // And back to Part by part: it is open for itself again.
+    fireEvent.input(search, { target: { value: "" } });
     fireEvent.click(layoutChoice("Part by part"));
-    expect(pin()).toBeVisible();
+    expect(disclosure()).toHaveAttribute("data-open", "true");
+    expect(disclosure()).not.toHaveAttribute("inert");
   });
 
   it("splits or merges the tab groups (SDD-0001 §16.4)", async () => {
