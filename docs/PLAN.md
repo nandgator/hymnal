@@ -63,6 +63,7 @@ Ordered. Top unblocked item is next.
 | 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                                                                                                                                                                                                                                                                                                          | another machine     |
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                                                                                                                                                                                                                                                                  | maintainer: devices |
 | 67  | Sheet open cost left (measured 2026-10-14, Log): the first layout of Settings content at showModal; mounting its below-the-fold sections after the first frame would cut it but moves the morph target. The scrim blur is the frame cost. Low priority                                                                                                                                                                            | —                   |
+| 75  | Preview (as OBS's Studio Mode), off out of the box, then remembered: with it on, a picked song waits in Preview until Take (a button and a key); stepping parts and lines, Repeat and Undo stay direct; not in Present Here. Hold's place beside it is open (maintainer, 2026-10-15)                                                                                                                                              | design talk         |
 | 76  | Settings reset and profiles for a roster: a ↺ by a changed setting's title (as Zed) and Reset All with Undo, settings only; two layers, the room (the Output's look and screen, shared) and personal profiles over the defaults (Operator look, panes, scroll, highlight, scope, touch lock), each savable as a JSON file; Recents shared; while Live, Output settings wait for End Live (maintainer, 2026-10-14). Not now: later | later               |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks); removing one song from your books (its UI left with OwnSheet, ADR-0033 §6)                                                                                                                                                                                                                                                                                           | —                   |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                                                                                                                                                                                                                                                     | —                   |
@@ -123,11 +124,9 @@ only, here:
   All Books chip whose PickList ticks the books (filter past six, applies at
   once, the last cannot be unticked); placeholder "Number, title or words"
   (SDD-0001 §13.3, §13.4)
-- 2026-10-14 — #75 done: Touch Lock (SDD-0001 §16.11), one remembered switch
-  (Settings, Live toolbar, command); while live a tap on a guarded control
-  (`data-output-guard`, one controller in `touchLock.ts`) is swallowed with
-  "Press and hold to show", a 500 ms press with a ring acts; keys and clicks no
-  pointer made pass; Present Here's swipe does nothing while locked
+- 2026-10-15 — Touch Lock (#75 as built) removed: it guessed at taps and did
+  what Hold nearly does; the maintainer's design is a Preview, as OBS's Studio
+  Mode (Board #75 again)
 - 2026-10-14 — #67 measured, no code change (Chromium, 10 reps, 4x CPU at
   390x844 and unthrottled at 1280x800): a sheet opens in one 50-180 ms task (4x)
   of which showModal's first style and layout of the mounted content is the

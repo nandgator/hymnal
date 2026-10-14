@@ -82,9 +82,6 @@ export interface Preferences {
   fullscreenHintDismissed?: boolean;
   /** The book of yours From Text last added to, by key; absent means Assorted Hymns (ADR-0033 §4). */
   textBook?: string;
-  /** Touch Lock: while live, a pointer action that changes the Output needs a
-   * held press; absent means off — SDD-0001 §16.11. Read through {@link touchLockOf}. */
-  touchLock?: boolean;
   /** What the Finder searches: all books (absent), the current one, or a chosen set (SDD-0001
    * §13.4). Read through `scopeKeys`, which drops books no longer held. */
   searchScope?: SearchScope;
@@ -125,8 +122,6 @@ export const pinChorusOf = (preferences: Preferences) => preferences.pinChorus ?
 /** Anything but "song", a stored value gone wrong included, is the part. */
 export const highlightOf = (preferences: Preferences): Highlight =>
   preferences.highlight === "song" ? "song" : "part";
-
-export const touchLockOf = (preferences: Preferences) => preferences.touchLock === true;
 
 export const wholeSongOf = (preferences: Preferences) => preferences.wholeSong ?? false;
 
@@ -242,7 +237,6 @@ const PREFERENCE_FIELDS = {
   bandSize: oneOf("part", "line"),
   pinChorus: isBoolean,
   wholeSong: isBoolean,
-  touchLock: isBoolean,
   highlight: oneOf("part", "song"),
   homeScreenHintDismissed: isBoolean,
   goLive: oneOf("auto", "here", "window"),

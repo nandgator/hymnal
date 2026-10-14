@@ -220,7 +220,6 @@ export function RecentsList(props: RecentsListProps) {
                         <button
                           type="button"
                           class="list-row recents-row"
-                          data-output-guard=""
                           aria-current={entry.hymnNumber === props.current ? "true" : undefined}
                           onClick={() => props.onSelect(entry.hymnNumber)}
                         >
