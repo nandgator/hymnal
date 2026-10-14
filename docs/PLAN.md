@@ -116,6 +116,12 @@ only, here:
 
 ## Log
 
+- 2026-10-14 — search review: a book tapped with no song up opens Search over
+  the Library on that book (This Book for that opening, `searchScope` kept);
+  Present with no song opens Search too; the scope chips are This Book and one
+  All Books chip whose PickList ticks the books (filter past six, applies at
+  once, the last cannot be unticked); placeholder "Number, title or words"
+  (SDD-0001 §13.3, §13.4)
 - 2026-10-14 — fix: every text field has a limit (`limits.ts`; DESIGN.md
   Structure): search 100, names 200, From Text 2M refused whole when over; a
   card echoing a query clips it to 40 graphemes on one line
@@ -170,6 +176,3 @@ only, here:
   the 30 s Recents refresh pause while the page is hidden and catch up on return
   (`visibleInterval`); the Firefox-only browse e2e flake was the test's single
   9000px wheel (Firefox scrolls it 542 or 9296 px), not the window
-- 2026-10-12 — #66 done: the Finder lists the whole book windowed (Recents on
-  top, sticky headings, 24-28 rows in the DOM of a 1,000-song book); lyric
-  search pages on past 30 (SDD-0001 §13.2). Quick switcher unchanged

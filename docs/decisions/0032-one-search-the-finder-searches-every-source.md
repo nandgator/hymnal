@@ -81,10 +81,11 @@ still songs' sources only. SDD-0001 §13.3.
 ## Amendment, 2026-10-14: the person may narrow the search
 
 Approved by the maintainer (Board #68). Point 1 stays the default, not the only
-way: chips under the field, **All Books** (the default), **This Book** and
-**Books…** (a chosen set), narrow lyric search and typed numbers to the books in
-scope, and the choice is remembered. The scope is a filter on the sources, not a
-change to their order: groups are still the current book first, then the rest in
-Library order, never interleaved. A number still suggests the current book's
-exact match first, among the books in scope. With one book held there are no
-chips. SDD-0001 §13.4.
+way: chips under the field, **This Book** and **All Books** (the default; one
+chip for the set, which reads **N Books** once some books are unticked in its
+list), narrow lyric search and typed numbers to the books in scope, and the
+choice is remembered. The scope is a filter on the sources, not a change to
+their order: groups are still the current book first, then the rest in Library
+order, never interleaved. A number still suggests the current book's exact match
+first, among the books in scope. With one book held there are no chips. SDD-0001
+§13.4.

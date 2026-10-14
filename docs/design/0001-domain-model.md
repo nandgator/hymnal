@@ -928,12 +928,15 @@ key (the book on the Output, which cannot be removed while live) and callbacks:
 navigate itself.
 
 **Navigation is a Solid signal, not a router.** `App.tsx` holds
-`section: "present" | "library"`. Present shows an empty card (No song selected,
-with a Find a Song button that opens the Search sheet) when no song is up and
-the Presenter when one is; Library shows the Library. There is no deep-linking
-requirement ([ADR-0012](../decisions/0012-drop-the-bookmark-helper.md) dropped
-bookmarking in favour of recents). With no book held the Library is where the
-app is: Present needs a book.
+`section: "present" | "library"`. Present shows the Presenter when a song is up;
+Library shows the Library. Choosing Present in the navigation with no song up
+does not land on an empty page: it opens the Search sheet over the page the
+person is on (§13.4). The empty card (No song selected, with a Find a Song
+button) stays as the fallback for Present shown with no song by any other way.
+There is no deep-linking requirement
+([ADR-0012](../decisions/0012-drop-the-bookmark-helper.md) dropped bookmarking
+in favour of recents). With no book held the Library is where the app is:
+Present needs a book.
 
 **Testing.** `Library` takes `admin` and `userState` as optional props,
 defaulting to `getContentAdmin()` and the `userState` singleton: tests inject
@@ -1115,9 +1118,12 @@ two modes and never mixes them.
   heading: books and languages keep theirs under it. **Songs is hidden while the
   box is empty** (maintainer, 2026-10-14): the empty list has its own Recents
   and All songs headings, so the mode heading would only repeat them; it shows
-  once anything is typed. Commands stays as it is. The placeholder says how to
-  switch: _Find a song, or > for commands_ in songs and _Find a command_ in
-  commands; sentence case, short enough for 375px.
+  once anything is typed. Commands stays as it is. The placeholder (maintainer,
+  2026-10-14) says what to type, not how to switch: _Number, title or words_ in
+  songs, _Find a command_ in commands; sentence case, short enough for 375px. It
+  does not mention `>` or commands: the shortcut list (`?`) documents `>` and
+  Ctrl/⌘+Shift+P. The accessible name stays _Find a song or command_, which is
+  still true of the field and tells a screen reader that commands are there.
 - **Nothing mixes.** In commands no song, Recents or book is listed; in songs no
   command. A command has no number to type, so the fast path (`/`, a number,
   Enter) is unchanged. In commands, nothing is highlighted until a word is typed
@@ -1149,21 +1155,47 @@ E2E: `>` on chromium desktop and firefox phone.
 amended).** Search is across every book by default, and a row of chips under the
 field narrows it.
 
-- **The chips.** **All Books**, **This Book** and **Books…**, one choice among
-  the three (filter chips, `aria-pressed`, DESIGN.md). All Books is the default.
-  They sit inside the sticky field's form, so they stay in reach as the list
-  scrolls, and they are shown in songs mode only: not in commands (`>`), and not
-  in Present Here's switcher (§16.7), which searches the current book alone.
+- **The chips.** **This Book** and **All Books** (revised 2026-10-14: one chip
+  for the set searched, with a chevron after its label), one pressed at a time
+  (filter chips, `aria-pressed`, DESIGN.md). The set chip is pressed by default;
+  it reads **All Books**, or **N Books** once some are unticked (_2 Books_, and
+  _1 Book_, never a title: a title can run to a whole phone line). They sit
+  inside the sticky field's form, so they stay in reach as the list scrolls, and
+  they are shown in songs mode only: not in commands (`>`), and not in Present
+  Here's switcher (§16.7), which searches the current book alone.
 - **This Book** is the current book, the one the Finder was opened on. With no
   current book the chip is not drawn (a disabled chip would explain nothing).
-- **Books…** opens a checklist: a popover dialog named _Search these books_, a
-  checkbox per held book by title, in the Library's order, and a **Done**
-  button. The checks are a draft: Done applies them, Escape or a click outside
-  drops them. **Choosing none is not allowed**: Done stays off until one book is
-  checked. The chip then reads **N Books** (_2 Books_) and is selected; one
-  chosen book reads **1 Book**, not its title: a title can run to a whole phone
-  line (a Malayalam one does), and a chip's width should not depend on a book's
-  name. The checklist names them.
+- **The set chip opens a list of the books**: a PickList (the language picker's
+  list: DESIGN.md), a multi-select `listbox` named _Books to search_
+  (`aria-multiselectable`, `aria-selected` on each ticked row; a listbox, not a
+  menu of `menuitemcheckbox`, because that is what PickList is). Rows are the
+  held books' titles in the Library's order, one line with an ellipsis and the
+  full title as a tooltip, and a check mark at the row's **end** when ticked; no
+  checkbox squares. **In All Books every book is ticked.** A tap toggles a book
+  and **applies at once**: no Done, no draft. Unticking narrows the scope and
+  the chip reads **N Books**; ticking every book again is **All Books**. **The
+  last ticked book cannot be unticked**: its row is `aria-disabled="true"` and a
+  tap or key on it does nothing, so no empty scope exists. With **more than six
+  books** a filter field heads the list (`maxlength` from `SEARCH_MAX`; it
+  filters by title, every word typed, case and Latin accents ignored, any
+  script); the rows scroll under it with the app's edge fades. Escape or a tap
+  outside closes the list alone, and focus returns to the chip.
+- **One tap on the chip.** With This Book pressed, a tap on the set chip returns
+  to the set it left (All Books, or the N Books last chosen) **and opens the
+  list** (decided: one large target, 40px tall, on a phone, rather than a label
+  and a small chevron to aim at; the list is one Escape away when only the
+  return was meant). With the set already pressed, the tap opens or closes the
+  list.
+- **A book chosen opens Search on it (2026-10-14).** Tapping a book in the
+  Library (or choosing one in the header's Hymnbooks sheet) with **no song up**
+  opens the Search sheet right there, over the page the person is on, the field
+  focused and the scope **This Book for that opening only**: the remembered
+  `searchScope` is not written. A chip pressed during that opening is a real
+  choice and is remembered as usual. A pick goes to Present with the song, as
+  any pick does; closing Search leaves the person where they were (the Library).
+  With a song up, a book tap behaves as before (the Finder opens over the song,
+  on that book). Nothing is sent to the Output: only the sheet opens (Invariant:
+  the Output never changes unasked), live or not.
 - **Remembered.** The scope (`searchScope` in the preferences: the choice, and
   the chosen books by key) is kept across sessions and rides along in a backup
   like any preference. A remembered book that is no longer held drops out of the
@@ -1189,14 +1221,17 @@ field narrows it.
   field reaches the row at the chosen chip; ← and → move between the chips (Home
   and End to the ends), Enter or Space presses. The field's flow is untouched:
   ↑, ↓ and Enter work from the field as before, and focus stays in the field
-  while a chip is clicked by pointer. Books… has `aria-haspopup="dialog"` and
-  `aria-expanded`; the checklist's checkboxes are native, its focus is trapped
-  to it until it closes, and focus returns to the chip. Chips are 40px tall,
-  over the 24px target minimum (WCAG 2.2 AA).
+  while a chip is clicked by pointer. The set chip has `aria-haspopup="listbox"`
+  and `aria-expanded`. In the list the arrows move, Home and End go to the ends,
+  and Space or Enter toggle (with a filter field, focus is in the field: the
+  arrows move, Enter toggles, and Space types, as a title has spaces); Escape
+  closes. Chips are 40px tall, over the 24px target minimum (WCAG 2.2 AA).
 - **Testing.** Unit: the scope's keys and effective mode (dropped books, empty
   set, no current book), the stored value cleaned. Component: the chips shown
-  only with several books and in songs mode, each scopes lyrics and numbers,
-  Books… draft, Done and none-chosen, the remembered choice handed back, the
+  only with several books and in songs mode, each scopes lyrics and numbers, the
+  books list (ticked in All Books, a tap applies, all ticked again is All Books,
+  the last ticked cannot be unticked, a filter past six, Space and Enter), This
+  Book for one opening not remembered, the remembered choice handed back, the
   scoped no-match card and its button, the Songs heading hidden while empty,
   keyboard in the row. E2E: chromium desktop and firefox phone.
 
