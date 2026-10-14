@@ -27,6 +27,10 @@ A worked file is in [`sample.md`](sample.md).
 - Line numbers in errors count lines of the file as given, comments and blank
   lines included, from 1.
 
+- The app's From Text field takes up to 2,000,000 characters at once, enough for
+  a whole book. A paste over that is refused with a message, not cut; add the
+  book in parts. The file format itself has no limit.
+
 ## 2. A song
 
 A song is, in order: the title line, optional details, then blocks.
