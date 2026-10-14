@@ -110,6 +110,8 @@ export interface Command {
   /** Its keyboard shortcut, shown at the row's end. */
   hint?: string;
   run: () => void;
+  /** It changes what the Output shows, so Touch Lock asks a held press of it (SDD-0001 §16.11). */
+  guard?: boolean;
 }
 
 /** The group a row belongs to: the actions, or a source's group. */
@@ -562,6 +564,11 @@ export function Finder(props: FinderProps) {
   onMount(() => {
     settled = true;
   });
+
+  // A song, or a command that changes the Output, is a press Touch Lock asks to hold; the row
+  // acts on mousedown, so that is the event it guards (SDD-0001 §16.11).
+  const guardOf = (row: Row) =>
+    row.kind === "hymn" || (row.kind === "command" && row.command.guard) ? "mousedown" : undefined;
 
   const pick = (row: Row) => {
     if (row.kind === "command") row.command.run();
@@ -1115,6 +1122,7 @@ export function Finder(props: FinderProps) {
                               tabIndex={-1}
                               class="list-row finder-option"
                               aria-selected={active() === slot.index}
+                              data-output-guard={guardOf(slot.row)}
                               aria-setsize={rows().length}
                               aria-posinset={slot.index + 1}
                               aria-current={
@@ -1221,6 +1229,7 @@ export function Finder(props: FinderProps) {
                                   class="list-row finder-option"
                                   aria-hidden={going() ? "true" : undefined}
                                   aria-selected={!going() && active() === index()}
+                                  data-output-guard={guardOf(current())}
                                   // mousemove, not mouseenter: a list appearing under a resting
                                   // pointer fires mouseenter without the pointer moving, and must
                                   // not steal the highlight from the top match — typing "121" then

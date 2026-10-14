@@ -433,6 +433,14 @@ button:disabled {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M179-179q-19-19-19-47t19-47q19-19 47-19t47 19q19 19 19 47t-19 47q-19 19-47 19t-47-19Zm254 0q-19-19-19-47t19-47q19-19 47-19t47 19q19 19 19 47t-19 47q-19 19-47 19t-47-19Zm254 0q-19-19-19-47t19-47q19-19 47-19t47 19q19 19 19 47t-19 47q-19 19-47 19t-47-19ZM179-433q-19-19-19-47t19-47q19-19 47-19t47 19q19 19 19 47t-19 47q-19 19-47 19t-47-19Zm254 0q-19-19-19-47t19-47q19-19 47-19t47 19q19 19 19 47t-19 47q-19 19-47 19t-47-19Zm254 0q-19-19-19-47t19-47q19-19 47-19t47 19q19 19 19 47t-19 47q-19 19-47 19t-47-19ZM179-687q-19-19-19-47t19-47q19-19 47-19t47 19q19 19 19 47t-19 47q-19 19-47 19t-47-19Zm254 0q-19-19-19-47t19-47q19-19 47-19t47 19q19 19 19 47t-19 47q-19 19-47 19t-47-19Zm254 0q-19-19-19-47t19-47q19-19 47-19t47 19q19 19 19 47t-19 47q-19 19-47 19t-47-19Z'/%3E%3C/svg%3E");
 }
 
+.icon-lock {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M240-80q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640h40v-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240Zm240-200q33 0 56.5-23.5T560-360q0-33-23.5-56.5T480-440q-33 0-56.5 23.5T400-360q0 33 23.5 56.5T480-280ZM360-640h240v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85v80Z'/%3E%3C/svg%3E");
+}
+
+.icon-lock-open {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M240-640h360v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85h-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640Zm240 360q33 0 56.5-23.5T560-360q0-33-23.5-56.5T480-440q-33 0-56.5 23.5T400-360q0 33 23.5 56.5T480-280Z'/%3E%3C/svg%3E");
+}
+
 .icon-stop {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M360-320h240q17 0 28.5-11.5T640-360v-240q0-17-11.5-28.5T600-640H360q-17 0-28.5 11.5T320-600v240q0 17 11.5 28.5T360-320ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z'/%3E%3C/svg%3E");
 }
@@ -2050,6 +2058,157 @@ input[type="checkbox"].switch:disabled {
   margin: var(--space-xs) 0 0;
 }
 
+/* Touch Lock (SDD-0001 §16.11). In force, a guarded control (one that changes
+   the Output) opens no context menu and selects no text on a long press, and
+   no other control is touched. The header's live button wears a small padlock
+   as a badge, so it never resizes. */
+html[data-touch-lock] [data-output-guard] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.present-button {
+  position: relative;
+}
+
+.live-lock-badge {
+  position: absolute;
+  inset-block-start: -0.25rem;
+  inset-inline-end: -0.25rem;
+  box-sizing: content-box;
+  width: 0.75rem;
+  height: 0.75rem;
+  padding: 0.125rem;
+  border-radius: 50%;
+  background-color: var(--md-sys-color-inverse-surface);
+  color: var(--md-sys-color-inverse-on-surface);
+  pointer-events: none;
+}
+
+/* The ring and the hint are popovers, so they sit in the top layer, over a
+   sheet and over Present Here alike. Neither takes a pointer. */
+.touch-lock-ring,
+.touch-lock-hint {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  background: none;
+  color: inherit;
+  pointer-events: none;
+}
+
+.touch-lock-ring {
+  width: 4rem;
+  height: 4rem;
+  transform: translate(-50%, -50%);
+  color: var(--md-sys-color-primary);
+}
+
+.touch-lock-ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.touch-lock-ring circle {
+  fill: none;
+  stroke-width: 3;
+}
+
+.touch-lock-ring .track {
+  stroke: currentColor;
+  stroke-opacity: 0.28;
+  fill: color-mix(in srgb, var(--md-sys-color-surface) 55%, transparent);
+}
+
+.touch-lock-ring .arc {
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+}
+
+.touch-lock-ring.is-pressing .arc {
+  animation: touch-lock-fill var(--touch-lock-ms, 500ms) linear forwards;
+}
+
+.touch-lock-ring.is-done .arc {
+  animation: none;
+  stroke-dashoffset: 0;
+}
+
+@keyframes touch-lock-fill {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Reduced motion: no fill. A still track while pressing; at completion the
+   ring turns solid. */
+@media (prefers-reduced-motion: reduce) {
+  .touch-lock-ring.is-pressing .arc {
+    animation: none;
+  }
+
+  .touch-lock-ring.is-done .track {
+    stroke-opacity: 1;
+  }
+}
+
+.touch-lock-hint {
+  width: max-content;
+  max-width: calc(100vw - 1rem);
+  padding: 0.5rem 0.875rem;
+  border-radius: 1rem;
+  transform: translate(-50%, -100%) translateY(0.25rem);
+  background-color: var(--md-sys-color-inverse-surface);
+  color: var(--md-sys-color-inverse-on-surface);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25;
+  opacity: 0;
+  transition:
+    opacity 120ms linear,
+    transform 120ms var(--motion-emphasized, ease-out);
+}
+
+.touch-lock-hint.is-below {
+  transform: translate(-50%, 0) translateY(-0.25rem);
+}
+
+.touch-lock-hint.is-shown {
+  opacity: 1;
+  transform: translate(-50%, -100%);
+}
+
+.touch-lock-hint.is-shown.is-below {
+  transform: translate(-50%, 0);
+}
+
+.touch-lock-hint.is-leaving {
+  opacity: 0;
+  transition-duration: 160ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .touch-lock-hint,
+  .touch-lock-hint.is-below {
+    transform: translate(-50%, -100%);
+    transition: opacity 120ms linear;
+  }
+
+  .touch-lock-hint.is-below,
+  .touch-lock-hint.is-shown.is-below {
+    transform: translate(-50%, 0);
+  }
+}
+
 /* The command menu, findable (the mockup): a search field's look, the
    same box as Ctrl/⌘+K. A phone gets its icon. Controls share one shape
    (--button-shape), and a chip inside one nests concentrically. */
@@ -2943,7 +3102,7 @@ input[type="checkbox"].switch:disabled {
   font-size: 0.75rem;
 }
 
-@container live-bar (max-width: 22rem) {
+@container live-bar (max-width: 27rem) {
   .stage-live-bar .live-control {
     flex-direction: row;
     gap: 0;

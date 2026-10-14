@@ -3,6 +3,7 @@ import type { HymnbookId, HymnNumber } from "../domain/types.ts";
 import { Finder } from "../finder/Finder.tsx";
 import type { BandSize, Highlight, OutputCues, OutputTheme } from "../persistence/user-state.ts";
 import { isPresentationKey, isTyping, replayForwardedKey } from "../shell/keymap.ts";
+import { isTouchLocked } from "../shell/touchLock.ts";
 import type { OutputMessage } from "./channel.ts";
 import { createIdleCursor } from "./idleCursor.ts";
 import { OutputBoundary } from "./OutputBoundary.tsx";
@@ -117,7 +118,13 @@ export function PresentHere(props: PresentHereProps) {
     } else if (tap) {
       if (bar()) hideBar();
       else showBar();
-    } else if (Math.abs(dx) >= SWIPE_PX && Math.abs(dx) >= Math.abs(dy) * SWIPE_RATIO) {
+    } else if (
+      Math.abs(dx) >= SWIPE_PX &&
+      Math.abs(dx) >= Math.abs(dy) * SWIPE_RATIO &&
+      // Touch Lock (SDD-0001 §16.11): a swipe is too easily made by accident, and has
+      // nowhere to hold; Previous and Next on the bar take the held press.
+      !isTouchLocked()
+    ) {
       step(dx < 0 ? "ArrowRight" : "ArrowLeft");
     }
   };
@@ -244,6 +251,7 @@ export function PresentHere(props: PresentHereProps) {
           type="button"
           class="present-bar-button"
           aria-label="Previous"
+          data-output-guard=""
           title="Previous"
           onClick={() => step("ArrowLeft")}
         >
@@ -253,6 +261,7 @@ export function PresentHere(props: PresentHereProps) {
           type="button"
           class="present-bar-button"
           aria-label="Next"
+          data-output-guard=""
           title="Next"
           onClick={() => step("ArrowRight")}
         >

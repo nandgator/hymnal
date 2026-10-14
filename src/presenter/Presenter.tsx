@@ -150,6 +150,9 @@ export interface PresenterProps {
    * them in preferences. */
   workspace?: unknown;
   onWorkspaceChange?: (workspace: Workspace) => void;
+  /** Touch Lock is on (SDD-0001 §16.11), and the toolbar's toggle for it. */
+  touchLock?: boolean;
+  onToggleTouchLock?: () => void;
   /** Opens another hymn in place — the Recents tab. */
   onSelectHymn?: (number: HymnNumber) => void;
   /** Whether a scroll of the Output moves the focus (SDD-0001 §16.1);
@@ -662,6 +665,7 @@ export function Presenter(props: PresenterProps) {
     <button
       type="button"
       class={`${options.filled ? "btn-filled" : "btn-tonal"} dock-button`}
+      data-output-guard=""
       onClick={() => mutate(action)}
       disabled={options.disabled?.()}
       aria-label={name}
@@ -757,6 +761,7 @@ export function Presenter(props: PresenterProps) {
     <button
       type="button"
       class="btn-tonal live-control"
+      data-output-guard=""
       aria-pressed={!!props.blanked}
       aria-keyshortcuts={ariaKeys("blank")}
       title={withKey(
@@ -782,6 +787,7 @@ export function Presenter(props: PresenterProps) {
     <button
       type="button"
       class="btn-tonal live-control"
+      data-output-guard=""
       aria-pressed={!!props.held}
       aria-keyshortcuts={ariaKeys("hold")}
       disabled={!props.held && !props.presenting}
@@ -808,6 +814,30 @@ export function Presenter(props: PresenterProps) {
     </button>
   );
 
+  // Touch Lock (SDD-0001 §16.11), beside Hold: a switch of a preference, so
+  // it is never guarded itself. The name stays "Touch Lock" on and off; the
+  // pressed tone and the padlock say which.
+  const touchLockControl = () => (
+    <button
+      type="button"
+      class="btn-tonal live-control"
+      aria-pressed={!!props.touchLock}
+      title={
+        props.touchLock
+          ? "Touch Lock is on: press and hold to change the Output"
+          : "Touch Lock: ask for a press and hold before a tap changes the Output"
+      }
+      onClick={() => props.onToggleTouchLock?.()}
+    >
+      {props.touchLock ? (
+        <span class="icon icon-lock icon-swap" aria-hidden="true" />
+      ) : (
+        <span class="icon icon-lock-open icon-swap" aria-hidden="true" />
+      )}
+      <span class="live-control-label">Touch Lock</span>
+    </button>
+  );
+
   // Present Here (SDD-0001 §16.7), always there: not live, it presents in
   // this tab; with an Output window live, the window ends and this tab
   // presents instead. (While presenting here the shell is not on screen.)
@@ -815,6 +845,7 @@ export function Presenter(props: PresenterProps) {
     <button
       type="button"
       class="btn-tonal live-control"
+      data-output-guard=""
       aria-keyshortcuts={ariaKeys("present-here")}
       title={withKey(
         props.outputWindow
@@ -836,6 +867,7 @@ export function Presenter(props: PresenterProps) {
     <button
       type="button"
       class="btn-tonal live-control"
+      data-output-guard=""
       aria-keyshortcuts={ariaKeys("end-live")}
       disabled={!props.presenting}
       title={
@@ -862,6 +894,7 @@ export function Presenter(props: PresenterProps) {
     >
       {blankControl()}
       {holdControl()}
+      {touchLockControl()}
       {presentHereControl()}
       {endLiveControl()}
     </div>
@@ -921,6 +954,7 @@ export function Presenter(props: PresenterProps) {
           <button
             type="button"
             class="btn-text repeat-button"
+            data-output-guard=""
             aria-label="Repeat"
             aria-keyshortcuts={ariaKeys("repeat")}
             title={withKey("Repeat this part", "repeat", expanded())}
@@ -953,6 +987,7 @@ export function Presenter(props: PresenterProps) {
             <button
               type="button"
               class="btn-text"
+              data-output-guard=""
               aria-label="Undo repeat"
               aria-keyshortcuts={ariaKeys("undo-repeat")}
               title={withKey("Undo repeat", "undo-repeat", expanded())}
@@ -965,6 +1000,7 @@ export function Presenter(props: PresenterProps) {
             <button
               type="button"
               class="btn-text"
+              data-output-guard=""
               aria-label="Reset repeat"
               title="Reset repeat"
               disabled={!canResetRepeats()}
@@ -1002,6 +1038,7 @@ export function Presenter(props: PresenterProps) {
                     type="button"
                     class="chip-filter"
                     classList={{ "chip-wide": !part.label }}
+                    data-output-guard=""
                     aria-pressed={occurrence()?.part.id === part.id}
                     onClick={() => mutate((e) => e.jumpToPart(part.id))}
                   >
@@ -1084,6 +1121,7 @@ export function Presenter(props: PresenterProps) {
                       "seq-line-focus": isCurrent() && cursor()?.lineIndex != null,
                     }}
                     aria-current={isCurrent() ? "step" : undefined}
+                    data-output-guard=""
                     onClick={() => mutate((e) => e.goTo(i()))}
                   >
                     <h3 class="seq-heading">
@@ -1103,6 +1141,7 @@ export function Presenter(props: PresenterProps) {
                             <button
                               type="button"
                               class="seq-line"
+                              data-output-guard=""
                               aria-current={
                                 isCurrent() && cursor()?.lineIndex === lineIndex
                                   ? "true"

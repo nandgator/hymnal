@@ -292,6 +292,17 @@ describe("Settings", () => {
     expect(setPreferences).toHaveBeenLastCalledWith(expect.objectContaining({ scrollSync: false }));
   });
 
+  it("has Touch Lock off by default, and remembers turning it on (SDD-0001 §16.11)", async () => {
+    const setPreferences = vi.fn(async () => {});
+    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
+    await screen.findByText("100%");
+
+    const lock = screen.getByRole("switch", { name: /^Touch Lock/ });
+    expect(lock).not.toBeChecked();
+    fireEvent.click(lock);
+    expect(setPreferences).toHaveBeenLastCalledWith(expect.objectContaining({ touchLock: true }));
+  });
+
   it("gives the Output its own theme, Warm by default (DESIGN.md § Output view)", async () => {
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);
