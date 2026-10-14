@@ -66,7 +66,6 @@ Ordered. Top unblocked item is next.
 | 68  | Search filter chips under the box (This book, All books, chosen books); default All books. Replaces the "Searching ..." line, which goes now (maintainer, 2026-10-13)                 | -                   |
 | 69  | Finder modes: songs by default, `>` or Ctrl+Shift+P switches to commands, each with a muted heading; songs and commands no longer mix (design chosen, 2026-10-13)                     | -                   |
 | 71  | Scroll edge fades: every scroll region fades its top and bottom edge in proportion to how far it can scroll (2026-10-13)                                                              | -                   |
-| 72  | Present Here by touch: a tap shows a quiet bar (Search, Previous, Next, Leave) that hides after ~3 s; a swipe steps (maintainer, 2026-10-14)                                          | -                   |
 | 73  | Song-text check: local heuristics flag text that looks like code, maths or other non-song on review (a note, never a block); From Text and received books. ADR-0034                   | -                   |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks); removing one song from your books (its UI left with OwnSheet, ADR-0033 §6)                                               | —                   |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                         | —                   |
@@ -121,6 +120,11 @@ only, here:
 
 ## Log
 
+- 2026-10-14 — #72 done: Present Here by touch (SDD-0001 §16.7): a tap shows a
+  quiet bar (Search, Previous, Next, Leave) that hides after ~3 s; a horizontal
+  swipe steps through the keys' own path; touch and pen only, the mouse is
+  unchanged; `touch-action: pan-y` on the view and its scroller keeps vertical
+  hand-scroll
 - 2026-10-14 — #74 done: Settings search shows a closed section that holds a
   match (`data-search`, never touching `data-open`, so clearing restores the
   layout's state); the books illustration is hymnals on a shelf, a cross on each
@@ -176,9 +180,3 @@ only, here:
   scrim; stacked sheets share the lowest one's scrim; a closing tab group
   collapses in its slot, no gap; one hover highlight glides across all of
   Settings, rows with controls too
-- 2026-10-11 — #59–61 done: your books (ADR-0033, superseding ADR-0031) — books
-  you make grow, can be renamed, any number of them; books you receive stay
-  fixed. From Text is one form: Add to (your books, New book…), the songs'
-  language, the text; pasted plain lyrics parse (the first line is the title and
-  verse 1, numbers counted from the book's next); errors clear on edit, the
-  script code is checked, the language list floats inside the card
