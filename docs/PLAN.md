@@ -119,6 +119,14 @@ only, here:
 
 ## Log
 
+- 2026-10-14 — search polish (the maintainer's review of the empty cards):
+  Present with no song is the card and a Find a Song button, no inline Finder (a
+  digit typed there opens Search with it); every search field has a clear X, the
+  card's button is gone; filter empties are the same card; search dialogs hold
+  one height (`Sheet` `fixed`) and results glide in place (`riseIn`). The
+  switcher flicker was the no-match card leaving at every pause in typing, the
+  strip and its backdrop shrinking with it. Fixed too: Settings search left
+  hidden rows on screen (`hidden` lost to `display: flex`)
 - 2026-10-13 — #70 done: the "Go to a Song" sheet is gone (the crumb and Back
   open the Finder, the Search sheet); empty states are cards with line-art
   illustrations (`EmptyCard`).
@@ -171,7 +179,3 @@ only, here:
 - 2026-10-10 — #19 closed by the maintainer: #38 swaps book and song in one step
   for a lyric result; a number in another book goes through the header's picker
   (SDD-0001 §16.4)
-- 2026-10-10 — #42 done: the unit suite runs in about 52 s, not 77 s.
-  `App.test.tsx` is split by area over a shared testkit; the hint and notice
-  waits use fake timers; 34 DOM-free files run in node without isolation (an
-  allowlist in `vitest.config.ts`, new files isolated by default)

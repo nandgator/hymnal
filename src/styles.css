@@ -1297,7 +1297,7 @@ button:disabled {
   color: var(--md-sys-color-on-surface-variant);
 }
 
-.text-field .text-field-clear .icon {
+.text-field-clear .icon {
   width: 1.5rem;
   height: 1.5rem;
 }
@@ -5743,9 +5743,6 @@ fieldset.book-main {
 .sheet-fixed :is(.sheet-content, .settings) > .text-field {
   flex: none;
 }
-.sheet-fixed :is(.sheet-content, .finder, .settings) > .empty-card {
-  margin-block: auto;
-}
 .skeleton-title-sm {
   width: 8rem;
   height: 2.25rem;
@@ -6441,6 +6438,10 @@ fieldset.book-main {
   gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   color: var(--md-sys-color-on-surface-variant);
+}
+/* In a dialog that holds its size (Sheet `fixed`), the card is centred in what is left. */
+.sheet-fixed :is(.sheet-content, .finder, .settings) > .empty-card {
+  margin-block: auto;
 }
 .empty-illustration {
   width: 4.5rem;
