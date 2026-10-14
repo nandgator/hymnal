@@ -146,7 +146,7 @@ test("the Hymnbooks filter: a clear button, a card, a dialog that holds its size
   await expect(box).toBeFocused();
 });
 
-type CardWatch = { frames: number; gone: number; shortest: number };
+type CardWatch = { frames: number; gone: number; removed: number; shortest: number };
 
 test("the quick switcher's no-match card does not leave while typing on (the lyrics behind it flickered)", async ({
   page,
@@ -165,7 +165,7 @@ test("the quick switcher's no-match card does not leave while typing on (the lyr
   await expect(page.getByRole("heading", { name: /^No matches/ })).toBeVisible();
   // From here the card is on screen every frame, through the pauses that start a search.
   await page.evaluate(() => {
-    const seen = { frames: 0, gone: 0, shortest: Number.POSITIVE_INFINITY };
+    const seen = { frames: 0, gone: 0, removed: 0, shortest: Number.POSITIVE_INFINITY };
     (window as unknown as { __card: typeof seen }).__card = seen;
     const frame = () => {
       seen.frames++;
@@ -175,6 +175,16 @@ test("the quick switcher's no-match card does not leave while typing on (the lyr
       requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
+    // Slow frames (a software renderer) can miss a card that left and came back; a mutation
+    // observer cannot.
+    const strip = document.querySelector(".present-switcher");
+    if (strip)
+      new MutationObserver((records) => {
+        for (const record of records)
+          for (const node of record.removedNodes)
+            if (node instanceof Element && node.matches(".empty-card, :has(.empty-card)"))
+              seen.removed++;
+      }).observe(strip, { childList: true, subtree: true });
   });
   const before = await page
     .locator(".present-switcher")
@@ -184,7 +194,8 @@ test("the quick switcher's no-match card does not leave while typing on (the lyr
     await page.waitForTimeout(450);
   }
   const seen = await page.evaluate(() => (window as unknown as { __card: CardWatch }).__card);
-  expect(seen.frames).toBeGreaterThan(30);
+  expect(seen.frames).toBeGreaterThan(5);
+  expect(seen.removed).toBe(0);
   expect(seen.gone).toBe(0);
   expect(seen.shortest).toBeGreaterThanOrEqual(before - 1);
 });
