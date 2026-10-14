@@ -1331,15 +1331,26 @@ hymnal rather than a chat app or a console. So:
 - **Empty states are cards**: a flat line-art picture (one stroke weight,
   `currentColor`, the primary on the one detail that is missing), a short
   heading, one helpful line and, where something can be done, a tonal button.
-  Five: no song selected, no books (Bring a songbook), no recent songs, no
-  matches (Clear Search), nothing live (End Live). The picture is decoration
-  (`aria-hidden`); the text says it. The card sits beside its picture so a list
-  below stays in reach. Headings are sentence case, buttons Title Case (§
-  Words). One component, `EmptyCard`; add a picture there, not a raster.
+  Five: no song selected (Find a Song, with its key caps on a keyboard's
+  screen), no books (Bring a songbook), no recent songs, no matches (no button:
+  the field's X clears it; the same card, with the same picture, says no
+  settings or hymnbooks match), nothing live (Find a Song, and a quiet End
+  Live). The picture is decoration (`aria-hidden`); the text says it. The card
+  sits beside its picture so a list below stays in reach. Headings are sentence
+  case, buttons Title Case (§ Words). One component, `EmptyCard`; add a picture
+  there, not a raster.
 - **Search looks one way everywhere**: the switcher row's bar, filled tonal, no
   outline, a leading search icon, a 2px primary ring on focus. Only the switcher
   row's shows its key cap. No Find button: results come as you type, and Enter
-  (a phone's Search key) opens the first.
+  (a phone's Search key) opens the first. Every field ends in a clear X (MD3's
+  trailing icon) once it has text, "Clear search", returning focus to the field;
+  its room is in the field's padding, so it never shifts the text.
+- **A search dialog holds its size.** Search, Settings, the Menu and Hymnbooks
+  keep one height, whatever the results: the card is `min(44rem, 75dvh)` (so it
+  still follows a short screen and a phone), the results glide up 8px and fade
+  in place when the set changes (transform and opacity on one layer, 180ms; a
+  fade alone under reduced motion), and a no-match card is centred in the room
+  the field leaves. Nothing is resized while typing.
 - **Scrollbars keep their own lane.** Every scrolling pane reserves a stable
   gutter, so a scrollbar never overlaps content, and pads its content inside on
   both sides. Scrollbars are thin and in the outline color, and **hidden until
@@ -1487,16 +1498,19 @@ and each book shows three rows.
 
 **Finder, a whole book** (SDD-0001 §13.2). Nothing typed, Recents sit on top and
 **All songs** below: every song of the book in one list that scrolls inside the
-sheet (or the page, in Present). It is windowed: only the rows in view and six
-either side exist, over spacers that keep the scroll bar honest. Rows are a
-fixed 3.5rem, headings 2.75rem, so nothing is measured when a sheet opens or
-while it scrolls. A group heading (a language of Assorted Hymns, or **All
-songs**) is the one muted `label-large` line and sticks under the field. A
-search that has more than a page ends in a quiet line, _Loading more_ in
-`on-surface-variant`, then _End of results_; nothing animates for it. Reduced
-motion changes nothing here: the highlight jumps to a row the arrow keys reach,
-at once. Check the worst case: a title that just fits beside a wide number, and
-Malayalam conjuncts, at 390 wide and in the dark theme.
+sheet. It is windowed: only the rows in view and six either side exist, over
+spacers that keep the scroll bar honest. The song up now is marked in its row by
+its number alone, in the primary colour and medium weight (`aria-current`): the
+one accent-coloured text, because the tonal pill is the highlight's and Enter's
+target, and a second pill would read as a second selection. Rows are a fixed
+3.5rem, headings 2.75rem, so nothing is measured when a sheet opens or while it
+scrolls. A group heading (a language of Assorted Hymns, or **All songs**) is the
+one muted `label-large` line and sticks under the field. A search that has more
+than a page ends in a quiet line, _Loading more_ in `on-surface-variant`, then
+_End of results_; nothing animates for it. Reduced motion changes nothing here:
+the highlight jumps to a row the arrow keys reach, at once. Check the worst
+case: a title that just fits beside a wide number, and Malayalam conjuncts, at
+390 wide and in the dark theme.
 
 ## Elevation & Depth
 
