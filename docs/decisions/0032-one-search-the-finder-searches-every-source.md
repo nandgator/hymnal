@@ -31,9 +31,9 @@ Chosen: **the Finder is the one search.**
    number still goes straight to that song in the current book: numbers are per
    book.
 2. **Grouped by source.** Each source is a group under its own heading: the
-   commands (in the command menu), then the current book, then the other books
-   in Library order. Relevance scores come from separate indexes and are not
-   comparable, so groups are never interleaved into one false order.
+   current book, then the other books in Library order. Relevance scores come
+   from separate indexes and are not comparable, so groups are never interleaved
+   into one false order.
 3. **Each copy under its own book.** A song held in two books shows in both: the
    copies are kept apart on purpose (SDD-0001 §11, rights per book), and the
    person picks the edition.
@@ -69,3 +69,11 @@ there.
 
 Numbers are still per book: the same number in two books are two songs, each
 under its own heading.
+
+## Amendment, 2026-10-13: commands are a mode, not a group
+
+Approved by the maintainer (Board #69). Point 2 and the Context's "commands and
+songs together" are superseded: the commands no longer head the song groups. The
+Finder lists songs by default; a `>` first in the box, or Ctrl/⌘+Shift+P,
+switches to the commands alone, and the two are never in one list. Groups are
+still songs' sources only. SDD-0001 §13.3.
