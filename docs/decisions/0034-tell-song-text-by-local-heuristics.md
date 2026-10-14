@@ -61,7 +61,16 @@ short on prose.** The neural model and Gemini Nano are ruled out.
 1. **A labelled test set first**, whatever the method: real hymns in English and
    Malayalam (odd punctuation, short refrains, psalm-like free verse), and code,
    maths, CSV, URLs, chat logs and prose. It is the evidence for this decision
-   and the regression test after it.
+   and the regression test after it. **Coverage is by how text is written, not
+   by language count**: of the world's ~7,170 languages about half have no
+   settled writing, and many share a script with a larger neighbour. The set
+   holds the top ~40 languages by total speakers
+   ([Wikipedia's list](https://en.wikipedia.org/wiki/List_of_languages_by_total_number_of_speakers)),
+   at least one song in every script in daily use, and every writing trait (no
+   spaces, right-to-left, combining marks, joiners, no case), Malayalam and the
+   app's languages always. Its text is public domain or openly licensed only
+   (public-domain hymns, Psalms from open Bibles, the UDHR as prose), each
+   source and licence recorded beside it; copyrighted lyrics are never scraped.
 2. **Hand rules** are built and measured on it. They are enough when they flag
    **no** real hymn in the set and catch at least **95%** of the non-songs.
 3. **Only if prose slips past**, a character n-gram classifier is added as a
