@@ -71,6 +71,19 @@ short on prose.** The neural model and Gemini Nano are ruled out.
 4. **A note, never a block.** A song that fails shows a note on review (the
    parser's `TextNote`), with the reason; adding still works.
 5. **Where it runs:** From Text and received books, on review.
+6. **Any script, by Unicode category, never by `a–z` or the space.** A letter is
+   a letter (`\p{L}`) or a combining mark (`\p{M}`): Malayalam's vowel signs are
+   marks, and counting letters alone would flag every Malayalam hymn. Lengths
+   are counted in characters as seen (`Intl.Segmenter` graphemes), and words,
+   where a rule needs them, by `Intl.Segmenter` too: Chinese, Japanese, Thai,
+   Lao, Khmer and Burmese write no spaces. The zero-width joiners (ZWJ, ZWNJ)
+   belong to Indic words as much as to emoji, and are never a sign of either.
+   Code and maths signals (`{ } ; =`, `def`, `\frac`) are ASCII in any language.
+7. **Emoji are decoration, counted as seen.** An emoji is one grapheme however
+   many code points make it (skin tones, variation selectors, ZWJ sequences),
+   found by the Unicode emoji property. A few in a song (🙏 ✝️ 🎶 at a line's
+   end) pass, as do musical and religious symbols (♪ ♫ ✝). A song whose lines
+   are mostly emoji gets a note ("Lines are mostly emoji, not words").
 
 ### Consequences
 
