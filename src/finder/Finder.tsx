@@ -501,12 +501,17 @@ export function Finder(props: FinderProps) {
     else props.onSelect(row.item.number, row.item.book);
   };
 
-  const noMatch = () =>
-    !isNumber() &&
-    !!lyricQuery() &&
-    lyricResults.state === "ready" &&
-    lyricResults().text === lyricQuery() &&
-    lyricResults().groups.length === 0;
+  // The query the no-match card is for. It holds while the next search is on its way: a card
+  // that left and came back on every pause in typing shrank the strip it sits in (the
+  // switcher's backdrop followed it, and the lyrics behind showed through for a frame).
+  const emptyFor = createMemo((held: string | undefined): string | undefined => {
+    if (isNumber() || !trimmed()) return undefined;
+    const answered =
+      !!lyricQuery() && lyricResults.state === "ready" && lyricResults().text === lyricQuery();
+    if (!answered) return held;
+    return lyricResults().groups.length === 0 ? lyricResults().text : undefined;
+  });
+  const noMatch = () => emptyFor() !== undefined;
 
   // The groups on screen, in order, each row in its group. A leaving row (the switcher)
   // keeps its group until it is gone.
@@ -865,7 +870,7 @@ export function Finder(props: FinderProps) {
       <Show when={noMatch()}>
         <EmptyCard
           kind="results"
-          title={`No matches for “${lyricQuery()}”`}
+          title={`No matches for “${emptyFor()}”`}
           action={
             props.compact ? undefined : { label: "Clear Search", onClick: () => setQuery("") }
           }
