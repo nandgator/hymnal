@@ -152,6 +152,19 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       expect(books.getAllByRole("button", { name: /songs/ })).toHaveLength(4);
       expect(books.queryByText(/No hymnbooks match/)).not.toBeInTheDocument();
     });
+
+    it("holds 100 characters, and echoes a long query clipped to one line", async () => {
+      const books = await openPicker();
+      expect(search(books)).toHaveAttribute("maxlength", "100");
+      type(books, "ക്ഷമലയാളം".repeat(60));
+      const heading = books.getByRole("heading", { name: /^No hymnbooks match/ });
+      const echoed = /“(.*)”/.exec(heading.textContent ?? "")?.[1] ?? "";
+      expect(echoed.endsWith("…")).toBe(true);
+      expect([
+        ...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(echoed.slice(0, -1)),
+      ]).toHaveLength(40);
+      expect(heading.className).toContain("empty-echo");
+    });
   });
 
   describe("a book chosen is where the search looks; the song's book stays the song's", () => {
