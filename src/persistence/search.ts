@@ -96,6 +96,11 @@ export function searchBook(sql: Sql, query: string): SearchResult[] {
   return searchBookPage(sql, query).results;
 }
 
+/** The books a search is narrowed to (the Finder's scope chips, SDD-0001 §13.4); all when none are named. */
+export function inScope(books: readonly BookRow[], keys?: readonly string[]): BookRow[] {
+  return keys ? books.filter((book) => keys.includes(book.key)) : [...books];
+}
+
 /**
  * The books to search, in the order their groups are shown (SDD-0001 §13.1):
  * the current book first, then the rest in the Library's order. Only a book

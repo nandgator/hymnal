@@ -1479,6 +1479,76 @@ input[type="checkbox"].switch:disabled {
   display: contents;
 }
 
+/* The scope chips under the Finder's field (SDD-0001 §13.4): one line, never wrapping; each
+   chip is a `chip-filter` at its text's width. */
+.scope-chips {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-sm);
+  margin-block-start: var(--space-sm);
+}
+
+.scope-chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* The Books… checklist: a menu's popover with checkboxes and a Done at its foot. */
+.scope-checklist {
+  display: flex;
+  flex-direction: column;
+  /* A set width, not the content's: it is measured before it is placed, and a popover
+     placed at the edge would shrink-wrap a different size. */
+  width: min(22rem, calc(100vw - 1rem));
+  overflow: hidden;
+}
+
+.scope-checklist-books {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.scope-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 3rem;
+  padding: var(--space-xs) var(--space-md);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.scope-check:hover {
+  background-color: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.scope-check input {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--md-sys-color-primary);
+}
+
+.scope-check-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.scope-checklist-actions {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  padding: var(--space-xs) var(--space-sm);
+}
+
 /* The Finder's mode, Songs or Commands, the first line of its list (SDD-0001 §13.3). */
 .finder-mode {
   /* Close to the list it heads: the Finder's own gap between its parts is taken back. */

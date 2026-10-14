@@ -9,6 +9,7 @@ import {
   DEFAULT_PREFERENCES,
   goLiveOf,
   openUserState,
+  type SearchScope,
   type UserStateHandle,
 } from "./user-state.ts";
 
@@ -133,6 +134,16 @@ describe("preferences", () => {
     await state.setPreferences({ theme: "light", fontScale: 1, goLive: "projector" } as never);
     expect(await state.getPreferences()).toEqual({ theme: "light", fontScale: 1 });
     expect(goLiveOf({ theme: "light", fontScale: 1, goLive: 3 } as never)).toBe("auto");
+  });
+
+  it("keeps the Finder's search scope across sessions, and drops a malformed one", async () => {
+    const scope: SearchScope = { mode: "books", books: ["two", "three"] };
+    await state.setPreferences({ theme: "light", fontScale: 1, searchScope: scope });
+    expect((await openUserState(dbName).getPreferences()).searchScope).toEqual(scope);
+    for (const bad of [{ mode: "some" }, { mode: "books", books: [1] }, "all", { books: [] }]) {
+      await state.setPreferences({ theme: "light", fontScale: 1, searchScope: bad } as never);
+      expect(await state.getPreferences()).toEqual({ theme: "light", fontScale: 1 });
+    }
   });
 
   it("falls back to a part for a stored band size that is neither", async () => {

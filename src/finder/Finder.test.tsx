@@ -850,13 +850,15 @@ describe("Finder", () => {
       return { blank, onSelect, box, submit };
     };
 
-    it("lists songs only by default, under a Songs heading", async () => {
+    it("lists songs only by default; the Songs heading waits for something typed", async () => {
       const { box } = renderModes();
-      expect(screen.getByRole("heading", { name: "Songs" })).toBeInTheDocument();
+      // The empty list has its own headings (Recents, All songs): no mode heading over them.
+      expect(screen.queryByRole("heading", { name: "Songs" })).not.toBeInTheDocument();
       expect(box).toHaveAttribute("placeholder", "Find a song, or > for commands");
       await screen.findByRole("group", { name: "All songs" });
       expect(screen.queryByRole("option", { name: /Output/ })).not.toBeInTheDocument();
       fireEvent.input(box, { target: { value: "bl" } });
+      expect(screen.getByRole("heading", { name: "Songs" })).toBeInTheDocument();
       expect(screen.queryByRole("option", { name: /Output/ })).not.toBeInTheDocument();
     });
 
@@ -911,7 +913,8 @@ describe("Finder", () => {
       fireEvent.input(box, { target: { value: ">" } });
       expect(screen.getByRole("heading", { name: "Commands" })).toBeInTheDocument();
       fireEvent.input(box, { target: { value: "" } });
-      expect(screen.getByRole("heading", { name: "Songs" })).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Songs" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Commands" })).not.toBeInTheDocument();
       await screen.findByRole("group", { name: "All songs" });
       expect(screen.queryByRole("option", { name: /Output/ })).not.toBeInTheDocument();
     });
@@ -921,7 +924,7 @@ describe("Finder", () => {
       fireEvent.input(box, { target: { value: ">bl" } });
       fireEvent.keyDown(box, { key: "Escape" });
       expect(box).toHaveValue("");
-      expect(screen.getByRole("heading", { name: "Songs" })).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Commands" })).not.toBeInTheDocument();
     });
 
     it("a Finder opened with a > starts in commands", () => {
@@ -1074,7 +1077,7 @@ describe("Finder", () => {
       fireEvent.keyDown(find(), { key: "ArrowUp" });
       expect(options()).toHaveLength(16);
       // The search starts after the pause, and has not answered: the list must not have shrunk.
-      await waitFor(() => expect(searchAll).toHaveBeenCalledWith("lines", "cur"));
+      await waitFor(() => expect(searchAll).toHaveBeenCalledWith("lines", "cur", undefined));
       expect(options()).toHaveLength(16);
       fireEvent.submit(find().closest("form") as HTMLFormElement);
       expect(onSelect).toHaveBeenCalledWith(1, "three");
@@ -1115,7 +1118,7 @@ describe("Finder", () => {
       const { searchAll, store } = threeBooks();
       renderMany({}, store);
       await type("line");
-      expect(searchAll).toHaveBeenCalledWith("line", "cur");
+      expect(searchAll).toHaveBeenCalledWith("line", "cur", undefined);
     });
 
     describe("a number (ADR-0032, amended)", () => {
@@ -1143,7 +1146,7 @@ describe("Finder", () => {
         renderMany({}, store);
         fireEvent.input(find(), { target: { value: "42" } });
         await screen.findByRole("option", { name: /Second Forty-Two/ });
-        expect(searchNumber).toHaveBeenCalledWith("42", "cur");
+        expect(searchNumber).toHaveBeenCalledWith("42", "cur", undefined);
         const groups = screen.getAllByRole("group");
         expect(groups.map((g) => g.getAttribute("aria-label") ?? g.textContent)).toHaveLength(3);
         expect(groups[0]).toHaveAccessibleName("Current Book");

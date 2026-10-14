@@ -1690,6 +1690,11 @@ function Operator(props: Shared) {
             hymnbookId={currentKey() as string}
             bookTitle={hymnbook()?.title}
             bookCount={installed().length}
+            books={installed().map((book) => ({ key: book.key, title: book.title }))}
+            scope={preferences.preferences().searchScope}
+            onScope={(searchScope) =>
+              preferences.update({ ...preferences.preferences(), searchScope })
+            }
             current={hymnNumber()}
             initialQuery={searchSeed()}
             // Closing it and choosing are one step (chooseHymn): the scope must not be

@@ -14,7 +14,7 @@ import {
 import type { HymnbookId, HymnNumber } from "../domain/types.ts";
 import { languageName } from "../library/books.ts";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
-import type { UserState } from "../persistence/user-state.ts";
+import type { SearchScope, UserState } from "../persistence/user-state.ts";
 import { ClearSearch } from "../shell/ClearSearch.tsx";
 import { titleCase } from "../shell/case.ts";
 import { EmptyCard } from "../shell/EmptyCard.tsx";
@@ -24,11 +24,13 @@ import { KeyCombo } from "../shell/KeyCombo.tsx";
 import { RecentsList } from "../shell/RecentsList.tsx";
 import { riseIn } from "../shell/riseIn.ts";
 import { type Layout, layoutOf, type Range, type Windowed, windowed } from "../shell/windowing.ts";
+import { booksLabel, ScopeChips } from "./ScopeChips.tsx";
 import {
   type FinderGroup,
   type FinderItem,
   type FinderSource,
   SOURCES,
+  scopeOf,
   searchSources,
   searchSourcesByNumber,
   searchSourcesMore,
@@ -73,6 +75,12 @@ export interface FinderProps {
   /** How many books are held: with several, a lyric search covers them all and
    * the results are grouped by book (SDD-0001 §13.1). */
   bookCount?: number;
+  /** The books held, in the Library's order: with several, the scope chips are shown
+   * (SDD-0001 §13.4). */
+  books?: readonly { key: HymnbookId; title: string }[];
+  /** The remembered scope; the Finder reads it, and reports a new choice to `onScope`. */
+  scope?: SearchScope;
+  onScope?: (scope: SearchScope) => void;
   /** What is searched besides the commands. Defaults to {@link SOURCES}. */
   sources?: readonly FinderSource[];
   /** Called with the chosen hymn number and the book it is in — number lookup, a
@@ -220,6 +228,38 @@ export function Finder(props: FinderProps) {
   const trimmed = () => (commandMode() ? "" : query().trim());
   const isNumber = () => /^\d+$/.test(trimmed());
 
+  // The scope chips (SDD-0001 §13.4): the remembered choice, or the one just made, read
+  // against the books held now. The switcher is never scoped.
+  const [picked, setPicked] = createSignal<SearchScope>();
+  createEffect(
+    on(
+      () => props.scope,
+      () => setPicked(undefined),
+      { defer: true },
+    ),
+  );
+  const heldKeys = () => (props.books ?? []).map((book) => book.key);
+  // Equal by value: a new array of the same books must not read as a new scope (a search
+  // would run again).
+  const scope = createMemo(
+    () => scopeOf(picked() ?? props.scope, heldKeys(), props.hymnbookId),
+    undefined,
+    { equals: (a, b) => a.mode === b.mode && a.keys?.join(",") === b.keys?.join(",") },
+  );
+  const scoped = () => (props.compact ? undefined : scope().keys);
+  const scopeSig = () => scoped()?.join("\n") ?? "*";
+  /** Whether the current book is among those searched. */
+  const currentIn = () => scoped() === undefined || scoped()?.includes(id()) === true;
+  /** The chips are there: songs mode, with several books to choose from. */
+  const chipsShown = () => !props.compact && !commandMode() && (props.books?.length ?? 0) > 1;
+  const chooseScope = (next: SearchScope) => {
+    setPicked(next);
+    props.onScope?.(next);
+  };
+  /** What the scope is called in a sentence, for the no-match card. */
+  const scopeName = () =>
+    scope().mode === "this" ? "This Book" : booksLabel(scope().keys?.length ?? 0);
+
   // The whole book while nothing is typed (SDD-0001 §13.2), in the order the book gives
   // (`listHymns`): by number, except Assorted Hymns, which lists its songs by language and
   // title (SDD-0004 §17). The Finder keeps that order, a group to a language where the book
@@ -269,30 +309,46 @@ export function Finder(props: FinderProps) {
   // Each result set says which query it answers, so whether it is the latest asked is not a
   // matter of when the resource starts loading.
   const [lyricResults] = createResource(
-    lyricQuery,
-    async (text): Promise<{ text: string; groups: FinderGroup[] }> => ({
+    () => ({ text: lyricQuery(), books: scoped(), sig: scopeSig() }),
+    async ({
       text,
+      books,
+      sig,
+    }): Promise<{ text: string; sig: string; groups: FinderGroup[] }> => ({
+      text,
+      sig,
       groups: text
-        ? await searchSources(props.sources ?? SOURCES, text, { store: store(), currentKey: id() })
+        ? await searchSources(props.sources ?? SOURCES, text, {
+            store: store(),
+            currentKey: id(),
+            books,
+          })
         : [],
     }),
   );
-  const lyricPending = () => lyricResults.loading || lyricResults.latest?.text !== lyricQuery();
+  const lyricPending = () =>
+    lyricResults.loading ||
+    lyricResults.latest?.text !== lyricQuery() ||
+    lyricResults.latest?.sig !== scopeSig();
 
-  // Several books held (and not the switcher, for a number): the results are grouped
+  // Several books searched (and not the switcher, for a number): the results are grouped
   // under their books' titles.
-  const manyBooks = () => (props.bookCount ?? 1) > 1;
+  const manyBooks = () => (scoped()?.length ?? props.bookCount ?? 1) > 1;
   const grouped = () => manyBooks() && (!isNumber() || !props.compact);
 
   // A number is also looked up in the other books (ADR-0032, amended). The current book's
   // suggestions come from its own list at once; these join when they arrive, and never
   // hold the fast path up.
   const [numberResults] = createResource(
-    () => (isNumber() && !props.compact && manyBooks() ? trimmed() : undefined),
-    (typed): Promise<FinderGroup[]> =>
+    () =>
+      isNumber() && !props.compact && (manyBooks() || !currentIn())
+        ? { typed: trimmed(), books: scoped() }
+        : undefined,
+    ({ typed, books }): Promise<FinderGroup[]> =>
       searchSourcesByNumber(props.sources ?? SOURCES, typed, {
         store: store(),
         currentKey: id(),
+        books,
       }).catch(() => []),
   );
   const otherNumberGroups = (): FinderGroup[] =>
@@ -319,7 +375,9 @@ export function Finder(props: FinderProps) {
         .slice(0, props.compact ? COMPACT_ROWS : NUMBER_SUGGESTIONS)
         .map((hymn) => ({ number: hymn.number, title: hymn.title, book: id() }));
       return [
-        ...(items.length ? [{ id: id(), title: props.bookTitle ?? "", current: true, items }] : []),
+        ...(items.length && currentIn()
+          ? [{ id: id(), title: props.bookTitle ?? "", current: true, items }]
+          : []),
         ...otherNumberGroups(),
       ];
     }
@@ -387,6 +445,7 @@ export function Finder(props: FinderProps) {
     searchSourcesMore(props.sources ?? SOURCES, groupId, text, offset, {
       store: store(),
       currentKey: id(),
+      books: scoped(),
     })
       .then((page) => {
         if (turn !== generation) return;
@@ -512,16 +571,29 @@ export function Finder(props: FinderProps) {
   // The query the no-match card is for. It holds while the next search is on its way: a card
   // that left and came back on every pause in typing shrank the strip it sits in (the
   // switcher's backdrop followed it, and the lyrics behind showed through for a frame).
-  const emptyFor = createMemo((held: string | undefined): string | undefined => {
-    if (isNumber() || !trimmed()) return undefined;
-    const answered =
-      !!lyricQuery() && lyricResults.state === "ready" && lyricResults().text === lyricQuery();
-    if (!answered) return held;
-    return lyricResults().groups.length === 0 ? lyricResults().text : undefined;
-  });
+  const emptyFor = createMemo(
+    (held: { query: string; where?: string } | undefined) => {
+      if (isNumber() || !trimmed()) return undefined;
+      const answered =
+        !!lyricQuery() &&
+        lyricResults.state === "ready" &&
+        lyricResults().text === lyricQuery() &&
+        lyricResults().sig === scopeSig();
+      if (!answered) return held;
+      return lyricResults().groups.length === 0
+        ? {
+            query: lyricResults().text,
+            // Where it looked, when that was not every book (SDD-0001 §13.4).
+            where: scope().mode === "all" ? undefined : scopeName(),
+          }
+        : undefined;
+    },
+    undefined,
+    { equals: (a, b) => a?.query === b?.query && a?.where === b?.where },
+  );
   const noMatch = () =>
     commandMode() ? !!commandText() && commandRows().length === 0 : emptyFor() !== undefined;
-  const emptyQuery = () => (commandMode() ? commandText() : emptyFor());
+  const emptyQuery = () => (commandMode() ? commandText() : emptyFor()?.query);
 
   // The groups on screen, in order, each row in its group. A leaving row (the switcher)
   // keeps its group until it is gone.
@@ -551,6 +623,7 @@ export function Finder(props: FinderProps) {
     isNumber() &&
     !props.compact &&
     manyBooks() &&
+    currentIn() &&
     !groups().some((group) => group.current && group.items.length > 0);
 
   const choose = () => {
@@ -664,6 +737,7 @@ export function Finder(props: FinderProps) {
 
   let win: Windowed | undefined;
   let formEl: HTMLFormElement | undefined;
+  let inputEl: HTMLInputElement | undefined;
   let rootEl: HTMLDivElement | undefined;
   /** What the sticky field (and a group's heading) cover at the top of the view, in px. */
   const coveredAbove = () => {
@@ -872,7 +946,8 @@ export function Finder(props: FinderProps) {
             aria-expanded={rows().length > 0}
             aria-controls={listId}
             aria-activedescendant={activeShown() ? optionId(active() ?? 0) : undefined}
-            ref={(el) =>
+            ref={(el) => {
+              inputEl = el;
               // Opened over nothing (a book chosen in the Library), the next key typed is a
               // search, with a keyboard to type on. Not where a screen keyboard would cover
               // the songs: a touch screen taps the field. A sheet, or a control already
@@ -885,8 +960,8 @@ export function Finder(props: FinderProps) {
                 const keyboard = window.matchMedia?.("(pointer: fine)").matches ?? true;
                 if (keyboard && el.isConnected && (!at || at === document.body))
                   el.focus({ preventScroll: true });
-              })
-            }
+              });
+            }}
             value={query()}
             onInput={(event) => setQuery(event.currentTarget.value)}
             onKeyDown={onKeyDown}
@@ -907,10 +982,21 @@ export function Finder(props: FinderProps) {
           />
           <ClearSearch visible={query() !== ""} onClear={() => setQuery("")} />
         </div>
+        <Show when={chipsShown()}>
+          <ScopeChips
+            books={props.books ?? []}
+            mode={scope().mode}
+            keys={scope().keys}
+            canThis={heldKeys().includes(id())}
+            onAll={() => chooseScope({ mode: "all" })}
+            onThis={() => chooseScope({ mode: "this" })}
+            onBooks={(books) => chooseScope({ mode: "books", books })}
+          />
+        </Show>
       </form>
 
       {/* Which mode the list is in (SDD-0001 §13.3). The switcher has one mode, so no heading. */}
-      <Show when={props.commands && !props.compact}>
+      <Show when={props.commands && !props.compact && (commandMode() || query() !== "")}>
         <h2 class="finder-mode label-large on-surface-variant">
           {commandMode() ? "Commands" : "Songs"}
         </h2>
@@ -919,7 +1005,22 @@ export function Finder(props: FinderProps) {
       <Show when={noMatch()}>
         <EmptyCard
           kind="results"
-          title={`No matches for “${emptyQuery()}”`}
+          title={
+            emptyFor()?.where && !commandMode()
+              ? `No matches in ${emptyFor()?.where}`
+              : `No matches for “${emptyQuery()}”`
+          }
+          action={
+            emptyFor()?.where && !commandMode()
+              ? {
+                  label: "Search All Books",
+                  onClick: () => {
+                    chooseScope({ mode: "all" });
+                    inputEl?.focus();
+                  },
+                }
+              : undefined
+          }
           ref={(el) => !props.compact && riseIn(el)}
         >
           {commandMode()

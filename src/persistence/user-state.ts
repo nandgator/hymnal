@@ -82,6 +82,15 @@ export interface Preferences {
   fullscreenHintDismissed?: boolean;
   /** The book of yours From Text last added to, by key; absent means Assorted Hymns (ADR-0033 §4). */
   textBook?: string;
+  /** What the Finder searches: all books (absent), the current one, or a chosen set (SDD-0001
+   * §13.4). Read through `scopeKeys`, which drops books no longer held. */
+  searchScope?: SearchScope;
+}
+
+/** The Finder's scope chips: which books a search looks in. `books` is the chosen set. */
+export interface SearchScope {
+  mode: "all" | "this" | "books";
+  books?: string[];
 }
 
 /** Where Go Live opens: the Output window when an external screen is known and
@@ -193,6 +202,14 @@ const oneOf =
   (value: unknown): value is T =>
     allowed.includes(value as T);
 const isBoolean = (value: unknown): value is boolean => typeof value === "boolean";
+/** A scope with a known mode and, if it has books, a short list of keys. */
+const isSearchScope = (value: unknown): value is SearchScope =>
+  isRecord(value) &&
+  (value.mode === "all" || value.mode === "this" || value.mode === "books") &&
+  (value.books === undefined ||
+    (Array.isArray(value.books) &&
+      value.books.length <= 200 &&
+      value.books.every((key) => typeof key === "string" && key !== "")));
 
 const isPosition = (value: unknown): value is Position =>
   isRecord(value) &&
@@ -226,6 +243,7 @@ const PREFERENCE_FIELDS = {
   dragHintDismissed: isBoolean,
   fullscreenHintDismissed: isBoolean,
   textBook: (value) => typeof value === "string" && value !== "",
+  searchScope: isSearchScope,
   // Read by the workspace itself, which makes any value whole.
   workspace: () => true,
   // Retired or renamed, still read once to carry their value over.
