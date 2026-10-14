@@ -82,6 +82,9 @@ export interface FinderProps {
   /** The remembered scope; the Finder reads it, and reports a new choice to `onScope`. */
   scope?: SearchScope;
   onScope?: (scope: SearchScope) => void;
+  /** This opening searches This Book, whatever the remembered scope (a book was just chosen).
+   * It is not remembered: only a chip pressed meanwhile is. */
+  thisBookOnce?: boolean;
   /** What is searched besides the commands. Defaults to {@link SOURCES}. */
   sources?: readonly FinderSource[];
   /** Called with the chosen hymn number and the book it is in — number lookup, a
@@ -234,6 +237,8 @@ export function Finder(props: FinderProps) {
   // The scope chips (SDD-0001 §13.4): the remembered choice, or the one just made, read
   // against the books held now. The switcher is never scoped.
   const [picked, setPicked] = createSignal<SearchScope>();
+  // A chip pressed ends the one opening scoped to This Book: that is a choice, and remembered.
+  const [once, setOnce] = createSignal(props.thisBookOnce === true);
   createEffect(
     on(
       () => props.scope,
@@ -241,11 +246,22 @@ export function Finder(props: FinderProps) {
       { defer: true },
     ),
   );
+  // The set This Book returns to: the last all-books or chosen-books scope, from the remembered
+  // one to begin with.
+  const [lastSet, setLastSet] = createSignal<SearchScope>(
+    props.scope?.mode === "books" ? props.scope : { mode: "all" },
+  );
+  createEffect(() => {
+    const now = scope();
+    if (now.mode === "books") setLastSet({ mode: "books", books: [...(now.keys ?? [])] });
+    else if (now.mode === "all") setLastSet({ mode: "all" });
+  });
   const heldKeys = () => (props.books ?? []).map((book) => book.key);
   // Equal by value: a new array of the same books must not read as a new scope (a search
   // would run again).
   const scope = createMemo(
-    () => scopeOf(picked() ?? props.scope, heldKeys(), props.hymnbookId),
+    () =>
+      scopeOf(picked() ?? (once() ? { mode: "this" } : props.scope), heldKeys(), props.hymnbookId),
     undefined,
     { equals: (a, b) => a.mode === b.mode && a.keys?.join(",") === b.keys?.join(",") },
   );
@@ -256,6 +272,7 @@ export function Finder(props: FinderProps) {
   /** The chips are there: songs mode, with several books to choose from. */
   const chipsShown = () => !props.compact && !commandMode() && (props.books?.length ?? 0) > 1;
   const chooseScope = (next: SearchScope) => {
+    setOnce(false);
     setPicked(next);
     props.onScope?.(next);
   };
@@ -985,7 +1002,7 @@ export function Finder(props: FinderProps) {
                 ? "Song number or lyrics"
                 : commandMode()
                   ? "Find a command"
-                  : "Find a song, or > for commands"
+                  : "Number, title or words"
             }
             aria-label={props.commands ? "Find a song or command" : "Find a song"}
           />
@@ -997,6 +1014,11 @@ export function Finder(props: FinderProps) {
             mode={scope().mode}
             keys={scope().keys}
             canThis={heldKeys().includes(id())}
+            restore={
+              lastSet().mode === "books"
+                ? { mode: "books", keys: scopeOf(lastSet(), heldKeys(), id()).keys ?? [] }
+                : { mode: "all" }
+            }
             onAll={() => chooseScope({ mode: "all" })}
             onThis={() => chooseScope({ mode: "this" })}
             onBooks={(books) => chooseScope({ mode: "books", books })}

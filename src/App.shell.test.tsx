@@ -39,15 +39,18 @@ describe("App", () => {
   it("moves to Finder once the user chooses to find a hymn", async () => {
     render(() => <App />);
     await openFinder();
-    expect(
-      await screen.findByPlaceholderText("Find a song, or > for commands"),
-    ).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText("Number, title or words")).toBeInTheDocument();
   });
 
   it("switches sections from the rail: Present, then back to the Library", async () => {
     render(() => <App />);
     await openFinder();
     const sections = within(screen.getByRole("navigation", { name: "Sections" }));
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
+      target: { value: "1" },
+    });
+    fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
+    await screen.findByRole("button", { name: /#1\s*Mocked Hymn/ });
     expect(sections.getByRole("button", { name: "Present" })).toHaveAttribute(
       "aria-current",
       "page",
@@ -69,50 +72,20 @@ describe("App", () => {
     expect(await screen.findByRole("button", { name: /#1\s*Mocked Hymn/ })).toBeInTheDocument();
   });
 
-  it("Present with no song up says so, in a card; the picture is decoration", async () => {
+  it("Present with no song up opens Search over the page it was chosen from, not the empty card", async () => {
     render(() => <App />);
     await openPresent();
 
-    expect(await screen.findByRole("heading", { name: "No song selected" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Nothing live" })).not.toBeInTheDocument();
-    expect(document.querySelector(".empty-illustration")).toHaveAttribute("aria-hidden", "true");
-  });
-
-  it("Present with no song up is the card and a Find a Song button: no inline Finder", async () => {
-    render(() => <App />);
-    await openPresent();
-
-    const button = await screen.findByRole("button", { name: /^Find a Song/ });
-    expect(screen.queryByRole("combobox", { name: "Find a song" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-    fireEvent.click(button);
-    expect(await screen.findByRole("combobox", { name: "Find a song or command" })).toBeVisible();
-  });
-
-  it("a digit typed on Present with no song up opens the Search sheet with it typed", async () => {
-    render(() => <App />);
-    await openPresent();
-    await screen.findByRole("button", { name: /^Find a Song/ });
-
-    fireEvent.keyDown(window, { key: "2" });
-
-    const box = await screen.findByRole("combobox", { name: "Find a song or command" });
-    expect(box).toHaveValue("2");
-  });
-
-  it("with the Output open and no song up, the card says nothing is live and can end it", async () => {
-    render(() => <App />);
-    await openPresent();
-    const output = new BroadcastChannel("hymnal-output");
-    output.postMessage({ type: "hello", id: "test-output" });
-
-    expect(await screen.findByRole("heading", { name: "Nothing live" })).toBeInTheDocument();
+    const search = within(await screen.findByRole("dialog", { name: "Search" }));
+    expect(search.getByRole("combobox", { name: "Find a song or command" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Library" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "No song selected" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "End Live" }));
-    // The Output window answers End Live by closing.
-    output.postMessage({ type: "bye", id: "test-output" });
-    expect(await screen.findByRole("heading", { name: "No song selected" })).toBeInTheDocument();
-    output.close();
+    // Closed, it leaves the Library where it was.
+    fireEvent.click(search.getByRole("button", { name: "Close" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Search" })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("heading", { name: "Library" })).toBeInTheDocument();
   });
 
   it("hot-swaps to another hymn from the switcher row, staying in the Presenter (SDD-0001 §16.4)", async () => {
@@ -133,18 +106,6 @@ describe("App", () => {
     expect(await screen.findByRole("button", { name: /#2\s*Mocked Hymn 2/ })).toBeInTheDocument();
     // Still presenting: the dock never left the screen.
     expect(screen.getByRole("navigation", { name: "Navigate" })).toBeInTheDocument();
-  });
-
-  it("choosing a hymnbook with no hymn up shows one Finder, not a picker over it", async () => {
-    render(() => <App />);
-    await openFinder();
-    fireEvent.click(await screen.findByRole("button", { name: /Mocked Hymnbook/ }));
-    const books = within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
-    fireEvent.click(books.getByRole("button", { name: /Mocked Hymnbook/ }));
-
-    expect(await screen.findAllByRole("combobox", { name: "Find a song or command" })).toHaveLength(
-      1,
-    );
   });
 
   it("Present with a hymn already up returns to it; the Hymnbooks picker has no Manage Books", async () => {

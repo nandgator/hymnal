@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { booksReady, mocks, openFinder, openPresent } from "./App.testkit.tsx";
+import { booksReady, mocks, openFinder } from "./App.testkit.tsx";
 import App from "./App.tsx";
 import type { BookRow } from "./persistence/content-store.ts";
 
@@ -73,9 +73,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     render(() => <App />);
     const sections = within(await screen.findByRole("navigation", { name: "Sections" }));
     expect(sections.queryByRole("button", { name: "About" })).not.toBeInTheDocument();
-    await openPresent();
-
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    await openFinder();
     const search = await screen.findByRole("dialog", { name: "Search" });
     fireEvent.input(within(search).getByRole("combobox"), {
       target: { value: ">about" },
@@ -349,17 +347,111 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       expect(crumbs().getByRole("button", { name: /Hymns of Fellowship/ })).toBeInTheDocument();
     });
 
-    it("with no song up, the Finder in the page is aimed at the chosen book and has the focus", async () => {
+    it("with no song up, a book from the header opens Search on it, This Book, focused", async () => {
       mocks.rows = [first(), second()];
       render(() => <App />);
-      await openFinder();
-      fireEvent.click(crumbs().getByRole("button", { name: /Mocked Hymnbook/ }));
+      await booksReady();
+      fireEvent.click(await crumbs().findByRole("button", { name: /Mocked Hymnbook/ }));
       const books = within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
       fireEvent.click(books.getByRole("button", { name: /Hymns of Fellowship/ }));
-      expect(
-        await screen.findAllByRole("combobox", { name: "Find a song or command" }),
-      ).toHaveLength(1);
-      expect(crumbs().getByRole("button", { name: /Hymns of Fellowship/ })).toBeInTheDocument();
+      const search = within(await screen.findByRole("dialog", { name: "Search" }));
+      await waitFor(() => expect(search.getByRole("combobox")).toHaveFocus());
+      expect(search.getByRole("button", { name: "This Book" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      // Over the Library, which stays where it is.
+      expect(screen.getByRole("heading", { name: "Library" })).toBeInTheDocument();
+    });
+
+    describe("a book tapped in the Library with no song up (SDD-0001 §13.4)", () => {
+      const tapBook = async (name: RegExp) => {
+        mocks.rows = [first(), second()];
+        render(() => <App />);
+        await booksReady();
+        fireEvent.click(
+          await within(screen.getByRole("list", { name: "Books" })).findByRole("button", { name }),
+        );
+        return within(await screen.findByRole("dialog", { name: "Search" }));
+      };
+
+      it("opens Search over the Library on that book, This Book pressed, cursor in the field", async () => {
+        const search = await tapBook(/^Hymns of Fellowship/);
+        await waitFor(() => expect(search.getByRole("combobox")).toHaveFocus());
+        expect(search.getByRole("button", { name: "This Book" })).toHaveAttribute(
+          "aria-pressed",
+          "true",
+        );
+        expect(search.getByRole("button", { name: "All Books" })).toHaveAttribute(
+          "aria-pressed",
+          "false",
+        );
+        // Over the Library, not on Present: a pick is what goes there.
+        expect(screen.getByRole("heading", { name: "Library" })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "No song selected" })).not.toBeInTheDocument();
+      });
+
+      it("does not change the remembered scope: the next opening is All Books again", async () => {
+        const search = await tapBook(/^Hymns of Fellowship/);
+        fireEvent.click(search.getByRole("button", { name: "Close" }));
+        await waitFor(() =>
+          expect(screen.queryByRole("dialog", { name: "Search" })).not.toBeInTheDocument(),
+        );
+        fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+        const again = within(await screen.findByRole("dialog", { name: "Search" }));
+        expect(again.getByRole("button", { name: "All Books" })).toHaveAttribute(
+          "aria-pressed",
+          "true",
+        );
+      });
+
+      it("a chip pressed during that opening is remembered as usual", async () => {
+        const search = await tapBook(/^Hymns of Fellowship/);
+        fireEvent.click(search.getByRole("button", { name: "All Books" }));
+        fireEvent.click(search.getByRole("button", { name: "Close" }));
+        await waitFor(() =>
+          expect(screen.queryByRole("dialog", { name: "Search" })).not.toBeInTheDocument(),
+        );
+        fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+        const again = within(await screen.findByRole("dialog", { name: "Search" }));
+        expect(again.getByRole("button", { name: "All Books" })).toHaveAttribute(
+          "aria-pressed",
+          "true",
+        );
+        fireEvent.click(again.getByRole("button", { name: "This Book" }));
+        fireEvent.click(again.getByRole("button", { name: "Close" }));
+        await waitFor(() =>
+          expect(screen.queryByRole("dialog", { name: "Search" })).not.toBeInTheDocument(),
+        );
+        fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+        const third = within(await screen.findByRole("dialog", { name: "Search" }));
+        expect(third.getByRole("button", { name: "This Book" })).toHaveAttribute(
+          "aria-pressed",
+          "true",
+        );
+      });
+
+      it("closing Search leaves the Library as it was", async () => {
+        const search = await tapBook(/^Hymns of Fellowship/);
+        fireEvent.click(search.getByRole("button", { name: "Close" }));
+        await waitFor(() =>
+          expect(screen.queryByRole("dialog", { name: "Search" })).not.toBeInTheDocument(),
+        );
+        expect(screen.getByRole("heading", { name: "Library" })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "No song selected" })).not.toBeInTheDocument();
+      });
+
+      it("a pick from it goes to Present with the song", async () => {
+        const search = await tapBook(/^Hymns of Fellowship/);
+        fireEvent.input(search.getByRole("combobox"), { target: { value: "1" } });
+        fireEvent.submit(search.getByRole("combobox").closest("form") as HTMLFormElement);
+        expect(await screen.findByRole("button", { name: /#1/ })).toBeInTheDocument();
+        expect(
+          within(screen.getByRole("navigation", { name: "Sections" })).getByRole("button", {
+            name: "Present",
+          }),
+        ).toHaveAttribute("aria-current", "page");
+      });
     });
   });
 
@@ -398,8 +490,8 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       ).not.toBeInTheDocument(),
     );
     fireEvent.click(sections.getByRole("button", { name: "Present" }));
-    // No hymn is left up: the empty card, not the Presenter.
-    expect(await screen.findByRole("heading", { name: "No song selected" })).toBeInTheDocument();
+    // No hymn is left up: Search opens over the Library, not the Presenter.
+    expect(await screen.findByRole("dialog", { name: "Search" })).toBeInTheDocument();
     expect(
       within(screen.getByRole("navigation", { name: "Hymnbook and song" })).queryByRole("button", {
         name: /#1/,

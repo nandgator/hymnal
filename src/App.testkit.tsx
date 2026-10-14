@@ -187,7 +187,10 @@ export function endLiveFromMenu() {
   fireEvent.keyDown(window, { key: "E", shiftKey: true });
 }
 
-/** Present, from the rail: with no song up, the empty card and its Find a Song button. */
+/**
+ * Present, from the rail. With no song up it opens Search over the page instead of the
+ * empty card (SDD-0001 §13.4); `Present` is then not the current section until a song is picked.
+ */
 export async function openPresent() {
   await booksReady();
   const present = within(screen.getByRole("navigation", { name: "Sections" })).getByRole("button", {
@@ -197,10 +200,10 @@ export async function openPresent() {
   fireEvent.click(present);
 }
 
-/** Present, then Find a Song: the Search sheet, where the current book is found. */
+/** Present, from the rail: the Search sheet, where the current book is found. */
 export async function openFinder() {
   await openPresent();
-  fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
+  await screen.findByRole("dialog", { name: "Search" });
 }
 
 /**

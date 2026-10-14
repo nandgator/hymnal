@@ -102,7 +102,7 @@ test("Search: the dialog holds its size while typing; the no-match card is centr
   expect(errors).toEqual([]);
 });
 
-test("Present with no song: a card and Find a Song, not an inline list; a digit starts a number", async ({
+test("a book tapped with no song up opens Search over the Library, not an inline list; a number picks", async ({
   page,
 }) => {
   await page.goto("/");
@@ -110,18 +110,24 @@ test("Present with no song: a card and Find a Song, not an inline list; a digit 
   await books(page)
     .getByRole("button", { name: new RegExp(`^${BOOK_TITLE}`) })
     .click();
-  await expect(page.getByRole("heading", { name: "No song selected" })).toBeVisible();
-  await expect(page.getByRole("combobox")).toHaveCount(0);
-  await expect(page.getByRole("listbox")).toHaveCount(0);
-
-  await page.getByRole("button", { name: /^Find a Song/ }).click();
   const box = page.getByRole("combobox", { name: "Find a song or command" });
   await expect(box).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(box).toBeHidden();
+  await expect(page.getByRole("combobox")).toHaveCount(0);
 
-  await page.keyboard.press("2");
-  await expect(box).toHaveValue("2");
+  // Present with no song up opens Search again, rather than an empty page.
+  // (On a phone the sections are in the Menu.)
+  if ((page.viewportSize()?.width ?? 0) < 840) {
+    await page.getByRole("button", { name: /^Menu/ }).first().click();
+  }
+  await page
+    .getByRole("navigation", { name: "Sections" })
+    .getByRole("button", { name: "Present" })
+    .click();
+  await expect(box).toBeFocused();
+  await box.fill("2");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "River Of Stones #2" })).toBeVisible();
 });
@@ -134,6 +140,8 @@ test("the Hymnbooks filter: a clear button, a card, a dialog that holds its size
   await books(page)
     .getByRole("button", { name: new RegExp(`^${BOOK_TITLE}`) })
     .click();
+  // The tap opened Search; the Hymnbooks sheet is the header's switcher.
+  await page.keyboard.press("Escape");
   await page
     .getByRole("button", { name: new RegExp(BOOK_TITLE) })
     .first()

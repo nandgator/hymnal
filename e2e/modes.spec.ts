@@ -17,7 +17,7 @@ test("songs by default; a > first lists commands only, Backspace returns to song
 
   // The empty list has its own headings: the mode heading waits for something typed.
   await expect(page.getByRole("heading", { name: "Songs" })).toHaveCount(0);
-  await expect(box).toHaveAttribute("placeholder", "Find a song, or > for commands");
+  await expect(box).toHaveAttribute("placeholder", "Number, title or words");
   await expect(songs(page).getByRole("option", { name: /Lantern Morning/ })).toBeVisible();
   await expect(page.getByRole("option", { name: /Blank the Output/ })).toHaveCount(0);
 

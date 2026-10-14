@@ -14,6 +14,16 @@ export interface PickListProps {
   listRef?: (el: HTMLDivElement) => void;
   /** A tap on the scrim behind the list: close it. */
   onDismiss?: () => void;
+  /** A field fixed above the rows (a filter): the list is then a frame, and only the rows scroll. */
+  head?: JSX.Element;
+  /** The least width of the list, in px, where the box is narrower (a chip). Kept inside the card. */
+  minWidth?: number;
+  /** What marks the active row, for the highlight (default `aria-selected="true"`). */
+  active?: string;
+  /** Makes the listbox itself focusable (no field drives it) and gives it its keys. */
+  onKeyDown?: (event: KeyboardEvent) => void;
+  /** The listbox accepts more than one chosen row. */
+  multiselectable?: boolean;
   children: JSX.Element;
 }
 
@@ -33,7 +43,9 @@ export interface PickListProps {
  * the list and goes no further.
  */
 export function PickList(props: PickListProps) {
+  // The popover; with a `head` it is a frame, and `rows` (the listbox) is the scroller inside it.
   let list: HTMLDivElement | undefined;
+  let rows: HTMLDivElement | undefined;
   let glide: GlideList | undefined;
 
   // The scrim lives in the card (the dialog, which clips its corners) from the list's
@@ -74,7 +86,7 @@ export function PickList(props: PickListProps) {
     // After the rows have settled: a microtask on, the DOM is what to mark.
     queueMicrotask(() =>
       glide?.hover.show(
-        list?.querySelector<HTMLElement>('.pick-row[aria-selected="true"]') ?? null,
+        rows?.querySelector<HTMLElement>(props.active ?? '.pick-row[aria-selected="true"]') ?? null,
       ),
     );
   });
@@ -91,15 +103,17 @@ export function PickList(props: PickListProps) {
     // the card's edges (the page's, where there is no card), so it never runs past the card.
     const card = box.closest("dialog")?.getBoundingClientRect();
     const top = card ? card.top : 0;
+    const room = (card ? card.width : window.innerWidth) - (card ? 32 : 16);
+    const width = Math.min(Math.max(at.width, props.minWidth ?? 0), Math.max(room, at.width));
     const spot = placeMenu({
       trigger: { left: at.left, right: at.right, top: at.top - top, bottom: at.bottom - top },
-      menu: { w: at.width, h: list.scrollHeight + (own.height - list.clientHeight) },
+      menu: { w: width, h: list.scrollHeight + (own.height - list.clientHeight) },
       viewport: { w: window.innerWidth, h: card ? card.height : window.innerHeight },
       align: "start",
       margin: card ? 16 : 8,
     });
     spot.top += top;
-    list.style.width = `${at.width}px`;
+    list.style.width = `${width}px`;
     list.style.top = `${spot.top}px`;
     list.style.left = `${spot.left}px`;
     if (spot.maxHeight !== undefined) list.style.maxHeight = `${spot.maxHeight}px`;
@@ -117,25 +131,51 @@ export function PickList(props: PickListProps) {
     });
   });
 
+  const framed = props.head !== undefined;
+
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: the keys belong to the listbox role when it is this element
+    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is set only when this element is the listbox
     <div
       class="pick-list"
-      id={props.id}
-      role="listbox"
-      aria-label={props.label}
+      classList={{ "pick-list-framed": framed }}
+      id={framed ? undefined : props.id}
+      role={framed ? undefined : "listbox"}
+      aria-label={framed ? undefined : props.label}
+      aria-multiselectable={!framed && props.multiselectable ? "true" : undefined}
+      tabindex={!framed && props.onKeyDown ? 0 : undefined}
+      onKeyDown={framed ? undefined : props.onKeyDown}
       popover={"showPopover" in HTMLElement.prototype ? "manual" : undefined}
       ref={(el) => {
         list = el;
-        props.listRef?.(el);
+        rows = framed ? (el.querySelector<HTMLDivElement>(".pick-scroll") ?? el) : el;
+        props.listRef?.(rows);
         queueMicrotask(() => {
           if (typeof el.showPopover === "function" && el.isConnected) el.showPopover();
           place();
         });
-        glide = glideList(el, { rows: ".pick-row", current: ".pick-row[data-current]" });
+        glide = glideList(rows, { rows: ".pick-row", current: ".pick-row[data-current]" });
         onCleanup(glide.stop);
       }}
     >
-      {props.children}
+      {framed ? (
+        <>
+          <div class="pick-head">{props.head}</div>
+          <div
+            class="pick-scroll"
+            id={props.id}
+            role="listbox"
+            aria-label={props.label}
+            aria-multiselectable={props.multiselectable ? "true" : undefined}
+            tabindex={props.onKeyDown ? 0 : undefined}
+            onKeyDown={props.onKeyDown}
+          >
+            {props.children}
+          </div>
+        </>
+      ) : (
+        props.children
+      )}
     </div>
   );
 }

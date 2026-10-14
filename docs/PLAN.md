@@ -117,6 +117,12 @@ only, here:
 
 ## Log
 
+- 2026-10-14 — search review: a book tapped with no song up opens Search over
+  the Library on that book (This Book for that opening, `searchScope` kept);
+  Present with no song opens Search too; the scope chips are This Book and one
+  All Books chip whose PickList ticks the books (filter past six, applies at
+  once, the last cannot be unticked); placeholder "Number, title or words"
+  (SDD-0001 §13.3, §13.4)
 - 2026-10-14 — #75 done: Touch Lock (SDD-0001 §16.11), one remembered switch
   (Settings, Live toolbar, command); while live a tap on a guarded control
   (`data-output-guard`, one controller in `touchLock.ts`) is swallowed with
@@ -172,10 +178,3 @@ only, here:
 - 2026-10-13 — #70 done: the "Go to a Song" sheet is gone (the crumb and Back
   open the Finder, the Search sheet); empty states are cards with line-art
   illustrations (`EmptyCard`).
-- 2026-10-13 — the maintainer's review: the Finder's "Searching" line is gone
-  (search is always all books); the quick switcher's field is held at the foot
-  of its scroller, on the ground (it scrolled out of view when results
-  overflowed); the repeat count fades after ×2, ×1 is never shown; copy rules
-  for backup/back up and the ellipsis (DESIGN.md § Words); More in is a quiet
-  row with a chevron; scroll regions fade their edges (scrollFade.ts; a
-  scroll-driven animation, a rAF helper in Firefox). Board #68 chips not built

@@ -20,7 +20,7 @@ export const FADE_REGIONS = [
  * shadow: sticky strips of their own surface lie over the first and last rows, and their opacity
  * is the fade. The helper sets `--strip-a` and `--strip-b` on them.
  */
-export const FADE_STRIP_REGIONS = [".menu-popover", ".pick-list"];
+export const FADE_STRIP_REGIONS = [".menu-popover", ".pick-list", ".pick-scroll"];
 
 /** The distance (px) over which a fade grows from nothing to full. Keep in step with styles.css. */
 export const FADE_RAMP = 24;
