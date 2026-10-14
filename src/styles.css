@@ -5730,7 +5730,22 @@ fieldset.book-main {
 .sheet.sheet-steady {
   min-height: min(var(--sheet-hold, 34rem), 88dvh);
 }
-/*FIXED-HOLD*/
+/* A search dialog (Search, Settings, Menu, Hymnbooks) holds one height: a share of the
+   viewport with a cap, so it follows the screen (a short one, a phone) but never the
+   number of results. Typing changes what is inside, in place; an empty result (the
+   no-match card) is centred in what the field leaves. */
+.sheet.sheet-fixed {
+  height: min(44rem, 75dvh);
+}
+.sheet-fixed .sheet-content > :is(.finder, .settings) {
+  flex: 1 0 auto;
+}
+.sheet-fixed :is(.sheet-content, .settings) > .text-field {
+  flex: none;
+}
+.sheet-fixed :is(.sheet-content, .finder, .settings) > .empty-card {
+  margin-block: auto;
+}
 .skeleton-title-sm {
   width: 8rem;
   height: 2.25rem;

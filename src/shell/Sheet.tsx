@@ -33,6 +33,9 @@ export interface SheetProps {
   /** Hold the height the card last settled at while this is true (a file being read), so it
    * does not jump when the content lands; once false the card hugs its content again. */
   steady?: boolean;
+  /** A search dialog: it holds one height, as tall as the sheet gets, whatever it holds, so
+   * typing never resizes it (the results change in place; an empty one is centred). */
+  fixed?: boolean;
   /** The page showing over the root, if any. The caller owns the state. */
   page?: SheetPage | undefined;
   /** Back from a pushed page: its header button, and Escape. */
@@ -502,7 +505,7 @@ export function Sheet(props: SheetProps) {
     // biome-ignore lint/a11y/useKeyWithClickEvents: scrim click; Escape is native
     <dialog
       ref={dialog}
-      class={`sheet sheet-${props.placement ?? "bottom"}${props.tall ? " sheet-tall" : ""}${props.steady ? " sheet-steady" : ""}`}
+      class={`sheet sheet-${props.placement ?? "bottom"}${props.tall ? " sheet-tall" : ""}${props.steady ? " sheet-steady" : ""}${props.fixed ? " sheet-fixed" : ""}`}
       style={props.steady && settled() ? { "--sheet-hold": `${settled()}px` } : undefined}
       aria-label={props.page?.title ?? props.title}
       onClose={() => {

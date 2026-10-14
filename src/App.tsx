@@ -86,6 +86,7 @@ import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { moveOutputTo, openOutputWindow } from "./shell/openOutput.ts";
 import { createOutputScreens, mayHaveSecondScreen } from "./shell/outputScreens.ts";
 import { isPaneShown, PANES, type PaneId } from "./shell/panes.ts";
+import { riseIn } from "./shell/riseIn.ts";
 import { canAdjustScale, createPreferences, OUTPUT_CUES, Settings } from "./shell/Settings.tsx";
 import { Sheet, type SheetPage } from "./shell/Sheet.tsx";
 import { SnackbarHost, type SnackbarProps } from "./shell/Snackbar.tsx";
@@ -260,6 +261,9 @@ function Operator(props: Shared) {
   createEffect(() => {
     if (!bookPickerOpen()) setBookFilter("");
   });
+  // The picker holds its size (Sheet `fixed`); a new word's list settles in place.
+  let bookList: HTMLUListElement | undefined;
+  createEffect(on(bookFilter, () => riseIn(bookList), { defer: true }));
   const [commandMenuOpen, setCommandMenuOpen] = createSignal(false);
   // Keyboard Shortcuts is a page inside the Settings, Menu or Search sheet, not a
   // sheet of its own: pushed from its row (Back returns), or `direct` when
@@ -1662,6 +1666,7 @@ function Operator(props: Shared) {
           open={commandMenuOpen()}
           onClose={() => setCommandMenuOpen(false)}
           title="Search"
+          fixed
           placement={expanded() ? "center" : "bottom"}
           page={shortcutsPage("search")}
           onBack={() => setShortcuts(undefined)}
@@ -1687,6 +1692,7 @@ function Operator(props: Shared) {
           open={bookPickerOpen()}
           onClose={() => setBookPickerOpen(false)}
           title="Hymnbooks"
+          fixed
           placement={expanded() ? "center" : "bottom"}
         >
           <label class="text-field">
@@ -1701,20 +1707,25 @@ function Operator(props: Shared) {
             <ClearSearch visible={bookFilter() !== ""} onClear={() => setBookFilter("")} />
           </label>
           <Show when={filteredBooks().length === 0}>
-            <EmptyCard kind="results" title={`No hymnbooks match “${bookFilter().trim()}”`}>
+            <EmptyCard
+              kind="results"
+              title={`No hymnbooks match “${bookFilter().trim()}”`}
+              ref={(el) => riseIn(el)}
+            >
               Try another word from its title.
             </EmptyCard>
           </Show>
           <ul
             class="list glide-list"
-            ref={(el) =>
+            ref={(el) => {
+              bookList = el;
               onCleanup(
                 glideList(el, {
                   rows: ".list-row:enabled",
                   current: '.list-row[aria-current="true"]',
                 }).stop,
-              )
-            }
+              );
+            }}
           >
             <For each={filteredBooks()}>
               {(book) => (
@@ -1755,6 +1766,7 @@ function Operator(props: Shared) {
           open={menuOpen()}
           onClose={() => setMenuOpen(false)}
           title="Menu"
+          fixed
           page={shortcutsPage("menu")}
           onBack={() => setShortcuts(undefined)}
         >
@@ -1786,6 +1798,7 @@ function Operator(props: Shared) {
           open={settingsOpen()}
           onClose={() => setSettingsOpen(false)}
           title="Settings"
+          fixed
           placement={expanded() ? "center" : "bottom"}
           page={shortcutsPage("settings")}
           onBack={() => setShortcuts(undefined)}

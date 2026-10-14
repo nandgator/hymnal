@@ -82,9 +82,11 @@ export function EmptyCard(props: {
   action?: EmptyAction;
   /** A quieter second button, a text button. */
   secondary?: EmptyAction;
+  /** The card element, e.g. to settle it in when it appears. */
+  ref?: (el: HTMLDivElement) => void;
 }) {
   return (
-    <div class="empty-card">
+    <div class="empty-card" ref={(el) => props.ref?.(el)}>
       <EmptyIllustration kind={props.kind} />
       <div class="empty-text">
         <h2 class="title-medium">{props.title}</h2>

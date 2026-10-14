@@ -22,6 +22,7 @@ import { type GlideList, glideList } from "../shell/glideList.ts";
 import { hoverButton } from "../shell/hoverGlide.ts";
 import { KeyCombo } from "../shell/KeyCombo.tsx";
 import { RecentsList } from "../shell/RecentsList.tsx";
+import { riseIn } from "../shell/riseIn.ts";
 import { type Layout, layoutOf, type Range, type Windowed, windowed } from "../shell/windowing.ts";
 import {
   type FinderGroup,
@@ -760,6 +761,26 @@ export function Finder(props: FinderProps) {
   // option, so the arrow keys and the top match move it as the pointer does.
   let glide: GlideList | undefined;
   let results: HTMLDivElement | undefined;
+  // A new set of matches glides up into place and fades in, in the list's own layer: the
+  // dialog around it holds its size (Sheet `fixed`). Paging more in, or scrolling, is no new
+  // set; the switcher has its own motion for its rows.
+  const matchSet = createMemo(() =>
+    groups()
+      .map((g) => {
+        const nums = g.items.map((item) => item.number);
+        return `${g.id}:${nums.length}:${nums.slice(0, 3)}:${nums.slice(-2)}`;
+      })
+      .join("|"),
+  );
+  createEffect(
+    on(
+      matchSet,
+      () => {
+        if (!props.compact) riseIn(results);
+      },
+      { defer: true },
+    ),
+  );
   createEffect(() => {
     active();
     rows();
@@ -873,7 +894,11 @@ export function Finder(props: FinderProps) {
       </form>
 
       <Show when={noMatch()}>
-        <EmptyCard kind="results" title={`No matches for “${emptyFor()}”`}>
+        <EmptyCard
+          kind="results"
+          title={`No matches for “${emptyFor()}”`}
+          ref={(el) => !props.compact && riseIn(el)}
+        >
           Try a song number, or other words from the lyrics.
         </EmptyCard>
       </Show>

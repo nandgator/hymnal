@@ -5,6 +5,7 @@ import {
   createSignal,
   For,
   type JSX,
+  on,
   onCleanup,
   Show,
 } from "solid-js";
@@ -54,6 +55,7 @@ import { Menu } from "./Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "./media.ts";
 import { createOutputScreens, type OutputScreens } from "./outputScreens.ts";
 import { isPaneShown, PANES, type PaneId } from "./panes.ts";
+import { riseIn } from "./riseIn.ts";
 import { Segmented } from "./Segmented.tsx";
 import { saveFile } from "./saveFile.ts";
 import { selectGlide } from "./selectGlide.ts";
@@ -462,6 +464,19 @@ export function Settings(props: SettingsProps) {
     }
     setNoMatch(!any);
   });
+  // What stays after a new word settles in place (the dialog holds its size); a change to a
+  // setting itself is no new search.
+  createEffect(
+    on(
+      query,
+      () => {
+        for (const section of settingsRef?.querySelectorAll(".settings-section:not([hidden])") ??
+          [])
+          riseIn(section);
+      },
+      { defer: true },
+    ),
+  );
 
   return (
     <div
@@ -483,7 +498,11 @@ export function Settings(props: SettingsProps) {
         <ClearSearch visible={query() !== ""} onClear={() => setQuery("")} />
       </label>
       <Show when={noMatch()}>
-        <EmptyCard kind="results" title={`No settings match “${query().trim()}”`}>
+        <EmptyCard
+          kind="results"
+          title={`No settings match “${query().trim()}”`}
+          ref={(el) => riseIn(el)}
+        >
           Try another word.
         </EmptyCard>
       </Show>
