@@ -266,6 +266,9 @@ function Operator(props: Shared) {
   let bookList: HTMLUListElement | undefined;
   createEffect(on(bookFilter, () => riseIn(bookList), { defer: true }));
   const [commandMenuOpen, setCommandMenuOpen] = createSignal(false);
+  // The Search sheet was opened by choosing a book: this opening searches that book, and the
+  // remembered scope is left as it was (SDD-0001 §13.4). Every other way in clears it.
+  const [searchOnBook, setSearchOnBook] = createSignal(false);
   // Keyboard Shortcuts is a page inside the Settings, Menu or Search sheet, not a
   // sheet of its own: pushed from its row (Back returns), or `direct` when
   // the sheet was opened on it (? and the command), where it says Close.
@@ -861,6 +864,7 @@ function Operator(props: Shared) {
   });
   const openSheet = (open: (value: boolean) => void) => {
     closeSheets();
+    setSearchOnBook(false);
     open(true);
   };
 
@@ -930,6 +934,12 @@ function Operator(props: Shared) {
   });
 
   const go = (next: Section) => {
+    // Present with no song up is Search, over the page the person is on; the empty card is
+    // only what Present shows when it is reached some other way (SDD-0001 §13.4).
+    if (next === "present" && section() !== "present" && !hymnNumber() && hymnbook()) {
+      setMenuOpen(false);
+      return openCommandMenu();
+    }
     setSection(next);
     setMenuOpen(false);
   };
@@ -956,13 +966,22 @@ function Operator(props: Shared) {
       chooseHymn(number, book);
     });
 
-  // "Find a song", from anywhere: Present, plus the Finder sheet over the current
-  // hymn if one is up. With none, Present already is the Finder, and a
-  // sheet on top would only duplicate it.
+  // "Find a song" with a song up: Present, plus the Finder sheet over it. With none, a book
+  // chosen opens Search over the page instead (searchBook).
   const findHymn = () => {
     setSection("present");
     setMenuOpen(false);
     if (hymnNumber()) openSheet(setCommandMenuOpen);
+  };
+
+  // A book chosen with no song up: Search over the page the person is on (the Library, or
+  // Present), on that book for this opening. A pick then goes to Present with the song. The
+  // sheet is the only thing that opens: the Output and the song stay as they are.
+  const searchBook = () => {
+    batch(() => {
+      openSheet(setCommandMenuOpen);
+      setSearchOnBook(true);
+    });
   };
 
   const installed = readable;
@@ -980,7 +999,8 @@ function Operator(props: Shared) {
   const chooseHymnbook = (id: HymnbookId) => {
     setBookPickerOpen(false);
     if (id !== currentKey()) setCurrentKey(id);
-    findHymn();
+    if (hymnNumber()) findHymn();
+    else searchBook();
   };
   // The scope is the song's book unless a book was just chosen to search: a Finder
   // opened by the crumb, the keys or the search box starts there, and one closed
@@ -1693,6 +1713,7 @@ function Operator(props: Shared) {
             bookCount={installed().length}
             books={installed().map((book) => ({ key: book.key, title: book.title }))}
             scope={preferences.preferences().searchScope}
+            thisBookOnce={searchOnBook()}
             onScope={(searchScope) =>
               preferences.update({ ...preferences.preferences(), searchScope })
             }

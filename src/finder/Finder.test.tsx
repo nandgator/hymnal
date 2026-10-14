@@ -854,7 +854,7 @@ describe("Finder", () => {
       const { box } = renderModes();
       // The empty list has its own headings (Recents, All songs): no mode heading over them.
       expect(screen.queryByRole("heading", { name: "Songs" })).not.toBeInTheDocument();
-      expect(box).toHaveAttribute("placeholder", "Find a song, or > for commands");
+      expect(box).toHaveAttribute("placeholder", "Number, title or words");
       await screen.findByRole("group", { name: "All songs" });
       expect(screen.queryByRole("option", { name: /Output/ })).not.toBeInTheDocument();
       fireEvent.input(box, { target: { value: "bl" } });

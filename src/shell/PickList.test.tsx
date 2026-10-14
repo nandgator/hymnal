@@ -56,3 +56,35 @@ describe("PickList's scrim", () => {
     expect(s.under).not.toHaveBeenCalled();
   });
 });
+
+describe("PickList with a head", () => {
+  it("frames a field above the rows: only the listbox holds them, and it is multiselectable on request", () => {
+    const view = render(() => (
+      <dialog open>
+        <button type="button" id="b">
+          Chip
+        </button>
+        <PickList
+          id="l"
+          label="Things"
+          box={() => document.getElementById("b") ?? undefined}
+          head={<input aria-label="Filter" />}
+          multiselectable
+          active="[data-active]"
+        >
+          <div class="pick-row" role="option" tabIndex={-1} aria-selected="true" data-active="">
+            One
+          </div>
+        </PickList>
+      </dialog>
+    ));
+    const frame = view.container.querySelector(".pick-list") as HTMLElement;
+    expect(frame).toHaveClass("pick-list-framed");
+    expect(frame).not.toHaveAttribute("role");
+    const box = frame.querySelector('[role="listbox"]') as HTMLElement;
+    expect(box).toHaveAttribute("id", "l");
+    expect(box).toHaveAttribute("aria-multiselectable", "true");
+    expect(box.querySelector("input")).toBeNull();
+    expect(frame.querySelector(".pick-head input")).not.toBeNull();
+  });
+});

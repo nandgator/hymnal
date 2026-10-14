@@ -56,11 +56,15 @@ test("empty states are cards: no books, no song selected, no matches", async ({ 
   await expect(page.locator(".lib-empty .empty-illustration")).toBeVisible();
   await loadBook(page);
 
-  // Choosing the book opens the Finder in Present, with nothing up.
+  // Choosing the book opens Search over the Library; closing it leaves the Library, and
+  // Present with no song up opens Search again rather than an empty page.
   await books(page)
     .getByRole("button", { name: new RegExp(`^${BOOK_TITLE}`) })
     .click();
-  await expect(page.getByRole("heading", { name: "No song selected" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Search" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Search" })).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
 
   const box = await openFinder(page);
   await box.fill("zzzzqq");

@@ -1531,54 +1531,40 @@ input[type="checkbox"].switch:disabled {
   }
 }
 
-/* The Books… checklist: a menu's popover with checkboxes and a Done at its foot. */
-.scope-checklist {
-  display: flex;
-  flex-direction: column;
-  /* A set width, not the content's: it is measured before it is placed, and a popover
-     placed at the edge would shrink-wrap a different size. */
-  width: min(22rem, calc(100vw - 1rem));
-  overflow: hidden;
+/* The set chip's chevron: it says the chip opens a list. */
+.scope-chip-more {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-inline: var(--space-xxs) calc(-1 * var(--space-xxs));
 }
 
-.scope-checklist-books {
-  overflow-y: auto;
-  overscroll-behavior: contain;
+/* The one ticked book cannot be unticked: its check stays, the row stops answering a tap. */
+.pick-row.scope-row[aria-disabled="true"] {
+  cursor: default;
 }
 
-.scope-check {
-  display: flex;
+/* The books list: a PickList of the held books' titles, a check at the end of a chosen row. */
+.pick-row.scope-row {
+  flex-wrap: nowrap;
+  gap: var(--space-sm);
   align-items: center;
-  gap: var(--space-md);
-  min-height: 3rem;
-  padding: var(--space-xs) var(--space-md);
-  font-size: 0.875rem;
-  cursor: pointer;
+  justify-content: space-between;
 }
 
-.scope-check:hover {
-  background-color: color-mix(in srgb, currentColor 8%, transparent);
+.scope-row-title {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.scope-check input {
+.scope-row-check {
   flex: none;
   width: 1.25rem;
   height: 1.25rem;
-  margin: 0;
-  accent-color: var(--md-sys-color-primary);
-}
-
-.scope-check-title {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  line-height: 1.5;
-}
-
-.scope-checklist-actions {
-  display: flex;
-  flex: none;
-  justify-content: flex-end;
-  padding: var(--space-xs) var(--space-sm);
+  color: var(--md-sys-color-primary);
 }
 
 /* The Finder's mode, Songs or Commands, the first line of its list (SDD-0001 §13.3). */
@@ -6094,6 +6080,33 @@ fieldset.book-main {
 .pick-list-above {
   transform-origin: bottom left;
 }
+/* A list with a field above its rows (Select Books' filter): the popover is a frame that does
+   not scroll, and only the rows do, with their own edge fades. */
+.pick-list-framed {
+  display: flex;
+  flex-direction: column;
+  max-height: 20rem;
+  padding: 0;
+  overflow: clip;
+}
+.pick-head {
+  flex: none;
+  padding: var(--space-xs) var(--space-sm);
+}
+.pick-scroll {
+  position: relative;
+  isolation: isolate;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-xs) 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: var(--space-xs);
+  --glide-radius: 0;
+}
+.pick-scroll:focus-visible {
+  outline: none;
+}
 /* Floating lists (the app's menus and pickers) take the same fade (--fade-a and
    --fade-b, see the shared rule near the top) but not as a mask: a mask would clip
    the list's own shadow, and the list's surface should stay. Two sticky strips,
@@ -6109,13 +6122,13 @@ fieldset.book-main {
    of what shows is the list's own surface, opaque: Firefox does not blur a
    backdrop behind a sticky strip in a scroller, so a faded row would show there
    sharp, and no engine may rely on the blur at the edge. */
-:is(.menu-popover, .pick-list) {
+:is(.menu-popover, .pick-list, .pick-scroll) {
   --edge-reach: 4px;
   --edge-solid: 8px;
   --edge: calc(var(--space-xs) + var(--edge-reach) + var(--edge-solid));
 }
-:is(.menu-popover, .pick-list)::before,
-:is(.menu-popover, .pick-list)::after {
+:is(.menu-popover, .pick-list, .pick-scroll)::before,
+:is(.menu-popover, .pick-list, .pick-scroll)::after {
   position: sticky;
   z-index: 2;
   display: block;
@@ -6125,7 +6138,7 @@ fieldset.book-main {
   opacity: 0;
   backdrop-filter: blur(3px);
 }
-:is(.menu-popover, .pick-list)::before {
+:is(.menu-popover, .pick-list, .pick-scroll)::before {
   background: linear-gradient(
     to bottom,
     var(--md-sys-color-surface-container-high) var(--edge),
@@ -6134,7 +6147,7 @@ fieldset.book-main {
   top: calc(-1 * var(--space-xs) - var(--edge-reach));
   margin-bottom: calc(-1.75rem - var(--edge-reach) - var(--edge-solid));
 }
-:is(.menu-popover, .pick-list)::after {
+:is(.menu-popover, .pick-list, .pick-scroll)::after {
   background: linear-gradient(
     to top,
     var(--md-sys-color-surface-container-high) var(--edge),
@@ -6154,24 +6167,29 @@ fieldset.book-main {
   }
 }
 @supports (animation-timeline: scroll()) {
-  :is(.menu-popover, .pick-list)::before {
+  :is(.menu-popover, .pick-list, .pick-scroll)::before {
     animation: strip-in linear both;
     animation-timeline: scroll(nearest);
     animation-range: 0px 24px;
   }
-  :is(.menu-popover, .pick-list)::after {
+  :is(.menu-popover, .pick-list, .pick-scroll)::after {
     animation: strip-out linear both;
     animation-timeline: scroll(nearest);
     animation-range: calc(100% - 24px) 100%;
   }
 }
 @supports not (animation-timeline: scroll()) {
-  :is(.menu-popover, .pick-list)::before {
+  :is(.menu-popover, .pick-list, .pick-scroll)::before {
     opacity: var(--strip-a, 0);
   }
-  :is(.menu-popover, .pick-list)::after {
+  :is(.menu-popover, .pick-list, .pick-scroll)::after {
     opacity: var(--strip-b, 0);
   }
+}
+/* A framed list's strips are its scroller's: the frame has none. */
+.pick-list.pick-list-framed::before,
+.pick-list.pick-list-framed::after {
+  display: none;
 }
 
 /* From Text is one form in a card of one size: the tallest state, within the
