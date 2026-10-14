@@ -174,6 +174,23 @@ With no Sequence line, the sung order is:
    references and no Sequence line): the order as printed, and the review says
    so, so that you can add a Sequence line if it is wrong.
 
+### 2.7 Notes on review
+
+Some things are worth a look but are not errors. The review shows them as
+**notes**, one per song, and the song is added as ever: a note is never a block.
+A note says what it is about, in plain words.
+
+- **Several choruses**, or a pre-chorus or post-chorus, with no references and
+  no Sequence line: the song is sung as printed (section 2.6, rule 4).
+- **Not a song** (ADR-0034): the text does not look like song text. The check is
+  a set of hand rules on the song's title and lines, in any script, and the note
+  gives the first reason it found: "Lines are full of { } ; like code", "Lines
+  are mostly emoji, not words", "Reads like a paragraph, not lines", and so on
+  for maths, tables, links, chats and emails. A few emoji at a line's end, and
+  musical or religious symbols, are decoration and pass. The check is advice: it
+  runs on From Text and on a received book at its review (SDD-0004 §9, §17), and
+  the person is the judge.
+
 ## 3. What it becomes
 
 A song is `NNNN.json` of format 1, with `number`, `title`, `meta` (`{}` if there
