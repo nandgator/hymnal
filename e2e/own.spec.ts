@@ -99,7 +99,7 @@ test("Assorted Hymns: add two songs, find, present, open, rename, remove", async
   await expect(first.locator(".book-count")).toContainText("2");
 
   // Find by number and by a lyric word.
-  const options = page.getByRole("listbox", { name: "Matching songs and actions" });
+  const options = page.getByRole("listbox", { name: "Matching songs" });
   const box = await openFinder(page);
   await box.fill("1");
   await expect(options.getByRole("option")).toHaveCount(1);

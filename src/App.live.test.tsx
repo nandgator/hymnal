@@ -232,7 +232,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     const seen: unknown[] = [];
     closesOnCommand(output, seen);
 
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
     const menu = await screen.findByRole("dialog", { name: "Search" });
     const option = within(menu).getByRole("option", { name: /End Live/ });
     expect(option.querySelector(".key-combo")?.textContent).toBe("Shift+E");
@@ -241,7 +241,7 @@ describe("App: the Output on the projector screen (ADR-0028)", () => {
     expect(await screen.findByRole("button", { name: "Go Live" })).toBeInTheDocument();
 
     // Closed, there is nothing to end: neither the key nor the command.
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
     const again = await screen.findByRole("dialog", { name: "Search" });
     expect(within(again).queryByRole("option", { name: /End Live/ })).not.toBeInTheDocument();
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });

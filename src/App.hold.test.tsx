@@ -31,7 +31,7 @@ describe("App", () => {
   /** Opens a hymn in the Presenter, the way a person would. */
   async function openHymn() {
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -102,7 +102,7 @@ describe("App", () => {
       expect(hold()).toBeDisabled();
       fireEvent.keyDown(window, { key: "H", shiftKey: true });
       expect(screen.queryByRole("button", { name: "Held" })).not.toBeInTheDocument();
-      fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+      fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
       let menu = await screen.findByRole("dialog", { name: "Search" });
       expect(within(menu).queryByRole("option", { name: /Hold the Output/ })).toBeNull();
       fireEvent.keyDown(window, { key: "k", ctrlKey: true });
@@ -112,7 +112,7 @@ describe("App", () => {
       output.postMessage({ type: "hello", id: "test-output" });
       await screen.findByRole("button", { name: "On Air" });
       expect(hold()).toBeEnabled();
-      fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+      fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
       menu = await screen.findByRole("dialog", { name: "Search" });
       const option = within(menu).getByRole("option", {
         name: /Hold the Output/,
@@ -120,7 +120,7 @@ describe("App", () => {
       expect(option.querySelector(".key-combo")?.textContent).toBe("Shift+H");
       fireEvent.mouseDown(option);
       expect(await screen.findByRole("button", { name: "Held" })).toBeInTheDocument();
-      fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+      fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
       menu = await screen.findByRole("dialog", { name: "Search" });
       expect(within(menu).getByRole("option", { name: /Release the Output/ })).toBeInTheDocument();
       fireEvent.keyDown(window, { key: "k", ctrlKey: true });

@@ -1469,6 +1469,15 @@ input[type="checkbox"].switch:disabled {
   display: contents;
 }
 
+/* The Finder's mode, Songs or Commands, the first line of its list (SDD-0001 §13.3). */
+.finder-mode {
+  /* Close to the list it heads: the Finder's own gap between its parts is taken back. */
+  margin: 0;
+  margin-block-end: calc(var(--space-xs) - var(--space-lg));
+  padding-inline: var(--space-md);
+  line-height: 1.6;
+}
+
 .finder-group-heading {
   padding: var(--space-md) var(--space-md) var(--space-xxs);
   overflow: hidden;
@@ -1685,6 +1694,10 @@ input[type="checkbox"].switch:disabled {
   flex-wrap: wrap;
   gap: var(--space-xxs) var(--space-xs);
   font-weight: 400;
+}
+
+.shortcut-note {
+  display: block;
 }
 
 .list-row-supporting {

@@ -22,7 +22,7 @@ const secondBook = makeBook(
   })),
 );
 
-const listbox = (page: Page) => page.getByRole("listbox", { name: "Matching songs and actions" });
+const listbox = (page: Page) => page.getByRole("listbox", { name: "Matching songs" });
 const crumb = (page: Page) => page.getByRole("navigation", { name: "Hymnbook and song" });
 
 test("search every book: grouped, found under each, a pick in the other book opens it", async ({

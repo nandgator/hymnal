@@ -990,13 +990,13 @@ There is no Find button.
 
 **Where it appears.** The Finder is the Search sheet: the header's search,
 Ctrl+K and `/`, the crumb's song button and Presenter's Back to Search open it,
-with `commands` listed ahead of the results (§16.5). Present with no song up
-does not hold a Finder of its own (it did, inline, until 2026-10-14): it is the
-_No song selected_ card with a **Find a Song** button (and, on a keyboard's
-screen, the shortcut's key caps) that opens the same sheet. A digit typed there
-opens the sheet with it already in the box, so "type a number" still works from
-the page. There is no separate "Go to a Song" page. `compact` is the Present
-Here quick switcher (§16.7).
+in one of two modes, songs or commands (§13.3). Present with no song up does not
+hold a Finder of its own (it did, inline, until 2026-10-14): it is the _No song
+selected_ card with a **Find a Song** button (and, on a keyboard's screen, the
+shortcut's key caps) that opens the same sheet. A digit typed there opens the
+sheet with it already in the box, so "type a number" still works from the page.
+There is no separate "Go to a Song" page. `compact` is the Present Here quick
+switcher (§16.7).
 
 **The field's clear button, and a dialog that holds still.** Every search field
 (the Finder's, Settings', the Hymnbooks filter) ends in a clear (X) icon button,
@@ -1048,12 +1048,13 @@ on the others.
 
 **The view.** Each group has a heading, the book's title. The current book's
 group shows its results as today; every other group shows its first five, and
-**More in _title_** shows the rest of that group in place. In the command menu
-the commands come first, as now. No line under the field names the scope: search
-is across all books, and the placeholder says what to type. The arrow keys move
-through every group as one list, and Enter takes the highlighted result, the top
-one of the first group unless moved. A song held in two books is a result in
-each (ADR-0032). Present Here's compact Finder (§16.7) groups the same way.
+**More in _title_** shows the rest of that group in place. Commands are a mode
+of their own and never mix with these (§13.3). No line under the field names the
+scope: search is across all books, and the placeholder says what to type. The
+arrow keys move through every group as one list, and Enter takes the highlighted
+result, the top one of the first group unless moved. A song held in two books is
+a result in each (ADR-0032). Present Here's compact Finder (§16.7) groups the
+same way.
 
 **Picking a result** hands its book with its number: `onSelect(number, key)`.
 The shell's `chooseHymn` makes that book current and opens the song in one step
@@ -1072,11 +1073,11 @@ book. Present Here's switcher and a single book keep the current book alone.
 **As built.** Groups and headings show only when more than one book is held and
 something is typed, words or a number; with nothing typed the Finder lists the
 current book's songs and recents. Under a heading the listbox holds
-`role="group"` wrappers, labelled by the heading (the actions' group by
-"Actions"); More in is an option. Opening a group keeps the highlight where it
-was. Present Here's switcher shows three songs a book (five when one book),
-without More in. The sources list is `src/finder/sources.ts`; `Finder` takes
-`bookCount` and `onSelect(number, book)`.
+`role="group"` wrappers, labelled by the heading ; More in is an option. Opening
+a group keeps the highlight where it was. Present Here's switcher shows three
+songs a book (five when one book), without More in. The sources list is
+`src/finder/sources.ts`; `Finder` takes `bookCount` and
+`onSelect(number, book)`.
 
 **Sources.** The groups come from a list of sources, each searched on its own;
 books are the only source built. Arrangements (#23), the queue (#22),
@@ -1089,15 +1090,62 @@ arrow keys across groups, Enter, a pick in another book handing its key, the
 one-book case unchanged. E2E: two books loaded, a word in both found under each,
 a pick in the other book opens it.
 
+### 13.3 Modes: songs, and commands (Board #69)
+
+**Decided (the maintainer, 2026-10-13).** The Finder had listed commands and
+songs together, commands first, so a song search began a screen down. It now has
+two modes and never mixes them.
+
+- **Songs, by default.** With no prefix the Finder lists and searches songs
+  only: numbers, titles, lyrics, Recents and the whole book (§13.1, §13.2).
+- **Commands.** A `>` as the first character of the box switches to commands.
+  The `>` is the mode's marker and stays in the box; the rest of the box filters
+  the commands by the rule in §16.5 (every word typed starts a word of a
+  command's name). Backspace over the `>` leaves the box empty, so the Finder is
+  back in songs; Esc empties the box first, as in songs, and a second Esc closes
+  the sheet. `>` is the way in everywhere, a phone included.
+- **Ctrl/⌘+Shift+P** opens the Finder already in commands, with the `>` typed.
+  Chrome and Edge let the page have it; **Firefox keeps it for a private
+  window**, so it never arrives there, which is accepted: `>` works in every
+  browser. Ctrl/⌘+K and `/` still open the Finder in songs. With the Finder
+  already open, Ctrl/⌘+Shift+P does nothing (Ctrl/⌘+K closes it); type `>`.
+- **A heading says which mode.** The first line of the list is a muted
+  (`label-large`, `on-surface-variant`, the same as a group's heading) **Songs**
+  or **Commands**, so the person knows where they are. It is not a group
+  heading: books and languages keep theirs under it. The placeholder says how to
+  switch: _Find a song, or > for commands_ in songs and _Find a command_ in
+  commands; sentence case, short enough for 375px.
+- **Nothing mixes.** In commands no song, Recents or book is listed; in songs no
+  command. A command has no number to type, so the fast path (`/`, a number,
+  Enter) is unchanged. In commands, nothing is highlighted until a word is typed
+  after the `>` (Enter on a bare `>` runs nothing); then the top match is, and
+  the arrows and Enter work as in songs.
+- **No match.** The same compact `results` card as a song search finds nothing
+  to show, _No matches for “…”_, for words that start no command's name.
+- **Motion.** Changing mode is a new set of matches: the list glides in with
+  `riseIn` like any other, in the same fixed-height dialog.
+- **Present Here's switcher** (§16.7) has no commands, so it has no modes and no
+  heading: a `>` there is just a character typed, a search that finds nothing.
+  Ctrl/⌘+Shift+P is swallowed there with Ctrl/⌘+, (a sheet would open over the
+  audience).
+
+**Settings' shortcut list** (`?`) gains a Ctrl/⌘+Shift+P row, noted _Chrome and
+Edge only. Firefox keeps it for a private window._, and the Search row says that
+`>` in the box lists the commands.
+
+**Testing.** Component: songs only by default; `>` lists commands only; the rest
+of the box filters them; Backspace returns to songs; a heading for each mode; no
+song in commands, no command in songs; a no-match card for commands; Enter on a
+bare `>` runs nothing. App: Ctrl+Shift+P opens in commands, Ctrl+K in songs.
+E2E: `>` on chromium desktop and firefox phone.
+
 ### 13.2 Browse a whole book (Board #66)
 
 **Decided (the maintainer, 2026-10-12).** A book of a thousand songs can be
 browsed. Nothing typed, the Finder shows Recents on top and, below, **All
 songs**: every song of the book in one list that scrolls inside the Finder (the
 sheet's content), replacing the first twenty ("From the start", `OPENING_SONGS`,
-gone). A lyric search scrolls on past its first 30. In the command menu (§16.5)
-the order is Recents, the actions, then All songs, so the songs start a screen
-down.
+gone). A lyric search scrolls on past its first 30.
 
 **One windowed listbox.** The list under the field is the same `role="listbox"`
 for browsing and for results, and only the rows in view, plus an overscan of six
@@ -1825,30 +1873,31 @@ The keymap was reviewed at Board #20: a letter goes to what's done mid-song
 clickers send arrows, Page Up/Down, and `.` or `B` for a black screen, so those
 work too.
 
-| Keys                    | Action                          | Scope        |
-| ----------------------- | ------------------------------- | ------------ |
-| → Page Down Space       | Next part                       | presentation |
-| ← Page Up Shift+Space   | Previous part                   | presentation |
-| ↓ ↑                     | Next / previous line            | presentation |
-| Home End                | First / last part               | presentation |
-| 1–9, two digits quickly | Jump to stanza _n_ (§5.1)       | presentation |
-| C                       | Jump to the chorus              | presentation |
-| R                       | Repeat this part                | presentation |
-| U                       | Undo the last repeat            | presentation |
-| B or .                  | Blank the Output / restore      | presentation |
-| H                       | Light the whole song / the part | presentation |
-| Shift+H                 | Hold the Output / release       | presentation |
-| Shift+E                 | End Live: close the Output      | presentation |
-| F, Esc                  | Leave presenting here (§16.7)   | presentation |
-| O                       | Open or focus the Output window | operator     |
-| Shift+P                 | Present on this screen (§16.7)  | operator     |
-| N                       | Next tab (see below)            | operator     |
-| L                       | Show or hide Live Preview       | operator     |
-| / or Ctrl/⌘+K           | Command menu: hymns and actions | operator     |
-| + −                     | Operator text size              | operator     |
-| ?                       | Shortcut sheet                  | operator     |
-| Ctrl/⌘+,                | Settings                        | operator     |
-| Esc                     | Close a sheet or menu           | operator     |
+| Keys                    | Action                           | Scope        |
+| ----------------------- | -------------------------------- | ------------ |
+| → Page Down Space       | Next part                        | presentation |
+| ← Page Up Shift+Space   | Previous part                    | presentation |
+| ↓ ↑                     | Next / previous line             | presentation |
+| Home End                | First / last part                | presentation |
+| 1–9, two digits quickly | Jump to stanza _n_ (§5.1)        | presentation |
+| C                       | Jump to the chorus               | presentation |
+| R                       | Repeat this part                 | presentation |
+| U                       | Undo the last repeat             | presentation |
+| B or .                  | Blank the Output / restore       | presentation |
+| H                       | Light the whole song / the part  | presentation |
+| Shift+H                 | Hold the Output / release        | presentation |
+| Shift+E                 | End Live: close the Output       | presentation |
+| F, Esc                  | Leave presenting here (§16.7)    | presentation |
+| O                       | Open or focus the Output window  | operator     |
+| Shift+P                 | Present on this screen (§16.7)   | operator     |
+| N                       | Next tab (see below)             | operator     |
+| L                       | Show or hide Live Preview        | operator     |
+| / or Ctrl/⌘+K           | Search: songs (`>` for commands) | operator     |
+| Ctrl/⌘+Shift+P          | Search, in commands (§13.3)      | operator     |
+| + −                     | Operator text size               | operator     |
+| ?                       | Shortcut sheet                   | operator     |
+| Ctrl/⌘+,                | Settings                         | operator     |
+| Esc                     | Close a sheet or menu            | operator     |
 
 - **One table, two owners.** The table is data (`src/shell/keymap.ts`,
   `SHORTCUTS`), rendered by the `?` sheet and read by every other place a key
@@ -1913,23 +1962,25 @@ Operator shows it: the Live preview dims to the Output's ground, the Blank
 control reads **Restore**, the header's live button reads **Blanked**, and the
 command menu lists Blank or Restore.
 
-**Command menu** (Ctrl/⌘+K or `/`): one box over hymns and actions. It is the
-Finder (§13) with actions listed ahead of the hymn results: an action shows when
-every word typed starts a word of its name, so "bl" finds "Blank the Output". A
-number matches no action, so the Finder's fast path holds: `/`, a number, Enter.
-With the box empty, the actions show, each with its key. Actions: Blank or
-Restore the Output, Hold or Release the Output (while one is open), Open the
-Output Window (Bring the Output forward, while one is open), End Live (while one
-is open), Present on this screen (§16.7; not while an Output window is open),
-Repeat this part, Undo repeat and Reset repeat (while there is one to take
-back), Next tab, Split or merge the tabs and Make the other tab group main (only
-where two groups fit, from 1400px; they glide as the pane toolbar's do), Show or
-hide Live Preview, Show or hide each cue on the Output, Show the details now,
-the Output's band size, Light the whole song or only the current part, Scroll
-the song or Show the whole song, Fade or Keep the details, Switch hymnbook,
-Library, About (Settings scrolled to it), Settings, Text size up and down,
-Keyboard shortcuts, and a line to dismiss or act on a pending notice (Restart to
-update). Repeat and Undo repeat show R and U; Show the details now has no key.
+**Command menu** (Ctrl/⌘+Shift+P, or `>` first in Search): the Finder (§13) in
+its commands mode (§13.3), which lists commands only, never songs. A command
+shows when every word typed after the `>` starts a word of its name, so "bl"
+finds "Blank the Output". Search (Ctrl/⌘+K or `/`) opens in songs, so the fast
+path holds: `/`, a number, Enter. With only the `>` typed, every command shows,
+each with its key. Ctrl/⌘+Shift+P is Chrome's and Edge's to give; Firefox keeps
+it for a private window, so there `>` is the way. Commands: Blank or Restore the
+Output, Hold or Release the Output (while one is open), Open the Output Window
+(Bring the Output forward, while one is open), End Live (while one is open),
+Present on this screen (§16.7; not while an Output window is open), Repeat this
+part, Undo repeat and Reset repeat (while there is one to take back), Next tab,
+Split or merge the tabs and Make the other tab group main (only where two groups
+fit, from 1400px; they glide as the pane toolbar's do), Show or hide Live
+Preview, Show or hide each cue on the Output, Show the details now, the Output's
+band size, Light the whole song or only the current part, Scroll the song or
+Show the whole song, Fade or Keep the details, Switch hymnbook, Library, About
+(Settings scrolled to it), Settings, Text size up and down, Keyboard shortcuts,
+and a line to dismiss or act on a pending notice (Restart to update). Repeat and
+Undo repeat show R and U; Show the details now has no key.
 
 ### 16.6 Hold
 
@@ -2027,8 +2078,9 @@ the app's own tab, fullscreen, with the Operator's state its only source.
   `presentation` ones pass. `PresentHere` owns the rest: it takes, in the
   capture phase, the keys that would open a sheet over the audience (`?`,
   Ctrl/⌘+,), Go Live, End Live and Present here (O, Shift+E, Shift+P), the
-  switcher's keys, and every other Operator key (N, L, text size), which would
-  change the screen under the audience's view.
+  switcher's keys, Ctrl/⌘+Shift+P (commands would open a sheet), and every other
+  Operator key (N, L, text size), which would change the screen under the
+  audience's view.
 - **The quick switcher.** Ctrl/⌘+K or `/` opens the search field at the bottom
   centre, with no card (30rem at most, five matches at most, the box beneath the
   list), on a full-width band of the Output's ground over a blur that rises a
@@ -2037,13 +2089,14 @@ the app's own tab, fullscreen, with the Operator's state its only source.
   Output window's rule: shown while the mouse moves, hidden after about two
   seconds still. It is the command menu's Finder in a `compact` mode: the same
   number and lyric search over the song's own book, without recents, opening
-  songs or actions, and a number opens only a song that exists. Enter shows the
-  top match at once and closes the strip; Esc closes it. **Digits keep their
-  Operator meaning** (a stanza jump, §16.5): an operator jumps to a verse by
-  number mid-song, so the switcher opens by Ctrl/⌘+K or `/` only. Ctrl+K is the
-  chord because Ctrl+P is the browser's print and cannot be relied on to reach
-  the page. With no song up, the strip opens at once; otherwise nothing is laid
-  over the audience's screen unasked: no hint says where the switcher is.
+  songs only (it has no commands, so no modes, no heading, and a `>` is only a
+  character typed; §13.3), and a number opens only a song that exists. Enter
+  shows the top match at once and closes the strip; Esc closes it. **Digits keep
+  their Operator meaning** (a stanza jump, §16.5): an operator jumps to a verse
+  by number mid-song, so the switcher opens by Ctrl/⌘+K or `/` only. Ctrl+K is
+  the chord because Ctrl+P is the browser's print and cannot be relied on to
+  reach the page. With no song up, the strip opens at once; otherwise nothing is
+  laid over the audience's screen unasked: no hint says where the switcher is.
 - **Leaving.** F, or Esc with the switcher closed, leaves fullscreen and returns
   to the Operator at the same song and part, so does the browser's own Esc
   (`fullscreenchange`); where the Keyboard Lock API exists (Chromium) Esc is

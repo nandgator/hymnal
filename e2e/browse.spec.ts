@@ -15,7 +15,7 @@ const bigBook = makeBook(
   })),
 );
 
-const listbox = (page: Page) => page.getByRole("listbox", { name: "Matching songs and actions" });
+const listbox = (page: Page) => page.getByRole("listbox", { name: "Matching songs" });
 
 test("the Finder lists the whole book in a window: scroll to the end, open a late song", async ({
   page,
@@ -26,15 +26,16 @@ test("the Finder lists the whole book in a window: scroll to the end, open a lat
   const box = await openFinder(page);
   const options = listbox(page).getByRole("option");
 
-  // The list is the book and the actions, in a window: a few dozen options in the DOM.
-  // The actions list at once (22) and the book's songs a moment later (the worker reads
+  // The list is the book, in a window: a few dozen options in the DOM.
+  // The book's songs list a moment after opening (the worker reads
   // them): wait for the whole of it, not the first option that appears.
   await expect(options.first()).toHaveAttribute(
     "aria-setsize",
     new RegExp(`^\\d{${String(COUNT).length},}$`),
   );
   const total = Number(await options.first().getAttribute("aria-setsize"));
-  expect(total).toBeGreaterThan(COUNT);
+  // Songs only: the commands are a mode of their own (SDD-0001 §13.3).
+  expect(total).toBe(COUNT);
   expect(await options.count()).toBeLessThan(80);
 
   // End reaches the last song, and only the last songs are in the DOM.

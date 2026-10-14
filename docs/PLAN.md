@@ -64,7 +64,6 @@ Ordered. Top unblocked item is next.
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                      | maintainer: devices |
 | 67  | Sheet animation cost: sheet open has a ~90 ms long task (showModal + layout reads); a swap animates height and width on the main thread (performance watch, 2026-10-12). Low priority | —                   |
 | 68  | Search filter chips under the box (This book, All books, chosen books); default All books. Replaces the "Searching ..." line, which goes now (maintainer, 2026-10-13)                 | -                   |
-| 69  | Finder modes: songs by default, `>` or Ctrl+Shift+P switches to commands, each with a muted heading; songs and commands no longer mix (design chosen, 2026-10-13)                     | -                   |
 | 71  | Scroll edge fades: every scroll region fades its top and bottom edge in proportion to how far it can scroll (2026-10-13)                                                              | -                   |
 | 73  | Song-text check: local heuristics flag text that looks like code, maths or other non-song on review (a note, never a block); From Text and received books. ADR-0034                   | -                   |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks); removing one song from your books (its UI left with OwnSheet, ADR-0033 §6)                                               | —                   |
@@ -120,6 +119,11 @@ only, here:
 
 ## Log
 
+- 2026-10-14 — #69 done: the Finder has two modes (SDD-0001 §13.3): songs by
+  default, a `>` first (or Ctrl/⌘+Shift+P, Chrome and Edge only) lists commands
+  only; each list has a muted Songs or Commands heading, and the two never mix;
+  the quick switcher has no commands, so no modes; Backspace over the `>` is
+  songs again
 - 2026-10-14 — #72 done: Present Here by touch (SDD-0001 §16.7): a tap shows a
   quiet bar (Search, Previous, Next, Leave) that hides after ~3 s; a horizontal
   swipe steps through the keys' own path; touch and pen only, the mouse is
@@ -175,8 +179,3 @@ only, here:
   language's list (one PickList); an open list dims and blurs the card behind
   it; the review after From Text says Back; your books open like any book, with
   Rename… in the book's menu (removing one song waits for #14)
-- 2026-10-11 — #62–65, the maintainer's review of sheets and motion: a sheet
-  replacing another morphs an opaque card out of the old one over one constant
-  scrim; stacked sheets share the lowest one's scrim; a closing tab group
-  collapses in its slot, no gap; one hover highlight glides across all of
-  Settings, rows with controls too

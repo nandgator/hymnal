@@ -39,7 +39,9 @@ describe("App", () => {
   it("moves to Finder once the user chooses to find a hymn", async () => {
     render(() => <App />);
     await openFinder();
-    expect(await screen.findByPlaceholderText("Song number, lyrics or action")).toBeInTheDocument();
+    expect(
+      await screen.findByPlaceholderText("Find a song, or > for commands"),
+    ).toBeInTheDocument();
   });
 
   it("switches sections from the rail: Present, then back to the Library", async () => {
@@ -59,7 +61,7 @@ describe("App", () => {
     render(() => <App />);
     await openFinder();
 
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -84,7 +86,7 @@ describe("App", () => {
     expect(screen.queryByRole("combobox", { name: "Find a song" })).not.toBeInTheDocument();
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     fireEvent.click(button);
-    expect(await screen.findByRole("combobox", { name: "Find a song or action" })).toBeVisible();
+    expect(await screen.findByRole("combobox", { name: "Find a song or command" })).toBeVisible();
   });
 
   it("a digit typed on Present with no song up opens the Search sheet with it typed", async () => {
@@ -94,7 +96,7 @@ describe("App", () => {
 
     fireEvent.keyDown(window, { key: "2" });
 
-    const box = await screen.findByRole("combobox", { name: "Find a song or action" });
+    const box = await screen.findByRole("combobox", { name: "Find a song or command" });
     expect(box).toHaveValue("2");
   });
 
@@ -116,7 +118,7 @@ describe("App", () => {
   it("hot-swaps to another hymn from the switcher row, staying in the Presenter (SDD-0001 §16.4)", async () => {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -140,7 +142,7 @@ describe("App", () => {
     const books = within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
     fireEvent.click(books.getByRole("button", { name: /Mocked Hymnbook/ }));
 
-    expect(await screen.findAllByRole("combobox", { name: "Find a song or action" })).toHaveLength(
+    expect(await screen.findAllByRole("combobox", { name: "Find a song or command" })).toHaveLength(
       1,
     );
   });
@@ -148,7 +150,7 @@ describe("App", () => {
   it("Present with a hymn already up returns to it; the Hymnbooks picker has no Manage Books", async () => {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -248,7 +250,11 @@ describe("App", () => {
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const menu = await screen.findByRole("dialog", { name: "Search" });
-    expect(within(menu).getByRole("option", { name: /Blank the Output/ })).toBeInTheDocument();
+    // Songs by default: no command among them (SDD-0001 §13.3).
+    expect(within(menu).getByRole("heading", { name: "Songs" })).toBeInTheDocument();
+    expect(
+      within(menu).queryByRole("option", { name: /Blank the Output/ }),
+    ).not.toBeInTheDocument();
     // Ctrl+K again closes it, even from inside its text box.
     fireEvent.keyDown(within(menu).getByRole("combobox"), {
       key: "k",
@@ -270,7 +276,7 @@ describe("App", () => {
   it("steps with keys pressed in the Output window, even with a sheet open here", async () => {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -299,13 +305,13 @@ describe("App", () => {
   it("offers Repeat, then Undo repeat, in the command menu while presenting", async () => {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
     await screen.findByRole("img", { name: "Live output preview" });
 
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
     let menu = await screen.findByRole("dialog", { name: "Search" });
     expect(within(menu).queryByRole("option", { name: /Undo Repeat/ })).not.toBeInTheDocument();
     // Wide enough for two groups (jsdom matches every query): they're offered.
@@ -313,7 +319,7 @@ describe("App", () => {
     fireEvent.mouseDown(within(menu).getByRole("option", { name: /Repeat This Part/ }));
     expect(document.querySelector(".repeat-count")).toHaveTextContent(/^×2/);
 
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
     menu = await screen.findByRole("dialog", { name: "Search" });
     fireEvent.mouseDown(within(menu).getByRole("option", { name: /Undo Repeat/ }));
     expect(document.querySelector(".repeat-count")).toBeEmptyDOMElement();
@@ -322,7 +328,7 @@ describe("App", () => {
   /** Opens a hymn in the Presenter, the way a person would. */
   async function openHymn() {
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -339,7 +345,7 @@ describe("App", () => {
     render(() => <App />);
     await openHymn();
     fireEvent.keyDown(window, { key: "r" });
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
     const menu = await screen.findByRole("dialog", { name: "Search" });
     const hintOf = (name: RegExp) =>
       within(menu).getByRole("option", { name }).querySelector("kbd")?.textContent;
@@ -364,25 +370,77 @@ describe("App", () => {
     const menu = await screen.findByRole("dialog", { name: "Search" });
     const box = within(menu).getByRole("combobox");
 
-    fireEvent.input(box, { target: { value: "bl" } });
+    fireEvent.input(box, { target: { value: ">bl" } });
     expect(within(menu).getByRole("option", { name: /Blank the Output/ })).toBeInTheDocument();
 
-    fireEvent.input(box, { target: { value: "open the" } });
+    fireEvent.input(box, { target: { value: ">open the" } });
     expect(
       within(menu).getByRole("option", { name: /Open the Output Window/ }),
     ).toBeInTheDocument();
 
-    // Cleared, the actions and the book's songs are back.
+    // Cleared, it is the book's songs again, and no command.
     fireEvent.input(box, { target: { value: "" } });
-    expect(within(menu).getByRole("option", { name: /Blank the Output/ })).toBeInTheDocument();
+    expect(
+      within(menu).queryByRole("option", { name: /Blank the Output/ }),
+    ).not.toBeInTheDocument();
     expect(within(menu).getByRole("group", { name: "All songs" })).toBeInTheDocument();
+  });
+
+  it("opens Search in commands with Ctrl+Shift+P, in songs with Ctrl+K (SDD-0001 §13.3)", async () => {
+    tallWindow();
+    render(() => <App />);
+    await booksReady();
+
+    fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
+    const menu = await screen.findByRole("dialog", { name: "Search" });
+    const box = within(menu).getByRole("combobox");
+    expect(box).toHaveValue(">");
+    expect(within(menu).getByRole("heading", { name: "Commands" })).toBeInTheDocument();
+    expect(within(menu).getByRole("option", { name: /Blank the Output/ })).toBeInTheDocument();
+    expect(within(menu).queryByRole("group", { name: "All songs" })).not.toBeInTheDocument();
+    // Open already, it is left as it is; Ctrl+K closes it, as it does a Search in songs.
+    fireEvent.keyDown(box, { key: "P", ctrlKey: true, shiftKey: true });
+    expect(screen.getByRole("dialog", { name: "Search" })).toBeInTheDocument();
+    fireEvent.keyDown(box, { key: "k", ctrlKey: true });
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Search" })).not.toBeInTheDocument(),
+    );
+
+    // Ctrl+K opens it in songs, with no > in the box.
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const again = await screen.findByRole("dialog", { name: "Search" });
+    expect(within(again).getByRole("combobox")).toHaveValue("");
+    expect(within(again).getByRole("heading", { name: "Songs" })).toBeInTheDocument();
+    fireEvent.keyDown(within(again).getByRole("combobox"), { key: "k", ctrlKey: true });
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Search" })).not.toBeInTheDocument(),
+    );
+
+    // The Command key (a Mac) does the same, and Ctrl+P alone is the browser's print.
+    fireEvent.keyDown(window, { key: "p", ctrlKey: true });
+    expect(screen.queryByRole("dialog", { name: "Search" })).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "P", metaKey: true, shiftKey: true });
+    expect(await screen.findByRole("dialog", { name: "Search" })).toBeInTheDocument();
+  });
+
+  it("lists Ctrl+Shift+P in the shortcut sheet, with the browsers it works in", async () => {
+    render(() => <App />);
+    await booksReady();
+    fireEvent.keyDown(window, { key: "?" });
+    const sheet = await screen.findByRole("dialog", { name: "Keyboard Shortcuts" });
+    const row = within(sheet).getByText("Search commands").closest("tr") as HTMLElement;
+    expect(row).toHaveTextContent("Ctrl");
+    expect(row).toHaveTextContent("Shift");
+    expect(row).toHaveTextContent(/Chrome and Edge only/);
+    expect(row).toHaveTextContent(/Firefox keeps it for a private window/);
+    expect(within(sheet).getByText(/type > first for commands/)).toBeInTheDocument();
   });
 
   it("toggles the Output's reading band from the command menu, kept in preferences", async () => {
     render(() => <App />);
     await openHymn();
     const choose = async (name: RegExp) => {
-      fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+      fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
       const menu = await screen.findByRole("dialog", { name: "Search" });
       fireEvent.mouseDown(within(menu).getByRole("option", { name }));
     };
@@ -390,7 +448,7 @@ describe("App", () => {
     await choose(/Reading Band a Line/);
     await choose(/Reading Band a Part/);
     // Back to the default: the menu offers the line again.
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
     expect(
       within(await screen.findByRole("dialog", { name: "Search" })).getByRole("option", {
         name: /Reading Band a Line/,
@@ -465,13 +523,13 @@ describe("App", () => {
     );
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
     await screen.findByRole("img", { name: "Live output preview" });
 
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
     const menu = await screen.findByRole("dialog", { name: "Search" });
     expect(within(menu).getByRole("option", { name: /Next Tab/ })).toBeInTheDocument();
     expect(within(menu).queryByRole("option", { name: /the Tabs/ })).not.toBeInTheDocument();
@@ -482,7 +540,7 @@ describe("App", () => {
   it("blanks the Output with B and restores it with a second press (.)", async () => {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -551,7 +609,7 @@ describe("App", () => {
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const search = await screen.findByRole("dialog", { name: "Search" });
     const box = within(search).getByRole("combobox");
-    fireEvent.input(box, { target: { value: "keyboard" } });
+    fireEvent.input(box, { target: { value: ">keyboard" } });
     fireEvent.mouseDown(await within(search).findByRole("option", { name: /Keyboard Shortcuts/ }));
 
     // The one dialog stays open and slides: no second card, no closed backdrop.
@@ -561,7 +619,7 @@ describe("App", () => {
     fireEvent.click(within(search).getByRole("button", { name: "Back" }));
     expect(search).toHaveAttribute("aria-label", "Search");
     expect(search).toHaveAttribute("open");
-    expect(within(search).getByRole("combobox")).toHaveValue("keyboard");
+    expect(within(search).getByRole("combobox")).toHaveValue(">keyboard");
   });
 
   it("opens Settings on its first page, whatever page it was last closed on", async () => {
@@ -594,7 +652,7 @@ describe("App", () => {
   it("hides Live with L, remembered in preferences, and shows it again (SDD-0001 §16.4)", async () => {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);

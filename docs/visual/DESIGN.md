@@ -1164,16 +1164,16 @@ view is close enough to the frame to need a smaller unit.
   command name, sheet title, status (Go Live, On Air, Bring the Output Forward,
   Present Here); sentence case for what reads as a sentence — switch labels and
   their descriptions, field names, placeholders, tooltips, empty states (Find a
-  song or action, No recent songs yet). `titleCase()` titles the command menu.
-  Small-caps area titles stay uppercase. **Song titles** are Title Case wherever
-  shown (I Serve a Risen Savior; a bracketed subtitle starts afresh); content
-  keeps them in sentence case, which keeps which words are names, and a script
-  without case is left as it is. **Backup:** the noun is one word (the Backup
-  section, a backup, Backup from Sun, Sep 27); the verb is two (Back Up on the
-  button, per Title Case; back up in a sentence). **Ellipsis:** a command that
-  asks for more before it acts ends in one (Restore…, Rename…, Remove…, New
-  book…, Other…); a name that only opens a place does not (Load Books,
-  Settings); a status under way has one (Reading…, Packing…).
+  song, or > for commands; No recent songs yet). `titleCase()` titles the
+  command menu. Small-caps area titles stay uppercase. **Song titles** are Title
+  Case wherever shown (I Serve a Risen Savior; a bracketed subtitle starts
+  afresh); content keeps them in sentence case, which keeps which words are
+  names, and a script without case is left as it is. **Backup:** the noun is one
+  word (the Backup section, a backup, Backup from Sun, Sep 27); the verb is two
+  (Back Up on the button, per Title Case; back up in a sentence). **Ellipsis:**
+  a command that asks for more before it acts ends in one (Restore…, Rename…,
+  Remove…, New book…, Other…); a name that only opens a place does not (Load
+  Books, Settings); a status under way has one (Reading…, Packing…).
 - **Output: nothing ever bleeds off the screen.** The type is sized **per hymn**
   so its longest part fits between the 16% bands, then held for the whole hymn,
   so the text never changes size between parts. It's re-fitted on resize and
@@ -1490,11 +1490,12 @@ than one book sets each book's results under its title: one muted `label-large`
 line, ellipsized, with the line-height Malayalam conjuncts need. The current
 book's group is whole; another's shows five rows, then **More in _title_**, a
 quiet row (muted text under the song titles, a chevron after it) that opens the
-group in place without moving the highlight. The command menu's actions sit
-above, in a group with no heading. Search is always across all books; the
-field's placeholder says what to type, and no line under it names the scope.
-With one book there are no headings. In the quick switcher the headings are 13px
-and each book shows three rows.
+group in place without moving the highlight. The Finder has two modes, each with
+a muted `label-large` heading at the top of its list (**Songs**, **Commands**;
+SDD-0001 §13.3), and commands never sit among the songs. Search is always across
+all books; the field's placeholder says what to type, and no line under it names
+the scope. With one book there are no headings. In the quick switcher the
+headings are 13px and each book shows three rows.
 
 **Finder, a whole book** (SDD-0001 §13.2). Nothing typed, Recents sit on top and
 **All songs** below: every song of the book in one list that scrolls inside the

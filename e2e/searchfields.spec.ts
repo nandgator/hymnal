@@ -77,7 +77,10 @@ test("Search: the dialog holds its size while typing; the no-match card is centr
   await page.waitForTimeout(400);
   const where = await page.getByRole("dialog").evaluate((dialog) => {
     const card = dialog.querySelector(".empty-card")?.getBoundingClientRect();
-    const field = dialog.querySelector(".finder-form")?.getBoundingClientRect();
+    // What the field and the mode's heading under it leave.
+    const field = (
+      dialog.querySelector(".finder-mode") ?? dialog.querySelector(".finder-form")
+    )?.getBoundingClientRect();
     const content = dialog.querySelector(".sheet-content") as HTMLElement;
     // The content's own room: a notice over the sheet reserves clearance at its foot.
     const room =
@@ -112,7 +115,7 @@ test("Present with no song: a card and Find a Song, not an inline list; a digit 
   await expect(page.getByRole("listbox")).toHaveCount(0);
 
   await page.getByRole("button", { name: /^Find a Song/ }).click();
-  const box = page.getByRole("combobox", { name: "Find a song or action" });
+  const box = page.getByRole("combobox", { name: "Find a song or command" });
   await expect(box).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(box).toBeHidden();

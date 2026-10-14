@@ -84,8 +84,8 @@ export interface FinderProps {
   recentsVersion?: number;
   /** Called when the user wants to go back to hymnbook selection. */
   onBack?: () => void;
-  /** Actions listed ahead of the hymns — this makes the Finder the command
-   * menu (SDD-0001 §16.5). */
+  /** The commands a `>` first in the box lists, instead of songs — this gives the Finder its
+   * command mode (SDD-0001 §13.3, §16.5). Without them the Finder is songs only. */
   commands?: Command[];
   /** The quick switcher over a presenting screen (SDD-0001 §16.7): a few
    * matches for a number or words, nothing else — no recents, no opening
@@ -109,7 +109,7 @@ interface GroupRef {
   title: string;
 }
 
-const COMMANDS_GROUP: GroupRef = { id: "commands", title: "Actions" };
+const COMMANDS_GROUP: GroupRef = { id: "commands", title: "Commands" };
 
 /** The content of a book's "More in" row: a quiet line in the songs' columns, a chevron after it. */
 function MoreIn(props: { title: string }) {
@@ -213,14 +213,18 @@ export function Finder(props: FinderProps) {
   const songsExpected = () => read.loading || (hymns()?.length ?? 0) > 0;
 
   const [query, setQuery] = createSignal(props.initialQuery ?? "");
-  const trimmed = () => query().trim();
+  // Command mode (SDD-0001 §13.3): a `>` first in the box, with commands to list. The songs'
+  // side sees an empty box then, so songs and commands never mix.
+  const commandMode = () => !props.compact && !!props.commands && query().startsWith(">");
+  const commandText = () => (commandMode() ? query().slice(1).trim() : "");
+  const trimmed = () => (commandMode() ? "" : query().trim());
   const isNumber = () => /^\d+$/.test(trimmed());
 
   // The whole book while nothing is typed (SDD-0001 §13.2), in the order the book gives
   // (`listHymns`): by number, except Assorted Hymns, which lists its songs by language and
   // title (SDD-0004 §17). The Finder keeps that order, a group to a language where the book
   // has several; the list is windowed, so a book of any length costs the same to show.
-  const browsing = () => !props.compact && !trimmed();
+  const browsing = () => !props.compact && !trimmed() && !commandMode();
   const browseGroups = createMemo((): FinderGroup[] => {
     const all = hymns() ?? [];
     if (!browsing() || all.length === 0 || recentCount() === undefined) return [];
@@ -414,8 +418,8 @@ export function Finder(props: FinderProps) {
   const morePending = () => !props.compact && shownGroups().some((group) => group.more);
 
   const commandRows = createMemo((): Row[] =>
-    (props.commands ?? [])
-      .filter((command) => !isNumber() && matchesCommand(command.label, trimmed()))
+    (commandMode() ? (props.commands ?? []) : [])
+      .filter((command) => matchesCommand(command.label, commandText()))
       .map((command) => ({ kind: "command" as const, command, group: COMMANDS_GROUP })),
   );
 
@@ -450,7 +454,9 @@ export function Finder(props: FinderProps) {
   createEffect(() => {
     groups();
     commandRows();
-    setActiveIndex(trimmed() && !numberNotHere() ? 0 : undefined);
+    setActiveIndex(
+      (commandMode() ? !!commandText() : !!trimmed() && !numberNotHere()) ? 0 : undefined,
+    );
   });
 
   // The switcher's rows come and go with a motion (DESIGN.md § Output view): a
@@ -513,7 +519,9 @@ export function Finder(props: FinderProps) {
     if (!answered) return held;
     return lyricResults().groups.length === 0 ? lyricResults().text : undefined;
   });
-  const noMatch = () => emptyFor() !== undefined;
+  const noMatch = () =>
+    commandMode() ? !!commandText() && commandRows().length === 0 : emptyFor() !== undefined;
+  const emptyQuery = () => (commandMode() ? commandText() : emptyFor());
 
   // The groups on screen, in order, each row in its group. A leaving row (the switcher)
   // keeps its group until it is gone.
@@ -661,7 +669,7 @@ export function Finder(props: FinderProps) {
   const coveredAbove = () => {
     if (!formEl) return 0;
     const stick = Number.parseFloat(getComputedStyle(formEl).top);
-    const heading = headed() ? HEADING_REM * remPx() : 0;
+    const heading = headed() && !commandMode() ? HEADING_REM * remPx() : 0;
     return (Number.isFinite(stick) ? stick : 0) + formEl.offsetHeight + heading;
   };
   const activeShown = () => {
@@ -703,7 +711,7 @@ export function Finder(props: FinderProps) {
   });
   // A new plan changes the height: the window is read again. A new query starts at the top.
   createEffect(on(plan, () => win?.update(), { defer: true }));
-  createEffect(on(trimmed, () => win?.toStart(), { defer: true }));
+  createEffect(on([trimmed, commandMode], () => win?.toStart(), { defer: true }));
   // The status line that ends a group which pages asks for the next page when it comes
   // within reach, a window's overscan from the view.
   createEffect(() => {
@@ -726,7 +734,7 @@ export function Finder(props: FinderProps) {
     const page = () =>
       Math.max(1, Math.floor((win?.viewport() ?? 600) / (OPTION_REM * remPx())) - 1);
     // Home and End are the box's own caret keys once something is typed (Ctrl takes them).
-    const ends = windowedList && (!trimmed() || event.ctrlKey || event.metaKey);
+    const ends = windowedList && (!query().trim() || event.ctrlKey || event.metaKey);
     if (event.key === "ArrowDown" && count) {
       event.preventDefault();
       // The last row of a search with pages to come waits for them, rather than wrapping.
@@ -765,12 +773,14 @@ export function Finder(props: FinderProps) {
   // dialog around it holds its size (Sheet `fixed`). Paging more in, or scrolling, is no new
   // set; the switcher has its own motion for its rows.
   const matchSet = createMemo(() =>
-    groups()
-      .map((g) => {
+    [
+      commandMode() ? "commands" : "songs",
+      ...commandRows().map((row) => (row.kind === "command" ? row.command.label : "")),
+      ...groups().map((g) => {
         const nums = g.items.map((item) => item.number);
         return `${g.id}:${nums.length}:${nums.slice(0, 3)}:${nums.slice(-2)}`;
-      })
-      .join("|"),
+      }),
+    ].join("|"),
   );
   createEffect(
     on(
@@ -886,24 +896,39 @@ export function Finder(props: FinderProps) {
             // No Find button: results show as you type, and Enter (or a
             // phone keyboard's Search key) submits (DESIGN.md § Structure).
             enterkeyhint="search"
-            placeholder={props.commands ? "Song number, lyrics or action" : "Song number or lyrics"}
-            aria-label={props.commands ? "Find a song or action" : "Find a song"}
+            placeholder={
+              !props.commands
+                ? "Song number or lyrics"
+                : commandMode()
+                  ? "Find a command"
+                  : "Find a song, or > for commands"
+            }
+            aria-label={props.commands ? "Find a song or command" : "Find a song"}
           />
           <ClearSearch visible={query() !== ""} onClear={() => setQuery("")} />
         </div>
       </form>
 
+      {/* Which mode the list is in (SDD-0001 §13.3). The switcher has one mode, so no heading. */}
+      <Show when={props.commands && !props.compact}>
+        <h2 class="finder-mode label-large on-surface-variant">
+          {commandMode() ? "Commands" : "Songs"}
+        </h2>
+      </Show>
+
       <Show when={noMatch()}>
         <EmptyCard
           kind="results"
-          title={`No matches for “${emptyFor()}”`}
+          title={`No matches for “${emptyQuery()}”`}
           ref={(el) => !props.compact && riseIn(el)}
         >
-          Try a song number, or other words from the lyrics.
+          {commandMode()
+            ? "Try other words from a command’s name."
+            : "Try a song number, or other words from the lyrics."}
         </EmptyCard>
       </Show>
 
-      <Show when={!trimmed() && !props.compact}>
+      <Show when={!trimmed() && !props.compact && !commandMode()}>
         {/* Recents is there while it has entries (or while there are no songs
             to show instead); its own count says which. */}
         <section hidden={recentCount() === undefined || (recentCount() === 0 && songsExpected())}>
@@ -928,7 +953,7 @@ export function Finder(props: FinderProps) {
         class="list glide-list"
         classList={{ "finder-windowed": !props.compact }}
         role="listbox"
-        aria-label={props.commands ? "Matching songs and actions" : "Matching songs"}
+        aria-label={commandMode() ? "Matching commands" : "Matching songs"}
         onMouseLeave={() => setActiveIndex(undefined)}
         // A failed page is tried again by a tap on its line.
         onMouseDown={(event) => {
