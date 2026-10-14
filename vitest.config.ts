@@ -57,6 +57,9 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    // Every core by default. VITEST_MAX_WORKERS caps it (a count, or a share
+    // such as "50%") to leave the machine usable while something else runs.
+    maxWorkers: process.env.VITEST_MAX_WORKERS || undefined,
     projects: [
       {
         extends: true,
