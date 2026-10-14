@@ -151,6 +151,7 @@ export function ScopeChips(props: ScopeChipsProps) {
         onMouseDown={keepFocus}
         onClick={() => props.onAll()}
       >
+        <span class="scope-chip-check icon icon-check" aria-hidden="true" />
         All Books
       </button>
       <Show when={props.canThis}>
@@ -162,6 +163,7 @@ export function ScopeChips(props: ScopeChipsProps) {
           onMouseDown={keepFocus}
           onClick={() => props.onThis()}
         >
+          <span class="scope-chip-check icon icon-check" aria-hidden="true" />
           This Book
         </button>
       </Show>
@@ -175,6 +177,7 @@ export function ScopeChips(props: ScopeChipsProps) {
         ref={booksChip}
         onClick={toggle}
       >
+        <span class="scope-chip-check icon icon-check" aria-hidden="true" />
         {props.mode === "books" ? booksLabel(props.keys?.length ?? 0) : "Books…"}
       </button>
       <Show when={open()}>

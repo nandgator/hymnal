@@ -1493,10 +1493,42 @@ input[type="checkbox"].switch:disabled {
 }
 
 .scope-chip {
+  gap: 0;
   flex: 0 1 auto;
   min-width: 0;
   white-space: nowrap;
   cursor: pointer;
+}
+
+/* Selected is more than a tone (WCAG 1.4.1): a check slides in before the label and the chip
+   widens, and a ring in the tone's own text colour holds 3:1 against the chip and the
+   surface in both themes. Under reduced motion the check is there at once. */
+.scope-chip-check {
+  flex: none;
+  width: 0;
+  height: 1.125rem;
+  margin-inline-end: 0;
+  opacity: 0;
+  transition:
+    width var(--motion-medium) var(--motion-emphasized),
+    margin-inline-end var(--motion-medium) var(--motion-emphasized),
+    opacity var(--motion-medium) var(--motion-standard);
+}
+
+.scope-chip[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1.5px var(--md-sys-color-on-secondary-container);
+}
+
+.scope-chip[aria-pressed="true"] .scope-chip-check {
+  width: 1.125rem;
+  margin-inline-end: var(--space-xs);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scope-chip-check {
+    transition: none;
+  }
 }
 
 /* The Books… checklist: a menu's popover with checkboxes and a Done at its foot. */
