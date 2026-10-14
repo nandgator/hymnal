@@ -804,6 +804,12 @@ button:disabled {
   gap: var(--space-md);
 }
 
+/* Search hides a row, a group or a section with `hidden`; their own display would win over
+   the browser's rule for it. */
+:is(.settings-section, .settings-group, .settings-row, .settings-link)[hidden] {
+  display: none;
+}
+
 .settings-section {
   position: relative;
   isolation: isolate;
@@ -5724,6 +5730,7 @@ fieldset.book-main {
 .sheet.sheet-steady {
   min-height: min(var(--sheet-hold, 34rem), 88dvh);
 }
+/*FIXED-HOLD*/
 .skeleton-title-sm {
   width: 8rem;
   height: 2.25rem;
