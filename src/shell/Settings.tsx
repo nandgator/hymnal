@@ -39,9 +39,9 @@ import {
   outputCuesOf,
   type Preferences,
   pinChorusOf,
+  touchLockOf,
   type UserState,
   type UserStateHandle,
-  touchLockOf,
   wholeSongOf,
 } from "../persistence/user-state.ts";
 import { About } from "./About.tsx";

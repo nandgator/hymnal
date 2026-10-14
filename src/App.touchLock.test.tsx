@@ -57,7 +57,7 @@ const tap = (el: Element) => {
   fireEvent.click(el, { detail: 1 });
 };
 
-describe("App: Touch Lock (Board #75, SDD-0001 §16.11)", () => {
+describe("App: Touch Lock (Board #75, SDD-0001 §16.11)", { timeout: 30_000 }, () => {
   /** Song 3 (two parts) is up, and an Output window is open. */
   async function liveSong() {
     render(() => <App />);

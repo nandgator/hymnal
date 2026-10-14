@@ -63,7 +63,6 @@ Ordered. Top unblocked item is next.
 | 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                                                                                                                                                                                                                                                                                          | another machine     |
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                                                                                                                                                                                                                                                  | maintainer: devices |
 | 67  | Sheet open cost left (measured 2026-10-14, Log): the first layout of Settings content at showModal; mounting its below-the-fold sections after the first frame would cut it but moves the morph target. The scrim blur is the frame cost. Low priority                                                                                                                                                            | —                   |
-| 75  | Touch lock while live (not Hold: everything passes, but only on purpose): one switch in Settings and Live's toolbar, off out of the box, then remembered; locked, a tap or click that would change the Output does nothing, a ~0.5 s press does it ("Press and hold to show"); guards every Output change; keys and clicker exempt (maintainer, 2026-10-14)                                                       | -                   |
 | 76  | Settings reset and profiles for a roster: a ↺ by a changed setting's title (as Zed) and Reset All with Undo, settings only; two layers, the room (the Output's look and screen, shared) and personal profiles over the defaults (Operator look, panes, scroll, highlight, scope, touch lock), each savable as a JSON file; Recents shared; while Live, Output settings wait for End Live (maintainer, 2026-10-14) | -                   |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks); removing one song from your books (its UI left with OwnSheet, ADR-0033 §6)                                                                                                                                                                                                                                                                           | —                   |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                                                                                                                                                                                                                                                     | —                   |
@@ -118,6 +117,11 @@ only, here:
 
 ## Log
 
+- 2026-10-14 — #75 done: Touch Lock (SDD-0001 §16.11), one remembered switch
+  (Settings, Live toolbar, command); while live a tap on a guarded control
+  (`data-output-guard`, one controller in `touchLock.ts`) is swallowed with
+  "Press and hold to show", a 500 ms press with a ring acts; keys and clicks no
+  pointer made pass; Present Here's swipe does nothing while locked
 - 2026-10-14 — #67 measured, no code change (Chromium, 10 reps, 4x CPU at
   390x844 and unthrottled at 1280x800): a sheet opens in one 50-180 ms task (4x)
   of which showModal's first style and layout of the mounted content is the
@@ -175,9 +179,3 @@ only, here:
   for backup/back up and the ellipsis (DESIGN.md § Words); More in is a quiet
   row with a chevron; scroll regions fade their edges (scrollFade.ts; a
   scroll-driven animation, a rAF helper in Firefox). Board #68 chips not built
-- 2026-10-13 — follow-ups: `shownBox` no longer hands a `NaNpx` to a glide when
-  the layer has no computed size (the one source found; the warning did not
-  reproduce in 40 sheet swaps, so unconfirmed); the 2 s Output-position poll and
-  the 30 s Recents refresh pause while the page is hidden and catch up on return
-  (`visibleInterval`); the Firefox-only browse e2e flake was the test's single
-  9000px wheel (Firefox scrolls it 542 or 9296 px), not the window

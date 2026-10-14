@@ -7,10 +7,10 @@ import {
   bandSizeOf,
   cleanUserDoc,
   DEFAULT_PREFERENCES,
-  touchLockOf,
   goLiveOf,
   openUserState,
   type SearchScope,
+  touchLockOf,
   type UserStateHandle,
 } from "./user-state.ts";
 
