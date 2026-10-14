@@ -61,6 +61,7 @@ import {
   highlightOf,
   outputCuesOf,
   pinChorusOf,
+  touchLockOf,
   userState,
   wholeSongOf,
 } from "./persistence/user-state.ts";
@@ -95,6 +96,7 @@ import { SwapLabel } from "./shell/SwapLabel.tsx";
 import { installScrollFade } from "./shell/scrollFade.ts";
 import { installScrollReveal } from "./shell/scrollReveal.ts";
 import { type Shared, TabGate } from "./shell/TabGate.tsx";
+import { installTouchLock, setTouchLockActive } from "./shell/touchLock.ts";
 import {
   homeScreenHintHere,
   isScreenNotice,
@@ -373,6 +375,15 @@ function Operator(props: Shared) {
       { defer: true },
     ),
   );
+  // Touch Lock (SDD-0001 §16.11): one remembered switch, shared by Settings and
+  // Live's toolbar. In force only while an Output is up, in a window or here.
+  const touchLock = () => touchLockOf(preferences.preferences());
+  const toggleTouchLock = () =>
+    preferences.update({ ...preferences.preferences(), touchLock: !touchLock() });
+  const touchLocked = () => touchLock() && (presentingOutput() || presentingHere());
+  const lockNote = (title: string) => (touchLocked() ? `${title} Touch Lock is on.` : title);
+  onMount(() => onCleanup(installTouchLock()));
+  createEffect(() => setTouchLockActive(touchLocked()));
   // End Live (SDD-0001 §16.4): the Output window closes; Go Live opens it
   // again. The window's own bye is what turns the header back to Go Live.
   const endLive = () => {
@@ -1097,13 +1108,19 @@ function Operator(props: Shared) {
               : []),
       {
         label: blanked() ? "Restore the Output" : "Blank the Output",
+        guard: true,
         hint: keyHint("blank"),
         run: run(toggleBlank),
+      },
+      {
+        label: touchLock() ? "Turn off Touch Lock" : "Turn on Touch Lock",
+        run: run(toggleTouchLock),
       },
       ...(held() || presentingOutput()
         ? [
             {
               label: held() ? "Release the Output" : "Hold the Output",
+              guard: true,
               hint: keyHint("hold"),
               run: run(toggleHold),
             },
@@ -1119,12 +1136,13 @@ function Operator(props: Shared) {
             },
           ]),
       ...(presentingOutput()
-        ? [{ label: "End Live", hint: keyHint("end-live"), run: run(endLive) }]
+        ? [{ label: "End Live", guard: true, hint: keyHint("end-live"), run: run(endLive) }]
         : []),
       ...(canPresentHere()
         ? [
             {
               label: "Present on this screen",
+              guard: true,
               hint: keyHint("present-here"),
               run: run(presentHere),
             },
@@ -1134,6 +1152,7 @@ function Operator(props: Shared) {
         ? [
             {
               label: "Repeat this part",
+              guard: true,
               hint: keyHint("repeat"),
               run: run(() => presenterActions()?.repeat()),
             },
@@ -1141,6 +1160,7 @@ function Operator(props: Shared) {
               ? [
                   {
                     label: "Undo repeat",
+                    guard: true,
                     hint: keyHint("undo-repeat"),
                     run: run(() => presenterActions()?.undoRepeat()),
                   },
@@ -1150,6 +1170,7 @@ function Operator(props: Shared) {
               ? [
                   {
                     label: "Reset repeat",
+                    guard: true,
                     run: run(() => presenterActions()?.resetRepeats()),
                   },
                 ]
@@ -1524,8 +1545,14 @@ function Operator(props: Shared) {
                 }}
                 aria-keyshortcuts={ariaKeys("output")}
                 disabled={!canGoLive()}
-                aria-description={!canGoLive() ? "Load a songbook first" : undefined}
-                title={
+                aria-description={
+                  !canGoLive()
+                    ? "Load a songbook first"
+                    : touchLocked()
+                      ? "Touch Lock is on"
+                      : undefined
+                }
+                title={lockNote(
                   !canGoLive()
                     ? "Load a songbook first"
                     : !presentingOutput()
@@ -1536,8 +1563,8 @@ function Operator(props: Shared) {
                         ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
                         : held()
                           ? `The Output is held${expanded() ? `; ${keyHint("hold")} releases it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
-                          : withKey("Bring the Output forward", "output", expanded())
-                }
+                          : withKey("Bring the Output forward", "output", expanded()),
+                )}
                 onClick={() => (presentingOutput() ? void openOutput() : goLive())}
               >
                 {/* The state's glyph, turning over as it changes: Go Live's
@@ -1560,6 +1587,10 @@ function Operator(props: Shared) {
                           : "On Air"
                   }
                 />
+                {/* Touch Lock in force (SDD-0001 §16.11): a badge, so the button never resizes. */}
+                <Show when={touchLocked()}>
+                  <span class="icon icon-lock live-lock-badge" aria-hidden="true" />
+                </Show>
               </button>
             </div>
           </header>
@@ -1648,6 +1679,8 @@ function Operator(props: Shared) {
                   onToggleBlank={toggleBlank}
                   held={held()}
                   onToggleHold={toggleHold}
+                  touchLock={touchLock()}
+                  onToggleTouchLock={toggleTouchLock}
                   onEndLive={endLive}
                   onPresentHere={switchToHere}
                   outputWindow={presentingOutput()}

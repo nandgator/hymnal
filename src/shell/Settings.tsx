@@ -39,6 +39,7 @@ import {
   outputCuesOf,
   type Preferences,
   pinChorusOf,
+  touchLockOf,
   type UserState,
   type UserStateHandle,
   wholeSongOf,
@@ -123,6 +124,10 @@ export const SETTING_COPY = {
   fade: {
     title: "Fade the details",
     hint: "The number, title and the rest fade after a few seconds and return when the song changes.",
+  },
+  touchLock: {
+    title: "Touch Lock",
+    hint: "While live, a tap does not change the Output: press and hold for half a second. Keys and clickers are not affected.",
   },
   scrollSync: {
     title: "Scrolling the Output moves this screen",
@@ -846,6 +851,22 @@ export function Settings(props: SettingsProps) {
             </label>
           </Disclosure>
         </div>
+        <label class="settings-row">
+          <span class="settings-label">
+            {SETTING_COPY.touchLock.title}
+            <span class="settings-supporting">{SETTING_COPY.touchLock.hint}</span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            class="switch"
+            checked={touchLockOf(preferences())}
+            aria-checked={touchLockOf(preferences())}
+            onChange={(event) =>
+              update({ ...preferences(), touchLock: event.currentTarget.checked })
+            }
+          />
+        </label>
       </section>
 
       <section class="settings-section" id="settings-backup" aria-labelledby={`${id}-backup`}>

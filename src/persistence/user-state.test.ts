@@ -10,6 +10,7 @@ import {
   goLiveOf,
   openUserState,
   type SearchScope,
+  touchLockOf,
   type UserStateHandle,
 } from "./user-state.ts";
 
@@ -312,6 +313,7 @@ describe("damage: fields read one by one (SDD-0001 §11.1)", () => {
         highlight: "song",
         goLive: "projector",
         pinChorus: "yes",
+        touchLock: "on",
         outputScreen: { label: "x" },
         panes: { a: true, b: 1 },
         outputCues: { number: true, title: "no", bogus: true },
@@ -324,6 +326,12 @@ describe("damage: fields read one by one (SDD-0001 §11.1)", () => {
       panes: { a: true },
       outputCues: { number: true, part: true },
     });
+  });
+
+  it("keeps Touch Lock as a boolean, off when absent or wrong (SDD-0001 §16.11)", async () => {
+    expect(touchLockOf(DEFAULT_PREFERENCES)).toBe(false);
+    await state.setPreferences({ ...DEFAULT_PREFERENCES, touchLock: true });
+    expect(touchLockOf(await openUserState(dbName).getPreferences())).toBe(true);
   });
 
   it("reads a record that is not an object as the empty document", async () => {

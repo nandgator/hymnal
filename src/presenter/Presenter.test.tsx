@@ -914,7 +914,13 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
     const toolbar = screen.getByRole("toolbar", { name: "Output controls" });
     const names = [...toolbar.querySelectorAll("button")].map((b) => b.textContent);
-    expect(names).toEqual(["BlankRestore", "HoldRelease", "Present Here", "End Live"]);
+    expect(names).toEqual([
+      "BlankRestore",
+      "HoldRelease",
+      "Touch Lock",
+      "Present Here",
+      "End Live",
+    ]);
     // One row under the preview (not in the heading), each member with an
     // icon and a label, each the transport's tonal button.
     expect(toolbar.parentElement).toHaveClass("stage-live-bar");
@@ -950,6 +956,7 @@ describe("Presenter", () => {
     expect([...toolbar.querySelectorAll("button")].map((b) => b.textContent)).toEqual([
       "BlankRestore",
       "HoldRelease",
+      "Touch Lock",
       "Present Here",
       "End Live",
     ]);
@@ -973,7 +980,7 @@ describe("Presenter", () => {
     ));
     await screen.findByText("Test Hymn");
     const toolbar = screen.getByRole("toolbar", { name: "Output controls" });
-    expect(toolbar.querySelectorAll("button")).toHaveLength(4);
+    expect(toolbar.querySelectorAll("button")).toHaveLength(5);
     const here = screen.getByRole("button", { name: /^Present Here/ });
     expect(here).toBeEnabled();
     expect(here).toHaveAttribute("title", expect.not.stringContaining("closing"));
