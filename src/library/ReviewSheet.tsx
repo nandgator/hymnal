@@ -621,7 +621,9 @@ export function ReviewSheet(props: ReviewSheetProps) {
                     <For each={review().notes}>
                       {(note) => (
                         <li>
-                          <b>{note.title}</b> <span class="num">{note.number}</span>: {note.message}
+                          <span class="num">{note.number}</span> <b>{note.title}</b>
+                          <br />
+                          {note.message}
                         </li>
                       )}
                     </For>
