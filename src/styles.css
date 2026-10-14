@@ -895,7 +895,8 @@ button:disabled {
     visibility 0s linear var(--motion-medium);
 }
 
-.settings-disclosure[data-open="true"] {
+.settings-disclosure[data-open="true"],
+.settings-disclosure[data-search="open"] {
   grid-template-rows: 1fr;
   opacity: 1;
   visibility: visible;
@@ -919,7 +920,8 @@ button:disabled {
       visibility 0s linear var(--motion-medium);
   }
 
-  .settings-disclosure[data-open="true"] {
+  .settings-disclosure[data-open="true"],
+.settings-disclosure[data-search="open"] {
     transition-delay: 0s;
   }
 }
