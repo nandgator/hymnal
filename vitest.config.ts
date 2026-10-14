@@ -29,6 +29,8 @@ const DOM_FREE = [
   "src/import/read/pdf.test.ts",
   "src/import/read/pptx.test.ts",
   "src/import/report.test.ts",
+  "src/import/songcheck/corpus.test.ts",
+  "src/import/songcheck/songcheck.test.ts",
   "src/import/songtext.test.ts",
   "src/import/source.test.ts",
   "src/library/textbook.test.ts",

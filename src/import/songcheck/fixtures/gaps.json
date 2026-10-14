@@ -1,0 +1,33 @@
+{
+  "about": "What the labelled set (ADR-0034 section 1) does not hold, and why. Nothing here was filled by invention: where no public-domain or openly licensed song text could be sourced, the script or language is listed instead.",
+  "songScriptsMissing": [
+    { "script": "Laoo", "name": "Lao", "reason": "No Lao Wikisource; the Lao Bibles on eBible.org are not redistributable. UDHR prose only." },
+    { "script": "Thaa", "name": "Thaana (Dhivehi)", "reason": "The Dhivehi Bible on eBible.org is not redistributable; no Thaana Wikisource. UDHR prose only." },
+    { "script": "Syrc", "name": "Syriac", "reason": "The only Syriac-script Bible (aii, Assyrian Neo-Aramaic) is CC BY-NC-ND, not open enough. No UDHR in Syriac script." },
+    { "script": "Cher", "name": "Cherokee", "reason": "No public-domain Cherokee song or Psalm text could be retrieved; UDHR prose only." },
+    { "script": "Cans", "name": "Canadian syllabics", "reason": "The Cree and Inuktitut Bibles on eBible.org are not redistributable. No UDHR retrieved." },
+    { "script": "Tfng", "name": "Tifinagh", "reason": "The Tarifit Bible (rift) is CC BY-NC-ND. The UDHR file in Tifinagh has no articles in the shared format." },
+    { "script": "Vaii", "name": "Vai", "reason": "No song text sourced; UDHR prose only." },
+    { "script": "Nkoo", "name": "N'Ko", "reason": "No UDHR or song text sourced in N'Ko." },
+    { "script": "Mong", "name": "Mongolian (vertical script)", "reason": "No open song text sourced; the UDHR file in the Mongolian script has no articles in the shared format." }
+  ],
+  "topLanguagesMissingSong": [
+    { "language": "Nigerian Pidgin", "reason": "No open song text sourced. UDHR prose only." },
+    { "language": "Egyptian Arabic", "reason": "No open song text sourced; Standard Arabic is in the set." },
+    { "language": "Western Punjabi (Shahmukhi)", "reason": "No open song text sourced; Eastern Punjabi (Gurmukhi) is in the set. UDHR prose only." },
+    { "language": "Wu Chinese", "reason": "No open song text sourced." },
+    { "language": "Cantonese", "reason": "Written Chinese in both scripts is in the set (Union Version); no Cantonese-written song. UDHR prose only." },
+    { "language": "Javanese", "reason": "No open song text sourced. UDHR prose only." },
+    { "language": "Bhojpuri", "reason": "No open song text sourced. UDHR prose only." },
+    { "language": "Maithili", "reason": "No open song text sourced." },
+    { "language": "Amharic", "reason": "The eBible.org Amharic text is not clearly openly licensed. Ethiopic script is covered by Gamo and Male (CC BY-SA 4.0)." },
+    { "language": "Pashto, Sindhi, Uzbek, Hausa-Ajami and others past the top 40", "reason": "Out of the top 40 or no open song text sourced." }
+  ],
+  "limits": [
+    "Most songs are Psalms or the Magnificat from open Bibles, laid out as lines: the open text that exists in the most languages. Hymns proper are English, Malayalam, Armenian, Georgian, Turkish, Greek, Portuguese, Spanish, Indonesian, Polish, Urdu, Bengali, Hindi, Telugu, Gujarati, Odia, Japanese and Hebrew, from Wikisource.",
+    "Sanskrit stands in for Khmer, Sinhala, Tibetan, Thai and Burmese scripts (Magnificat from SanskritBible.in, CC BY-SA 4.0): the script is real and in use for those languages, the language is not.",
+    "Urdu in Devanagari (urd-deva-ps23) is an Urdu Bible printed in Devanagari, kept as a trait case.",
+    "Psalm lines are often verse-long, so they are a hard case against prose, which is the point.",
+    "A few songs are derived from another by a mechanical change (emoji at line ends, repeat marks, CRLF, lowercased); they carry derivedFrom."
+  ]
+}
