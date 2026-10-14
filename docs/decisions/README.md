@@ -44,6 +44,7 @@ superseded in part says which part.
 | [0031](0031-assorted-hymns-the-persons-own-book.md)                 | Assorted Hymns: the person's own book of single songs             | Superseded by [0033](0033-your-books-the-ones-you-make.md)                                        |
 | [0032](0032-one-search-the-finder-searches-every-source.md)         | One search: the Finder searches every source                      | Accepted                                                                                          |
 | [0033](0033-your-books-the-ones-you-make.md)                        | Your books: the books you make grow, the books you receive do not | Accepted                                                                                          |
+| [0034](0034-tell-song-text-by-local-heuristics.md)                  | Tell song text from other text by local heuristics                | Accepted                                                                                          |
 
 ## Open questions
 
