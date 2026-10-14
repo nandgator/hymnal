@@ -13,6 +13,14 @@ const running = new WeakMap<Element, Animation>();
  */
 export function riseIn(el: Element | null | undefined): void {
   if (!el || typeof el.animate !== "function") return;
+  // A `ref` runs before the element is in the page: an animation started there never plays
+  // (it sat at its first frame). Once it is in.
+  if (el.isConnected === false) {
+    queueMicrotask(() => {
+      if (el.isConnected) riseIn(el);
+    });
+    return;
+  }
   running.get(el)?.cancel();
   const still =
     typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;

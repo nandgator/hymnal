@@ -37,6 +37,17 @@ describe("riseIn", () => {
     expect(cancel).toHaveBeenCalledOnce();
   });
 
+  it("waits until an element is in the page, then plays (a card's ref runs before it is attached)", async () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: false }));
+    const animate = vi.fn(() => ({ finished: Promise.resolve(), cancel: vi.fn() }));
+    const el = { animate, isConnected: false } as unknown as HTMLElement;
+    riseIn(el);
+    expect(animate).not.toHaveBeenCalled();
+    Object.defineProperty(el, "isConnected", { value: true });
+    await Promise.resolve();
+    expect(animate).toHaveBeenCalledOnce();
+  });
+
   it("does nothing without an element or Web Animations", () => {
     expect(() => riseIn(undefined)).not.toThrow();
     expect(() => riseIn({} as HTMLElement)).not.toThrow();
