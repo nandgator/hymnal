@@ -5453,6 +5453,15 @@ fieldset.book-main {
 :is(.lib, .review) .callout-bad .icon {
   color: inherit;
 }
+.callout-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
 .callout-quiet {
   background: none;
   padding-inline: var(--space-xs);

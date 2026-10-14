@@ -17,8 +17,12 @@ const no = (reason: string): SongCheck => ({ ok: false, reason });
 const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
 /** One user-perceived character at a time. */
-const split = (text: string): string[] => Array.from(graphemes.segment(text), (s) => s.segment);
+const split = (text: string): string[] =>
+  // Plain Latin text has no combining mark or joiner, so each code point is one grapheme.
+  PLAIN.test(text) ? Array.from(text) : Array.from(graphemes.segment(text), (s) => s.segment);
 
+/** Basic Latin to Latin Extended-B: no mark or joiner can join a character to the next. */
+const PLAIN = /^[\u0020-\u02ff]*$/;
 const EMOJI = /\p{Extended_Pictographic}|\p{Regional_Indicator}|\p{Emoji_Presentation}/u;
 const DIGIT = /\p{Nd}/u;
 /** Space, and the zero-width characters that are never a sign of anything. */
