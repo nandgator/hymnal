@@ -12,9 +12,15 @@ export const FADE_REGIONS = [
   ".sheet-content",
   ".sequence",
   ".stage .parts-navigator > section",
-  ".pick-list",
   ".present-switcher .finder",
 ];
+
+/**
+ * Floating lists (menus, pickers) fade the same way but not by a mask, which would clip their
+ * shadow: sticky strips of their own surface lie over the first and last rows, and their opacity
+ * is the fade. The helper sets `--strip-a` and `--strip-b` on them.
+ */
+export const FADE_STRIP_REGIONS = [".menu-popover", ".pick-list"];
 
 /** The distance (px) over which a fade grows from nothing to full. Keep in step with styles.css. */
 export const FADE_RAMP = 24;
@@ -44,13 +50,16 @@ export function fadeStrengths(scrollTop: number, scrollHeight: number, clientHei
 
 /**
  * The fallback for browsers without scroll-driven animations: sets `--fade-a` and
- * `--fade-b` on each region, which the shared CSS rule turns into its two edge fades. One
+ * `--fade-b` on each region (`--strip-a` and `--strip-b` on a floating list), which the shared CSS
+ * rules turn into its two edge fades. One
  * passive capturing scroll listener for the document, one rAF per frame whatever the
  * number of events, and a layout read (three numbers) only for the region that scrolled;
  * every region is looked at again only when the DOM or the window changes.
  */
 export function installScrollFade(): void {
   if (typeof CSS === "undefined" || CSS.supports?.("animation-timeline: scroll()")) return;
+  const regionSelector = [...FADE_REGIONS, ...FADE_STRIP_REGIONS].join(", ");
+  const stripSelector = FADE_STRIP_REGIONS.join(", ");
   const last = new WeakMap<Element, string>();
   const pending = new Set<Element>();
   let all = false;
@@ -61,12 +70,13 @@ export function installScrollFade(): void {
     const key = `${a.toFixed(3)} ${b.toFixed(3)}`;
     if (last.get(el) === key) return;
     last.set(el, key);
-    (el as HTMLElement).style.setProperty("--fade-a", String(a));
-    (el as HTMLElement).style.setProperty("--fade-b", String(b));
+    const names = el.matches(stripSelector) ? ["--strip-a", "--strip-b"] : ["--fade-a", "--fade-b"];
+    (el as HTMLElement).style.setProperty(names[0] as string, String(a));
+    (el as HTMLElement).style.setProperty(names[1] as string, String(b));
   };
   const run = () => {
     frame = 0;
-    const regions = all ? document.querySelectorAll(FADE_REGIONS.join(", ")) : pending;
+    const regions = all ? document.querySelectorAll(regionSelector) : pending;
     for (const el of regions) apply(el);
     pending.clear();
     all = false;
@@ -76,7 +86,7 @@ export function installScrollFade(): void {
   };
   const onScroll = (event: Event) => {
     const target = event.target;
-    if (!(target instanceof Element) || !target.matches(FADE_REGIONS.join(", "))) return;
+    if (!(target instanceof Element) || !target.matches(regionSelector)) return;
     pending.add(target);
     schedule();
   };

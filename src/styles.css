@@ -539,10 +539,15 @@ button:disabled {
   .sheet-content,
   .sequence,
   .stage .parts-navigator > section,
-  .pick-list,
   .present-switcher .finder
 ) {
   --fade-size: 24px;
+  /* Custom properties inherit: a region inside another (the Operator's panes in the
+     page) starts with both edges on, whatever the one around it set below. */
+  --fade-top: initial;
+  --fade-bottom: initial;
+  --fade-top-on: 1;
+  --fade-bottom-on: 1;
   mask-image: linear-gradient(
     to bottom,
     rgb(0 0 0 / calc(1 - var(--fade-top, var(--fade-a)) * var(--fade-top-on, 1))) 0,
@@ -559,7 +564,6 @@ button:disabled {
     .sheet-content,
     .sequence,
     .stage .parts-navigator > section,
-    .pick-list,
     .present-switcher .finder
   ) {
     animation:
@@ -576,6 +580,12 @@ button:disabled {
    a Finder has its field stuck there. */
 :where(.shell-main, .sheet-content:has(.finder-form)) {
   --fade-top-on: 0;
+}
+
+/* A sheet with an action bar held at its foot (Restore, Rename, Remove): the bar is
+   the bottom edge. */
+:where(.sheet-content:has(.review-actions)) {
+  --fade-bottom-on: 0;
 }
 
 /* The quick switcher's list grows up from its field, which sits at the foot: the
@@ -5972,53 +5982,84 @@ fieldset.book-main {
 .pick-list-above {
   transform-origin: bottom left;
 }
-/* A soft blur and fade at an edge, only where more scrolls into view. The
-   strips are sticky, so the list's own shadow is not clipped. Each reaches the
-   list's padding and a little past it (--pick-fade-reach): the list's height is
-   fractional while its scrollport, which a sticky box is held to, is rounded,
-   so a strip that stops exactly at the padding leaves the last device pixel
-   row of the list uncovered and a sharp sliver of the next row shows there
-   (Chromium at a fractional scale). The outer --pick-fade-solid of what shows
-   is the list's own surface, opaque, and the fade starts from it: Firefox does
-   not blur a backdrop behind a sticky strip in a scroller, so a faded row would
-   show there sharp, and no engine may rely on the blur at the edge. No mask:
-   the gradient is the fade. */
-.pick-list {
-  --pick-fade-reach: 4px;
-  --pick-fade-solid: 8px;
-  --pick-fade-edge: calc(var(--space-xs) + var(--pick-fade-reach) + var(--pick-fade-solid));
+/* Floating lists (the app's menus and pickers) take the same fade (--fade-a and
+   --fade-b, see the shared rule near the top) but not as a mask: a mask would clip
+   the list's own shadow, and the list's surface should stay. Two sticky strips,
+   the surface's own colour fading to clear over a soft blur, lie over the first
+   and the last rows, and their opacity is the fade: the scroll position drives
+   it where the browser has scroll-driven animations, scrollFade.ts sets
+   --strip-a and --strip-b elsewhere. The strips are sticky, so the list's shadow
+   is not clipped. Each reaches the list's padding and a little past it
+   (--edge-reach): the list's height is fractional while its scrollport, which a
+   sticky box is held to, is rounded, so a strip that stops exactly at the
+   padding leaves the last device pixel row uncovered and a sharp sliver of the
+   next row shows there (Chromium at a fractional scale). The outer --edge-solid
+   of what shows is the list's own surface, opaque: Firefox does not blur a
+   backdrop behind a sticky strip in a scroller, so a faded row would show there
+   sharp, and no engine may rely on the blur at the edge. */
+:is(.menu-popover, .pick-list) {
+  --edge-reach: 4px;
+  --edge-solid: 8px;
+  --edge: calc(var(--space-xs) + var(--edge-reach) + var(--edge-solid));
 }
-.pick-list::before,
-.pick-list::after {
+:is(.menu-popover, .pick-list)::before,
+:is(.menu-popover, .pick-list)::after {
   position: sticky;
   z-index: 2;
-  display: none;
-  height: calc(1.75rem + var(--pick-fade-reach) + var(--pick-fade-solid));
+  display: block;
+  height: calc(1.75rem + var(--edge-reach) + var(--edge-solid));
   pointer-events: none;
   content: "";
+  opacity: 0;
   backdrop-filter: blur(3px);
 }
-.pick-list::before {
+:is(.menu-popover, .pick-list)::before {
   background: linear-gradient(
     to bottom,
-    var(--md-sys-color-surface-container-high) var(--pick-fade-edge),
+    var(--md-sys-color-surface-container-high) var(--edge),
     transparent
   );
-  top: calc(-1 * var(--space-xs) - var(--pick-fade-reach));
-  margin-bottom: calc(-1.75rem - var(--pick-fade-reach) - var(--pick-fade-solid));
+  top: calc(-1 * var(--space-xs) - var(--edge-reach));
+  margin-bottom: calc(-1.75rem - var(--edge-reach) - var(--edge-solid));
 }
-.pick-list::after {
+:is(.menu-popover, .pick-list)::after {
   background: linear-gradient(
     to top,
-    var(--md-sys-color-surface-container-high) var(--pick-fade-edge),
+    var(--md-sys-color-surface-container-high) var(--edge),
     transparent
   );
-  bottom: calc(-1 * var(--space-xs) - var(--pick-fade-reach));
-  margin-top: calc(-1.75rem - var(--pick-fade-reach) - var(--pick-fade-solid));
+  bottom: calc(-1 * var(--space-xs) - var(--edge-reach));
+  margin-top: calc(-1.75rem - var(--edge-reach) - var(--edge-solid));
 }
-.pick-list:is([data-fade="top"], [data-fade="both"])::before,
-.pick-list:is([data-fade="bottom"], [data-fade="both"])::after {
-  display: block;
+@keyframes strip-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes strip-out {
+  from {
+    opacity: 1;
+  }
+}
+@supports (animation-timeline: scroll()) {
+  :is(.menu-popover, .pick-list)::before {
+    animation: strip-in linear both;
+    animation-timeline: scroll(nearest);
+    animation-range: 0px 24px;
+  }
+  :is(.menu-popover, .pick-list)::after {
+    animation: strip-out linear both;
+    animation-timeline: scroll(nearest);
+    animation-range: calc(100% - 24px) 100%;
+  }
+}
+@supports not (animation-timeline: scroll()) {
+  :is(.menu-popover, .pick-list)::before {
+    opacity: var(--strip-a, 0);
+  }
+  :is(.menu-popover, .pick-list)::after {
+    opacity: var(--strip-b, 0);
+  }
 }
 
 /* From Text is one form in a card of one size: the tallest state, within the
