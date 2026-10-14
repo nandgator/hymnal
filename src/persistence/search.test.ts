@@ -74,6 +74,17 @@ describe("searchBook", () => {
     expect(searchBook(db, "   ")).toEqual([]);
   });
 
+  it("takes % and _ in a query as themselves when it picks the snippet line", () => {
+    const lines = (number: number, text: string[]): HymnSource => ({
+      ...song(number, text[0] ?? ""),
+      parts: [{ id: "s1", kind: "stanza", label: "1", lines: text }],
+    });
+    hold("w", [lines(1, ["abc first", "the a_c second"]), lines(2, ["one 50 two", "a 50% third"])]);
+    const db = sqlOf(held.get("w") as DatabaseSync);
+    expect(searchBook(db, "a_c")[0]?.snippet).toBe("the a_c second");
+    expect(searchBook(db, "50%")[0]?.snippet).toBe("a 50% third");
+  });
+
   it("stops at the cap", () => {
     hold(
       "big",
