@@ -123,8 +123,8 @@ only, here:
 
 - 2026-10-14 — #74 done: Settings search shows a closed section that holds a
   match (`data-search`, never touching `data-open`, so clearing restores the
-  layout's state); the books illustration is hymnals on a shelf, a cross on
-  each spine, one leaning; the sample error no longer says "this site"
+  layout's state); the books illustration is hymnals on a shelf, a cross on each
+  spine, one leaning; the sample error no longer says "this site"
 - 2026-10-14 — search polish (the maintainer's review of the empty cards):
   Present with no song is the card and a Find a Song button, no inline Finder (a
   digit typed there opens Search with it); every search field has a clear X, the
