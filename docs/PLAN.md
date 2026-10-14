@@ -64,7 +64,6 @@ Ordered. Top unblocked item is next.
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                      | maintainer: devices |
 | 67  | Sheet animation cost: sheet open has a ~90 ms long task (showModal + layout reads); a swap animates height and width on the main thread (performance watch, 2026-10-12). Low priority | —                   |
 | 68  | Search filter chips under the box (This book, All books, chosen books); default All books. Replaces the "Searching ..." line, which goes now (maintainer, 2026-10-13)                 | -                   |
-| 71  | Scroll edge fades: every scroll region fades its top and bottom edge in proportion to how far it can scroll (2026-10-13)                                                              | -                   |
 | 73  | Song-text check: local heuristics flag text that looks like code, maths or other non-song on review (a note, never a block); From Text and received books. ADR-0034                   | -                   |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks); removing one song from your books (its UI left with OwnSheet, ADR-0033 §6)                                               | —                   |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                         | —                   |
@@ -119,6 +118,11 @@ only, here:
 
 ## Log
 
+- 2026-10-14 — #71 done: every scroll region fades its edges by one rule
+  (DESIGN.md § Register; scrollFade.ts): a menu or picker by two surface strips
+  (a mask would clip its shadow); nested regions no longer inherit the page's
+  top-fade-off (the Operator's panes never faded at the top); the Output and
+  text areas are left alone
 - 2026-10-14 — #69 done: the Finder has two modes (SDD-0001 §13.3): songs by
   default, a `>` first (or Ctrl/⌘+Shift+P, Chrome and Edge only) lists commands
   only; each list has a muted Songs or Commands heading, and the two never mix;
@@ -175,7 +179,3 @@ only, here:
 - 2026-10-12 — the Finder suggests a typed number from every book, the current
   book's exact match first and Enter unchanged (ADR-0032, amended); the
   Hymnbooks sheet has a search field that filters by title
-- 2026-10-12 — the maintainer's review of From Text: Add to picks from the
-  language's list (one PickList); an open list dims and blurs the card behind
-  it; the review after From Text says Back; your books open like any book, with
-  Rename… in the book's menu (removing one song waits for #14)
