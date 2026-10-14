@@ -1,5 +1,6 @@
 import type { JSX } from "solid-js";
 import { Match, Show, Switch } from "solid-js";
+import { KeyCombo } from "./KeyCombo.tsx";
 
 /** The empty states that have a picture. */
 export type EmptyKind = "song" | "books" | "recents" | "results" | "live";
@@ -60,17 +61,27 @@ export function EmptyIllustration(props: { kind: EmptyKind }) {
   );
 }
 
+/** A button on an empty card. */
+export interface EmptyAction {
+  label: string;
+  onClick: () => void;
+  /** The shortcut that does the same, as keycaps after the label (for a keyboard). */
+  hint?: string;
+}
+
 /**
  * An empty state as a card: the picture, one short heading, one short helpful line and,
- * where something can be done, a button. The heading is a real heading (the text, not the
- * picture, is what a reader gets).
+ * where something can be done, a button (and at most one quieter one beside it). The heading
+ * is a real heading (the text, not the picture, is what a reader gets).
  */
 export function EmptyCard(props: {
   kind: EmptyKind;
   title: string;
   /** The helpful line. */
   children?: JSX.Element;
-  action?: { label: string; onClick: () => void };
+  action?: EmptyAction;
+  /** A quieter second button, a text button. */
+  secondary?: EmptyAction;
 }) {
   return (
     <div class="empty-card">
@@ -80,12 +91,26 @@ export function EmptyCard(props: {
         <Show when={props.children}>
           <p class="body-medium on-surface-variant">{props.children}</p>
         </Show>
-        <Show when={props.action}>
-          {(action) => (
-            <button type="button" class="btn-tonal" onClick={() => action().onClick()}>
-              {action().label}
-            </button>
-          )}
+        <Show when={props.action || props.secondary}>
+          <div class="empty-actions">
+            <Show when={props.action}>
+              {(action) => (
+                <button type="button" class="btn-tonal" onClick={() => action().onClick()}>
+                  {action().label}
+                  <Show when={action().hint}>
+                    {(keys) => <KeyCombo class="empty-action-key" keys={keys()} decorative />}
+                  </Show>
+                </button>
+              )}
+            </Show>
+            <Show when={props.secondary}>
+              {(action) => (
+                <button type="button" class="btn-text" onClick={() => action().onClick()}>
+                  {action().label}
+                </button>
+              )}
+            </Show>
+          </div>
         </Show>
       </div>
     </div>

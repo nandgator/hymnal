@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { booksReady, mocks, openFinder } from "./App.testkit.tsx";
+import { booksReady, mocks, openFinder, openPresent } from "./App.testkit.tsx";
 import App from "./App.tsx";
 
 vi.mock("./persistence/content-store.ts", async () =>
@@ -39,7 +39,7 @@ describe("App", () => {
   it("moves to Finder once the user chooses to find a hymn", async () => {
     render(() => <App />);
     await openFinder();
-    expect(await screen.findByPlaceholderText("Song number or lyrics")).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText("Song number, lyrics or action")).toBeInTheDocument();
   });
 
   it("switches sections from the rail: Present, then back to the Library", async () => {
@@ -59,7 +59,7 @@ describe("App", () => {
     render(() => <App />);
     await openFinder();
 
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -69,16 +69,38 @@ describe("App", () => {
 
   it("Present with no song up says so, in a card; the picture is decoration", async () => {
     render(() => <App />);
-    await openFinder();
+    await openPresent();
 
     expect(await screen.findByRole("heading", { name: "No song selected" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Nothing live" })).not.toBeInTheDocument();
     expect(document.querySelector(".empty-illustration")).toHaveAttribute("aria-hidden", "true");
   });
 
+  it("Present with no song up is the card and a Find a Song button: no inline Finder", async () => {
+    render(() => <App />);
+    await openPresent();
+
+    const button = await screen.findByRole("button", { name: /^Find a Song/ });
+    expect(screen.queryByRole("combobox", { name: "Find a song" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    fireEvent.click(button);
+    expect(await screen.findByRole("combobox", { name: "Find a song or action" })).toBeVisible();
+  });
+
+  it("a digit typed on Present with no song up opens the Search sheet with it typed", async () => {
+    render(() => <App />);
+    await openPresent();
+    await screen.findByRole("button", { name: /^Find a Song/ });
+
+    fireEvent.keyDown(window, { key: "2" });
+
+    const box = await screen.findByRole("combobox", { name: "Find a song or action" });
+    expect(box).toHaveValue("2");
+  });
+
   it("with the Output open and no song up, the card says nothing is live and can end it", async () => {
     render(() => <App />);
-    await openFinder();
+    await openPresent();
     const output = new BroadcastChannel("hymnal-output");
     output.postMessage({ type: "hello", id: "test-output" });
 
@@ -94,7 +116,7 @@ describe("App", () => {
   it("hot-swaps to another hymn from the switcher row, staying in the Presenter (SDD-0001 §16.4)", async () => {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -118,13 +140,15 @@ describe("App", () => {
     const books = within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
     fireEvent.click(books.getByRole("button", { name: /Mocked Hymnbook/ }));
 
-    expect(await screen.findAllByRole("combobox", { name: "Find a song" })).toHaveLength(1);
+    expect(await screen.findAllByRole("combobox", { name: "Find a song or action" })).toHaveLength(
+      1,
+    );
   });
 
   it("Present with a hymn already up returns to it; the Hymnbooks picker has no Manage Books", async () => {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -246,7 +270,7 @@ describe("App", () => {
   it("steps with keys pressed in the Output window, even with a sheet open here", async () => {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -275,7 +299,7 @@ describe("App", () => {
   it("offers Repeat, then Undo repeat, in the command menu while presenting", async () => {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -298,7 +322,7 @@ describe("App", () => {
   /** Opens a hymn in the Presenter, the way a person would. */
   async function openHymn() {
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -441,7 +465,7 @@ describe("App", () => {
     );
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -458,7 +482,7 @@ describe("App", () => {
   it("blanks the Output with B and restores it with a second press (.)", async () => {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -570,7 +594,7 @@ describe("App", () => {
   it("hides Live with L, remembered in preferences, and shows it again (SDD-0001 §16.4)", async () => {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);

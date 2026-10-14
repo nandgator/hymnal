@@ -31,7 +31,7 @@ describe("App", () => {
   /** Opens a hymn in the Presenter, the way a person would. */
   async function openHymn() {
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);

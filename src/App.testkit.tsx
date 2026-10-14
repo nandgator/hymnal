@@ -187,14 +187,20 @@ export function endLiveFromMenu() {
   fireEvent.keyDown(window, { key: "E", shiftKey: true });
 }
 
-/** Present, from the rail: the Finder of the current book. */
-export async function openFinder() {
+/** Present, from the rail: with no song up, the empty card and its Find a Song button. */
+export async function openPresent() {
   await booksReady();
   const present = within(screen.getByRole("navigation", { name: "Sections" })).getByRole("button", {
     name: "Present",
   });
   await waitFor(() => expect(present).toBeEnabled());
   fireEvent.click(present);
+}
+
+/** Present, then Find a Song: the Search sheet, where the current book is found. */
+export async function openFinder() {
+  await openPresent();
+  fireEvent.click(await screen.findByRole("button", { name: "Find a Song" }));
 }
 
 /**

@@ -26,6 +26,27 @@ describe("EmptyCard", () => {
     expect(run).toHaveBeenCalledOnce();
   });
 
+  it("shows the shortcut as keycaps after the label, and a quieter second button", () => {
+    const run = vi.fn();
+    const quiet = vi.fn();
+    const { container } = render(() => (
+      <EmptyCard
+        kind="song"
+        title="x"
+        action={{ label: "Find a Song", onClick: run, hint: "Ctrl+K" }}
+        secondary={{ label: "End Live", onClick: quiet }}
+      />
+    ));
+    expect(container.querySelectorAll(".empty-actions .key-hint")).toHaveLength(2);
+    expect(container.querySelector(".empty-actions .key-combo")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "End Live" }));
+    expect(quiet).toHaveBeenCalledOnce();
+    expect(run).not.toHaveBeenCalled();
+  });
+
   it.each<EmptyKind>(["song", "books", "recents", "results", "live"])(
     "draws %s in the text's colour with one accent, at one stroke weight",
     (kind) => {

@@ -15,8 +15,8 @@ import type { HymnbookId, HymnNumber } from "../domain/types.ts";
 import { languageName } from "../library/books.ts";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import type { UserState } from "../persistence/user-state.ts";
-import { titleCase } from "../shell/case.ts";
 import { ClearSearch } from "../shell/ClearSearch.tsx";
+import { titleCase } from "../shell/case.ts";
 import { EmptyCard } from "../shell/EmptyCard.tsx";
 import { type GlideList, glideList } from "../shell/glideList.ts";
 import { hoverButton } from "../shell/hoverGlide.ts";
@@ -847,6 +847,9 @@ export function Finder(props: FinderProps) {
               // the songs: a touch screen taps the field. A sheet, or a control already
               // focused, keeps its own focus.
               queueMicrotask(() => {
+                // Opened with something typed (a digit from an empty Present): the caret
+                // follows it, so the next key adds to it.
+                if (el.value) el.setSelectionRange(el.value.length, el.value.length);
                 const at = document.activeElement;
                 const keyboard = window.matchMedia?.("(pointer: fine)").matches ?? true;
                 if (keyboard && el.isConnected && (!at || at === document.body))
