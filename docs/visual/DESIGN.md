@@ -507,9 +507,10 @@ view is close enough to the frame to need a smaller unit.
   - **What they see**, a rail on the right from 840px: **Live** (the anchor, a
     true miniature of the Output at its 16:9 shape, with the part before and
     after dimmed), under it its controls in a row of their own (the Live
-    toolbar: Blank, Hold, Present Here, End Live; § The Live toolbar), then a
-    divider and **Parts**: the Repeat row (Repeat · ×2 · Undo · Reset, holding
-    its height) and the keypad (Chorus full width, verses in fixed-width cells).
+    toolbar: Blank, Hold, Touch Lock, Present Here, End Live; § The Live
+    toolbar), then a divider and **Parts**: the Repeat row (Repeat · ×2 · Undo ·
+    Reset, holding its height) and the keypad (Chorus full width, verses in
+    fixed-width cells).
   - **This hymn**: the lyrics in sung order, tap a part or a line to send it
     live (ProPresenter's click-a-slide-to-go-live).
   - **Coming up**: Recents now, the service queue later (Board #22).
@@ -591,25 +592,25 @@ view is close enough to the frame to need a smaller unit.
     the same control). The operator can keep navigating behind it (SDD-0001
     §16.5). The On Air status reads **Blanked**, its glyph a slashed circle, so
     it shows on every screen, Live on screen or not.
-  - **The Live toolbar**: **Blank, Hold, Present Here and End Live** are one row
-    of their own, full width under the Live preview (the preview's width, its
-    margins), as the transport's row sits under Parts; Live's heading keeps only
-    its "Live" label. On the phone strip they stay at the strip's end. They are
-    the Live actions' one home (the header's button has no menu), and the
-    transport's buttons (§ Buttons): equal-width tonal rounded rectangles on the
-    neutral fill, one 8px gap between every pair, equal in height, in every
-    state. The stage is at most 440px (40% of the width), too narrow for
-    "Present Here" beside an icon in a quarter of the row, so in the row each
-    button stacks its icon over its word (56px tall, the word at 12px).
+  - **The Live toolbar**: **Blank, Hold, Touch Lock, Present Here and End Live**
+    are one row of their own, full width under the Live preview (the preview's
+    width, its margins), as the transport's row sits under Parts; Live's heading
+    keeps only its "Live" label. On the phone strip they stay at the strip's
+    end. They are the Live actions' one home (the header's button has no menu),
+    and the transport's buttons (§ Buttons): equal-width tonal rounded
+    rectangles on the neutral fill, one 8px gap between every pair, equal in
+    height, in every state. The stage is at most 440px (40% of the width), too
+    narrow for "Present Here" beside an icon in a quarter of the row, so in the
+    row each button stacks its icon over its word (56px tall, the word at 12px).
     **Icon-only only where space forces it**: the phone strip (48px squares),
     and any row too narrow even so, decided by the row's own width (rem, so the
-    text size counts): under 22rem, where four columns can no longer hold the
+    text size counts): under 27rem, where five columns can no longer hold the
     widest word plus padding. All go icon-only together, the name kept as the
     accessible name and the tooltip. If the Live pane is hidden the toolbar goes
     with it; the header status, Ctrl+K and the keys remain. **Pressed**
     (Blanked, Held) is the selected tone, the secondary container, as the
     keypad's selected part. **Present Here** (Shift+P) is always there, so the
-    row is always four equal columns: not live, it starts presenting in this
+    row is always five equal columns: not live, it starts presenting in this
     tab, whatever Settings' Go Live opens; with an Output window live, it ends
     the window and presents in this tab. Blank, Hold and End Live wait,
     disabled, while not live. (While presenting here the shell is off screen, so
@@ -618,15 +619,34 @@ view is close enough to the frame to need a smaller unit.
     and none is mistaken at a glance, all filled circles: Blank, going dark, a
     slashed circle (`hide_source`); Restore, coming back, a plain dot
     (`circle`); Hold pause in a circle (`pause_circle`; Release `play_circle`);
-    Present Here two swap arrows (`swap_horizontal_circle`, to this screen); End
-    Live a stop in a circle (`stop_circle`). Go Live keeps the only screen. The
-    same Blank and Hold glyphs mark the header status.
+    Touch Lock a padlock, shut when on (`lock`, `lock_open`); Present Here two
+    swap arrows (`swap_horizontal_circle`, to this screen); End Live a stop in a
+    circle (`stop_circle`). Go Live keeps the only screen. The same Blank and
+    Hold glyphs mark the header status.
   - **Hold**: beside Blank, in Live's toolbar and on the phone strip. Pressed
     and reading **Release** while the Output is held; off while no Output is
     open. Live keeps showing what the audience sees, undimmed, with a small
     tonal **Held** tag at its corner (under the strip, on a phone), and the On
     Air status reads **Held**, its glyph pause in a circle; **Blanked** wins if
     both are on (SDD-0001 §16.6).
+  - **Touch Lock** (Board #75; SDD-0001 §16.11): beside Hold, in Live's toolbar
+    and on the phone strip, a pressed button named **Touch Lock** (label and
+    name stay the same on and off; the pressed tone and the padlock, shut or
+    open, say which). It is a switch of a preference, off out of the box, and
+    the Settings switch under Presentation is the same state. While the lock is
+    in force (on, and live) a small padlock sits on the header's live button at
+    its top right, a badge that takes no room; the button's tooltip adds "Touch
+    Lock is on". Locked, a tap on a control that changes the Output does nothing
+    but show a hint, **Press and hold to show** (never "Hold" alone: that is the
+    freeze): a small inverse-surface pill, 0.8125rem, above the pointer (below
+    it near the top edge), clamped inside the window, in for 120 ms and out
+    after about 1.6 s. A press shows a **ring** under the finger or cursor: 3rem
+    across, a 3px track and an arc in the primary colour filling clockwise over
+    500 ms (linear, so the time reads), on a faint scrim so it reads on any
+    ground; drawn larger than a fingertip, since the finger covers its centre.
+    Reduced motion: no fill; the ring is a still track, and at completion it
+    turns solid primary. Releasing early or moving more than 10px removes it.
+    The ring and the hint are laid over everything, Present Here included.
   - **Phone** (and anything under 840px): Live collapses to a thin strip showing
     the current line, expanding on tap. Below it the tabs, merged, with
     **Parts** as a third tab: This Song | Recents | Parts. On a phone one thing
@@ -1281,9 +1301,9 @@ One rule, for every button in the app, so a row never looks half-dressed:
 
 - **A group carries icons all or none.** Text buttons side by side in one
   toolbar, row or button group (the Repeat row: Repeat, Undo, Reset; Live's
-  toolbar: Blank, Hold, Present Here, End Live; the transport) either all have
-  an icon or none do. When the group is narrow, all of them go icon-only
-  together, never one by one.
+  toolbar: Blank, Hold, Touch Lock, Present Here, End Live; the transport)
+  either all have an icon or none do. When the group is narrow, all of them go
+  icon-only together, never one by one.
 - **A lone text action has no icon**, unless the icon carries meaning the word
   does not: the one standalone button of a sheet, card or notice (Done, Cancel,
   Retry, Got It, Use Here) is its word. An icon that is part of what the button

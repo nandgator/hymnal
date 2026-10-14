@@ -1992,6 +1992,9 @@ work too.
   was the natural one, and is the browser's task manager in Chrome. It does
   nothing while Live is not on, and works from the Output window, which forwards
   it.
+- **Touch Lock** (§16.11) has no key and changes none: keys and clickers are
+  never accidental, so every key above acts at once while it is on. It is a Live
+  toolbar toggle, a Settings switch and a command.
 - **No key, by choice**: Show the details now and the Output's band size (§16.1)
   are command-menu items only, occasional enough that a letter would be wasted.
 - **Space is Next part**, even on a focused button: a clicker or a thumb on the
@@ -2269,3 +2272,75 @@ this order:
 text holds every field and no title, recent or lyric line from a store that has
 them; Report a Problem opens `REPORT_URL` with no query. The look at 390×844 and
 1280×800, light and dark, by hand.
+
+### 16.11 Touch Lock
+
+Board #75. A hand on a phone or a tablet, or a mouse knocked on a laptop, can
+change what the audience sees by accident: a brush on a part, a song picked as
+the screen is put down. **Touch Lock** asks for a press held about half a second
+before a pointer does anything to the Output. It is **not Hold** (§16.6): Hold
+freezes the Output and nothing reaches it; the lock lets every change through,
+but only on purpose. Blank (§16.5) is a third thing: a black screen over a
+Output that keeps moving.
+
+- **One switch, one state.** The `touchLock` preference (absent means off, so
+  out of the box nothing changes; once set it is remembered, like the others;
+  read through `touchLockOf`). Settings' **Touch Lock** switch (Presentation)
+  and Live's toolbar toggle, beside Blank and Hold and on the phone strip, are
+  the same state. The toggle is a button with `aria-pressed` named "Touch Lock";
+  the command menu lists "Turn on Touch Lock" and "Turn off Touch Lock". The
+  switch is not itself guarded: it changes nothing the audience sees.
+- **In force only while live.** The lock acts when the preference is on and an
+  Output is up, in a window or presenting here (`Presence.live`). Not live, a
+  press is a plain press and nothing shows. While in force, a small lock marks
+  the header's status (a badge on the live button, so the search beside it never
+  moves), and its tooltip and description say so.
+- **What it guards.** Every pointer action that changes the Output: picking a
+  song (Finder, Search, Recents, the quick switcher), a part or line tap, the
+  keypad and the transport, Repeat, Undo and Reset, Blank, Hold or Release, Go
+  Live's siblings End Live and Present Here, and Present Here's touch bar
+  Previous and Next. What leaves the Output alone is not guarded: opening
+  Search, scrolling, tabs, text size, and any setting that only touches the
+  Operator.
+- **One mechanism** (`src/shell/touchLock.ts`). A control that changes the
+  Output carries `data-output-guard`; nothing else is written per control. A
+  controller installed once by the shell listens on the document, in the capture
+  phase. While the lock is in force:
+  - a **press** on a guarded control starts a 500 ms timer and a ring (below).
+    At 500 ms the controller clicks the control itself, a click with no pointer
+    behind it (`detail === 0`), so the control's own handler runs as it always
+    does; the click the finger's lift then makes is dropped without a hint;
+  - a **plain tap or click** (the lift before 500 ms) is swallowed: its click is
+    stopped before any handler sees it, and the hint shows (below);
+  - a press that moves more than 10 px, or ends early, or is cancelled by the
+    browser (a scroll) is cancelled. A list can be scrolled by a finger that
+    starts on a row;
+  - **mouse and pen** follow the same rule: a click is a tap and needs the press
+    (a pen counts as touch). Only the primary button counts.
+- **Deliberate input passes.** A **click that no pointer made** acts at once:
+  `detail === 0`, or a click event whose `pointerType` is empty. That is how a
+  screen reader's activation, Enter or Space on a focused control, and the
+  controller's own click arrive. **Keys and clicker are exempt entirely**: the
+  keymap (§16.5) is unchanged, arrows, Page Up/Down, B, Shift+H and the rest act
+  at once, and so does Enter on a Finder row, since a key is never accidental.
+- **Swipe.** Present Here's swipe (§16.7) steps nothing while the lock is in
+  force: a swipe is the gesture most easily made by accident, and unlike a tap
+  it has no place to hold a finger. Previous and Next on the touch bar, which
+  take the hold, stay the way to step by touch. A swiped view shows no hint: the
+  bar it opens already says where the buttons are.
+- **Feedback.** During a press, a ring fills under the finger or cursor over 500
+  ms (DESIGN.md § Touch Lock); under reduced motion it does not animate and
+  changes state at completion. A swallowed tap shows **"Press and hold to
+  show"** near the pointer, for about 1.6 s, in a live region (never the word
+  "Hold" alone: Hold is the freeze).
+- **No menu, no selection.** On a guarded control, while the lock is in force,
+  `contextmenu` is prevented and `user-select` is none (`html[data-touch-lock]`
+  in styles.css), so a long press opens neither the browser's menu nor a text
+  selection. Nothing else on the page is affected.
+- **Testing.** The controller is unit-tested against the DOM with fake timers: a
+  tap is swallowed and hinted, a 500 ms press clicks once, early release and
+  movement cancel, key and `detail === 0` clicks pass, not live passes. The
+  preference persists, and the toolbar toggle and the Settings switch share it.
+  App tests cover a song pick and a part tap while live and locked. A Playwright
+  smoke on chromium-desktop and a touch project covers a real press. The look at
+  390×844 and 1280×800, light and dark, by hand.
