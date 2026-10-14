@@ -1112,7 +1112,10 @@ two modes and never mixes them.
 - **A heading says which mode.** The first line of the list is a muted
   (`label-large`, `on-surface-variant`, the same as a group's heading) **Songs**
   or **Commands**, so the person knows where they are. It is not a group
-  heading: books and languages keep theirs under it. The placeholder says how to
+  heading: books and languages keep theirs under it. **Songs is hidden while the
+  box is empty** (maintainer, 2026-10-14): the empty list has its own Recents
+  and All songs headings, so the mode heading would only repeat them; it shows
+  once anything is typed. Commands stays as it is. The placeholder says how to
   switch: _Find a song, or > for commands_ in songs and _Find a command_ in
   commands; sentence case, short enough for 375px.
 - **Nothing mixes.** In commands no song, Recents or book is listed; in songs no
@@ -1138,6 +1141,64 @@ of the box filters them; Backspace returns to songs; a heading for each mode; no
 song in commands, no command in songs; a no-match card for commands; Enter on a
 bare `>` runs nothing. App: Ctrl+Shift+P opens in commands, Ctrl+K in songs.
 E2E: `>` on chromium desktop and firefox phone.
+
+### 13.4 Scope chips (Board #68)
+
+**Decided (the maintainer, 2026-10-13 and 2026-10-14;
+[ADR-0032](../decisions/0032-one-search-the-finder-searches-every-source.md),
+amended).** Search is across every book by default, and a row of chips under the
+field narrows it.
+
+- **The chips.** **All Books**, **This Book** and **Books…**, one choice among
+  the three (filter chips, `aria-pressed`, DESIGN.md). All Books is the default.
+  They sit inside the sticky field's form, so they stay in reach as the list
+  scrolls, and they are shown in songs mode only: not in commands (`>`), and not
+  in Present Here's switcher (§16.7), which searches the current book alone.
+- **This Book** is the current book, the one the Finder was opened on. With no
+  current book the chip is not drawn (a disabled chip would explain nothing).
+- **Books…** opens a checklist: a popover dialog named _Search these books_, a
+  checkbox per held book by title, in the Library's order, and a **Done**
+  button. The checks are a draft: Done applies them, Escape or a click outside
+  drops them. **Choosing none is not allowed**: Done stays off until one book is
+  checked. The chip then reads **N Books** (_2 Books_) and is selected; one
+  chosen book reads **1 Book**, not its title: a title can run to a whole phone
+  line (a Malayalam one does), and a chip's width should not depend on a book's
+  name. The checklist names them.
+- **Remembered.** The scope (`searchScope` in the preferences: the choice, and
+  the chosen books by key) is kept across sessions and rides along in a backup
+  like any preference. A remembered book that is no longer held drops out of the
+  set; a set left empty is All Books, and so is _This Book_ with no current
+  book.
+- **One book held, no chips.** With a single book there is nothing to choose;
+  the row is not shown and search is that book's, as before (§13.1).
+- **What the scope covers.** Lyric and title search, and a typed number
+  (ADR-0032, amended): the number path suggests across the books in scope, the
+  current book's exact match first when the current book is in scope. The scope
+  is sent to the worker (`searchAll` and `searchNumber` take the keys), so a
+  narrow scope also costs less. When the current book is outside the scope,
+  Enter takes the top suggestion of the first book in scope; with no suggestion
+  it opens the number in the current book, as always, and Presenter reports it.
+  Present Here's switcher is not scoped. With nothing typed the list is the
+  current book's songs and Recents, whatever the scope. A scope of one book
+  shows no group heading, as a single book does not.
+- **No match in a narrowed scope.** The card says where it looked, _No matches
+  in This Book_ (or _in 2 Books_), and offers **Search All Books**, which
+  switches the scope and so runs the same words again. In All Books the card is
+  as it was and has no button.
+- **Keyboard and names.** The chips are a group named _Search in_. Tab from the
+  field reaches the row at the chosen chip; ← and → move between the chips (Home
+  and End to the ends), Enter or Space presses. The field's flow is untouched:
+  ↑, ↓ and Enter work from the field as before, and focus stays in the field
+  while a chip is clicked by pointer. Books… has `aria-haspopup="dialog"` and
+  `aria-expanded`; the checklist's checkboxes are native, its focus is trapped
+  to it until it closes, and focus returns to the chip. Chips are 40px tall,
+  over the 24px target minimum (WCAG 2.2 AA).
+- **Testing.** Unit: the scope's keys and effective mode (dropped books, empty
+  set, no current book), the stored value cleaned. Component: the chips shown
+  only with several books and in songs mode, each scopes lyrics and numbers,
+  Books… draft, Done and none-chosen, the remembered choice handed back, the
+  scoped no-match card and its button, the Songs heading hidden while empty,
+  keyboard in the row. E2E: chromium desktop and firefox phone.
 
 ### 13.2 Browse a whole book (Board #66)
 
