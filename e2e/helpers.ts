@@ -46,7 +46,7 @@ export const books = (page: Page) => page.getByRole("list", { name: "Books" });
 /** The command menu (Ctrl+K), opened; its box is where songs are found. */
 export async function openFinder(page: Page): Promise<Locator> {
   await page.keyboard.press("Control+k");
-  const box = page.getByRole("combobox", { name: "Find a song or action" });
+  const box = page.getByRole("combobox", { name: "Find a song or command" });
   await expect(box).toBeVisible();
   return box;
 }

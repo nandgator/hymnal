@@ -78,7 +78,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const search = await screen.findByRole("dialog", { name: "Search" });
     fireEvent.input(within(search).getByRole("combobox"), {
-      target: { value: "about" },
+      target: { value: ">about" },
     });
     fireEvent.mouseDown(await within(search).findByRole("option", { name: /About/ }));
     const settings = await screen.findByRole("dialog", { name: "Settings" });
@@ -163,7 +163,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       mocks.recents = [{ hymnbookId: "k1", hymnNumber: 1, viewedAt: 2 }];
       render(() => <App />);
       await openFinder();
-      fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+      fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
         target: { value: "1" },
       });
       fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -344,7 +344,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       const books = within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
       fireEvent.click(books.getByRole("button", { name: /Hymns of Fellowship/ }));
       expect(
-        await screen.findAllByRole("combobox", { name: "Find a song or action" }),
+        await screen.findAllByRole("combobox", { name: "Find a song or command" }),
       ).toHaveLength(1);
       expect(crumbs().getByRole("button", { name: /Hymns of Fellowship/ })).toBeInTheDocument();
     });
@@ -355,7 +355,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     mocks.recents = [{ hymnbookId: "k1", hymnNumber: 1, viewedAt: 2 }];
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -399,7 +399,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     mocks.recents = [{ hymnbookId: "k1", hymnNumber: 1, viewedAt: 2 }];
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);

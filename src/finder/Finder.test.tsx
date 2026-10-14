@@ -828,38 +828,130 @@ describe("Finder", () => {
     expect(onSelect).toHaveBeenLastCalledWith(121, "book");
   });
 
-  it("as the command menu, lists actions ahead of hymns, matched by word starts (SDD-0001 §16.5)", async () => {
-    const blank = vi.fn();
-    const onSelect = vi.fn();
-    render(() => (
-      <Finder
-        hymnbookId="book"
-        store={fakeStore()}
-        userState={fakeUserState()}
-        onSelect={onSelect}
-        commands={[
-          { label: "Blank the Output", hint: "B", run: blank },
-          { label: "Show Output", hint: "O", run: () => {} },
-        ]}
-      />
-    ));
-    const box = screen.getByRole("combobox", { name: "Find a song or action" });
+  describe("modes: songs, and commands (SDD-0001 §13.3)", () => {
+    const renderModes = (extra: Partial<Parameters<typeof Finder>[0]> = {}) => {
+      const blank = vi.fn();
+      const onSelect = vi.fn();
+      render(() => (
+        <Finder
+          hymnbookId="book"
+          store={fakeStore()}
+          userState={fakeUserState()}
+          onSelect={onSelect}
+          commands={[
+            { label: "Blank the Output", hint: "B", run: blank },
+            { label: "Show Output", hint: "O", run: () => {} },
+          ]}
+          {...extra}
+        />
+      ));
+      const box = screen.getByRole("combobox", { name: "Find a song or command" });
+      const submit = () => fireEvent.submit(box.closest("form") as HTMLFormElement);
+      return { blank, onSelect, box, submit };
+    };
 
-    // Empty: every action, with its key.
-    expect(screen.getAllByRole("option")).toHaveLength(2);
-    expect(screen.getByRole("option", { name: /Blank the Output/ })).toHaveTextContent("B");
+    it("lists songs only by default, under a Songs heading", async () => {
+      const { box } = renderModes();
+      expect(screen.getByRole("heading", { name: "Songs" })).toBeInTheDocument();
+      expect(box).toHaveAttribute("placeholder", "Find a song, or > for commands");
+      await screen.findByRole("group", { name: "All songs" });
+      expect(screen.queryByRole("option", { name: /Output/ })).not.toBeInTheDocument();
+      fireEvent.input(box, { target: { value: "bl" } });
+      expect(screen.queryByRole("option", { name: /Output/ })).not.toBeInTheDocument();
+    });
 
-    fireEvent.input(box, { target: { value: "bl out" } });
-    expect(screen.getAllByRole("option")).toHaveLength(1);
-    fireEvent.submit(box.closest("form") as HTMLFormElement);
-    expect(blank).toHaveBeenCalled();
+    it("a > first lists the commands only, under a Commands heading", async () => {
+      const { box } = renderModes();
+      await screen.findByRole("group", { name: "All songs" });
+      fireEvent.input(box, { target: { value: ">" } });
+      expect(screen.getByRole("heading", { name: "Commands" })).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Songs" })).not.toBeInTheDocument();
+      expect(box).toHaveAttribute("placeholder", "Find a command");
+      expect(screen.getByRole("listbox")).toHaveAccessibleName("Matching commands");
+      // Every command with its key; no song, no Recents, no book.
+      expect(screen.getAllByRole("option")).toHaveLength(2);
+      expect(screen.getByRole("option", { name: /Blank the Output/ })).toHaveTextContent("B");
+      expect(screen.queryByText("Recents")).not.toBeInTheDocument();
+      expect(screen.queryByRole("group", { name: "All songs" })).not.toBeInTheDocument();
+      // Nothing is highlighted until a word is typed: Enter on the bare > runs nothing.
+      expect(screen.queryByRole("option", { selected: true })).toBeNull();
+    });
 
-    // A number matches no action: the fast path still opens the hymn.
-    fireEvent.input(box, { target: { value: "42" } });
-    await screen.findByRole("option", { name: /Forty-Second/ });
-    expect(screen.queryByRole("option", { name: /Output/ })).not.toBeInTheDocument();
-    fireEvent.submit(box.closest("form") as HTMLFormElement);
-    expect(onSelect).toHaveBeenCalledWith(42, "book");
+    it("the rest of the box filters the commands by word starts, and Enter runs the top one", () => {
+      const { box, blank, submit } = renderModes();
+      fireEvent.input(box, { target: { value: ">bl out" } });
+      expect(screen.getAllByRole("option")).toHaveLength(1);
+      submit();
+      expect(blank).toHaveBeenCalled();
+      // A space after the marker is fine too.
+      fireEvent.input(box, { target: { value: "> show" } });
+      expect(screen.getByRole("option", { name: /Show Output/ })).toBeInTheDocument();
+    });
+
+    it("never mixes: a song search in commands finds no song, a word in songs no command", async () => {
+      const { box } = renderModes();
+      fireEvent.input(box, { target: { value: ">forty" } });
+      expect(screen.queryByRole("option", { name: /Forty-Second/ })).not.toBeInTheDocument();
+      expect(screen.getByText(/No matches for “forty”/)).toBeInTheDocument();
+      fireEvent.input(box, { target: { value: "42" } });
+      await screen.findByRole("option", { name: /Forty-Second/ });
+      expect(screen.queryByRole("option", { name: /Output/ })).not.toBeInTheDocument();
+    });
+
+    it("no matching command is the same results card as no matching song", () => {
+      const { box } = renderModes();
+      fireEvent.input(box, { target: { value: ">zzz" } });
+      expect(screen.getByText("No matches for “zzz”")).toBeInTheDocument();
+      expect(screen.getByText(/other words from a command/)).toBeInTheDocument();
+      expect(screen.queryAllByRole("option")).toHaveLength(0);
+    });
+
+    it("Backspace over the > returns to songs", async () => {
+      const { box } = renderModes();
+      fireEvent.input(box, { target: { value: ">" } });
+      expect(screen.getByRole("heading", { name: "Commands" })).toBeInTheDocument();
+      fireEvent.input(box, { target: { value: "" } });
+      expect(screen.getByRole("heading", { name: "Songs" })).toBeInTheDocument();
+      await screen.findByRole("group", { name: "All songs" });
+      expect(screen.queryByRole("option", { name: /Output/ })).not.toBeInTheDocument();
+    });
+
+    it("Escape empties the box, which is songs again", async () => {
+      const { box } = renderModes();
+      fireEvent.input(box, { target: { value: ">bl" } });
+      fireEvent.keyDown(box, { key: "Escape" });
+      expect(box).toHaveValue("");
+      expect(screen.getByRole("heading", { name: "Songs" })).toBeInTheDocument();
+    });
+
+    it("a Finder opened with a > starts in commands", () => {
+      renderModes({ initialQuery: ">" });
+      expect(screen.getByRole("heading", { name: "Commands" })).toBeInTheDocument();
+      expect(screen.getAllByRole("option")).toHaveLength(2);
+    });
+
+    it("without commands there are no modes: no heading, and a > is text", () => {
+      render(() => (
+        <Finder
+          hymnbookId="book"
+          store={fakeStore()}
+          userState={fakeUserState()}
+          onSelect={() => {}}
+        />
+      ));
+      expect(screen.queryByRole("heading", { name: "Songs" })).not.toBeInTheDocument();
+      fireEvent.input(screen.getByRole("combobox"), { target: { value: ">" } });
+      expect(screen.queryByRole("heading", { name: "Commands" })).not.toBeInTheDocument();
+    });
+
+    it("the quick switcher has no modes: a > is a search for it, and no heading", () => {
+      renderModes({ compact: true });
+      expect(screen.queryByRole("heading", { name: "Songs" })).not.toBeInTheDocument();
+      const box = screen.getByRole("combobox");
+      fireEvent.input(box, { target: { value: ">bl" } });
+      expect(screen.queryByRole("heading", { name: "Commands" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("option", { name: /Output/ })).not.toBeInTheDocument();
+    });
   });
 
   describe("every book (SDD-0001 §13.1)", () => {
@@ -1122,15 +1214,17 @@ describe("Finder", () => {
       });
     });
 
-    it("in the command menu the actions come first, in a group of their own", async () => {
+    it("in command mode no book's songs are listed, and the commands have no group", async () => {
       const blank = vi.fn();
       renderMany({ commands: [{ label: "Blank Line", run: blank }] });
-      const box = screen.getByRole("combobox", { name: "Find a song or action" });
+      const box = screen.getByRole("combobox", { name: "Find a song or command" });
       fireEvent.input(box, { target: { value: "line" } });
       await screen.findAllByRole("option", { name: /Current Song 1/ });
+      expect(screen.queryByRole("option", { name: "Blank Line" })).not.toBeInTheDocument();
+      fireEvent.input(box, { target: { value: ">line" } });
+      expect(options()).toHaveLength(1);
       expect(options()[0]).toHaveTextContent("Blank Line");
-      expect(screen.getAllByRole("group")[0]).toHaveAccessibleName("Actions");
-      expect(screen.getAllByRole("group")[1]).toHaveAccessibleName("Current Book");
+      expect(screen.queryByRole("group", { name: "Current Book" })).not.toBeInTheDocument();
       fireEvent.submit(box.closest("form") as HTMLFormElement);
       expect(blank).toHaveBeenCalled();
     });

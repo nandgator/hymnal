@@ -1043,7 +1043,14 @@ function Operator(props: Shared) {
                   <th scope="row" class="shortcut-keys">
                     <For each={shortcut.keys}>{(key) => <KeyCombo keys={key} />}</For>
                   </th>
-                  <td class="body-large">{shortcut.label}</td>
+                  <td class="body-large">
+                    {shortcut.label}
+                    <Show when={shortcut.note}>
+                      <span class="shortcut-note body-medium on-surface-variant">
+                        {shortcut.note}
+                      </span>
+                    </Show>
+                  </td>
                 </tr>
               )}
             </For>
@@ -1265,6 +1272,13 @@ function Operator(props: Shared) {
     // sheet included, and close what they opened.
     if ((event.ctrlKey || event.metaKey) && !event.altKey) {
       const chord = event.key.toLowerCase();
+      // Search in commands (SDD-0001 §13.3): Chrome and Edge give the page this chord;
+      // Firefox keeps it for a private window, and `>` in the box is the way there.
+      if (chord === "p" && event.shiftKey) {
+        event.preventDefault();
+        if (!commandMenuOpen() && hymnbook()) openCommandMenu(">");
+        return;
+      }
       if (chord === "k") {
         event.preventDefault();
         if (commandMenuOpen()) setCommandMenuOpen(false);
@@ -1479,7 +1493,7 @@ function Operator(props: Shared) {
                 onClick={() => openCommandMenu()}
               >
                 <span class="icon icon-search" aria-hidden="true" />
-                <span class="switcher-find-text">Find a song or action</span>
+                <span class="switcher-find-text">Find a song</span>
                 <KeyCombo class="switcher-find-key" keys={keyHint("command-menu", 1)} decorative />
               </button>
             </Show>

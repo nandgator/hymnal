@@ -28,7 +28,7 @@ test("the sheet Finder's box stays at the top while the list scrolls", async ({ 
   await expect(page.getByRole("listbox").getByRole("option").first()).toBeVisible();
   await page.waitForTimeout(150);
   // Stuck under the sheet's header, not scrolled away with the rows.
-  const at = await top(page, "Find a song or action");
+  const at = await top(page, "Find a song or command");
   const sheetTop = await sheet.evaluate((el) => el.getBoundingClientRect().top);
   expect(at).toBeGreaterThan(sheetTop);
   expect(at).toBeLessThan(sheetTop + 140);

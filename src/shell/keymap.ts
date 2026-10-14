@@ -16,6 +16,8 @@ export interface Shortcut {
    * forwarded from the Output window (SDD-0001 §16.5).
    */
   scope: ShortcutScope;
+  /** A line under the label in the shortcut sheet, for what a row cannot say alone. */
+  note?: string;
 }
 
 export type ShortcutScope = "presentation" | "operator";
@@ -39,6 +41,7 @@ export type ShortcutId =
   | "live"
   | "highlight"
   | "command-menu"
+  | "command-mode"
   | "text-size"
   | "shortcuts"
   | "settings"
@@ -105,7 +108,14 @@ export const SHORTCUTS: Shortcut[] = [
   {
     id: "command-menu",
     keys: ["/", "Ctrl+K"],
-    label: "Search songs and actions",
+    label: "Search songs; type > first for commands",
+    scope: "operator",
+  },
+  {
+    id: "command-mode",
+    keys: ["Ctrl+Shift+P"],
+    label: "Search commands",
+    note: "Chrome and Edge only. Firefox keeps it for a private window; type > in Search instead.",
     scope: "operator",
   },
   { id: "text-size", keys: ["+", "−"], label: "Text size", scope: "operator" },

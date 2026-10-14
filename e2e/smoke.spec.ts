@@ -37,7 +37,7 @@ test("load a book, find songs, open one", async ({ page }) => {
 
   const box = await openFinder(page);
   await box.fill("2");
-  const options = page.getByRole("listbox", { name: "Matching songs and actions" });
+  const options = page.getByRole("listbox", { name: "Matching songs" });
   await expect(options.getByRole("option")).toHaveCount(1);
   await expect(options.getByRole("option")).toContainText("River Of Stones");
 

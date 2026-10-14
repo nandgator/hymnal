@@ -67,7 +67,7 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
   async function songUp() {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or command" }), {
       target: { value: "3" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -236,7 +236,7 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const palette = within(await screen.findByRole("dialog", { name: "Search" }));
     fireEvent.input(palette.getByRole("combobox"), {
-      target: { value: "present on" },
+      target: { value: ">present on" },
     });
     fireEvent.mouseDown(await palette.findByRole("option", { name: /Present on This Screen/ }));
     await screen.findByRole("region", { name: "Presenting on this screen" });
@@ -343,6 +343,22 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     expect(screen.queryAllByRole("img", { name: "Live output preview" })).toHaveLength(previews);
     expect(scale()).toBe(before);
     expect(region()).not.toBeNull();
+  });
+
+  it("has no commands: Ctrl+Shift+P opens nothing, and a > in the switcher is only text (SDD-0001 §13.3)", async () => {
+    await songUp();
+    await presentHere();
+    fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByRole("dialog", { name: "Search" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("search", { name: "Switch song" })).not.toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const input = await screen.findByRole("combobox", { name: "Find a song" });
+    fireEvent.input(input, { target: { value: ">" } });
+    expect(input).toHaveValue(">");
+    expect(screen.queryByRole("heading", { name: "Commands" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Songs" })).not.toBeInTheDocument();
   });
 
   it("says nothing over the audience's screen unasked: no hint where the switcher is", async () => {

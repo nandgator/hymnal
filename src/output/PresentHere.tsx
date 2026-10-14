@@ -140,8 +140,12 @@ export function PresentHere(props: PresentHereProps) {
       else openSwitcher();
       return;
     }
-    // Sheets would open over the audience: Settings, the shortcut sheet.
-    if ((chord && event.key === ",") || (!chord && !isTyping(event) && event.key === "?")) {
+    // Sheets would open over the audience: Settings, the shortcut sheet, the commands.
+    if (
+      (chord && event.key === ",") ||
+      (chord && event.shiftKey && event.key.toLowerCase() === "p") ||
+      (!chord && !isTyping(event) && event.key === "?")
+    ) {
       swallow();
       return;
     }
