@@ -1,4 +1,5 @@
 import { createMemo, createSignal, For, Show } from "solid-js";
+import { CODE_MAX, SEARCH_MAX } from "../shell/limits.ts";
 import { PickList } from "../shell/PickList.tsx";
 import {
   COMMON_CODES,
@@ -126,6 +127,7 @@ export function LanguagePicker(props: LanguagePickerProps) {
               autocapitalize="off"
               spellcheck={false}
               placeholder="A language code, such as sd or yo"
+              maxlength={CODE_MAX}
               value={props.value}
               aria-invalid={props.invalid}
               aria-describedby={props.describedBy}
@@ -153,6 +155,7 @@ export function LanguagePicker(props: LanguagePickerProps) {
             autocomplete="off"
             autocapitalize="off"
             spellcheck={false}
+            maxlength={SEARCH_MAX}
             placeholder={open() && held() ? held()?.label : "Search languages"}
             value={open() ? query() : (held()?.label ?? "")}
             onPointerDown={() => {

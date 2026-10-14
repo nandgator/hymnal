@@ -11,6 +11,7 @@ import {
 } from "solid-js";
 import { ASSORTED_ORIGIN } from "../domain/own.ts";
 import type { TextError } from "../import/songtext.ts";
+import { CODE_MAX, NAME_MAX, NUMBER_MAX, TEXT_MAX, TEXT_TOO_LONG } from "../shell/limits.ts";
 import { Select, type SelectOption } from "../shell/Select.tsx";
 import { Sheet } from "../shell/Sheet.tsx";
 import { count } from "./books.ts";
@@ -214,6 +215,15 @@ export function TextSheet(props: TextSheetProps) {
       { defer: true },
     ),
   );
+  // Text refused for being over the limit (a paste or files); the area keeps what it had.
+  const [tooLong, setTooLong] = createSignal(false);
+  /** Whether `added` would take the song text over its limit; if so, says so and refuses it. */
+  const refuse = (area: HTMLTextAreaElement | undefined, added: number) => {
+    const replaced = area ? area.selectionEnd - area.selectionStart : 0;
+    if ((area?.value.length ?? d.songText().length) - replaced + added <= TEXT_MAX) return false;
+    setTooLong(true);
+    return true;
+  };
   const problem = (key: keyof FieldProblems) => (gone().has(key) ? undefined : props.problems[key]);
   const errors = () => (gone().has("text") ? [] : props.errors);
 
@@ -338,6 +348,7 @@ export function TextSheet(props: TextSheetProps) {
                 class="field-input"
                 type="text"
                 autocomplete="off"
+                maxlength={NAME_MAX}
                 id="book-title"
                 value={d.title()}
                 aria-invalid={!!problem("title")}
@@ -404,6 +415,7 @@ export function TextSheet(props: TextSheetProps) {
                   class="field-input script-input"
                   type="text"
                   id="book-script"
+                  maxlength={CODE_MAX}
                   autocomplete="off"
                   autocapitalize="off"
                   spellcheck={false}
@@ -453,7 +465,13 @@ export function TextSheet(props: TextSheetProps) {
               Open .txt Files
             </button>
             {picker(setSongFile, (texts) => {
-              d.setSongText(joinSongTexts(texts));
+              const joined = joinSongTexts(texts);
+              if (joined.length > TEXT_MAX) {
+                setTooLong(true);
+                return;
+              }
+              setTooLong(false);
+              d.setSongText(joined);
               hide("text");
             })}
           </div>
@@ -466,14 +484,30 @@ export function TextSheet(props: TextSheetProps) {
             placeholder={
               "1. Amazing Grace\n\nAmazing grace! how sweet the sound,\nThat saved a wretch like me!"
             }
+            maxlength={TEXT_MAX}
             value={d.songText()}
-            aria-invalid={errors().length > 0}
+            // Over the limit, a paste is refused whole: cut mid-song it would be worse than none.
+            onPaste={(e) => {
+              if (refuse(e.currentTarget, e.clipboardData?.getData("text").length ?? 0))
+                e.preventDefault();
+            }}
+            onDrop={(e) => {
+              if (refuse(e.currentTarget, e.dataTransfer?.getData("text").length ?? 0))
+                e.preventDefault();
+            }}
+            aria-invalid={errors().length > 0 || tooLong()}
             aria-describedby={errors().length > 0 ? "song-text-errors" : "song-text-hint"}
             onInput={(e) => {
+              setTooLong(false);
               d.setSongText(e.currentTarget.value);
               hide("text");
             }}
           />
+          <Show when={tooLong()}>
+            <span class="field-hint field-problem" id="song-text-toolong" role="alert">
+              {TEXT_TOO_LONG}
+            </span>
+          </Show>
           <Show
             when={errors().length > 0}
             fallback={
@@ -519,6 +553,7 @@ export function TextSheet(props: TextSheetProps) {
                   inputmode="numeric"
                   autocomplete="off"
                   id="book-number"
+                  maxlength={NUMBER_MAX}
                   value={d.number()}
                   aria-invalid={!!problem("number")}
                   aria-describedby={by}

@@ -116,6 +116,9 @@ only, here:
 
 ## Log
 
+- 2026-10-14 — fix: every text field has a limit (`limits.ts`; DESIGN.md
+  Structure): search 100, names 200, From Text 2M refused whole when over; a
+  card echoing a query clips it to 40 graphemes on one line
 - 2026-10-14 — #68 done: scope chips under the Finder's field, All Books, This
   Book, Books… (a checklist), remembered as `searchScope` (SDD-0001 §13.4,
   ADR-0032 amended); the scoped no-match card offers Search All Books; the Songs
@@ -170,11 +173,3 @@ only, here:
 - 2026-10-12 — #66 done: the Finder lists the whole book windowed (Recents on
   top, sticky headings, 24-28 rows in the DOM of a 1,000-song book); lyric
   search pages on past 30 (SDD-0001 §13.2). Quick switcher unchanged
-- 2026-10-12 — CI e2e was red on 10aef1e (121 commits unrun): the search e2e now
-  describes a number across books; a notice over a sheet leaves its actions in
-  reach (clearance padding); the benign ResizeObserver loop notice is not logged
-  as an error; Segmented radios keep one name per use-site (a Chromium
-  radio-group creep of ~1 KB per swap). Performance watch (Chromium, 200 reps):
-  heap 4-5 MB, nodes and listeners flat, no leak; idle 1.7% of a core; sheet
-  open (~90 ms task) and swap cost are Board #67. Open: Chromium warns
-  `Invalid keyframe value … NaNpx` in the sheet morph

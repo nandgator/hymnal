@@ -85,6 +85,8 @@ export interface EmptyAction {
 export function EmptyCard(props: {
   kind: EmptyKind;
   title: string;
+  /** The title echoes what the person typed: one line, an ellipsis, the whole text in a tooltip. */
+  echo?: boolean;
   /** The helpful line. */
   children?: JSX.Element;
   action?: EmptyAction;
@@ -97,7 +99,13 @@ export function EmptyCard(props: {
     <div class="empty-card" ref={(el) => props.ref?.(el)}>
       <EmptyIllustration kind={props.kind} />
       <div class="empty-text">
-        <h2 class="title-medium">{props.title}</h2>
+        <h2
+          class="title-medium"
+          classList={{ "empty-echo": props.echo }}
+          title={props.echo ? props.title : undefined}
+        >
+          {props.title}
+        </h2>
         <Show when={props.children}>
           <p class="body-medium on-surface-variant">{props.children}</p>
         </Show>

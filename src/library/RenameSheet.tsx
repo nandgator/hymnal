@@ -1,4 +1,5 @@
 import { createSignal, Show } from "solid-js";
+import { NAME_MAX } from "../shell/limits.ts";
 import { Sheet } from "../shell/Sheet.tsx";
 
 export interface RenameTarget {
@@ -54,6 +55,7 @@ export function RenameSheet(props: RenameSheetProps) {
                   class="field-input"
                   type="text"
                   autocomplete="off"
+                  maxlength={NAME_MAX}
                   value={draft()}
                   aria-invalid={!!props.error}
                   aria-describedby={props.error ? "book-rename-problem" : undefined}

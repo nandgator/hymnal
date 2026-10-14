@@ -5990,6 +5990,7 @@ fieldset.book-main {
 .field-hint {
   font-size: 0.8125rem;
   line-height: 1.4;
+  overflow-wrap: anywhere;
   color: var(--md-sys-color-on-surface-variant);
 }
 .field-problem {
@@ -6220,6 +6221,7 @@ fieldset.book-main {
 }
 .lang-none {
   padding: var(--space-sm) var(--space-md);
+  overflow-wrap: anywhere;
   color: var(--md-sys-color-on-surface-variant);
   font-size: 0.8125rem;
 }
@@ -6704,6 +6706,13 @@ fieldset.book-main {
 }
 .empty-text h2 {
   color: var(--md-sys-color-on-surface);
+}
+/* A title that echoes the query: one line whatever was typed, the rest behind an ellipsis. */
+.empty-text h2.empty-echo {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .empty-actions {
   display: flex;

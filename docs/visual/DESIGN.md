@@ -1346,6 +1346,15 @@ hymnal rather than a chat app or a console. So:
   (a phone's Search key) opens the first. Every field ends in a clear X (MD3's
   trailing icon) once it has text, "Clear search", returning focus to the field;
   its room is in the field's padding, so it never shifts the text.
+- **Every text field has a limit** (`src/shell/limits.ts`, one set): search and
+  filter fields 100 characters, names and titles 200, a language or script code
+  35, a song number 6 digits, the From Text area 2,000,000. Set as `maxlength`,
+  and a programmatic set (a digit that opens Search) is cut the same way. A
+  paste over the From Text limit is refused whole, with "That text is too long
+  to add at once. Add it in parts." (never cut mid-song). A card that echoes a
+  query shows its first 40 graphemes (`Intl.Segmenter`, so a Malayalam cluster
+  is never split) and an ellipsis, on one line (`empty-echo`); user text
+  elsewhere wraps with `overflow-wrap: anywhere`.
 - **Scope chips** (the Finder, SDD-0001 §13.4): a row of filter chips under the
   field, All Books, This Book, Books…, one pressed at a time, in the field's own
   sticky block so they stay with it. Same chip as the parts pad: `chip-filter`,

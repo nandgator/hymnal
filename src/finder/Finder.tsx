@@ -21,6 +21,7 @@ import { EmptyCard } from "../shell/EmptyCard.tsx";
 import { type GlideList, glideList } from "../shell/glideList.ts";
 import { hoverButton } from "../shell/hoverGlide.ts";
 import { KeyCombo } from "../shell/KeyCombo.tsx";
+import { clampText, clipEcho, SEARCH_MAX } from "../shell/limits.ts";
 import { RecentsList } from "../shell/RecentsList.tsx";
 import { riseIn } from "../shell/riseIn.ts";
 import { type Layout, layoutOf, type Range, type Windowed, windowed } from "../shell/windowing.ts";
@@ -220,7 +221,7 @@ export function Finder(props: FinderProps) {
   // appear together once both are read, so neither moves the other.
   const songsExpected = () => read.loading || (hymns()?.length ?? 0) > 0;
 
-  const [query, setQuery] = createSignal(props.initialQuery ?? "");
+  const [query, setQuery] = createSignal(clampText(props.initialQuery ?? "", SEARCH_MAX));
   // Command mode (SDD-0001 §13.3): a `>` first in the box, with commands to list. The songs'
   // side sees an empty box then, so songs and commands never mix.
   const commandMode = () => !props.compact && !!props.commands && query().startsWith(">");
@@ -962,6 +963,7 @@ export function Finder(props: FinderProps) {
                   el.focus({ preventScroll: true });
               });
             }}
+            maxlength={SEARCH_MAX}
             value={query()}
             onInput={(event) => setQuery(event.currentTarget.value)}
             onKeyDown={onKeyDown}
@@ -1005,10 +1007,11 @@ export function Finder(props: FinderProps) {
       <Show when={noMatch()}>
         <EmptyCard
           kind="results"
+          echo
           title={
             emptyFor()?.where && !commandMode()
-              ? `No matches in ${emptyFor()?.where}`
-              : `No matches for “${emptyQuery()}”`
+              ? `No matches in ${clipEcho(emptyFor()?.where ?? "")}`
+              : `No matches for “${clipEcho(emptyQuery() ?? "")}”`
           }
           action={
             emptyFor()?.where && !commandMode()
