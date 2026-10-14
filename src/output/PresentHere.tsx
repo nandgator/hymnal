@@ -1,8 +1,8 @@
-import { createSignal, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import type { HymnbookId, HymnNumber } from "../domain/types.ts";
 import { Finder } from "../finder/Finder.tsx";
 import type { BandSize, Highlight, OutputCues, OutputTheme } from "../persistence/user-state.ts";
-import { isPresentationKey, isTyping } from "../shell/keymap.ts";
+import { isPresentationKey, isTyping, replayForwardedKey } from "../shell/keymap.ts";
 import type { OutputMessage } from "./channel.ts";
 import { createIdleCursor } from "./idleCursor.ts";
 import { OutputBoundary } from "./OutputBoundary.tsx";
@@ -37,6 +37,15 @@ export interface PresentHereProps {
 /** How far the backdrop's solid zone rises above the strip, in px (0.75rem). */
 const BAND_RISE = 12;
 
+/** How long the touch bar stays after the last touch (ms). */
+export const BAR_HIDE_MS = 3000;
+/** A tap lifts within this long (ms) and this far (px) of where it began. */
+const TAP_MS = 600;
+const TAP_SLOP = 10;
+/** A swipe goes this far (px) across, and at least twice as far as down. */
+const SWIPE_PX = 48;
+const SWIPE_RATIO = 2;
+
 /**
  * One-screen presenting (Board #41, SDD-0001 §16.7): the Output's own view,
  * full-bleed over the app, in the tab itself, as Slides' Slideshow does. It
@@ -46,7 +55,8 @@ const BAND_RISE = 12;
  * component owns only what the Output window forwards or leaves to the
  * browser: leaving, and the quick switcher (Ctrl+K or /): the search field at the
  * bottom centre, on a soft blur, so the audience sees as little of it as
- * possible.
+ * possible. By touch (Board #72) a tap shows a quiet bar (Search, Previous,
+ * Next, Leave) and a horizontal swipe steps.
  */
 export function PresentHere(props: PresentHereProps) {
   // The Output window's cursor: there while the mouse moves, gone once still.
@@ -56,6 +66,64 @@ export function PresentHere(props: PresentHereProps) {
   );
   const openSwitcher = (query = "") => setSwitcher({ query });
   const closeSwitcher = () => setSwitcher(undefined);
+
+  // By touch: a tap shows the bar for a few seconds; a swipe steps. Steps
+  // are the keys' own, replayed through the keymap. The mouse has keys.
+  const [bar, setBar] = createSignal(false);
+  let hideTimer: ReturnType<typeof setTimeout> | undefined;
+  const hideBar = () => {
+    clearTimeout(hideTimer);
+    setBar(false);
+  };
+  const showBar = () => {
+    clearTimeout(hideTimer);
+    setBar(true);
+    hideTimer = setTimeout(hideBar, BAR_HIDE_MS);
+  };
+  onCleanup(() => clearTimeout(hideTimer));
+  createEffect(() => {
+    if (switcher()) hideBar();
+  });
+  const step = (key: "ArrowLeft" | "ArrowRight") => {
+    replayForwardedKey(key, false);
+    if (bar()) showBar();
+  };
+
+  let press: { id: number; x: number; y: number; at: number } | undefined;
+  const target = (event: Event) => (event.target instanceof Element ? event.target : null);
+  const onPointerDown = (event: PointerEvent) => {
+    if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
+    const el = target(event);
+    if (el?.closest(".present-bar")) {
+      press = undefined;
+      if (bar()) showBar();
+      return;
+    }
+    // A second finger is a pinch, not a tap; the switcher takes its own.
+    press =
+      event.isPrimary && !el?.closest(".present-switcher")
+        ? { id: event.pointerId, x: event.clientX, y: event.clientY, at: event.timeStamp }
+        : undefined;
+  };
+  const onPointerUp = (event: PointerEvent) => {
+    const start = press;
+    press = undefined;
+    if (!start || start.id !== event.pointerId) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    const tap = Math.hypot(dx, dy) <= TAP_SLOP && event.timeStamp - start.at <= TAP_MS;
+    if (switcher()) {
+      if (tap) closeSwitcher();
+    } else if (tap) {
+      if (bar()) hideBar();
+      else showBar();
+    } else if (Math.abs(dx) >= SWIPE_PX && Math.abs(dx) >= Math.abs(dy) * SWIPE_RATIO) {
+      step(dx < 0 ? "ArrowRight" : "ArrowLeft");
+    }
+  };
+  const onPointerCancel = () => {
+    press = undefined;
+  };
 
   // Capture phase, ahead of the shell's and the Presenter's own keys: what is
   // swallowed here is never theirs while presenting. The Operator's other
@@ -123,6 +191,9 @@ export function PresentHere(props: PresentHereProps) {
       aria-label="Presenting on this screen"
       data-output-theme={props.theme}
       classList={{ "output-cursor": cursorVisible(), "present-here-switching": !!switcher() }}
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
     >
       <OutputBoundary onFailed={props.onFailed} fallback={null}>
         <Show when={props.message.type === "content" && props.message}>
@@ -142,6 +213,57 @@ export function PresentHere(props: PresentHereProps) {
           )}
         </Show>
       </OutputBoundary>
+      <div
+        class="present-bar"
+        role="toolbar"
+        aria-label="Presenting controls"
+        data-shown={bar() ? "" : undefined}
+        aria-hidden={bar() ? undefined : "true"}
+        inert={!bar()}
+        // Keep the keys on the view: a focused button would take Space twice.
+        onMouseDown={(event) => event.preventDefault()}
+      >
+        <span class="present-bar-scrim" aria-hidden="true" />
+        <button
+          type="button"
+          class="present-bar-button"
+          aria-label="Search"
+          title="Search for a song"
+          onClick={() => {
+            hideBar();
+            openSwitcher();
+          }}
+        >
+          <span class="icon icon-search" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          class="present-bar-button"
+          aria-label="Previous"
+          title="Previous"
+          onClick={() => step("ArrowLeft")}
+        >
+          <span class="icon icon-chevron-left" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          class="present-bar-button"
+          aria-label="Next"
+          title="Next"
+          onClick={() => step("ArrowRight")}
+        >
+          <span class="icon icon-chevron-right" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          class="present-bar-button"
+          aria-label="Leave"
+          title="Leave"
+          onClick={() => props.onLeave()}
+        >
+          <span class="icon icon-close" aria-hidden="true" />
+        </button>
+      </div>
       <Show when={switcher()}>
         {(open) => (
           // biome-ignore lint/a11y/useSemanticElements: <search> is not in JSX typings or jsdom yet

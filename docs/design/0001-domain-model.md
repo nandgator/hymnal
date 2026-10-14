@@ -2048,6 +2048,26 @@ the app's own tab, fullscreen, with the Operator's state its only source.
   to the Operator at the same song and part, so does the browser's own Esc
   (`fullscreenchange`); where the Keyboard Lock API exists (Chromium) Esc is
   asked of the browser, so it can close the switcher first rather than leave.
+- **By touch.** A phone or tablet has no keys (and an iPhone no fullscreen, so
+  no Esc), yet the view must be drivable and leavable from the screen alone
+  (Board #72). The audience sees nothing until someone touches it. A **tap** (a
+  touch or pen press that lifts within about 0.6 s and 10 px of where it
+  started) anywhere on the view shows a small bar at the bottom centre:
+  **Search**, **Previous**, **Next** and **Leave**, icon buttons with an
+  accessible name and a tooltip, 48 px targets, on a soft scrim of the Output's
+  ground (blurred, as the switcher's band is), clear of the safe-area inset. It
+  fades in and out (opacity and a small rise; the rise is dropped under reduced
+  motion). It **hides** about 3 s after the last touch; a touch on the bar
+  restarts that time, and a tap outside the bar while it shows hides it at once.
+  Search opens the switcher, as Ctrl/⌘+K does, and the bar hides while the
+  switcher is open; with the switcher open, a tap outside it closes it. Previous
+  and Next are the keys' own: they replay ArrowLeft and ArrowRight through the
+  keymap (`replayForwardedKey`), so nothing is duplicated. Leave is F and Esc
+  (`onLeave`). A **swipe** (a touch or pen drag of 48 px or more, at least twice
+  as far across as down) steps the same way: left is next, right is previous. A
+  vertical drag is not a swipe: the view hand-scrolls and drifts back as it does
+  in the Output window (§16.1). The mouse is untouched: it has keys, so a click
+  shows nothing. The keys do not change.
 - **No notices.** The audience sees this tab, so none shows (the snackbar, its
   live region): update, storage, screen and Library notices queue, and their
   timers do not run, until presenting ends.

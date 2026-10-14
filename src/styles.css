@@ -6180,11 +6180,87 @@ fieldset.book-main {
   background-color: var(--output-ground);
   color: var(--output-ink);
   cursor: none;
+  /* A vertical drag hand-scrolls; a sideways one is the component's swipe, so
+     no browser pan or pinch takes it. */
+  touch-action: pan-y;
+}
+
+/* touch-action is inherited only up to the nearest scroll container, which
+   the view is: it takes the same. */
+.present-here .output-view {
+  touch-action: pan-y;
 }
 
 /* The cursor is the Output window's: there while the mouse moves. */
 .present-here.output-cursor {
   cursor: default;
+}
+
+/* By touch (Board #72): a tap shows a small bar at the bottom centre, on a soft
+   scrim of the Output's ground, blurred as the switcher's band is. Hidden, it
+   is invisible, inert and not hit-testable: the audience sees nothing until
+   someone touches the screen. Opacity and a small rise only; reduced motion
+   drops the rise. */
+.present-bar {
+  position: absolute;
+  z-index: 11;
+  inset: auto auto calc(env(safe-area-inset-bottom, 0px) + 1rem) 50%;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 1.75rem;
+  color: var(--output-ink);
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 0.5rem);
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease,
+    visibility 0s linear 200ms;
+}
+
+.present-bar[data-shown] {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease,
+    visibility 0s;
+}
+
+.present-bar-scrim {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--output-ground) 90%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--output-ink) 14%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.present-bar-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.present-bar-button:active {
+  background: color-mix(in srgb, var(--output-ink) 16%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .present-bar,
+  .present-bar[data-shown] {
+    transform: translate(-50%, 0);
+  }
 }
 
 /* No card: the search field itself sits at the bottom centre, over a soft
