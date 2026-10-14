@@ -51,6 +51,7 @@ import { hoverGroup } from "./hoverGlide.ts";
 import { KeyCombo } from "./KeyCombo.tsx";
 import { ariaKeys, keyHint, withKey } from "./keymap.ts";
 import { createDelayed, LoadStatus } from "./Loading.tsx";
+import { clipEcho, SEARCH_MAX } from "./limits.ts";
 import { Menu } from "./Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "./media.ts";
 import { createOutputScreens, type OutputScreens } from "./outputScreens.ts";
@@ -504,6 +505,7 @@ export function Settings(props: SettingsProps) {
           placeholder="Search settings"
           aria-label="Search settings"
           autofocus={props.autofocus}
+          maxlength={SEARCH_MAX}
           value={query()}
           onInput={(event) => setQuery(event.currentTarget.value)}
         />
@@ -512,7 +514,8 @@ export function Settings(props: SettingsProps) {
       <Show when={noMatch()}>
         <EmptyCard
           kind="results"
-          title={`No settings match “${query().trim()}”`}
+          title={`No settings match “${clipEcho(query().trim())}”`}
+          echo
           ref={(el) => riseIn(el)}
         >
           Try another word.

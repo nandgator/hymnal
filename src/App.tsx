@@ -81,6 +81,7 @@ import {
   SHORTCUTS,
   withKey,
 } from "./shell/keymap.ts";
+import { clipEcho, SEARCH_MAX } from "./shell/limits.ts";
 import { fold } from "./shell/matchText.ts";
 import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { moveOutputTo, openOutputWindow } from "./shell/openOutput.ts";
@@ -1720,6 +1721,7 @@ function Operator(props: Shared) {
               placeholder="Search hymnbooks"
               aria-label="Search hymnbooks"
               autofocus
+              maxlength={SEARCH_MAX}
               value={bookFilter()}
               onInput={(event) => setBookFilter(event.currentTarget.value)}
             />
@@ -1728,7 +1730,8 @@ function Operator(props: Shared) {
           <Show when={filteredBooks().length === 0}>
             <EmptyCard
               kind="results"
-              title={`No hymnbooks match “${bookFilter().trim()}”`}
+              title={`No hymnbooks match “${clipEcho(bookFilter().trim())}”`}
+              echo
               ref={(el) => riseIn(el)}
             >
               Try another word from its title.
