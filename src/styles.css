@@ -6714,6 +6714,10 @@ fieldset.book-main {
 .empty-illustration .empty-accent {
   stroke: var(--md-sys-color-primary);
 }
+/* A solid note head, as the favicon's. */
+.empty-illustration .empty-fill {
+  fill: var(--md-sys-color-primary);
+}
 .empty-text {
   display: flex;
   flex-direction: column;
