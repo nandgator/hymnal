@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { FADE_REGIONS, fadeStrengths } from "./scrollFade.ts";
+import { FADE_REGIONS, FADE_STRIP_REGIONS, fadeStrengths } from "./scrollFade.ts";
 
 describe("fadeStrengths", () => {
   it("has no fade where nothing scrolls", () => {
@@ -43,5 +43,19 @@ describe("the shared fade rule", () => {
       expect(mask, region).toContain(region);
       expect(driven, region).toContain(region);
     }
+  });
+
+  it("gives every floating list its two sticky strips, driven by scroll or by the helper", () => {
+    for (const region of FADE_STRIP_REGIONS) {
+      const name = region.slice(1);
+      expect(css, region).toMatch(new RegExp(`:is\\([^)]*\\.${name}[^)]*\\)::before`));
+    }
+    expect(css).toContain("animation-timeline: scroll(nearest)");
+    expect(css).toContain("opacity: var(--strip-a, 0)");
+    expect(css).toContain("opacity: var(--strip-b, 0)");
+  });
+
+  it("keeps a floating list's own animations out of the way: no mask on it", () => {
+    for (const region of FADE_STRIP_REGIONS) expect(FADE_REGIONS).not.toContain(region);
   });
 });
