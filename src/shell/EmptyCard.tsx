@@ -31,18 +31,19 @@ export function EmptyIllustration(props: { kind: EmptyKind }) {
             <path d="M68.5 20V8L76 11" />
           </g>
         </Match>
-        {/* Hymnals on a shelf (a cross on each spine, one leaning), and the gap where one goes. */}
+        {/* Hymnals on a shelf: two spines behind, the front one face-out with a note on its cover. */}
         <Match when={props.kind === "books"}>
           <path d="M10 78H90" />
-          <rect x="14" y="36" width="13" height="42" rx="1.5" />
-          <rect x="30" y="24" width="15" height="54" rx="1.5" />
-          <g transform="rotate(8 61 78)">
-            <rect x="48" y="32" width="13" height="46" rx="1.5" />
-            <path d="M54.5 40V52M51.5 44H57.5" />
-          </g>
-          <path d="M20.5 44V56M17.5 48H23.5M37.5 32V44M34.5 36H40.5" />
-          <g class="empty-accent" stroke-dasharray="1 5">
-            <rect x="71" y="38" width="14" height="40" rx="3" />
+          <rect x="14" y="38" width="13" height="40" rx="1.5" />
+          <path d="M14 48H27M14 68H27" />
+          <rect x="30" y="26" width="15" height="52" rx="1.5" />
+          <path d="M30 36H45M30 66H45" />
+          <rect x="49" y="30" width="38" height="48" rx="2" />
+          <path d="M55 30V78" />
+          <g class="empty-accent">
+            <ellipse cx="64" cy="64" rx="4.5" ry="3.5" />
+            <ellipse cx="77" cy="61" rx="4.5" ry="3.5" />
+            <path d="M68.5 64V46L81.5 43V61" />
           </g>
         </Match>
         {/* A clock, nothing on it yet. */}
