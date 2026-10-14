@@ -89,6 +89,14 @@ const heldTitle = (review: LoadReview) => {
   return verdict && "book" in verdict ? verdict.book.title : "";
 };
 
+/** How many songs the check has a note for, shown and not. */
+const noteCount = (review: LoadReview) => (review.notes?.length ?? 0) + (review.moreNotes ?? 0);
+
+const noteTitle = (review: LoadReview) =>
+  noteCount(review) === 1
+    ? "This may not be a song"
+    : `${count(noteCount(review))} songs may not be songs`;
+
 const Callout = (props: {
   icon: string;
   tone?: "new" | "bad" | "quiet";
@@ -604,6 +612,30 @@ export function ReviewSheet(props: ReviewSheetProps) {
                   {heldNote(review())}
                 </Match>
               </Switch>
+
+              <Show when={!refused() && (review().notes?.length ?? 0) > 0}>
+                {/* ADR-0034: advice, never a block; adding works as ever. */}
+                <Callout icon="icon-info" tone="quiet">
+                  <h4>{noteTitle(review())}</h4>
+                  <ul class="callout-notes">
+                    <For each={review().notes}>
+                      {(note) => (
+                        <li>
+                          <span class="num">{note.number}</span> <b>{note.title}</b>
+                          <br />
+                          {note.message}
+                        </li>
+                      )}
+                    </For>
+                  </ul>
+                  <Show when={(review().moreNotes ?? 0) > 0}>
+                    <p>And {count(review().moreNotes ?? 0)} more.</p>
+                  </Show>
+                  <p>
+                    {noteCount(review()) === 1 ? "It is added anyway." : "They are added anyway."}
+                  </p>
+                </Callout>
+              </Show>
 
               <Show when={props.error}>
                 <p class="review-error" role="alert">

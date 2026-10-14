@@ -165,6 +165,6 @@ export type {
   SearchPage,
   SearchResult,
 } from "./content-store.worker.ts";
-export type { Choice, CommitResult, LoadReview, OwnResult } from "./load.ts";
+export type { Choice, CommitResult, LoadReview, OwnResult, SongNote } from "./load.ts";
 export type { StorageMode } from "./pool-init.ts";
 export type { AddedToOwn, BookRow, RemovedFromOwn, RenamedOwn } from "./registry.ts";

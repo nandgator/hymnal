@@ -10,6 +10,7 @@ import { uuidv7 } from "../domain/key.ts";
 import type { OwnStatus, OwnTarget } from "../domain/own.ts";
 import { type OnLoadProgress, throttled } from "../domain/progress.ts";
 import type { Violation } from "../domain/validate.ts";
+import { checkSong } from "../import/songcheck.ts";
 import {
   addBook,
   addOwnSongs,
@@ -20,6 +21,35 @@ import {
   recordSource,
   replaceBook,
 } from "./registry.ts";
+
+/**
+ * A song that the song-text check (ADR-0034) does not take for a song: something to
+ * look at on review, never a block. `message` says why, in plain words.
+ */
+export interface SongNote {
+  number: number;
+  title: string;
+  message: string;
+}
+
+/** The most notes a review carries; the rest are only counted (`moreNotes`). */
+export const MAX_NOTES = 20;
+
+/** The songs of a read book that do not look like songs, and how many past `MAX_NOTES`. */
+export function songNotes(
+  hymns: readonly { number: number; title: string; parts: { lines: string[] }[] }[],
+): { notes: SongNote[]; moreNotes: number } {
+  const notes: SongNote[] = [];
+  let more = 0;
+  for (const hymn of hymns) {
+    const result = checkSong(hymn);
+    if (result.ok) continue;
+    if (notes.length < MAX_NOTES) {
+      notes.push({ number: hymn.number, title: hymn.title, message: result.reason });
+    } else more++;
+  }
+  return { notes, moreNotes: more };
+}
 
 /** What loading a read file shows before anything is written (SDD-0004 §3, ADR-0027). */
 export interface LoadReview {
@@ -49,6 +79,13 @@ export interface LoadReview {
   };
   /** Songs of this file already held in another book. */
   held: HeldElsewhere;
+  /**
+   * Songs that do not look like songs (ADR-0034): code, a table, a paragraph. Shown on
+   * review as a note; adding works as ever. Absent when there are none.
+   */
+  notes?: SongNote[];
+  /** How many more such songs there are past those in `notes`. */
+  moreNotes?: number;
   /**
    * What adding this file's songs to a book of yours would do (ADR-0033 §5, SDD-0004
    * §17): one status per book of yours, then the default one if the device has
@@ -172,6 +209,7 @@ export class LoadSession {
       };
     }
     const { hymnbook, hymns } = read.book;
+    const noted = songNotes(hymns);
     const held = heldBooks(ctx);
     const row = target === undefined ? undefined : listBooks(ctx).find((b) => b.key === target);
     if (target !== undefined && (!row || row.kind === "shipped")) {
@@ -218,6 +256,9 @@ export class LoadSession {
         read.songHashes,
         held.filter((b) => b.key !== target),
       ),
+      ...(noted.notes.length > 0
+        ? { notes: noted.notes, ...(noted.moreNotes > 0 ? { moreNotes: noted.moreNotes } : {}) }
+        : {}),
       ...(row ? {} : { own: ownStatuses(ctx, hymns, read.songHashes) }),
     };
   }

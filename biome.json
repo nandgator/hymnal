@@ -15,7 +15,8 @@
       "!target",
       "!db",
       "!imports",
-      "!content-local"
+      "!content-local",
+      "!src/import/songcheck/fixtures"
     ]
   },
   "formatter": {

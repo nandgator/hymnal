@@ -439,9 +439,12 @@ Library; this says what it shows and does.
 - **Load Books**: the file picker. While it reads, the row is a progress line;
   then the **summary** (ADR-0027): title, language and script, song count, the
   violations if any (all of them, by song and rule; none repaired), the verdict
-  and its choices (§8), and how many songs are held elsewhere, by book. Nothing
-  is written until a button is pressed. Cancel throws the parsed book away. A
-  long read or write shows its phase and count on a bar (§14).
+  and its choices (§8), how many songs are held elsewhere, by book, and a
+  **note** for each song that does not look like a song (code, maths, a table, a
+  chat, a paragraph; ADR-0034), with the reason in plain words. A note is
+  advice: the book loads as before. Nothing is written until a button is
+  pressed. Cancel throws the parsed book away. A long read or write shows its
+  phase and count on a bar (§14).
 - **Remove**: chosen, by the maintainer: a loaded book only (the row's ⋯ menu,
   **Remove…**), after a confirmation that names it. It removes the package file
   and the registry rows and drops its recents; if it was the current book, the
@@ -973,10 +976,13 @@ writes. A book is added to by key (`addToOwn` takes a key, the default, or a new
 title).
 
 The songs are reviewed as a book is (ADR-0027), as a container the person never
-sees. Each book of yours answers the review with a status: its next number, the
-songs it holds already by hash, the numbers the others take, and a problem when
-a number is not free. The button is **Add Song** or **Add Songs**; with every
-song held already it is **Open Song**.
+sees; so the song-text check (ADR-0034) runs here too, in the worker, on the
+songs of the container (`LoadReview.notes`, at most 20, with `moreNotes` for the
+rest), and a pasted code listing shows a note and can still be added. Each book
+of yours answers the review with a status: its next number, the songs it holds
+already by hash, the numbers the others take, and a problem when a number is not
+free. The button is **Add Song** or **Add Songs**; with every song held already
+it is **Open Song**.
 
 | Number                                         | Does                           |
 | ---------------------------------------------- | ------------------------------ |
@@ -1056,6 +1062,7 @@ several songs; a duplicate by hash); rename; remove (number retired, per book;
 last song removes the book; recents dropped); reconcile's adoption of origin
 `assorted` and `own`; the order (mixed languages, collation, ties); the restore
 table and the number and recents rewrite of a merge, per book. Component: the
-From Text choice, Add Song(s) and Open Song in the review, the Library's group
-and a book's Rename… and Remove… in its menu. E2E: paste a song, add it, find
-it, present it, rename it, remove it.
+From Text choice, Add Song(s) and Open Song in the review, the notes of the
+song-text check beside the button (and no note on a refusal), the Library's
+group and a book's Rename… and Remove… in its menu. E2E: paste a song, add it,
+find it, present it, rename it, remove it.

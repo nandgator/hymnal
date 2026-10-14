@@ -49,4 +49,60 @@ describe("ReviewSheet", () => {
     });
     expect(container.querySelector(".review-position-file")).toHaveTextContent(FILE);
   });
+
+  it("notes a song that does not look like a song, and still offers the button (ADR-0034)", () => {
+    const committed: string[] = [];
+    const { container, getByRole } = sheet({
+      position: undefined,
+      review: {
+        ...review,
+        title: "Pasted",
+        language: "en",
+        script: "Latn",
+        songCount: 1,
+        verdict: { kind: "new" },
+        notes: [{ number: 4, title: "Counter", message: "Lines are full of { } ; like code." }],
+      },
+      onCommit: () => committed.push("commit"),
+    });
+    const note = container.querySelector(".callout-notes");
+    expect(note).toHaveTextContent("Counter");
+    expect(note).toHaveTextContent("Lines are full of { } ; like code.");
+    expect(container).toHaveTextContent("This may not be a song");
+    expect(container).toHaveTextContent("It is added anyway.");
+    const add = getByRole("button", { name: "Load Book" });
+    expect(add).toBeEnabled();
+    add.click();
+    expect(committed).toEqual(["commit"]);
+  });
+
+  it("counts the notes past those it lists, and shows none for ordinary songs", () => {
+    const base = { ...review, title: "Pasted", language: "en", script: "Latn", songCount: 40 };
+    const many = sheet({
+      position: undefined,
+      review: {
+        ...base,
+        verdict: { kind: "new" },
+        notes: [{ number: 1, title: "A", message: "Reads like a paragraph, not lines." }],
+        moreNotes: 21,
+      },
+    });
+    expect(many.container).toHaveTextContent("22 songs may not be songs");
+    expect(many.container).toHaveTextContent("And 21 more.");
+    many.unmount();
+    const none = sheet({ position: undefined, review: { ...base, verdict: { kind: "new" } } });
+    expect(none.container.querySelector(".callout-notes")).toBeNull();
+  });
+
+  it("shows no note on a refusal", () => {
+    const { container } = sheet({
+      position: undefined,
+      review: {
+        ...review,
+        violations: [{ rule: "container", where: "file", message: "not a hymnbook container" }],
+        notes: [{ number: 1, title: "A", message: "x" }],
+      },
+    });
+    expect(container.querySelector(".callout-notes")).toBeNull();
+  });
 });

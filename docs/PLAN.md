@@ -64,7 +64,6 @@ Ordered. Top unblocked item is next.
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                      | maintainer: devices |
 | 67  | Sheet animation cost: sheet open has a ~90 ms long task (showModal + layout reads); a swap animates height and width on the main thread (performance watch, 2026-10-12). Low priority | —                   |
 | 68  | Search filter chips under the box (This book, All books, chosen books); default All books. Replaces the "Searching ..." line, which goes now (maintainer, 2026-10-13)                 | -                   |
-| 73  | Song-text check: local heuristics flag text that looks like code, maths or other non-song on review (a note, never a block); From Text and received books. ADR-0034                   | -                   |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks); removing one song from your books (its UI left with OwnSheet, ADR-0033 §6)                                               | —                   |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                         | —                   |
 | 16  | Feedback and corrections from users — where collected: TBD                                                                                                                            | —                   |
@@ -118,6 +117,10 @@ only, here:
 
 ## Log
 
+- 2026-10-14 — #73 done: the song-text check (ADR-0034): hand rules
+  (`src/import/songcheck.ts`) flag no song and catch 189 of 190 non-songs of the
+  labelled set (107 songs, 60 languages, 27 scripts); a note on review, never a
+  block, for From Text and received books
 - 2026-10-14 — #71 done: every scroll region fades its edges by one rule
   (DESIGN.md § Register; scrollFade.ts): a menu or picker by two surface strips
   (a mask would clip its shadow); nested regions no longer inherit the page's
@@ -176,6 +179,3 @@ only, here:
   control under it; Chromium and Firefox reproduce, Safari reported): a modal
   dialog makes everything outside it inert, so the notice now lives inside the
   open sheet and goes home when it closes
-- 2026-10-12 — the Finder suggests a typed number from every book, the current
-  book's exact match first and Enter unchanged (ADR-0032, amended); the
-  Hymnbooks sheet has a search field that filters by title

@@ -105,3 +105,15 @@ short on prose.** The neural model and Gemini Nano are ruled out.
   new false alarms are reported.
 - Revisit if a small model arrives that is strong on Malayalam, explainable and
   a few MB at most, and the measured prose miss rate still matters.
+
+## Measured (2026-10-14, Board #73)
+
+The set is in `src/import/songcheck/fixtures/` (107 songs in 60 languages and 27
+scripts, 190 non-songs; the gaps are in `gaps.json`) and the hand rules are
+`src/import/songcheck.ts`. On it they flag **0 of 107** songs and catch **189 of
+190** non-songs (99.5%): code 25/25, maths 10/10, data 14/14, links 10/10, chat
+10/10, email 8/8, emoji 5/5, prose 107/108. So §3's classifier is not built. The
+set is small, and prose is the soft spot: a Psalm set out one verse to a line
+looks like a paragraph, so the paragraph rules look at the shape (one long line,
+every paragraph a line of its own, lines cut at a margin) and not at sentences.
+A real song they flag, or a non-song they miss, is a new case for the set.
