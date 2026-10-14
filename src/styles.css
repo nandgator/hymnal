@@ -1479,6 +1479,108 @@ input[type="checkbox"].switch:disabled {
   display: contents;
 }
 
+/* The scope chips under the Finder's field (SDD-0001 §13.4): one line, never wrapping; each
+   chip is a `chip-filter` at its text's width. */
+.scope-chips {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-sm);
+  margin-block-start: var(--space-sm);
+}
+
+.scope-chip {
+  gap: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Selected is more than a tone (WCAG 1.4.1): a check slides in before the label and the chip
+   widens, and a ring in the tone's own text colour holds 3:1 against the chip and the
+   surface in both themes. Under reduced motion the check is there at once. */
+.scope-chip-check {
+  flex: none;
+  width: 0;
+  height: 1.125rem;
+  margin-inline-end: 0;
+  opacity: 0;
+  transition:
+    width var(--motion-medium) var(--motion-emphasized),
+    margin-inline-end var(--motion-medium) var(--motion-emphasized),
+    opacity var(--motion-medium) var(--motion-standard);
+}
+
+.scope-chip[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1.5px var(--md-sys-color-on-secondary-container);
+}
+
+.scope-chip[aria-pressed="true"] .scope-chip-check {
+  width: 1.125rem;
+  margin-inline-end: var(--space-xs);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scope-chip-check {
+    transition: none;
+  }
+}
+
+/* The Books… checklist: a menu's popover with checkboxes and a Done at its foot. */
+.scope-checklist {
+  display: flex;
+  flex-direction: column;
+  /* A set width, not the content's: it is measured before it is placed, and a popover
+     placed at the edge would shrink-wrap a different size. */
+  width: min(22rem, calc(100vw - 1rem));
+  overflow: hidden;
+}
+
+.scope-checklist-books {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.scope-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 3rem;
+  padding: var(--space-xs) var(--space-md);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.scope-check:hover {
+  background-color: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.scope-check input {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--md-sys-color-primary);
+}
+
+.scope-check-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.scope-checklist-actions {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  padding: var(--space-xs) var(--space-sm);
+}
+
 /* The Finder's mode, Songs or Commands, the first line of its list (SDD-0001 §13.3). */
 .finder-mode {
   /* Close to the list it heads: the Finder's own gap between its parts is taken back. */

@@ -15,7 +15,8 @@ test("songs by default; a > first lists commands only, Backspace returns to song
   await loadBook(page, bookFile);
   const box = await openFinder(page);
 
-  await expect(page.getByRole("heading", { name: "Songs" })).toBeVisible();
+  // The empty list has its own headings: the mode heading waits for something typed.
+  await expect(page.getByRole("heading", { name: "Songs" })).toHaveCount(0);
   await expect(box).toHaveAttribute("placeholder", "Find a song, or > for commands");
   await expect(songs(page).getByRole("option", { name: /Lantern Morning/ })).toBeVisible();
   await expect(page.getByRole("option", { name: /Blank the Output/ })).toHaveCount(0);
@@ -37,7 +38,7 @@ test("songs by default; a > first lists commands only, Backspace returns to song
   await box.fill(">");
   await box.press("Backspace");
   await expect(box).toHaveValue("");
-  await expect(page.getByRole("heading", { name: "Songs" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Songs" })).toHaveCount(0);
   await expect(songs(page).getByRole("option", { name: /Lantern Morning/ })).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -57,5 +58,7 @@ test("Ctrl+Shift+P opens the Finder in commands, Ctrl+K in songs", async ({
   await page.keyboard.press("Control+k");
   await expect(box).toBeHidden();
   await openFinder(page);
+  await expect(page.getByRole("heading", { name: "Songs" })).toHaveCount(0);
+  await box.fill("lantern");
   await expect(page.getByRole("heading", { name: "Songs" })).toBeVisible();
 });

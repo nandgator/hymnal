@@ -63,7 +63,6 @@ Ordered. Top unblocked item is next.
 | 27  | Song import, CLI: part 6, the Laya judge (SDD-0003 §4.1)                                                                                                                              | another machine     |
 | 50  | Real-device pass: iOS Safari, Android Chrome, installed and tab, offline, eviction; the #31 and #41 hardware checks (two screens, GNOME Wayland)                                      | maintainer: devices |
 | 67  | Sheet animation cost: sheet open has a ~90 ms long task (showModal + layout reads); a swap animates height and width on the main thread (performance watch, 2026-10-12). Low priority | —                   |
-| 68  | Search filter chips under the box (This book, All books, chosen books); default All books. Replaces the "Searching ..." line, which goes now (maintainer, 2026-10-13)                 | -                   |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks); removing one song from your books (its UI left with OwnSheet, ADR-0033 §6)                                               | —                   |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                         | —                   |
 | 16  | Feedback and corrections from users — where collected: TBD                                                                                                                            | —                   |
@@ -117,6 +116,10 @@ only, here:
 
 ## Log
 
+- 2026-10-14 — #68 done: scope chips under the Finder's field, All Books, This
+  Book, Books… (a checklist), remembered as `searchScope` (SDD-0001 §13.4,
+  ADR-0032 amended); the scoped no-match card offers Search All Books; the Songs
+  heading waits for something typed; the pressed chip shows a check and a ring
 - 2026-10-14 — #73 done: the song-text check (ADR-0034): hand rules
   (`src/import/songcheck.ts`) flag no song and catch 189 of 190 non-songs of the
   labelled set (107 songs, 60 languages, 27 scripts); a note on review, never a
@@ -175,7 +178,3 @@ only, here:
   heap 4-5 MB, nodes and listeners flat, no leak; idle 1.7% of a core; sheet
   open (~90 ms task) and swap cost are Board #67. Open: Chromium warns
   `Invalid keyframe value … NaNpx` in the sheet morph
-- 2026-10-12 — fix: a notice over a sheet took no tap (Got It pressed the
-  control under it; Chromium and Firefox reproduce, Safari reported): a modal
-  dialog makes everything outside it inert, so the notice now lives inside the
-  open sheet and goes home when it closes

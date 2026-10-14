@@ -58,6 +58,7 @@ import {
 } from "./registry.ts";
 import {
   type BookHits,
+  inScope,
   numberMatches,
   type SearchPage,
   type SearchResult,
@@ -96,14 +97,23 @@ export interface ContentStore {
   /**
    * `searchLyrics` over every held book whose state is `ok` (SDD-0001 §13.1): the book
    * `currentKey` first, then the rest in the Library's order, each capped. A book with no
-   * match, or one that cannot be read, is left out.
+   * match, or one that cannot be read, is left out. `books`, when given, narrows the search to
+   * those keys (the Finder's scope chips, SDD-0001 §13.4).
    */
-  searchAll(query: string, currentKey: HymnbookId): Promise<BookHits[]>;
+  searchAll(
+    query: string,
+    currentKey: HymnbookId,
+    books?: readonly HymnbookId[],
+  ): Promise<BookHits[]>;
   /**
    * The songs numbered `typed`, or starting with it, in every held book whose state is `ok`
    * (ADR-0032, amended): the same order as `searchAll`, a book with none left out.
    */
-  searchNumber(typed: string, currentKey: HymnbookId): Promise<BookHits[]>;
+  searchNumber(
+    typed: string,
+    currentKey: HymnbookId,
+    books?: readonly HymnbookId[],
+  ): Promise<BookHits[]>;
   /**
    * The page of one book's matches after the first `offset` (Board #66, SDD-0001 §13.2),
    * `SEARCH_LIMIT` of them, and whether more follow. The same order as `searchAll`'s, so a
@@ -648,10 +658,14 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     return searchBook(sqlOf(this.#open(id)), query);
   }
 
-  async searchAll(query: string, currentKey: HymnbookId): Promise<BookHits[]> {
+  async searchAll(
+    query: string,
+    currentKey: HymnbookId,
+    books?: readonly HymnbookId[],
+  ): Promise<BookHits[]> {
     const ctx = this.#liveCtx;
     if (!ctx || query.trim() === "") return [];
-    return searchBooks(listBooks(ctx), currentKey, (book) =>
+    return searchBooks(inScope(listBooks(ctx), books), currentKey, (book) =>
       searchBookPage(sqlOf(this.#open(book.key)), query),
     );
   }
@@ -660,10 +674,14 @@ class ContentStoreWorker implements ContentStore, ContentAdmin {
     return searchBookPage(sqlOf(this.#open(id)), query, offset);
   }
 
-  async searchNumber(typed: string, currentKey: HymnbookId): Promise<BookHits[]> {
+  async searchNumber(
+    typed: string,
+    currentKey: HymnbookId,
+    books?: readonly HymnbookId[],
+  ): Promise<BookHits[]> {
     const ctx = this.#liveCtx;
     if (!ctx || !/^\d+$/.test(typed)) return [];
-    return searchBooks(listBooks(ctx), currentKey, (book) =>
+    return searchBooks(inScope(listBooks(ctx), books), currentKey, (book) =>
       numberMatches(listSummaries(sqlOf(this.#open(book.key)), book.kind === "own"), typed),
     );
   }

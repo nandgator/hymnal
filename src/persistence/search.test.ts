@@ -9,6 +9,7 @@ import { insertRows, packageRows } from "../domain/package-rows.ts";
 import type { HymnSource } from "../domain/types.ts";
 import type { BookRow } from "./registry.ts";
 import {
+  inScope,
   numberMatches,
   SEARCH_LIMIT,
   searchBook,
@@ -134,6 +135,16 @@ describe("libraryOrder", () => {
   it("puts every book of yours first, in the order listed", () => {
     const rows = [row("b"), row("o1", { kind: "own" }), row("c"), row("o2", { kind: "own" })];
     expect(libraryOrder(rows).map((r) => r.key)).toEqual(["o1", "o2", "b", "c"]);
+  });
+});
+
+describe("inScope", () => {
+  const rows = [row("x"), row("y"), row("z")];
+  it("is every book when none are named", () => {
+    expect(inScope(rows).map((r) => r.key)).toEqual(["x", "y", "z"]);
+  });
+  it("keeps only the named books, whatever order they are named in", () => {
+    expect(inScope(rows, ["z", "x", "gone"]).map((r) => r.key)).toEqual(["x", "z"]);
   });
 });
 

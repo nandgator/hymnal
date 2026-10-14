@@ -1333,18 +1333,29 @@ hymnal rather than a chat app or a console. So:
   heading, one helpful line and, where something can be done, a tonal button.
   Five: no song selected (Find a Song, with its key caps on a keyboard's
   screen), no books (Bring a songbook), no recent songs, no matches (no button:
-  the field's X clears it; the same card, with the same picture, says no
-  settings or hymnbooks match), nothing live (Find a Song, and a quiet End
-  Live). The picture is decoration (`aria-hidden`); the text says it. The card
-  sits beside its picture so a list below stays in reach. Headings are sentence
-  case, buttons Title Case (§ Words). One component, `EmptyCard`; add a picture
-  there, not a raster.
+  the field's X clears it, except a song search narrowed to some books, whose
+  card says where it looked and offers Search All Books; the same card, with the
+  same picture, says no settings or hymnbooks match), nothing live (Find a Song,
+  and a quiet End Live). The picture is decoration (`aria-hidden`); the text
+  says it. The card sits beside its picture so a list below stays in reach.
+  Headings are sentence case, buttons Title Case (§ Words). One component,
+  `EmptyCard`; add a picture there, not a raster.
 - **Search looks one way everywhere**: the switcher row's bar, filled tonal, no
   outline, a leading search icon, a 2px primary ring on focus. Only the switcher
   row's shows its key cap. No Find button: results come as you type, and Enter
   (a phone's Search key) opens the first. Every field ends in a clear X (MD3's
   trailing icon) once it has text, "Clear search", returning focus to the field;
   its room is in the field's padding, so it never shifts the text.
+- **Scope chips** (the Finder, SDD-0001 §13.4): a row of filter chips under the
+  field, All Books, This Book, Books…, one pressed at a time, in the field's own
+  sticky block so they stay with it. Same chip as the parts pad: `chip-filter`,
+  40px tall, `aria-pressed`. Unlike the parts pad, selection is not tone alone
+  (WCAG 1.4.1): the pressed chip shows a leading check that widens it, and a
+  1.5px ring in the tone's text colour. The row is one line and never wraps or
+  scrolls; chips share it by their text, and the row clips nothing at 390px with
+  the longest label (_Books…_ becomes _3 Books_). Books… opens a small popover
+  checklist (native checkboxes by book title, Done), not a sheet over the sheet.
+  Names are Title Case (§ Words).
 - **A search dialog holds its size.** Search, Settings, the Menu and Hymnbooks
   keep one height, whatever the results: the card is `min(44rem, 75dvh)` (so it
   still follows a short screen and a phone), the results glide up 8px and fade

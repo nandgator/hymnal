@@ -251,7 +251,7 @@ describe("App", () => {
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const menu = await screen.findByRole("dialog", { name: "Search" });
     // Songs by default: no command among them (SDD-0001 §13.3).
-    expect(within(menu).getByRole("heading", { name: "Songs" })).toBeInTheDocument();
+    expect(within(menu).queryByRole("heading", { name: "Songs" })).not.toBeInTheDocument();
     expect(
       within(menu).queryByRole("option", { name: /Blank the Output/ }),
     ).not.toBeInTheDocument();
@@ -410,7 +410,7 @@ describe("App", () => {
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const again = await screen.findByRole("dialog", { name: "Search" });
     expect(within(again).getByRole("combobox")).toHaveValue("");
-    expect(within(again).getByRole("heading", { name: "Songs" })).toBeInTheDocument();
+    expect(within(again).queryByRole("heading", { name: "Songs" })).not.toBeInTheDocument();
     fireEvent.keyDown(within(again).getByRole("combobox"), { key: "k", ctrlKey: true });
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Search" })).not.toBeInTheDocument(),

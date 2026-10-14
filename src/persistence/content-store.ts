@@ -39,8 +39,8 @@ export function getContentStore(): ContentStore {
       listHymns,
       getHymn: (id, number) => remote.getHymn(id, number),
       searchLyrics: (id, query) => remote.searchLyrics(id, query),
-      searchAll: (query, currentKey) => remote.searchAll(query, currentKey),
-      searchNumber: (typed, currentKey) => remote.searchNumber(typed, currentKey),
+      searchAll: (query, currentKey, books) => remote.searchAll(query, currentKey, books),
+      searchNumber: (typed, currentKey, books) => remote.searchNumber(typed, currentKey, books),
       searchMore: (id, query, offset) => remote.searchMore(id, query, offset),
     } satisfies ContentStore;
   }

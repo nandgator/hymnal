@@ -1,5 +1,6 @@
 import type { HymnbookId, HymnNumber } from "../domain/types.ts";
 import type { BookHits, ContentStore } from "../persistence/content-store.ts";
+import type { SearchScope } from "../persistence/user-state.ts";
 
 /** One song a source found. `book` is where it lives: picking it hands that book on. */
 export interface FinderItem {
@@ -25,6 +26,31 @@ export interface SearchContext {
   store: ContentStore;
   /** The book now open (SDD-0001 §13.1). */
   currentKey: HymnbookId;
+  /** The books a search looks in (SDD-0001 §13.4); absent means every held book. */
+  books?: readonly HymnbookId[];
+}
+
+/** What the scope chips show as chosen, once the books held are known. */
+export type ScopeMode = "all" | "this" | "books";
+
+/**
+ * The books a scope covers, or `undefined` for every held book. A chosen book no longer held
+ * drops out; a set left empty, or This Book with no current book, is every book (SDD-0001
+ * §13.4). `mode` is what the chips show as pressed.
+ */
+export function scopeOf(
+  scope: SearchScope | undefined,
+  held: readonly HymnbookId[],
+  current: HymnbookId | undefined,
+): { mode: ScopeMode; keys: readonly HymnbookId[] | undefined } {
+  if (scope?.mode === "this" && current !== undefined && held.includes(current)) {
+    return { mode: "this", keys: [current] };
+  }
+  if (scope?.mode === "books") {
+    const keys = held.filter((key) => scope.books?.includes(key));
+    if (keys.length > 0) return { mode: "books", keys };
+  }
+  return { mode: "all", keys: undefined };
 }
 
 /**
@@ -70,11 +96,11 @@ const bookGroups = (hits: BookHits[], currentKey: HymnbookId): FinderGroup[] =>
 /** Every held book, the current one first. */
 const bookSource: FinderSource = {
   id: "books",
-  async search(query, { store, currentKey }) {
-    return bookGroups(await store.searchAll(query, currentKey), currentKey);
+  async search(query, { store, currentKey, books }) {
+    return bookGroups(await store.searchAll(query, currentKey, books), currentKey);
   },
-  async searchNumber(typed, { store, currentKey }) {
-    return bookGroups(await store.searchNumber(typed, currentKey), currentKey);
+  async searchNumber(typed, { store, currentKey, books }) {
+    return bookGroups(await store.searchNumber(typed, currentKey, books), currentKey);
   },
   async more(group, query, offset, { store }) {
     const page = await store.searchMore(group, query, offset);
