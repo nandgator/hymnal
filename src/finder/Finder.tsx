@@ -15,12 +15,14 @@ import type { HymnbookId, HymnNumber } from "../domain/types.ts";
 import { languageName } from "../library/books.ts";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import type { UserState } from "../persistence/user-state.ts";
+import { ClearSearch } from "../shell/ClearSearch.tsx";
 import { titleCase } from "../shell/case.ts";
 import { EmptyCard } from "../shell/EmptyCard.tsx";
 import { type GlideList, glideList } from "../shell/glideList.ts";
 import { hoverButton } from "../shell/hoverGlide.ts";
 import { KeyCombo } from "../shell/KeyCombo.tsx";
 import { RecentsList } from "../shell/RecentsList.tsx";
+import { riseIn } from "../shell/riseIn.ts";
 import { type Layout, layoutOf, type Range, type Windowed, windowed } from "../shell/windowing.ts";
 import {
   type FinderGroup,
@@ -501,12 +503,17 @@ export function Finder(props: FinderProps) {
     else props.onSelect(row.item.number, row.item.book);
   };
 
-  const noMatch = () =>
-    !isNumber() &&
-    !!lyricQuery() &&
-    lyricResults.state === "ready" &&
-    lyricResults().text === lyricQuery() &&
-    lyricResults().groups.length === 0;
+  // The query the no-match card is for. It holds while the next search is on its way: a card
+  // that left and came back on every pause in typing shrank the strip it sits in (the
+  // switcher's backdrop followed it, and the lyrics behind showed through for a frame).
+  const emptyFor = createMemo((held: string | undefined): string | undefined => {
+    if (isNumber() || !trimmed()) return undefined;
+    const answered =
+      !!lyricQuery() && lyricResults.state === "ready" && lyricResults().text === lyricQuery();
+    if (!answered) return held;
+    return lyricResults().groups.length === 0 ? lyricResults().text : undefined;
+  });
+  const noMatch = () => emptyFor() !== undefined;
 
   // The groups on screen, in order, each row in its group. A leaving row (the switcher)
   // keeps its group until it is gone.
@@ -754,6 +761,26 @@ export function Finder(props: FinderProps) {
   // option, so the arrow keys and the top match move it as the pointer does.
   let glide: GlideList | undefined;
   let results: HTMLDivElement | undefined;
+  // A new set of matches glides up into place and fades in, in the list's own layer: the
+  // dialog around it holds its size (Sheet `fixed`). Paging more in, or scrolling, is no new
+  // set; the switcher has its own motion for its rows.
+  const matchSet = createMemo(() =>
+    groups()
+      .map((g) => {
+        const nums = g.items.map((item) => item.number);
+        return `${g.id}:${nums.length}:${nums.slice(0, 3)}:${nums.slice(-2)}`;
+      })
+      .join("|"),
+  );
+  createEffect(
+    on(
+      matchSet,
+      () => {
+        if (!props.compact) riseIn(results);
+      },
+      { defer: true },
+    ),
+  );
   createEffect(() => {
     active();
     rows();
@@ -841,6 +868,9 @@ export function Finder(props: FinderProps) {
               // the songs: a touch screen taps the field. A sheet, or a control already
               // focused, keeps its own focus.
               queueMicrotask(() => {
+                // Opened with something typed (a digit from an empty Present): the caret
+                // follows it, so the next key adds to it.
+                if (el.value) el.setSelectionRange(el.value.length, el.value.length);
                 const at = document.activeElement;
                 const keyboard = window.matchMedia?.("(pointer: fine)").matches ?? true;
                 if (keyboard && el.isConnected && (!at || at === document.body))
@@ -859,16 +889,15 @@ export function Finder(props: FinderProps) {
             placeholder={props.commands ? "Song number, lyrics or action" : "Song number or lyrics"}
             aria-label={props.commands ? "Find a song or action" : "Find a song"}
           />
+          <ClearSearch visible={query() !== ""} onClear={() => setQuery("")} />
         </div>
       </form>
 
       <Show when={noMatch()}>
         <EmptyCard
           kind="results"
-          title={`No matches for “${lyricQuery()}”`}
-          action={
-            props.compact ? undefined : { label: "Clear Search", onClick: () => setQuery("") }
-          }
+          title={`No matches for “${emptyFor()}”`}
+          ref={(el) => !props.compact && riseIn(el)}
         >
           Try a song number, or other words from the lyrics.
         </EmptyCard>

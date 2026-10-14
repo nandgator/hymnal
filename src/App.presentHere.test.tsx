@@ -67,7 +67,7 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
   async function songUp() {
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
       target: { value: "3" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);

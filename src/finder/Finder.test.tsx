@@ -611,10 +611,46 @@ describe("Finder", () => {
     expect(
       await screen.findByRole("heading", { name: "No matches for “nothing like this”" }),
     ).toBeInTheDocument();
-    // Clear Search empties the box and brings the book back.
-    fireEvent.click(screen.getByRole("button", { name: "Clear Search" }));
+    // The field's own clear button empties the box, keeps focus in it, and brings the book back.
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
     expect(screen.getByRole("combobox")).toHaveValue("");
+    expect(screen.getByRole("combobox")).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Clear search" })).not.toBeInTheDocument();
     expect(await screen.findByRole("group", { name: "All songs" })).toBeInTheDocument();
+  });
+
+  it("keeps the no-match card up while the next search is on its way (the strip behind it must not shrink)", async () => {
+    let release: (() => void) | undefined;
+    const searchLyrics = vi
+      .fn<ContentStore["searchLyrics"]>()
+      .mockResolvedValueOnce([])
+      .mockImplementationOnce(
+        () =>
+          new Promise<SearchResult[]>((resolve) => {
+            release = () => resolve([]);
+          }),
+      );
+    render(() => (
+      <Finder
+        compact
+        hymnbookId="book"
+        store={fakeStore({ searchLyrics })}
+        userState={fakeUserState()}
+        onSelect={vi.fn()}
+      />
+    ));
+    submit("qqq");
+    await screen.findByRole("heading", { name: /^No matches/ });
+
+    submit("qqqz");
+    await waitFor(() => expect(searchLyrics).toHaveBeenCalledTimes(2));
+    // The second search has not answered: the card has not gone, and has not flickered.
+    expect(screen.getByRole("heading", { name: /^No matches/ })).toBeInTheDocument();
+
+    release?.();
+    expect(
+      await screen.findByRole("heading", { name: "No matches for “qqqz”" }),
+    ).toBeInTheDocument();
   });
 
   it("picking a recent hands its number straight to onSelect", async () => {

@@ -66,6 +66,7 @@ import {
 } from "./persistence/user-state.ts";
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { autoHover } from "./shell/autoHover.ts";
+import { ClearSearch } from "./shell/ClearSearch.tsx";
 import { titleCase } from "./shell/case.ts";
 import { EmptyCard } from "./shell/EmptyCard.tsx";
 import { RootBoundary } from "./shell/ErrorScreen.tsx";
@@ -85,6 +86,7 @@ import { createMediaQuery, EXPANDED_QUERY } from "./shell/media.ts";
 import { moveOutputTo, openOutputWindow } from "./shell/openOutput.ts";
 import { createOutputScreens, mayHaveSecondScreen } from "./shell/outputScreens.ts";
 import { isPaneShown, PANES, type PaneId } from "./shell/panes.ts";
+import { riseIn } from "./shell/riseIn.ts";
 import { canAdjustScale, createPreferences, OUTPUT_CUES, Settings } from "./shell/Settings.tsx";
 import { Sheet, type SheetPage } from "./shell/Sheet.tsx";
 import { SnackbarHost, type SnackbarProps } from "./shell/Snackbar.tsx";
@@ -259,6 +261,9 @@ function Operator(props: Shared) {
   createEffect(() => {
     if (!bookPickerOpen()) setBookFilter("");
   });
+  // The picker holds its size (Sheet `fixed`); a new word's list settles in place.
+  let bookList: HTMLUListElement | undefined;
+  createEffect(on(bookFilter, () => riseIn(bookList), { defer: true }));
   const [commandMenuOpen, setCommandMenuOpen] = createSignal(false);
   // Keyboard Shortcuts is a page inside the Settings, Menu or Search sheet, not a
   // sheet of its own: pushed from its row (Back returns), or `direct` when
@@ -997,8 +1002,11 @@ function Operator(props: Shared) {
         document.getElementById(`settings-${at}`)?.scrollIntoView?.({ block: "start" }),
       );
   };
-  const openCommandMenu = () => {
+  // What the Search sheet's box starts with: the digit that opened it from an empty Present.
+  const [searchSeed, setSearchSeed] = createSignal("");
+  const openCommandMenu = (seed = "") => {
     scopeToSong();
+    setSearchSeed(seed);
     openSheet(setCommandMenuOpen);
   };
 
@@ -1277,6 +1285,19 @@ function Operator(props: Shared) {
       dismissNotice();
       return;
     }
+    // On Present with no song up, a digit starts a number: the Search sheet opens with it typed
+    // (the box that used to sit on the page took it).
+    if (
+      /^\d$/.test(event.key) &&
+      !event.shiftKey &&
+      section() === "present" &&
+      !hymnNumber() &&
+      hymnbook()
+    ) {
+      event.preventDefault();
+      openCommandMenu(event.key);
+      return;
+    }
     // Shift+P, Present on this screen: a chord, so a stray key cannot take over this one.
     if (event.key === "P" && event.shiftKey) {
       event.preventDefault();
@@ -1436,7 +1457,7 @@ function Operator(props: Shared) {
                       type="button"
                       class="crumb crumb-hymn"
                       aria-haspopup="dialog"
-                      onClick={openCommandMenu}
+                      onClick={() => openCommandMenu()}
                     >
                       <span class="crumb-number">#{current().number}</span>
                       <span class="crumb-text">{titleCase(current().title)}</span>
@@ -1455,7 +1476,7 @@ function Operator(props: Shared) {
                 ref={(el) => onCleanup(hoverButton(el))}
                 aria-haspopup="dialog"
                 aria-keyshortcuts={ariaKeys("command-menu", 1)}
-                onClick={openCommandMenu}
+                onClick={() => openCommandMenu()}
               >
                 <span class="icon icon-search" aria-hidden="true" />
                 <span class="switcher-find-text">Find a song or action</span>
@@ -1564,31 +1585,31 @@ function Operator(props: Shared) {
               </Match>
               <Match when={section() === "present" && !hymnNumber()}>
                 {hymnbook() && (
-                  <>
-                    <Show
-                      when={presentingOutput()}
-                      fallback={
-                        <EmptyCard kind="song" title="No song selected">
-                          Pick one below, or type its number.
-                        </EmptyCard>
-                      }
-                    >
+                  <Show
+                    when={presentingOutput()}
+                    fallback={
                       <EmptyCard
-                        kind="live"
-                        title="Nothing live"
-                        action={{ label: "End Live", onClick: endLive }}
+                        kind="song"
+                        title="No song selected"
+                        action={{
+                          label: "Find a Song",
+                          onClick: () => openCommandMenu(),
+                          hint: expanded() ? keyHint("command-menu", 1) : undefined,
+                        }}
                       >
-                        The Output is blank. Pick a song to put it there.
+                        Find one by its number, title or words.
                       </EmptyCard>
-                    </Show>
-                    <Finder
-                      recentsVersion={recentsVersion()}
-                      hymnbookId={currentKey() as string}
-                      bookTitle={hymnbook()?.title}
-                      bookCount={installed().length}
-                      onSelect={pickHymn}
-                    />
-                  </>
+                    }
+                  >
+                    <EmptyCard
+                      kind="live"
+                      title="Nothing live"
+                      action={{ label: "Find a Song", onClick: () => openCommandMenu() }}
+                      secondary={{ label: "End Live", onClick: endLive }}
+                    >
+                      The Output is blank. Pick a song to put it there.
+                    </EmptyCard>
+                  </Show>
                 )}
               </Match>
             </Switch>
@@ -1607,7 +1628,7 @@ function Operator(props: Shared) {
                   hymnNumber={hymnNumber() as HymnNumber}
                   hymnbookId={presentedKey() as string}
                   onLoaded={setHymn}
-                  onBack={openCommandMenu}
+                  onBack={() => openCommandMenu()}
                   blanked={blanked()}
                   onToggleBlank={toggleBlank}
                   held={held()}
@@ -1645,6 +1666,7 @@ function Operator(props: Shared) {
           open={commandMenuOpen()}
           onClose={() => setCommandMenuOpen(false)}
           title="Search"
+          fixed
           placement={expanded() ? "center" : "bottom"}
           page={shortcutsPage("search")}
           onBack={() => setShortcuts(undefined)}
@@ -1655,6 +1677,7 @@ function Operator(props: Shared) {
             bookTitle={hymnbook()?.title}
             bookCount={installed().length}
             current={hymnNumber()}
+            initialQuery={searchSeed()}
             // Closing it and choosing are one step (chooseHymn): the scope must not be
             // put back first.
             onSelect={pickHymn}
@@ -1669,6 +1692,7 @@ function Operator(props: Shared) {
           open={bookPickerOpen()}
           onClose={() => setBookPickerOpen(false)}
           title="Hymnbooks"
+          fixed
           placement={expanded() ? "center" : "bottom"}
         >
           <label class="text-field">
@@ -1680,20 +1704,28 @@ function Operator(props: Shared) {
               value={bookFilter()}
               onInput={(event) => setBookFilter(event.currentTarget.value)}
             />
+            <ClearSearch visible={bookFilter() !== ""} onClear={() => setBookFilter("")} />
           </label>
           <Show when={filteredBooks().length === 0}>
-            <p class="body-large on-surface-variant">No hymnbooks match “{bookFilter().trim()}”.</p>
+            <EmptyCard
+              kind="results"
+              title={`No hymnbooks match “${bookFilter().trim()}”`}
+              ref={(el) => riseIn(el)}
+            >
+              Try another word from its title.
+            </EmptyCard>
           </Show>
           <ul
             class="list glide-list"
-            ref={(el) =>
+            ref={(el) => {
+              bookList = el;
               onCleanup(
                 glideList(el, {
                   rows: ".list-row:enabled",
                   current: '.list-row[aria-current="true"]',
                 }).stop,
-              )
-            }
+              );
+            }}
           >
             <For each={filteredBooks()}>
               {(book) => (
@@ -1734,6 +1766,7 @@ function Operator(props: Shared) {
           open={menuOpen()}
           onClose={() => setMenuOpen(false)}
           title="Menu"
+          fixed
           page={shortcutsPage("menu")}
           onBack={() => setShortcuts(undefined)}
         >
@@ -1765,6 +1798,7 @@ function Operator(props: Shared) {
           open={settingsOpen()}
           onClose={() => setSettingsOpen(false)}
           title="Settings"
+          fixed
           placement={expanded() ? "center" : "bottom"}
           page={shortcutsPage("settings")}
           onBack={() => setShortcuts(undefined)}

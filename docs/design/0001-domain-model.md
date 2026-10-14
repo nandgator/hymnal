@@ -928,12 +928,12 @@ key (the book on the Output, which cannot be removed while live) and callbacks:
 navigate itself.
 
 **Navigation is a Solid signal, not a router.** `App.tsx` holds
-`section: "present" | "library"`. Present shows the Finder when no song is up
-and the Presenter when one is; Library shows the Library. There is no
-deep-linking requirement
-([ADR-0012](../decisions/0012-drop-the-bookmark-helper.md) dropped bookmarking
-in favour of recents). With no book held the Library is where the app is:
-Present needs a book.
+`section: "present" | "library"`. Present shows an empty card (No song selected,
+with a Find a Song button that opens the Search sheet) when no song is up and
+the Presenter when one is; Library shows the Library. There is no deep-linking
+requirement ([ADR-0012](../decisions/0012-drop-the-bookmark-helper.md) dropped
+bookmarking in favour of recents). With no book held the Library is where the
+app is: Present needs a book.
 
 **Testing.** `Library` takes `admin` and `userState` as optional props,
 defaulting to `getContentAdmin()` and the `userState` singleton: tests inject
@@ -988,11 +988,30 @@ There is no Find button.
 - While focus is in the box, the Presenter's shortcuts are off (§16.5): arrow
   keys that move the highlight must never also move the Output.
 
-**Where it appears.** The Finder fills Present when no song is up. With a song
-up, the same Finder is the Search sheet that the crumb's song button (and
-Presenter's Back to Search) opens, with `commands` listed ahead of the results
-(§16.5). There is no separate "Go to a Song" page. `compact` is the Present Here
-quick switcher (§16.7).
+**Where it appears.** The Finder is the Search sheet: the header's search,
+Ctrl+K and `/`, the crumb's song button and Presenter's Back to Search open it,
+with `commands` listed ahead of the results (§16.5). Present with no song up
+does not hold a Finder of its own (it did, inline, until 2026-10-14): it is the
+_No song selected_ card with a **Find a Song** button (and, on a keyboard's
+screen, the shortcut's key caps) that opens the same sheet. A digit typed there
+opens the sheet with it already in the box, so "type a number" still works from
+the page. There is no separate "Go to a Song" page. `compact` is the Present
+Here quick switcher (§16.7).
+
+**The field's clear button, and a dialog that holds still.** Every search field
+(the Finder's, Settings', the Hymnbooks filter) ends in a clear (X) icon button,
+there only while the field has text, named "Clear search", which empties it and
+puts focus back in the field; it sits over the field's own end padding, so it
+appearing moves nothing. A search dialog (`Sheet` `fixed`: Search, Settings,
+Menu, Hymnbooks) keeps one height, a share of the viewport with a cap
+(`min(44rem, 75dvh)`), whatever it holds: typing changes what is inside, never
+the dialog. A new set of matches glides up eight pixels and fades in, in place
+(`riseIn.ts`: transform and opacity, 180ms, a fade alone under reduced motion),
+and an empty result is the compact card, centred in what the field leaves,
+without a button (the field's X clears). The card stays up while the next search
+is on its way, so it does not leave and come back at every pause in typing (in
+the quick switcher that shrank the strip, and the lyrics behind it showed
+through for a frame).
 
 **Picking a hymn** hands its number to `onSelect(number)` and nothing else.
 **Finder never opens or renders the hymn**, and does not record it as recent:
@@ -1075,10 +1094,10 @@ a pick in the other book opens it.
 **Decided (the maintainer, 2026-10-12).** A book of a thousand songs can be
 browsed. Nothing typed, the Finder shows Recents on top and, below, **All
 songs**: every song of the book in one list that scrolls inside the Finder (the
-sheet's content, or the page when the Finder fills Present), replacing the first
-twenty ("From the start", `OPENING_SONGS`, gone). A lyric search scrolls on past
-its first 30. In the command menu (§16.5) the order is Recents, the actions,
-then All songs, so the songs start a screen down.
+sheet's content), replacing the first twenty ("From the start", `OPENING_SONGS`,
+gone). A lyric search scrolls on past its first 30. In the command menu (§16.5)
+the order is Recents, the actions, then All songs, so the songs start a screen
+down.
 
 **One windowed listbox.** The list under the field is the same `role="listbox"`
 for browsing and for results, and only the rows in view, plus an overscan of six

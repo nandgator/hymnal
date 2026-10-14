@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { booksReady, mocks, openFinder } from "./App.testkit.tsx";
+import { booksReady, mocks, openFinder, openPresent } from "./App.testkit.tsx";
 import App from "./App.tsx";
 import type { BookRow } from "./persistence/content-store.ts";
 
@@ -73,7 +73,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     render(() => <App />);
     const sections = within(await screen.findByRole("navigation", { name: "Sections" }));
     expect(sections.queryByRole("button", { name: "About" })).not.toBeInTheDocument();
-    await openFinder();
+    await openPresent();
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const search = await screen.findByRole("dialog", { name: "Search" });
@@ -163,7 +163,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       mocks.recents = [{ hymnbookId: "k1", hymnNumber: 1, viewedAt: 2 }];
       render(() => <App />);
       await openFinder();
-      fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+      fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
         target: { value: "1" },
       });
       fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -343,7 +343,9 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       fireEvent.click(crumbs().getByRole("button", { name: /Mocked Hymnbook/ }));
       const books = within(await screen.findByRole("dialog", { name: "Hymnbooks" }));
       fireEvent.click(books.getByRole("button", { name: /Hymns of Fellowship/ }));
-      expect(await screen.findAllByRole("combobox", { name: "Find a song" })).toHaveLength(1);
+      expect(
+        await screen.findAllByRole("combobox", { name: "Find a song or action" }),
+      ).toHaveLength(1);
       expect(crumbs().getByRole("button", { name: /Hymns of Fellowship/ })).toBeInTheDocument();
     });
   });
@@ -353,7 +355,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     mocks.recents = [{ hymnbookId: "k1", hymnNumber: 1, viewedAt: 2 }];
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);
@@ -383,8 +385,8 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
       ).not.toBeInTheDocument(),
     );
     fireEvent.click(sections.getByRole("button", { name: "Present" }));
-    // No hymn is left up: the Finder, not the Presenter.
-    expect(await screen.findByRole("combobox", { name: "Find a song" })).toBeInTheDocument();
+    // No hymn is left up: the empty card, not the Presenter.
+    expect(await screen.findByRole("heading", { name: "No song selected" })).toBeInTheDocument();
     expect(
       within(screen.getByRole("navigation", { name: "Hymnbook and song" })).queryByRole("button", {
         name: /#1/,
@@ -397,7 +399,7 @@ describe("App: the books held (SDD-0004 §9, §10)", () => {
     mocks.recents = [{ hymnbookId: "k1", hymnNumber: 1, viewedAt: 2 }];
     render(() => <App />);
     await openFinder();
-    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song" }), {
+    fireEvent.input(await screen.findByRole("combobox", { name: "Find a song or action" }), {
       target: { value: "1" },
     });
     fireEvent.submit(screen.getByRole("combobox").closest("form") as HTMLFormElement);

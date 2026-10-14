@@ -5,6 +5,7 @@ import {
   createSignal,
   For,
   type JSX,
+  on,
   onCleanup,
   Show,
 } from "solid-js";
@@ -43,6 +44,8 @@ import {
   wholeSongOf,
 } from "../persistence/user-state.ts";
 import { About } from "./About.tsx";
+import { ClearSearch } from "./ClearSearch.tsx";
+import { EmptyCard } from "./EmptyCard.tsx";
 import { glideList } from "./glideList.ts";
 import { hoverGroup } from "./hoverGlide.ts";
 import { KeyCombo } from "./KeyCombo.tsx";
@@ -52,6 +55,7 @@ import { Menu } from "./Menu.tsx";
 import { createMediaQuery, EXPANDED_QUERY } from "./media.ts";
 import { createOutputScreens, type OutputScreens } from "./outputScreens.ts";
 import { isPaneShown, PANES, type PaneId } from "./panes.ts";
+import { riseIn } from "./riseIn.ts";
 import { Segmented } from "./Segmented.tsx";
 import { saveFile } from "./saveFile.ts";
 import { selectGlide } from "./selectGlide.ts";
@@ -460,6 +464,19 @@ export function Settings(props: SettingsProps) {
     }
     setNoMatch(!any);
   });
+  // What stays after a new word settles in place (the dialog holds its size); a change to a
+  // setting itself is no new search.
+  createEffect(
+    on(
+      query,
+      () => {
+        for (const section of settingsRef?.querySelectorAll(".settings-section:not([hidden])") ??
+          [])
+          riseIn(section);
+      },
+      { defer: true },
+    ),
+  );
 
   return (
     <div
@@ -478,9 +495,16 @@ export function Settings(props: SettingsProps) {
           value={query()}
           onInput={(event) => setQuery(event.currentTarget.value)}
         />
+        <ClearSearch visible={query() !== ""} onClear={() => setQuery("")} />
       </label>
       <Show when={noMatch()}>
-        <p class="body-large on-surface-variant">No settings match “{query().trim()}”.</p>
+        <EmptyCard
+          kind="results"
+          title={`No settings match “${query().trim()}”`}
+          ref={(el) => riseIn(el)}
+        >
+          Try another word.
+        </EmptyCard>
       </Show>
       <section class="settings-section" aria-labelledby={`${id}-display`}>
         <h3 id={`${id}-display`} class="settings-heading">
