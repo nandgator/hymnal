@@ -68,7 +68,6 @@ Ordered. Top unblocked item is next.
 | 71  | Scroll edge fades: every scroll region fades its top and bottom edge in proportion to how far it can scroll (2026-10-13)                                                              | -                   |
 | 72  | Present Here by touch: a tap shows a quiet bar (Search, Previous, Next, Leave) that hides after ~3 s; a swipe steps (maintainer, 2026-10-14)                                          | -                   |
 | 73  | Song-text check: local heuristics flag text that looks like code, maths or other non-song on review (a note, never a block); From Text and received books. ADR-0034                   | -                   |
-| 74  | Small fixes: Settings search opens a closed section that holds a match; the books illustration as songbooks (rendered, uncluttered); the sample error drops "this site"               | -                   |
 | 14  | CMS for managing hymnal content (add/edit hymns, hymnbooks); removing one song from your books (its UI left with OwnSheet, ADR-0033 §6)                                               | —                   |
 | 15  | Transliteration: search and display across scripts (ADR-0014)                                                                                                                         | —                   |
 | 16  | Feedback and corrections from users — where collected: TBD                                                                                                                            | —                   |
@@ -122,6 +121,10 @@ only, here:
 
 ## Log
 
+- 2026-10-14 — #74 done: Settings search shows a closed section that holds a
+  match (`data-search`, never touching `data-open`, so clearing restores the
+  layout's state); the books illustration is hymnals on a shelf, a cross on each
+  spine, one leaning; the sample error no longer says "this site"
 - 2026-10-14 — search polish (the maintainer's review of the empty cards):
   Present with no song is the card and a Find a Song button, no inline Finder (a
   digit typed there opens Search with it); every search field has a clear X, the
@@ -179,6 +182,3 @@ only, here:
   language, the text; pasted plain lyrics parse (the first line is the title and
   verse 1, numbers counted from the book's next); errors clear on edit, the
   script code is checked, the language list floats inside the card
-- 2026-10-10 — #19 closed by the maintainer: #38 swaps book and song in one step
-  for a lyric result; a number in another book goes through the header's picker
-  (SDD-0001 §16.4)

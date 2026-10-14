@@ -57,8 +57,7 @@ import {
 
 /** Said in the Library when the books are held in memory (SDD-0004 §15). */
 const MEMORY_NOTE = "This window doesn’t keep books. They go when it closes, so keep the file.";
-const SAMPLE_FAILED =
-  "The sample couldn’t be fetched. It comes from this site, so check the connection and try again.";
+const SAMPLE_FAILED = "The sample couldn’t be loaded. Check your connection and try again.";
 const KEPT_NOTE = "Books stay on this device.";
 /** Said only while a loaded book is held: your books have no file, and say so themselves. */
 const KEEP_FILE_NOTE = "A loaded book has no copy anywhere else, so keep its file.";

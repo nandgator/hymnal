@@ -199,3 +199,27 @@ test("the quick switcher's no-match card does not leave while typing on (the lyr
   expect(seen.gone).toBe(0);
   expect(seen.shortest).toBeGreaterThanOrEqual(before - 1);
 });
+
+test("Settings search: a closed section that holds a match shows open, and clearing shuts it again", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await openSettings(page);
+
+  const box = page.getByRole("searchbox", { name: "Search settings" });
+  // "Pin the chorus" lives in a disclosure that Whole song shuts.
+  await page.getByRole("group", { name: "Layout" }).getByLabel("Whole song").check({ force: true });
+  const fade = page.locator(".settings-disclosure").filter({ hasText: /Pin the chorus/ });
+  const row = fade.locator(".settings-row").first();
+  await expect(fade).toHaveAttribute("data-open", "false");
+  await expect(row).toBeHidden();
+
+  await box.fill("pin");
+  await expect(fade).toHaveAttribute("data-search", "open");
+  await expect(row).toBeVisible();
+
+  await page.getByRole("button", { name: "Clear search" }).click();
+  await expect(fade).not.toHaveAttribute("data-search", /.*/);
+  await expect(fade).toHaveAttribute("data-open", "false");
+  await expect(row).toBeHidden();
+});

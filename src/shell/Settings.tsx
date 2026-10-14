@@ -434,10 +434,11 @@ export function Settings(props: SettingsProps) {
   // Search (a Settings sheet grows): rows whose text holds every word typed
   // stay, the rest hide, and a section left empty hides its heading too.
   // It reads what's on screen, so a new row is searchable with no list to
-  // keep in step. A row inside a closed disclosure is hidden from a search
-  // (it is out of reach, and a match there would show nothing to act on); the
-  // effect reads the preferences so it re-runs when a disclosure opens or
-  // closes, after the disclosure has set `data-open`.
+  // keep in step. A closed disclosure that holds a match shows open while the
+  // query stands (`data-search`, out of `inert`), and goes back to the state
+  // the layout gives it (`data-open`, which search never touches) once it is
+  // cleared. The effect reads the preferences so it re-runs when a disclosure
+  // opens or closes, after the disclosure has set `data-open`.
   const [query, setQuery] = createSignal("");
   const [noMatch, setNoMatch] = createSignal(false);
   let settingsRef: HTMLDivElement | undefined;
@@ -451,9 +452,7 @@ export function Settings(props: SettingsProps) {
       let shown = false;
       for (const row of section.querySelectorAll<HTMLElement>(".settings-row, .settings-link")) {
         const text = row.textContent?.toLowerCase() ?? "";
-        const closed =
-          words.length > 0 && row.closest('.settings-disclosure[data-open="false"]') !== null;
-        const match = !closed && words.every((word) => text.includes(word));
+        const match = words.every((word) => text.includes(word));
         row.hidden = !match;
         shown ||= match;
       }
@@ -461,6 +460,19 @@ export function Settings(props: SettingsProps) {
         group.hidden = !group.querySelector(".settings-row:not([hidden])");
       section.hidden = !shown;
       any ||= shown;
+    }
+    for (const disclosure of root.querySelectorAll<HTMLElement>(".settings-disclosure")) {
+      const forced =
+        words.length > 0 &&
+        disclosure.dataset.open !== "true" &&
+        disclosure.querySelector(".settings-row:not([hidden]), .settings-link:not([hidden])") !==
+          null;
+      const open = forced || disclosure.dataset.open === "true";
+      if (forced) disclosure.dataset.search = "open";
+      else delete disclosure.dataset.search;
+      disclosure.toggleAttribute("inert", !open);
+      if (open) disclosure.removeAttribute("aria-hidden");
+      else disclosure.setAttribute("aria-hidden", "true");
     }
     setNoMatch(!any);
   });
