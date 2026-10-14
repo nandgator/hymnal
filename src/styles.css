@@ -3363,6 +3363,13 @@ html[data-touch-lock] [data-output-guard] {
   text-align: start;
 }
 
+.live-strip-lock .live-control {
+  width: 100%;
+  min-height: 3rem;
+  flex-direction: row;
+  gap: var(--space-xs);
+}
+
 .live-strip-label {
   flex: none;
   color: var(--output-ink-muted);

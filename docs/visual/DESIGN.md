@@ -630,23 +630,25 @@ view is close enough to the frame to need a smaller unit.
     Air status reads **Held**, its glyph pause in a circle; **Blanked** wins if
     both are on (SDD-0001 §16.6).
   - **Touch Lock** (Board #75; SDD-0001 §16.11): beside Hold, in Live's toolbar
-    and on the phone strip, a pressed button named **Touch Lock** (label and
-    name stay the same on and off; the pressed tone and the padlock, shut or
-    open, say which). It is a switch of a preference, off out of the box, and
-    the Settings switch under Presentation is the same state. While the lock is
-    in force (on, and live) a small padlock sits on the header's live button at
-    its top right, a badge that takes no room; the button's tooltip adds "Touch
-    Lock is on". Locked, a tap on a control that changes the Output does nothing
-    but show a hint, **Press and hold to show** (never "Hold" alone: that is the
-    freeze): a small inverse-surface pill, 0.8125rem, above the pointer (below
-    it near the top edge), clamped inside the window, in for 120 ms and out
-    after about 1.6 s. A press shows a **ring** under the finger or cursor: 3rem
-    across, a 3px track and an arc in the primary colour filling clockwise over
-    500 ms (linear, so the time reads), on a faint scrim so it reads on any
-    ground; drawn larger than a fingertip, since the finger covers its centre.
-    Reduced motion: no fill; the ring is a still track, and at completion it
-    turns solid primary. Releasing early or moving more than 10px removes it.
-    The ring and the hint are laid over everything, Present Here included.
+    (on a phone, a full-width row under the preview once the strip is expanded,
+    so the strip keeps room for its line), a pressed button named **Touch Lock**
+    (label and name stay the same on and off; the pressed tone and the padlock,
+    shut or open, say which). It is a switch of a preference, off out of the
+    box, and the Settings switch under Presentation is the same state. While the
+    lock is in force (on, and live) a small padlock sits on the header's live
+    button at its top right, a badge that takes no room; the button's tooltip
+    adds "Touch Lock is on". Locked, a tap on a control that changes the Output
+    does nothing but show a hint, **Press and hold to show** (never "Hold"
+    alone: that is the freeze): a small inverse-surface pill, 0.8125rem, above
+    the pointer (below it near the top edge), clamped inside the window, in for
+    120 ms and out after about 1.6 s. A press shows a **ring** under the finger
+    or cursor: 3rem across, a 3px track and an arc in the primary colour filling
+    clockwise over 500 ms (linear, so the time reads), on a faint scrim so it
+    reads on any ground; drawn larger than a fingertip, since the finger covers
+    its centre. Reduced motion: no fill; the ring is a still track, and at
+    completion it turns solid primary. Releasing early or moving more than 10px
+    removes it. The ring and the hint are laid over everything, Present Here
+    included.
   - **Phone** (and anything under 840px): Live collapses to a thin strip showing
     the current line, expanding on tap. Below it the tabs, merged, with
     **Parts** as a third tab: This Song | Recents | Parts. On a phone one thing

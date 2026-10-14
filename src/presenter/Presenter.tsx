@@ -885,7 +885,7 @@ export function Presenter(props: PresenterProps) {
   // What changes the audience screen, as one toolbar at the heading's (or
   // the strip's) end: the same size and gap for every member, on the label's
   // baseline (DESIGN.md § Buttons).
-  const liveToolbar = () => (
+  const liveToolbar = (options: { lock?: boolean } = { lock: true }) => (
     <div
       class="live-toolbar"
       role="toolbar"
@@ -894,7 +894,7 @@ export function Presenter(props: PresenterProps) {
     >
       {blankControl()}
       {holdControl()}
-      {touchLockControl()}
+      {options.lock !== false && touchLockControl()}
       {presentHereControl()}
       {endLiveControl()}
     </div>
@@ -918,9 +918,14 @@ export function Presenter(props: PresenterProps) {
           </span>
           <span class="icon icon-expand" aria-hidden="true" />
         </button>
-        {liveToolbar()}
+        {liveToolbar({ lock: false })}
       </div>
-      <Show when={liveExpanded()}>{livePreview()}</Show>
+      <Show when={liveExpanded()}>
+        {livePreview()}
+        {/* Five icon buttons left the label no room on a phone: Touch Lock keeps to the
+          expanded panel here, a full-width row under the preview (DESIGN.md § Touch Lock). */}
+        <div class="live-strip-lock">{touchLockControl()}</div>
+      </Show>
     </div>
   );
 

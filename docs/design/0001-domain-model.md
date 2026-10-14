@@ -2286,10 +2286,12 @@ Output that keeps moving.
 - **One switch, one state.** The `touchLock` preference (absent means off, so
   out of the box nothing changes; once set it is remembered, like the others;
   read through `touchLockOf`). Settings' **Touch Lock** switch (Presentation)
-  and Live's toolbar toggle, beside Blank and Hold and on the phone strip, are
-  the same state. The toggle is a button with `aria-pressed` named "Touch Lock";
-  the command menu lists "Turn on Touch Lock" and "Turn off Touch Lock". The
-  switch is not itself guarded: it changes nothing the audience sees.
+  and Live's toolbar toggle, beside Blank and Hold (on a phone, a full-width row
+  under the preview in the strip's expanded panel: five icon buttons left the
+  strip's line no room), are the same state. The toggle is a button with
+  `aria-pressed` named "Touch Lock"; the command menu lists "Turn on Touch Lock"
+  and "Turn off Touch Lock". The switch is not itself guarded: it changes
+  nothing the audience sees.
 - **In force only while live.** The lock acts when the preference is on and an
   Output is up, in a window or presenting here (`Presence.live`). Not live, a
   press is a plain press and nothing shows. While in force, a small lock marks
