@@ -69,7 +69,9 @@ export function searchBookPage(sql: Sql, query: string, offset = 0): SearchPage 
 
   const quote = (word: string) => `"${word.replace(/"/g, '""')}"*`;
   const matchQuery = words.map(quote).join(" ");
-  const likeClauses = words.map(() => "line.text LIKE '%' || ? || '%'").join(" OR ");
+  // LIKE reads % and _ as wildcards: escape them (and the escape) so a typed one is itself.
+  const likeWord = (word: string) => word.replace(/[\\%_]/g, "\\$&");
+  const likeClauses = words.map(() => "line.text LIKE '%' || ? || '%' ESCAPE '\\'").join(" OR ");
 
   const rows = sql
     .all(
@@ -80,7 +82,7 @@ export function searchBookPage(sql: Sql, query: string, offset = 0): SearchPage 
        FROM hymn_fts JOIN hymn ON hymn.number = hymn_fts.rowid
        WHERE hymn_fts MATCH ? ORDER BY rank, hymn.number
        LIMIT ${SEARCH_LIMIT + 1} OFFSET ${Math.max(0, Math.floor(offset))}`,
-      [...words, matchQuery],
+      [...words.map(likeWord), matchQuery],
     )
     .map((row) => ({
       number: row.number as number,
