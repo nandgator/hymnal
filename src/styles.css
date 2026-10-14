@@ -1251,7 +1251,8 @@ button:disabled {
 .text-field input {
   width: 100%;
   min-height: 3rem;
-  padding: 0 1rem 0 2.75rem;
+  /* The end holds room for the clear button, there or not: it appearing moves nothing. */
+  padding: 0 3rem 0 2.75rem;
   border: none;
   border-radius: var(--button-shape);
   background-color: var(--md-sys-color-surface-container);
@@ -1271,6 +1272,28 @@ button:disabled {
   align-items: center;
   gap: var(--space-xs);
   max-width: 100%;
+}
+
+/* The clear button is the field's own (ClearSearch.tsx); the browser's would be a second X. */
+.text-field input[type="search"]::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+/* A round 3rem target at the field's end, as tall as the field. */
+.text-field .text-field-clear {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 3rem;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.text-field .text-field-clear .icon {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .text-field input::placeholder {
@@ -6291,6 +6314,10 @@ fieldset.book-main {
 .present-switcher .text-field input {
   min-height: 2.5rem;
   font-size: 0.9375rem;
+}
+
+.present-switcher .text-field .text-field-clear {
+  width: 2.5rem;
 }
 
 .present-switcher .list-row {

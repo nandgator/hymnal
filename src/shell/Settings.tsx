@@ -43,6 +43,8 @@ import {
   wholeSongOf,
 } from "../persistence/user-state.ts";
 import { About } from "./About.tsx";
+import { ClearSearch } from "./ClearSearch.tsx";
+import { EmptyCard } from "./EmptyCard.tsx";
 import { glideList } from "./glideList.ts";
 import { hoverGroup } from "./hoverGlide.ts";
 import { KeyCombo } from "./KeyCombo.tsx";
@@ -478,9 +480,12 @@ export function Settings(props: SettingsProps) {
           value={query()}
           onInput={(event) => setQuery(event.currentTarget.value)}
         />
+        <ClearSearch visible={query() !== ""} onClear={() => setQuery("")} />
       </label>
       <Show when={noMatch()}>
-        <p class="body-large on-surface-variant">No settings match “{query().trim()}”.</p>
+        <EmptyCard kind="results" title={`No settings match “${query().trim()}”`}>
+          Try another word.
+        </EmptyCard>
       </Show>
       <section class="settings-section" aria-labelledby={`${id}-display`}>
         <h3 id={`${id}-display`} class="settings-heading">

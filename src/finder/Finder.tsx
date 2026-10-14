@@ -16,6 +16,7 @@ import { languageName } from "../library/books.ts";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
 import type { UserState } from "../persistence/user-state.ts";
 import { titleCase } from "../shell/case.ts";
+import { ClearSearch } from "../shell/ClearSearch.tsx";
 import { EmptyCard } from "../shell/EmptyCard.tsx";
 import { type GlideList, glideList } from "../shell/glideList.ts";
 import { hoverButton } from "../shell/hoverGlide.ts";
@@ -864,17 +865,12 @@ export function Finder(props: FinderProps) {
             placeholder={props.commands ? "Song number, lyrics or action" : "Song number or lyrics"}
             aria-label={props.commands ? "Find a song or action" : "Find a song"}
           />
+          <ClearSearch visible={query() !== ""} onClear={() => setQuery("")} />
         </div>
       </form>
 
       <Show when={noMatch()}>
-        <EmptyCard
-          kind="results"
-          title={`No matches for “${emptyFor()}”`}
-          action={
-            props.compact ? undefined : { label: "Clear Search", onClick: () => setQuery("") }
-          }
-        >
+        <EmptyCard kind="results" title={`No matches for “${emptyFor()}”`}>
           Try a song number, or other words from the lyrics.
         </EmptyCard>
       </Show>

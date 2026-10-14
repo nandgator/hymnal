@@ -611,9 +611,11 @@ describe("Finder", () => {
     expect(
       await screen.findByRole("heading", { name: "No matches for “nothing like this”" }),
     ).toBeInTheDocument();
-    // Clear Search empties the box and brings the book back.
-    fireEvent.click(screen.getByRole("button", { name: "Clear Search" }));
+    // The field's own clear button empties the box, keeps focus in it, and brings the book back.
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
     expect(screen.getByRole("combobox")).toHaveValue("");
+    expect(screen.getByRole("combobox")).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Clear search" })).not.toBeInTheDocument();
     expect(await screen.findByRole("group", { name: "All songs" })).toBeInTheDocument();
   });
 

@@ -67,6 +67,7 @@ import {
 import { Presenter, type PresenterActions } from "./presenter/Presenter.tsx";
 import { autoHover } from "./shell/autoHover.ts";
 import { titleCase } from "./shell/case.ts";
+import { ClearSearch } from "./shell/ClearSearch.tsx";
 import { EmptyCard } from "./shell/EmptyCard.tsx";
 import { RootBoundary } from "./shell/ErrorScreen.tsx";
 import { glideList } from "./shell/glideList.ts";
@@ -1680,9 +1681,12 @@ function Operator(props: Shared) {
               value={bookFilter()}
               onInput={(event) => setBookFilter(event.currentTarget.value)}
             />
+            <ClearSearch visible={bookFilter() !== ""} onClear={() => setBookFilter("")} />
           </label>
           <Show when={filteredBooks().length === 0}>
-            <p class="body-large on-surface-variant">No hymnbooks match “{bookFilter().trim()}”.</p>
+            <EmptyCard kind="results" title={`No hymnbooks match “${bookFilter().trim()}”`}>
+              Try another word from its title.
+            </EmptyCard>
           </Show>
           <ul
             class="list glide-list"

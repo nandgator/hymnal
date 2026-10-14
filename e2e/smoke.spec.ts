@@ -65,7 +65,7 @@ test("empty states are cards: no books, no song selected, no matches", async ({ 
   const box = await openFinder(page);
   await box.fill("zzzzqq");
   await expect(page.getByRole("heading", { name: "No matches for “zzzzqq”" })).toBeVisible();
-  await page.getByRole("button", { name: "Clear Search" }).click();
+  await page.getByRole("button", { name: "Clear search" }).click();
   await expect(box).toHaveValue("");
   await expect(page.getByRole("heading", { name: /^No matches/ })).toBeHidden();
 });
