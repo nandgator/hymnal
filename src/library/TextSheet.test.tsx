@@ -543,21 +543,4 @@ describe("Library: the language list as a dropdown", () => {
       dialog.getByRole("listbox", { hidden: true }).querySelector(`#${second}`),
     ).toHaveAttribute("aria-selected", "true");
   });
-
-  it("fades only the edges that have more to scroll", async () => {
-    const { dialog, box } = await open();
-    fireEvent.focus(box);
-    const list = dialog.getByRole("listbox", { hidden: true });
-    Object.defineProperty(list, "clientHeight", { value: 100, configurable: true });
-    Object.defineProperty(list, "scrollHeight", { value: 400, configurable: true });
-    list.scrollTop = 0;
-    fireEvent.scroll(list);
-    expect(list).toHaveAttribute("data-fade", "bottom");
-    list.scrollTop = 150;
-    fireEvent.scroll(list);
-    expect(list).toHaveAttribute("data-fade", "both");
-    list.scrollTop = 300;
-    fireEvent.scroll(list);
-    expect(list).toHaveAttribute("data-fade", "top");
-  });
 });

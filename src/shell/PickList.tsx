@@ -22,7 +22,7 @@ export interface PickListProps {
  * layer, placed from the field's rect like the app's menus, so it floats over
  * the sheet and never changes its size or adds a scrollbar. Kept 16px inside
  * the sheet's card, flipped above the field when there is no room below, with
- * a soft blur and fade at an edge while more scrolls that way. The rows are
+ * a fade at an edge while more scrolls that way (scrollFade.ts). The rows are
  * `.pick-row`; the active one is `aria-selected="true"` (the hover highlight
  * glides to it) and the current one carries `data-current` (the tonal pill).
  *
@@ -104,14 +104,6 @@ export function PickList(props: PickListProps) {
     list.style.left = `${spot.left}px`;
     if (spot.maxHeight !== undefined) list.style.maxHeight = `${spot.maxHeight}px`;
     list.classList.toggle("pick-list-above", spot.above);
-    fade();
-  };
-  // A soft fade at an edge only while there is more to scroll that way.
-  const fade = () => {
-    if (!list) return;
-    const above = list.scrollTop > 1;
-    const below = list.scrollTop + list.clientHeight < list.scrollHeight - 1;
-    list.dataset.fade = above && below ? "both" : above ? "top" : below ? "bottom" : "none";
   };
   createEffect(() => {
     props.track?.();
@@ -132,7 +124,6 @@ export function PickList(props: PickListProps) {
       role="listbox"
       aria-label={props.label}
       popover={"showPopover" in HTMLElement.prototype ? "manual" : undefined}
-      onScroll={fade}
       ref={(el) => {
         list = el;
         props.listRef?.(el);
