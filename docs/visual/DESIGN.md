@@ -1510,7 +1510,10 @@ motion: the thumb is where it is at once; colours still fade.
 
 `list-row` covers what the component list above otherwise lacks: a Finder search
 result or recent hymn is one full-width, tappable row, the title in `on-surface`
-and a snippet in `on-surface-variant`, never a button styled as a button.
+and a snippet in `on-surface-variant`, never a button styled as a button. A
+recent song of another book than the one open says its book after the title,
+quiet (`on-surface-variant`, "· Songs of Zion"), in the same one ellipsized
+line, so the row keeps its height.
 
 **Finder results, several books** (SDD-0001 §13.1). A lyric search over more
 than one book sets each book's results under its title: one muted `label-large`
@@ -1524,21 +1527,21 @@ all books; the field's placeholder says what to type, and no line under it names
 the scope. With one book there are no headings. In the quick switcher the
 headings are 13px and each book shows three rows.
 
-**Finder, a whole book** (SDD-0001 §13.2). Nothing typed, Recents sit on top and
-**All songs** below: every song of the book in one list that scrolls inside the
-sheet. It is windowed: only the rows in view and six either side exist, over
-spacers that keep the scroll bar honest. The song up now is marked in its row by
-its number alone, in the primary colour and medium weight (`aria-current`): the
-one accent-coloured text, because the tonal pill is the highlight's and Enter's
-target, and a second pill would read as a second selection. Rows are a fixed
-3.5rem, headings 2.75rem, so nothing is measured when a sheet opens or while it
-scrolls. A group heading (a language of Assorted Hymns, or **All songs**) is the
-one muted `label-large` line and sticks under the field. A search that has more
-than a page ends in a quiet line, _Loading more_ in `on-surface-variant`, then
-_End of results_; nothing animates for it. Reduced motion changes nothing here:
-the highlight jumps to a row the arrow keys reach, at once. Check the worst
-case: a title that just fits beside a wide number, and Malayalam conjuncts, at
-390 wide and in the dark theme.
+**Finder, a whole book** (SDD-0001 §13.2). Nothing typed, Recents (every book's)
+sit on top and **All songs** below: every song of the scope's book in one list
+that scrolls inside the sheet. It is windowed: only the rows in view and six
+either side exist, over spacers that keep the scroll bar honest. The song up now
+is marked in its row by its number alone, in the primary colour and medium
+weight (`aria-current`): the one accent-coloured text, because the tonal pill is
+the highlight's and Enter's target, and a second pill would read as a second
+selection. Rows are a fixed 3.5rem, headings 2.75rem, so nothing is measured
+when a sheet opens or while it scrolls. A group heading (a language of Assorted
+Hymns, or **All songs**) is the one muted `label-large` line and sticks under
+the field. A search that has more than a page ends in a quiet line, _Loading
+more_ in `on-surface-variant`, then _End of results_; nothing animates for it.
+Reduced motion changes nothing here: the highlight jumps to a row the arrow keys
+reach, at once. Check the worst case: a title that just fits beside a wide
+number, and Malayalam conjuncts, at 390 wide and in the dark theme.
 
 ## Elevation & Depth
 

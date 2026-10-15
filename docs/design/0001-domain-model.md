@@ -984,9 +984,10 @@ There is no Find button.
   list doesn't flicker.
 - **Keys:** ↑/↓ move the highlighted option, Enter takes it — the top one unless
   moved — and Escape clears the query (a second Escape reaches the sheet and
-  closes it). While the box is empty the Finder shows Recents (this book's, when
-  there are any, as the shared `RecentsList`) and, below them, **All songs**:
-  the whole book, a windowed list (§13.2), each song opening on a tap. With no
+  closes it). While the box is empty the Finder shows Recents (every book's,
+  newest first, when there are any, as the shared `RecentsList`) and, below
+  them, the songs the scope covers (§13.4): the whole book, or each chosen book
+  under its title, a windowed list (§13.2), each song opening on a tap. With no
   recents the Recents heading is not shown.
 - While focus is in the box, the Presenter's shortcuts are off (§16.5): arrow
   keys that move the highlight must never also move the Output.
@@ -1075,7 +1076,7 @@ book. Present Here's switcher and a single book keep the current book alone.
 
 **As built.** Groups and headings show only when more than one book is held and
 something is typed, words or a number; with nothing typed the Finder lists the
-current book's songs and recents. Under a heading the listbox holds
+scope's songs (§13.4) and recents. Under a heading the listbox holds
 `role="group"` wrappers, labelled by the heading ; More in is an option. Opening
 a group keeps the highlight where it was. Present Here's switcher shows three
 songs a book (five when one book), without More in. The sources list is
@@ -1210,9 +1211,15 @@ field narrows it.
   narrow scope also costs less. When the current book is outside the scope,
   Enter takes the top suggestion of the first book in scope; with no suggestion
   it opens the number in the current book, as always, and Presenter reports it.
-  Present Here's switcher is not scoped. With nothing typed the list is the
-  current book's songs and Recents, whatever the scope. A scope of one book
-  shows no group heading, as a single book does not.
+  Present Here's switcher is not scoped. With nothing typed the list follows the
+  scope (maintainer, 2026-10-15; it showed the current book's songs whatever the
+  chips said): This Book is the current book's songs; one chosen book is that
+  book's songs, its own language groups or **All songs** heading, as a single
+  book has them; several are each book's songs under its title, a sticky
+  heading, as a multi-book search groups them (§13.1), in the windowed list
+  (§13.2). Recents above it are not scoped: they are every book's (§16.4). A
+  scope of one book shows no group heading for the book, as a single book does
+  not.
 - **No match in a narrowed scope.** The card says where it looked, _No matches
   in This Book_ (or _in 2 Books_), and offers **Search All Books**, which
   switches the scope and so runs the same words again. In All Books the card is
@@ -1239,9 +1246,10 @@ field narrows it.
 
 **Decided (the maintainer, 2026-10-12).** A book of a thousand songs can be
 browsed. Nothing typed, the Finder shows Recents on top and, below, **All
-songs**: every song of the book in one list that scrolls inside the Finder (the
-sheet's content), replacing the first twenty ("From the start", `OPENING_SONGS`,
-gone). A lyric search scrolls on past its first 30.
+songs**: every song of the scope's book (the scope's books, each under its
+title, when it covers several; §13.4) in one list that scrolls inside the Finder
+(the sheet's content), replacing the first twenty ("From the start",
+`OPENING_SONGS`, gone). A lyric search scrolls on past its first 30.
 
 **One windowed listbox.** The list under the field is the same `role="listbox"`
 for browsing and for results, and only the rows in view, plus an overscan of six
@@ -1845,6 +1853,17 @@ workspace, the dock.
   Parts calls `jumpToPart` (§5.1); lyrics call `goTo(i)` or `goTo(i, line)`,
   never `jumpToPart`, since moving within the path isn't a deviation. Scrolling
   lyrics never calls the engine.
+- **Recents are one list across the books** (maintainer, 2026-10-15). The
+  Recents tab and the Finder's Recents are the shared `RecentsList`: every
+  recent song of every book held, newest first. A row names its book, a quiet "·
+  Songs of Zion" after the title, when the book is not the song's current one
+  (the presented book here, the current book in the Finder); the title is cut
+  with an ellipsis, so the row's height never changes. Titles come from each
+  book's `listHymns`. A tap opens the song in its own book:
+  `onSelect(number, book)`, which the App hands to `chooseHymn`/`pickHymn`, so
+  the presented book changes with the song (hot-swap, below) and, from the
+  Finder, the current book too. A removed book's recents are already dropped
+  (`dropRecents`). The Library's per-book count is the book's own, as before.
 - **Two tab groups.** This Song, Recents and (later) Queue are **tabs** in at
   most two **groups**, side by side (split) or merged into one tabbed area. Each
   group's heading ends in a pane toolbar, after VS Code's and Zed's: **Expand**
