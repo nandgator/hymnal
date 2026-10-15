@@ -61,6 +61,7 @@ import {
   highlightOf,
   outputCuesOf,
   pinChorusOf,
+  previewOf,
   userState,
   wholeSongOf,
 } from "./persistence/user-state.ts";
@@ -363,7 +364,10 @@ function Operator(props: Shared) {
   // an Output, so it can't start then, and it ends with the window.
   const [held, setHeld] = createSignal<HeldView>();
   onMount(() => onCleanup(subscribeHold(setHeld)));
+  // Preview steps Hold aside (SDD-0001 §16.11), though a hold already on can be released.
+  const holdOffered = () => !!held() || !previewOn();
   const toggleHold = () => {
+    if (!holdOffered()) return;
     if (held()) setOutputHeld(false);
     else if (presentingOutput()) setOutputHeld(true);
   };
@@ -934,13 +938,49 @@ function Operator(props: Shared) {
   // The number and its book change together, or the Presenter would fetch the old
   // book's song under the new number and record it as a recent. A pick from the
   // Presenter's own lists is of the song's book, whatever the scope is.
-  const chooseHymn = (number: HymnNumber, book: HymnbookId | undefined = currentKey()) =>
+  const openHymn = (number: HymnNumber, book: HymnbookId | undefined) =>
     batch(() => {
       setHymnNumber(number);
       setPresentedKey(book);
       setCommandMenuOpen(false);
       setSection("present");
     });
+
+  // Preview (SDD-0001 §16.11): the one place a pick becomes the current song, so the
+  // Finder, Recents, a book's list and the switcher row all wait alike. With Preview on and
+  // the Output window open, a pick on top of a song that is up waits for Send; otherwise
+  // (not live, Preview off, or nothing up yet to protect) it is the current song, as ever,
+  // and a song still waiting is dropped, since it is no longer the next one.
+  const [waiting, setWaiting] = createSignal<{ number: HymnNumber; hymnbookId: HymnbookId }>();
+  const previewOn = () => previewOf(preferences.preferences());
+  const chooseHymn = (number: HymnNumber, book: HymnbookId | undefined = currentKey()) => {
+    if (previewOn() && presentingOutput() && hymnNumber() && presentedKey() && book) {
+      batch(() => {
+        setWaiting({ number, hymnbookId: book });
+        setCommandMenuOpen(false);
+        setSection("present");
+      });
+      return;
+    }
+    batch(() => {
+      setWaiting(undefined);
+      openHymn(number, book);
+    });
+  };
+  // Send: the waiting song is the current one now, and the Output snaps to it.
+  const sendWaiting = () => {
+    const next = waiting();
+    if (!next) return;
+    batch(() => {
+      setWaiting(undefined);
+      if (next.hymnbookId !== currentKey()) setCurrentKey(next.hymnbookId);
+      openHymn(next.number, next.hymnbookId);
+    });
+  };
+  // Preview off, nothing waits.
+  createEffect(() => {
+    if (!previewOn()) setWaiting(undefined);
+  });
 
   // A pick in the Finder: the song's book becomes the current one and the song opens, in
   // one step (SDD-0001 §13.1). While live it is a pick like any other: the Presenter swaps
@@ -1105,7 +1145,7 @@ function Operator(props: Shared) {
         hint: keyHint("blank"),
         run: run(toggleBlank),
       },
-      ...(held() || presentingOutput()
+      ...(held() || (presentingOutput() && !previewOn())
         ? [
             {
               label: held() ? "Release the Output" : "Hold the Output",
@@ -1228,6 +1268,10 @@ function Operator(props: Shared) {
           ? "Scroll the song on the Output"
           : "Show the whole song on the Output",
         run: run(() => preferences.update({ ...prefs, wholeSong: !wholeSongOf(prefs) })),
+      },
+      {
+        label: previewOn() ? "Turn Preview Off" : "Turn Preview On",
+        run: run(() => preferences.update({ ...prefs, preview: !previewOn() })),
       },
       {
         label: cues.fade ? "Keep the details on the Output" : "Fade the details on the Output",
@@ -1657,6 +1701,10 @@ function Operator(props: Shared) {
                   onToggleBlank={toggleBlank}
                   held={held()}
                   onToggleHold={toggleHold}
+                  preview={previewOn()}
+                  waiting={waiting()}
+                  onSend={sendWaiting}
+                  onClear={() => setWaiting(undefined)}
                   onEndLive={endLive}
                   presenting={presentingOutput() || presentingHere()}
                   away={section() !== "present"}

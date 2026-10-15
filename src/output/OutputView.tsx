@@ -66,6 +66,8 @@ export interface OutputViewProps {
   /** "full": the audience screen. "mini": the Operator's Live pane — the
    * same view, scaled to its box. */
   variant: "full" | "mini";
+  /** The mini view's accessible name; Live's by default. */
+  label?: string;
   /** Blanked (SDD-0001 §16.5): the text fades out, still laid out and
    * positioned underneath, so restoring is instant and in place. */
   blanked?: boolean;
@@ -743,7 +745,9 @@ export function OutputView(props: OutputViewProps) {
         "output-view-fullsong": fullSong(),
       }}
       // The mini view is a picture of the Output; the full one is the Output.
-      {...(props.variant === "mini" ? { role: "img", "aria-label": "Live output preview" } : {})}
+      {...(props.variant === "mini"
+        ? { role: "img", "aria-label": props.label ?? "Live output preview" }
+        : {})}
     >
       {/* The songbook number: top left, sticky and zero-height like the
           caption, and still — it changes only with the hymn. Always there, in

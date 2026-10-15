@@ -292,6 +292,17 @@ describe("Settings", () => {
     expect(setPreferences).toHaveBeenLastCalledWith(expect.objectContaining({ scrollSync: false }));
   });
 
+  it("has Preview off by default, and remembers turning it on (SDD-0001 §16.11)", async () => {
+    const setPreferences = vi.fn(async () => {});
+    render(() => <Settings userState={fakeUserState({ setPreferences })} />);
+    await screen.findByText("100%");
+
+    const preview = screen.getByRole("switch", { name: /Preview a song before it goes live/ });
+    expect(preview).not.toBeChecked();
+    fireEvent.click(preview);
+    expect(setPreferences).toHaveBeenLastCalledWith(expect.objectContaining({ preview: true }));
+  });
+
   it("gives the Output its own theme, Warm by default (DESIGN.md § Output view)", async () => {
     const setPreferences = vi.fn(async () => {});
     render(() => <Settings userState={fakeUserState({ setPreferences })} />);

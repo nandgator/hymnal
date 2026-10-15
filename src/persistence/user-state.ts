@@ -63,6 +63,9 @@ export interface Preferences {
   /** Show the whole song at once on a landscape Output (SDD-0005); absent
    * means off. */
   wholeSong?: boolean;
+  /** A picked song waits in Preview until Send; absent means off — SDD-0001 §16.11.
+   * Read through {@link previewOf}. */
+  preview?: boolean;
   /** What the Output lights; absent means the current part. */
   highlight?: Highlight;
   /** The Operator's tab groups, as stored; read through `workspaceOf`, which
@@ -124,6 +127,8 @@ export const highlightOf = (preferences: Preferences): Highlight =>
   preferences.highlight === "song" ? "song" : "part";
 
 export const wholeSongOf = (preferences: Preferences) => preferences.wholeSong ?? false;
+
+export const previewOf = (preferences: Preferences) => preferences.preview === true;
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",
@@ -237,6 +242,7 @@ const PREFERENCE_FIELDS = {
   bandSize: oneOf("part", "line"),
   pinChorus: isBoolean,
   wholeSong: isBoolean,
+  preview: isBoolean,
   highlight: oneOf("part", "song"),
   homeScreenHintDismissed: isBoolean,
   goLive: oneOf("auto", "here", "window"),
