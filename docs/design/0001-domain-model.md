@@ -2340,9 +2340,9 @@ them; Report a Problem opens `REPORT_URL` with no query. The look at 390×844 an
 Board #75, after OBS's Studio Mode. Live already shows what the audience sees;
 **Preview** adds a step before a song gets there, so a mis-tap in the Finder or
 Recents cannot change the Output mid-service. Built in two parts: the setting,
-the waiting song, Send, Clear, the toolbar swap and the desktop pane are built;
-the phone strip, Enter, End Live keeping the song and Present Here sending it
-are not.
+the waiting song, Send, Clear, the toolbar swap and the desktop pane are built
+(part 1; part 2 reshaped the pane to the above); the phone strip, Enter, End
+Live keeping the song and Present Here sending it are part 2.
 
 - **A setting, off out of the box, then remembered.** Settings, Presentation:
   "Preview a song before it goes live" (the `preview` preference, `false` when
@@ -2369,12 +2369,21 @@ are not.
   while nothing waits and says why ("Pick a song to preview it"). Turning
   Preview on while the Output is held keeps Hold until Release; then it steps
   aside.
-- **The Operator shows it.** A **Preview** pane sits above Live, the same 16:9
-  miniature of the Output, showing the waiting song's first part under a
-  "Preview" label, with Clear; with nothing waiting it reads "Pick a song to
-  preview it". This Song keeps showing the live song (its parts are what
-  stepping moves). On a phone, a strip above Live's strip names the waiting
-  song, with Send and Clear.
+- **The Operator shows it, only while live.** The **Preview** pane sits above
+  Live in the rail, and only while Preview is on and the Output is live; not
+  live, there is no pane (nothing can be sent). Live with nothing waiting, it is
+  a **slim one-line row** under the "Preview" label, quiet: "Pick a song to
+  preview it", with Clear hidden. A song waiting, the pane grows to the same
+  16:9 miniature of the Output, showing the song's first part, in one smooth
+  change of height (none under `prefers-reduced-motion`), and its label names
+  the song: its number and title ("#2 River of Stones"), on one line,
+  ellipsized; from another book, the book's name too, as the cross-book Recents
+  rows do. Clear is a text button at the label's end. The Parts keypad always
+  keeps its room: Live and Preview give way first (DESIGN.md § Structure, Height
+  matters). This Song keeps showing the live song (its parts are what stepping
+  moves). On a phone, a strip above Live's strip names the waiting song, with
+  Send and Clear, shown only while live with Preview on; nothing waiting, no
+  strip (Send in the toolbar stays disabled with its reason).
 - **End Live keeps it waiting.** A waiting song survives End Live, and the next
   Go Live opens on it (it is sent as the Output opens). Nothing the operator
   picked is lost. It is not persisted: a reload empties Preview.

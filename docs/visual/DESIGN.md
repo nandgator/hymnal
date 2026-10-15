@@ -510,11 +510,14 @@ view is close enough to the frame to need a smaller unit.
     toolbar: Blank, Hold, End Live; § The Live toolbar), then a divider and
     **Parts**: the Repeat row (Repeat · ×2 · Undo · Reset, holding its height)
     and the keypad (Chorus full width, verses in fixed-width cells). With
-    Preview on (SDD-0001 §16.11), the **Preview pane** sits above Live: the same
-    16:9 miniature, a "Preview" label in Live's heading style, **Clear** as a
-    text button at the heading's end, and a divider below. With nothing waiting
-    the miniature's box stays, dashed, reading "Pick a song to preview it", so
-    Live never moves as a song starts or stops waiting.
+    Preview on and the Output live (SDD-0001 §16.11), the **Preview pane** sits
+    above Live; not live, there is no pane. Its heading is the "Preview" label
+    in Live's style. Nothing waiting, it is a slim one-line row under the label
+    ("Pick a song to preview it", quiet, Clear hidden); a song waiting, the pane
+    grows to the same 16:9 miniature in one smooth height change (reduced
+    motion: at once), the label then naming the song ("#2 River of Stones", one
+    line, ellipsized, the book's name too for another book), **Clear** a text
+    button at the heading's end, and a divider below.
   - **This hymn**: the lyrics in sung order, tap a part or a line to send it
     live (ProPresenter's click-a-slide-to-go-live).
   - **Coming up**: Recents now, the service queue later (Board #22).
@@ -586,11 +589,14 @@ view is close enough to the frame to need a smaller unit.
     the tint re-measures, never glides, as type size or width changes.
   - **Height matters too.** WCAG's Reflow sets a width floor (320 CSS px) but no
     single height floor, so the practice is to degrade gracefully. The stage
-    needs Live and at least a row of the keypad: under 640px of height (a
-    laptop's short window, split screen) Live becomes the strip there, and above
-    that Live shrinks before the keypad does. The stage never scrolls as a
-    whole; the keypad and the tabs scroll inside themselves, and the page never
-    does.
+    needs Live and the keypad's first two rows (with the Repeat row): under
+    640px of height (a laptop's short window, split screen) Live becomes the
+    strip there, and above that Live, and Preview with it, shrink before the
+    keypad does, whether or not Preview is on; the keypad's own minimum is the
+    Repeat row and two rows of keys, so the second row is never left behind the
+    transport. A song with more rows scrolls inside the keypad. The stage never
+    scrolls as a whole; the keypad and the tabs scroll inside themselves, and
+    the page never does.
   - **Blanked**: while the Output is blanked (B), Live dims and the toolbar's
     **Blank** control is pressed, reading **Restore** (the phone strip carries
     the same control). The operator can keep navigating behind it (SDD-0001
