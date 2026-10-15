@@ -647,7 +647,15 @@ view is close enough to the frame to need a smaller unit.
     the Repeat row (Repeat · ×2 · Undo · Reset, holding its height) and the
     keypad (Chorus full width, verses in equal columns), scrolling inside like
     any tab. It opens on Parts. The transport is the dock. No snackbar: Undo
-    stays in the Repeat row.
+    stays in the Repeat row. With Preview on and the Output live (SDD-0001
+    §16.11), a **Preview strip** sits above Live's strip, the same width and
+    gutters, one line: a quiet "Preview" label, the waiting song's number and
+    title (ellipsized, the book's name after it for another book's song), then
+    **Send** (filled tonal) and **Clear** (text), 48px high targets. Nothing
+    waiting, no strip: the strip appears and goes with a height change (none
+    under reduced motion) and the layout below it makes room, so a strip never
+    hides lyrics. Send in the Live strip's toolbar stays, disabled with its
+    reason.
   - **Where a control lives follows how often it's used mid-service**: frequent
     ones (the tabs, expand and collapse, Repeat) stay on screen; occasional ones
     go into Settings. Nothing mid-service needs a trip into Settings: each pane
