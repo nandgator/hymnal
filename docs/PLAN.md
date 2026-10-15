@@ -118,6 +118,10 @@ only, here:
 
 ## Log
 
+- 2026-10-15 — Recents are one cross-book list (Finder and Presenter), naming
+  another book's songs; with nothing typed the Finder lists the scope's books.
+  Load Books' notes: one closed accordion per reason. The song check takes
+  capitalised, unpunctuated lines as verse (real books: 20 flags to 0; ADR-0034)
 - 2026-10-15 — every PickList (Search's books, the language picker, Add to) is
   an MD3 menu anchored to its trigger: no scrim or blur over the sheet, 48px
   rows, a check on the chosen row, a filter field over six rows (one rule,
@@ -172,15 +176,3 @@ only, here:
   swipe steps through the keys' own path; touch and pen only, the mouse is
   unchanged; `touch-action: pan-y` on the view and its scroller keeps vertical
   hand-scroll
-- 2026-10-14 — #74 done: Settings search shows a closed section that holds a
-  match (`data-search`, never touching `data-open`, so clearing restores the
-  layout's state); the books illustration is hymnals on a shelf, a cross on each
-  spine, one leaning; the sample error no longer says "this site"
-- 2026-10-14 — search polish (the maintainer's review of the empty cards):
-  Present with no song is the card and a Find a Song button, no inline Finder (a
-  digit typed there opens Search with it); every search field has a clear X, the
-  card's button is gone; filter empties are the same card; search dialogs hold
-  one height (`Sheet` `fixed`) and results glide in place (`riseIn`). The
-  switcher flicker was the no-match card leaving at every pause in typing, the
-  strip and its backdrop shrinking with it. Fixed too: Settings search left
-  hidden rows on screen (`hidden` lost to `display: flex`)
