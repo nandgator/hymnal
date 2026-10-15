@@ -1482,3 +1482,55 @@ describe("stepping with the chorus pinned and the whole song lit (SDD-0001 §5.5
     expect(heading()).toHaveTextContent("Chorus");
   });
 });
+
+describe("The Preview pane (Board #75, SDD-0001 §16.11)", () => {
+  const books = [
+    { key: "book", title: "Main Book" },
+    { key: "other", title: "Other Book" },
+  ];
+  const open = (extra: Partial<Parameters<typeof Presenter>[0]> = {}) =>
+    render(() => (
+      <Presenter
+        hymnbookId="book"
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        books={books}
+        preview
+        {...extra}
+      />
+    ));
+
+  it("is not there while the Output is not live", async () => {
+    open();
+    await screen.findByText("Test Hymn");
+    expect(screen.queryByRole("heading", { name: "Preview" })).toBeNull();
+    expect(screen.queryByText("Pick a song to preview it")).toBeNull();
+  });
+
+  it("is a slim row with nothing waiting while live, with no Clear", async () => {
+    open({ presenting: true });
+    await screen.findByText("Test Hymn");
+    expect(screen.getByRole("heading", { name: "Preview" })).toBeInTheDocument();
+    expect(screen.getByText("Pick a song to preview it")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
+    expect(screen.queryByRole("img", { name: "Preview output preview" })).toBeNull();
+  });
+
+  it("names the waiting song by number and title, and its book when it is another", async () => {
+    open({ presenting: true, waiting: { number: 7, hymnbookId: "other" } });
+    await screen.findByRole("img", { name: "Preview output preview" });
+    const label = document.querySelector(".preview-song") as HTMLElement;
+    await vi.waitFor(() => expect(label).toHaveTextContent("#7 Test Hymn"));
+    expect(label).toHaveTextContent("Other Book");
+    expect(screen.queryByText("Pick a song to preview it")).toBeNull();
+    expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
+    expect(document.querySelector(".preview-fold")).toHaveAttribute("data-open", "true");
+  });
+
+  it("leaves the book out for a song of the book that is up", async () => {
+    open({ presenting: true, waiting: { number: 7, hymnbookId: "book" } });
+    await screen.findByRole("img", { name: "Preview output preview" });
+    expect(document.querySelector(".preview-song-book")).toBeNull();
+  });
+});

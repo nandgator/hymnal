@@ -121,6 +121,23 @@ describe("Preview (Board #75, SDD-0001 §16.11)", () => {
     await pick("3");
     await waitFor(() => expect(liveNumber()).toHaveTextContent("3"));
     expect(screen.queryByRole("img", { name: "Preview output preview" })).toBeNull();
+    // Not live, there is no Preview pane at all.
+    expect(screen.queryByRole("heading", { name: "Preview" })).toBeNull();
+    expect(screen.queryByText("Pick a song to preview it")).toBeNull();
+  });
+
+  it("shows the pane only while live: a slim row empty, the song's name when one waits", async () => {
+    const { output } = await liveOutput();
+    expect(screen.getByRole("heading", { name: "Preview" })).toBeInTheDocument();
+    expect(screen.getByText("Pick a song to preview it")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
+    await pick("3");
+    await screen.findByRole("img", { name: "Preview output preview" });
+    await waitFor(() =>
+      expect(document.querySelector(".preview-song")).toHaveTextContent("#3 Mocked Hymn 3"),
+    );
+    expect(screen.queryByText("Pick a song to preview it")).toBeNull();
+    output.close();
   });
 
   it("goes straight to the Output with Preview off", async () => {
