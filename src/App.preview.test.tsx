@@ -140,6 +140,102 @@ describe("Preview (Board #75, SDD-0001 §16.11)", () => {
     output.close();
   });
 
+  it("Enter sends the waiting song, when nothing focused uses it", async () => {
+    const { output, seen } = await liveOutput();
+    await pick("3");
+    await screen.findByRole("img", { name: "Preview output preview" });
+    seen.length = 0;
+    fireEvent.keyDown(window, { key: "Enter" });
+    await waitFor(() => expect(contents(seen).at(-1)?.number).toBe(3));
+    expect(liveNumber()).toHaveTextContent("3");
+    expect(screen.queryByRole("img", { name: "Preview output preview" })).toBeNull();
+    output.close();
+  });
+
+  it("leaves Enter to a button, a field or an open sheet that has the focus", async () => {
+    const { output, seen } = await liveOutput();
+    await pick("3");
+    await screen.findByRole("img", { name: "Preview output preview" });
+    seen.length = 0;
+    // A focused button: Enter is its own.
+    fireEvent.keyDown(screen.getByRole("button", { name: "Clear" }), { key: "Enter" });
+    // The Finder, open.
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const box = await screen.findByRole("combobox", { name: "Find a song or command" });
+    fireEvent.keyDown(box, { key: "Enter" });
+    fireEvent.keyDown(window, { key: "Enter" });
+    await settle();
+    expect(contents(seen)).toEqual([]);
+    expect(liveNumber()).toHaveTextContent("1");
+    expect(screen.getByRole("img", { name: "Preview output preview" })).toBeInTheDocument();
+    output.close();
+  });
+
+  it("sends on Enter pressed in the Output window, whatever the Operator has focused", async () => {
+    const { output, seen } = await liveOutput();
+    await pick("3");
+    await screen.findByRole("img", { name: "Preview output preview" });
+    screen.getByRole("button", { name: "Clear" }).focus();
+    seen.length = 0;
+    output.postMessage({ type: "key", key: "Enter", shiftKey: false, repeat: false });
+    await waitFor(() => expect(contents(seen).at(-1)?.number).toBe(3));
+    expect(liveNumber()).toHaveTextContent("3");
+    output.close();
+  });
+
+  it("does nothing on Enter with no song waiting", async () => {
+    const { output, seen } = await liveOutput();
+    seen.length = 0;
+    fireEvent.keyDown(window, { key: "Enter" });
+    await settle();
+    expect(contents(seen)).toEqual([]);
+    expect(liveNumber()).toHaveTextContent("1");
+    output.close();
+  });
+
+  it("keeps a waiting song through End Live, and the next Go Live opens on it", async () => {
+    const { output, seen } = await liveOutput();
+    await pick("3");
+    await screen.findByRole("img", { name: "Preview output preview" });
+    // The Output window closes: no pane while not live, the song still waits.
+    output.postMessage({ type: "bye", id: "test-output" });
+    await screen.findByRole("button", { name: "Go Live" });
+    expect(screen.queryByRole("heading", { name: "Preview" })).toBeNull();
+    expect(liveNumber()).toHaveTextContent("1");
+    // Send is not offered with no Output to send to, and says why.
+    const send = screen.getByRole("button", { name: "Send" });
+    expect(send).toBeDisabled();
+    expect(send).toHaveAccessibleDescription("Go Live to send it");
+
+    seen.length = 0;
+    output.postMessage({ type: "hello", id: "test-output" });
+    await screen.findByRole("button", { name: "On Air" });
+    await waitFor(() => expect(contents(seen).at(-1)?.number).toBe(3));
+    expect(liveNumber()).toHaveTextContent("3");
+    expect(screen.getByText("Pick a song to preview it")).toBeInTheDocument();
+    output.close();
+  });
+
+  it("sends a waiting song as Present Here starts, and then a pick goes live at once", async () => {
+    const { output } = await liveOutput();
+    await pick("3");
+    await screen.findByRole("img", { name: "Preview output preview" });
+    output.postMessage({ type: "bye", id: "test-output" });
+    await screen.findByRole("button", { name: "Go Live" });
+    fireEvent.keyDown(window, { key: "P", shiftKey: true });
+    const here = await screen.findByRole("region", { name: "Presenting on this screen" });
+    await waitFor(() => expect(here).toHaveTextContent("First line"));
+
+    // Inside Present Here the switcher's pick is the audience's at once: nothing waits.
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const switcher = within(await screen.findByRole("search", { name: "Switch song" }));
+    const field = switcher.getByRole("combobox", { name: "Find a song" });
+    fireEvent.input(field, { target: { value: "1" } });
+    fireEvent.submit(field.closest("form") as HTMLFormElement);
+    await waitFor(() => expect(here).toHaveTextContent("A line"));
+    output.close();
+  });
+
   it("goes straight to the Output with Preview off", async () => {
     mocks.prefs = {};
     const { output } = await liveOutput();

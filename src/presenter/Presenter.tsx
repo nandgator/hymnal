@@ -385,6 +385,13 @@ export function Presenter(props: PresenterProps) {
     if (!waiting || waiting.hymnbookId === props.hymnbookId) return undefined;
     return props.books?.find((book) => book.key === waiting.hymnbookId)?.title;
   };
+  // The song as the pane's heading and the phone's strip name it; kept as it was while they close.
+  let keptSong: { number: number; name: string; book?: string } | undefined;
+  const songLabel = createMemo(() => {
+    const waiting = props.waiting;
+    if (waiting) keptSong = { number: waiting.number, name: waitingTitle(), book: waitingBook() };
+    return keptSong;
+  });
   createEffect(() => {
     const message = outputMessage();
     if (message) publishOutput(message);
@@ -861,6 +868,45 @@ export function Presenter(props: PresenterProps) {
 
   // Send (SDD-0001 §16.11), where Hold was while Preview is on: the waiting
   // song becomes the current one and goes live. Off while nothing waits.
+  const songName = () => (
+    <span class="preview-song">
+      <span class="preview-song-name">
+        #{songLabel()?.number} {songLabel()?.name}
+      </span>
+      <Show when={songLabel()?.book}>
+        {(book) => <span class="preview-song-book">{book()}</span>}
+      </Show>
+    </span>
+  );
+  // The phone's strip above Live's (SDD-0001 §16.11): only while live with Preview on, and
+  // only with a song waiting; it opens and closes in one height change.
+  const previewStrip = () => (
+    <Show when={props.preview && props.presenting}>
+      <div class="preview-fold" data-open={props.waiting ? "true" : "false"}>
+        <div
+          class="preview-strip-pad"
+          inert={!props.waiting}
+          aria-hidden={props.waiting ? undefined : "true"}
+        >
+          <section class="preview-strip" aria-label="Preview">
+            <span class="preview-strip-label">Preview</span>
+            {songName()}
+            <button
+              type="button"
+              class="btn-tonal preview-strip-send"
+              title="Send the waiting song live"
+              onClick={() => props.onSend?.()}
+            >
+              Send
+            </button>
+            <button type="button" class="btn-text" onClick={() => props.onClear?.()}>
+              Clear
+            </button>
+          </section>
+        </div>
+      </div>
+    </Show>
+  );
   const sendReason = () =>
     !props.waiting
       ? "Pick a song to preview it"
@@ -873,7 +919,8 @@ export function Presenter(props: PresenterProps) {
       class="btn-tonal live-control"
       disabled={!!sendReason()}
       aria-description={sendReason()}
-      title={sendReason() ?? "Send the waiting song live"}
+      title={sendReason() ?? withKey("Send the waiting song live", "send", expanded())}
+      aria-keyshortcuts={ariaKeys("send")}
       onClick={() => props.onSend?.()}
     >
       <span class="icon icon-send" aria-hidden="true" />
@@ -1405,7 +1452,12 @@ export function Presenter(props: PresenterProps) {
                 // Under 840px (DESIGN.md § Structure): the Live strip, then
                 // the tabs merged, Parts among them; the dock below.
                 <div class="operator-phone">
-                  <Show when={shown("live")}>{liveStrip()}</Show>
+                  <Show when={shown("live")}>
+                    <div class="live-stack">
+                      {previewStrip()}
+                      {liveStrip()}
+                    </div>
+                  </Show>
                   <Index each={groups()}>{(group) => tabGroup(group, loaded)}</Index>
                 </div>
               }
@@ -1425,14 +1477,7 @@ export function Presenter(props: PresenterProps) {
                       <div class="area-header preview-header">
                         <h3 class="area-title">Preview</h3>
                         <Show when={props.waiting}>
-                          <span class="preview-song">
-                            <span class="preview-song-name">
-                              #{props.waiting?.number} {waitingTitle()}
-                            </span>
-                            <Show when={waitingBook()}>
-                              {(book) => <span class="preview-song-book">{book()}</span>}
-                            </Show>
-                          </span>
+                          {songName()}
                           <button type="button" class="btn-text" onClick={() => props.onClear?.()}>
                             Clear
                           </button>

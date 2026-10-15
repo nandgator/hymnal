@@ -913,6 +913,8 @@ function Operator(props: Shared) {
     closeSheets();
     setScreenNotice(undefined);
     setOutputFailed(undefined);
+    // A song waiting (kept through End Live) is sent as presenting starts (SDD-0001 §16.11).
+    sendWaiting();
     presence.setHere(true);
     document.addEventListener("fullscreenchange", onHereFullscreen);
     const root = document.documentElement;
@@ -967,6 +969,13 @@ function Operator(props: Shared) {
       openHymn(number, book);
     });
   };
+  // What Enter already means: a field, a button, a link, a list or its options, a menu. A key
+  // forwarded from the Output window has no target here, so nothing is in its way.
+  const usesEnter = (target: EventTarget | null) =>
+    target instanceof Element &&
+    target.closest(
+      'input, textarea, select, button, a[href], summary, [contenteditable], [role="button"], [role="link"], [role="listbox"], [role="option"], [role="menu"], [role="menuitem"], [role="tab"], [role="switch"], [role="checkbox"], [role="combobox"]',
+    ) !== null;
   // Send: the waiting song is the current one now, and the Output snaps to it.
   const sendWaiting = () => {
     const next = waiting();
@@ -981,6 +990,16 @@ function Operator(props: Shared) {
   createEffect(() => {
     if (!previewOn()) setWaiting(undefined);
   });
+  // End Live keeps a waiting song; the next Go Live opens on it: it is sent as the Output opens.
+  createEffect(
+    on(
+      presentingOutput,
+      (open) => {
+        if (open) sendWaiting();
+      },
+      { defer: true },
+    ),
+  );
 
   // A pick in the Finder: the song's book becomes the current one and the song opens, in
   // one step (SDD-0001 §13.1). While live it is a pick like any other: the Presenter swaps
@@ -1360,6 +1379,14 @@ function Operator(props: Shared) {
     ) {
       event.preventDefault();
       openCommandMenu(event.key);
+      return;
+    }
+    // Enter sends the waiting song, unless something focused already uses Enter.
+    if (event.key === "Enter" && !event.shiftKey && waiting() && presentingOutput()) {
+      if (!commandMenuOpen() && !usesEnter(event.target)) {
+        event.preventDefault();
+        sendWaiting();
+      }
       return;
     }
     // Shift+P, Present on this screen: a chord, so a stray key cannot take over this one.

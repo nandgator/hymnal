@@ -6890,6 +6890,63 @@ fieldset.book-main {
   overflow: hidden;
 }
 
+/* The phone's strip (above Live's): one line, 48px targets, in Live's width. */
+.live-stack {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+}
+
+.preview-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 3rem;
+  margin-block-end: var(--space-sm);
+  padding-inline: var(--space-md) var(--space-xs);
+  border-radius: var(--shape-md);
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+/* The strip's name is its aria-label: the room goes to the song. Another book's name sits
+   under the title, as Recents does on a phone. */
+.preview-strip-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.preview-strip .preview-song {
+  flex-direction: column;
+  gap: 0;
+  justify-content: center;
+}
+
+.preview-strip .preview-song-book {
+  max-width: none;
+  line-height: 1.4;
+}
+
+.preview-strip .preview-song-book::before {
+  content: none;
+}
+
+.preview-strip .btn-tonal,
+.preview-strip .btn-text {
+  flex: none;
+  min-height: 3rem;
+}
+
+.preview-strip .btn-text {
+  padding-inline: var(--space-sm);
+}
+
+.preview-strip .btn-tonal {
+  padding-inline: var(--space-md);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .preview-fold {
     transition: none;

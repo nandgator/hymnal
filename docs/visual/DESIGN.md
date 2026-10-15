@@ -649,9 +649,10 @@ view is close enough to the frame to need a smaller unit.
     any tab. It opens on Parts. The transport is the dock. No snackbar: Undo
     stays in the Repeat row. With Preview on and the Output live (SDD-0001
     §16.11), a **Preview strip** sits above Live's strip, the same width and
-    gutters, one line: a quiet "Preview" label, the waiting song's number and
-    title (ellipsized, the book's name after it for another book's song), then
-    **Send** (filled tonal) and **Clear** (text), 48px high targets. Nothing
+    gutters: the waiting song's number and title on one line (ellipsized), the
+    book's name under it, quiet, for another book's song, then **Send** (tonal)
+    and **Clear** (text), 48px high targets. The strip's name, "Preview", is its
+    accessible name, not a visible label: the room goes to the song. Nothing
     waiting, no strip: the strip appears and goes with a height change (none
     under reduced motion) and the layout below it makes room, so a strip never
     hides lyrics. Send in the Live strip's toolbar stays, disabled with its
