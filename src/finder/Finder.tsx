@@ -14,6 +14,7 @@ import {
 import type { HymnbookId, HymnNumber } from "../domain/types.ts";
 import { languageName } from "../library/books.ts";
 import { type ContentStore, getContentStore } from "../persistence/content-store.ts";
+import type { HymnSummary } from "../persistence/package-io.ts";
 import type { SearchScope, UserState } from "../persistence/user-state.ts";
 import { ClearSearch } from "../shell/ClearSearch.tsx";
 import { titleCase } from "../shell/case.ts";
@@ -222,7 +223,7 @@ export function Finder(props: FinderProps) {
   createEffect(on(id, () => setRecentCount(undefined), { defer: true }));
   // The songs are in the list's place until it is known that there are none, and both lists
   // appear together once both are read, so neither moves the other.
-  const songsExpected = () => read.loading || (hymns()?.length ?? 0) > 0;
+  const songsExpected = () => browseRead.loading || browsedSongs().some((b) => b.hymns.length > 0);
 
   const [query, setQuery] = createSignal(clampText(props.initialQuery ?? "", SEARCH_MAX));
   // Command mode (SDD-0001 §13.3): a `>` first in the box, with commands to list. The songs'
@@ -278,35 +279,65 @@ export function Finder(props: FinderProps) {
   const scopeName = () =>
     scope().mode === "this" ? "This Book" : booksLabel(scope().keys?.length ?? 0);
 
+  // The books the empty list shows: the scope's (SDD-0001 §13.4), every book held for All Books.
+  const browseKeys = (): HymnbookId[] => {
+    if (props.compact) return [id()];
+    const keys = scoped() ?? heldKeys();
+    return keys.length > 0 ? [...keys] : [id()];
+  };
+  const [browseRead] = createResource(
+    () => browseKeys(),
+    (keys) =>
+      Promise.all(
+        keys.map(async (key) => ({
+          key,
+          hymns: await store()
+            .listHymns(key)
+            .catch(() => []),
+        })),
+      ),
+  );
+  const browsedSongs = () => (browseRead.loading ? [] : (browseRead() ?? []));
+
   // The whole book while nothing is typed (SDD-0001 §13.2), in the order the book gives
   // (`listHymns`): by number, except Assorted Hymns, which lists its songs by language and
   // title (SDD-0004 §17). The Finder keeps that order, a group to a language where the book
   // has several; the list is windowed, so a book of any length costs the same to show.
   const browsing = () => !props.compact && !trimmed() && !commandMode();
-  const browseGroups = createMemo((): FinderGroup[] => {
-    const all = hymns() ?? [];
-    if (!browsing() || all.length === 0 || recentCount() === undefined) return [];
-    const book = id();
+  const bookGroups = (key: HymnbookId, all: readonly HymnSummary[]): FinderGroup[] => {
     const languages = new Set(all.map((hymn) => hymn.language ?? ""));
     if (languages.size < 2 || languages.has("")) {
-      return [
-        { id: book, title: ALL_SONGS, current: true, items: all.map((h) => itemOf(h, book)) },
-      ];
+      return [{ id: key, title: ALL_SONGS, current: true, items: all.map((h) => itemOf(h, key)) }];
     }
     const groups: FinderGroup[] = [];
     for (const hymn of all) {
       const last = groups.at(-1);
       const code = hymn.language ?? "";
-      if (last && last.id === `${book}#${code}`) last.items.push(itemOf(hymn, book));
+      if (last && last.id === `${key}#${code}`) last.items.push(itemOf(hymn, key));
       else
         groups.push({
-          id: `${book}#${code}`,
+          id: `${key}#${code}`,
           title: languageName(code) || code,
           current: true,
-          items: [itemOf(hymn, book)],
+          items: [itemOf(hymn, key)],
         });
     }
     return groups;
+  };
+  const browseGroups = createMemo((): FinderGroup[] => {
+    const books = browsedSongs().filter((book) => book.hymns.length > 0);
+    if (!browsing() || books.length === 0 || recentCount() === undefined) return [];
+    // One book: its own languages or All songs. Several: each under its title, as a search.
+    if (books.length === 1 && browseKeys().length === 1) {
+      const only = books[0];
+      return only ? bookGroups(only.key, only.hymns) : [];
+    }
+    return books.map((book) => ({
+      id: book.key,
+      title: props.books?.find((b) => b.key === book.key)?.title ?? "",
+      current: true,
+      items: book.hymns.map((h) => itemOf(h, book.key)),
+    }));
   });
 
   // Lyric search runs once typing pauses — or at once, on Enter.
