@@ -3,6 +3,8 @@ import { gzipSync } from "node:zlib";
 export interface TestSong {
   title: string;
   lines: string[];
+  /** How many stanzas the song has; two by default. */
+  stanzas?: number;
 }
 
 // A small invented book: nothing here is a real hymn, and no lyrics from the
@@ -24,21 +26,21 @@ const SONGS: TestSong[] = [
 
 /** A book as a file the picker accepts (SDD-0002 §1); songs are numbered from 1. */
 export function makeBook(id: string, title: string, songs: TestSong[]) {
-  const hymns = songs.map((song, index) => ({
-    number: index + 1,
-    title: song.title,
-    parts: [
-      { id: "s1", kind: "stanza", label: "1", lines: song.lines },
-      {
-        id: "s2",
-        kind: "stanza",
-        label: "2",
-        lines: ["Sing it once", "and sing it twice"],
-      },
-    ],
-    sequence: [{ partId: "s1" }, { partId: "s2" }],
-    meta: {},
-  }));
+  const hymns = songs.map((song, index) => {
+    const parts = Array.from({ length: song.stanzas ?? 2 }, (_, at) => ({
+      id: `s${at + 1}`,
+      kind: "stanza",
+      label: String(at + 1),
+      lines: at === 0 ? song.lines : ["Sing it once", "and sing it twice"],
+    }));
+    return {
+      number: index + 1,
+      title: song.title,
+      parts,
+      sequence: parts.map((part) => ({ partId: part.id })),
+      meta: {},
+    };
+  });
   return {
     name: `${id}.hymnbook.json.gz`,
     mimeType: "application/gzip",
