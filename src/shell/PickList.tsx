@@ -122,12 +122,46 @@ export function PickList(props: PickListProps) {
   createEffect(() => {
     props.track?.();
     queueMicrotask(place);
+  });
+  // The field can move after the list is placed with nothing here changing: a sibling chip's
+  // check slides in or out (a transition) and shifts it, and the next row the pointer touched
+  // placed the list again, 26px over. The list keeps to the field, frame by frame while a
+  // transition runs elsewhere on the page, and once more when it ends.
+  createEffect(() => {
+    let frame = 0;
+    const running = () =>
+      typeof document.getAnimations === "function" &&
+      typeof CSSTransition !== "undefined" &&
+      document
+        .getAnimations()
+        .some(
+          (a) =>
+            a instanceof CSSTransition &&
+            a.playState === "running" &&
+            !list?.contains((a.effect as KeyframeEffect | null)?.target ?? null),
+        );
+    const follow = () => {
+      frame = 0;
+      place();
+      if (running()) frame = requestAnimationFrame(follow);
+    };
+    const start = () => {
+      if (frame === 0) frame = requestAnimationFrame(follow);
+    };
     const again = () => place();
     document.addEventListener("scroll", again, true);
     window.addEventListener("resize", again);
+    document.addEventListener("transitionrun", start, true);
+    document.addEventListener("transitionend", again, true);
+    document.addEventListener("transitioncancel", again, true);
+    start();
     onCleanup(() => {
+      cancelAnimationFrame(frame);
       document.removeEventListener("scroll", again, true);
       window.removeEventListener("resize", again);
+      document.removeEventListener("transitionrun", start, true);
+      document.removeEventListener("transitionend", again, true);
+      document.removeEventListener("transitioncancel", again, true);
     });
   });
 
