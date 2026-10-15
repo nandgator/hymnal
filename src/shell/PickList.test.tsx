@@ -57,6 +57,34 @@ describe("PickList's scrim", () => {
   });
 });
 
+describe("PickList keeps to its trigger", () => {
+  it("is placed again when the trigger moves without a row changing (a chip settling)", async () => {
+    // A sibling chip's check slides out and the trigger shifts left by 26px after the list was
+    // placed: no signal changes, the browser says only that a transition ended.
+    let left = 202;
+    const view = render(() => (
+      <dialog open>
+        <button type="button" id="b">
+          Chip
+        </button>
+        <PickList id="l" label="Things" box={() => document.getElementById("b") ?? undefined}>
+          <div class="pick-row">One</div>
+        </PickList>
+      </dialog>
+    ));
+    const chip = document.getElementById("b") as HTMLElement;
+    chip.getBoundingClientRect = () =>
+      ({ left, right: left + 100, top: 100, bottom: 140, width: 100, height: 40 }) as DOMRect;
+    const list = view.container.querySelector(".pick-list") as HTMLElement;
+    await Promise.resolve();
+    fireEvent(chip, new Event("transitionend", { bubbles: true }));
+    expect(list.style.left).toBe("202px");
+    left = 176;
+    fireEvent(chip, new Event("transitionend", { bubbles: true }));
+    expect(list.style.left).toBe("176px");
+  });
+});
+
 describe("PickList with a head", () => {
   it("frames a field above the rows: only the listbox holds them, and it is multiselectable on request", () => {
     const view = render(() => (
