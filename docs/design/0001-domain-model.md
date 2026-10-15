@@ -2408,9 +2408,11 @@ when their groundwork is built. Not built.
   they read as a pair and their lines align.
 - **The Operator.** This Song gets two columns, parts aligned by label. Linked,
   a tap or a key moves both. Unlinked, keys drive the column last touched (its
-  header marked); Tab swaps columns. On a phone the columns stack in portrait
-  (top and bottom) and sit side by side in landscape; turning the phone moves
-  them with a smooth rotation.
+  header marked); Tab swaps columns.
+- **On a phone, by orientation.** Portrait splits top and bottom (the second
+  song under the first); landscape splits left and right, as on a wide screen.
+  Turning the phone moves the columns with one smooth rotation into place (none
+  under reduced motion).
 - **Ending it.** A labelled text button, **One Column**, on the second song's
   header (never icon-only, so it cannot be read as closing the Output), and the
   command menu. Picking a new song for the left ends the split too, with a
