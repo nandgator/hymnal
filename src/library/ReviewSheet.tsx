@@ -10,7 +10,9 @@ import {
 } from "solid-js";
 import { type OwnStatus, type OwnTarget, statusFor } from "../domain/own.ts";
 import type { LoadProgress } from "../domain/progress.ts";
+import { NOTE_HEADERS, type NoteKind } from "../import/songcheck.ts";
 import type { Choice, LoadReview } from "../persistence/content-store.ts";
+import type { SongNote } from "../persistence/load.ts";
 import { AfterDelay, createDelayed, LoadStatus } from "../shell/Loading.tsx";
 import { Sheet } from "../shell/Sheet.tsx";
 import { SwapLabel } from "../shell/SwapLabel.tsx";
@@ -90,7 +92,28 @@ const heldTitle = (review: LoadReview) => {
 };
 
 /** How many songs the check has a note for, shown and not. */
-const noteCount = (review: LoadReview) => (review.notes?.length ?? 0) + (review.moreNotes ?? 0);
+const noteCount = (review: LoadReview) => review.notes?.length ?? 0;
+
+/** The notes by reason, the reason with most songs first (ties keep the book's order). */
+const noteGroups = (review: LoadReview) => {
+  const groups = new Map<NoteKind, SongNote[]>();
+  for (const note of review.notes ?? []) {
+    groups.set(note.kind, [...(groups.get(note.kind) ?? []), note]);
+  }
+  return [...groups.entries()]
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([kind, notes]) => {
+      const phrase = NOTE_HEADERS[kind];
+      return {
+        kind,
+        notes,
+        header:
+          notes.length === 1
+            ? `1 song ${phrase.one}`
+            : `${count(notes.length)} songs ${phrase.many}`,
+      };
+    });
+};
 
 const noteTitle = (review: LoadReview) =>
   noteCount(review) === 1
@@ -613,24 +636,34 @@ export function ReviewSheet(props: ReviewSheetProps) {
                 </Match>
               </Switch>
 
-              <Show when={!refused() && (review().notes?.length ?? 0) > 0}>
+              <Show when={!refused() && noteCount(review()) > 0}>
                 {/* ADR-0034: advice, never a block; adding works as ever. */}
                 <Callout icon="icon-info" tone="quiet">
                   <h4>{noteTitle(review())}</h4>
-                  <ul class="callout-notes">
-                    <For each={review().notes}>
-                      {(note) => (
-                        <li>
-                          <span class="num">{note.number}</span> <b>{note.title}</b>
-                          <br />
-                          {note.message}
-                        </li>
+                  <div class="note-groups">
+                    <For each={noteGroups(review())}>
+                      {(group) => (
+                        <details class="note-group">
+                          <summary class="note-group-summary">
+                            <span
+                              class="icon icon-chevron-right note-group-chevron"
+                              aria-hidden="true"
+                            />
+                            {group.header}
+                          </summary>
+                          <ul class="callout-notes">
+                            <For each={group.notes}>
+                              {(note) => (
+                                <li>
+                                  <span class="num">{note.number}</span> <b>{note.title}</b>
+                                </li>
+                              )}
+                            </For>
+                          </ul>
+                        </details>
                       )}
                     </For>
-                  </ul>
-                  <Show when={(review().moreNotes ?? 0) > 0}>
-                    <p>And {count(review().moreNotes ?? 0)} more.</p>
-                  </Show>
+                  </div>
                   <p>
                     {noteCount(review()) === 1 ? "It is added anyway." : "They are added anyway."}
                   </p>

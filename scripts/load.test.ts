@@ -8,7 +8,7 @@ import { insertRows, packageRows } from "../src/domain/package-rows.ts";
 import type { HymnSource } from "../src/domain/types.ts";
 import { buildTextBook } from "../src/library/textbook.ts";
 import { removeBookAndRecents } from "../src/persistence/books.ts";
-import { LoadSession, MAX_NOTES } from "../src/persistence/load.ts";
+import { LoadSession } from "../src/persistence/load.ts";
 import { writePackage } from "../src/persistence/package-io.ts";
 import {
   addBook,
@@ -134,16 +134,17 @@ describe.each(BACKENDS)("review (%s)", (backend) => {
     const review = await session(ctx).review(bytesOf("b", [hymn(1), code]));
     expect(review.violations).toEqual([]);
     expect(review.verdict).toMatchObject({ kind: "new" });
-    expect(review.notes).toEqual([{ number: 3, title: "Counter", message: expect.any(String) }]);
+    expect(review.notes).toEqual([
+      { number: 3, title: "Counter", kind: "code", message: expect.any(String) },
+    ]);
     expect(review.notes?.[0]?.message).toMatch(/code/);
-    expect(review.moreNotes).toBeUndefined();
     // And it commits as ever: a note is never a block.
     const s = session(ctx);
     const again = await s.review(bytesOf("b", [hymn(1), code]));
     expect(await s.commit(again.token)).toMatchObject({ ok: true, action: "loaded" });
   });
 
-  it("says nothing of ordinary songs, and counts the notes past the most it carries", async () => {
+  it("says nothing of ordinary songs, and notes every song that fails, each with its kind", async () => {
     const { ctx } = setup();
     expect((await session(ctx).review(bytesOf("b"))).notes).toBeUndefined();
     const junk = (n: number): HymnSource => ({
@@ -151,10 +152,10 @@ describe.each(BACKENDS)("review (%s)", (backend) => {
       parts: [{ id: "s1", kind: "stanza", lines: ["a = 1;", "b = 2;", "c = a + b;", "print(c);"] }],
       sequence: [{ partId: "s1" }],
     });
-    const many = Array.from({ length: MAX_NOTES + 5 }, (_, i) => junk(i + 1));
+    const many = Array.from({ length: 25 }, (_, i) => junk(i + 1));
     const review = await session(ctx).review(bytesOf("b", many));
-    expect(review.notes).toHaveLength(MAX_NOTES);
-    expect(review.moreNotes).toBe(5);
+    expect(review.notes).toHaveLength(25);
+    expect(new Set(review.notes?.map((n) => n.kind)).size).toBe(1);
   });
 
   it("notes text that was typed in as a song, because From Text reviews as a container (ADR-0034)", async () => {
@@ -167,7 +168,9 @@ describe.each(BACKENDS)("review (%s)", (backend) => {
     if (!built.ok) return;
     const review = await session(ctx).review(built.bytes);
     expect(review.songCount).toBe(1);
-    expect(review.notes).toEqual([{ number: 1, title: "Counter", message: expect.any(String) }]);
+    expect(review.notes).toMatchObject([
+      { number: 1, title: "Counter", kind: "code", message: expect.any(String) },
+    ]);
     const hymnText = buildTextBook(
       { title: "T", language: "en", script: "Latn", number: "" },
       "1. A Song\n\nAmazing grace, how sweet the sound,\nThat saved a wretch like me.\n",

@@ -61,13 +61,20 @@ describe("ReviewSheet", () => {
         script: "Latn",
         songCount: 1,
         verdict: { kind: "new" },
-        notes: [{ number: 4, title: "Counter", message: "Lines are full of { } ; like code." }],
+        notes: [
+          {
+            number: 4,
+            title: "Counter",
+            kind: "code",
+            message: "Lines are full of { } ; like code.",
+          },
+        ],
       },
       onCommit: () => committed.push("commit"),
     });
     const note = container.querySelector(".callout-notes");
     expect(note).toHaveTextContent("Counter");
-    expect(note).toHaveTextContent("Lines are full of { } ; like code.");
+    expect(container).toHaveTextContent("1 song reads like code");
     expect(container).toHaveTextContent("This may not be a song");
     expect(container).toHaveTextContent("It is added anyway.");
     const add = getByRole("button", { name: "Load Book" });
@@ -76,19 +83,40 @@ describe("ReviewSheet", () => {
     expect(committed).toEqual(["commit"]);
   });
 
-  it("counts the notes past those it lists, and shows none for ordinary songs", () => {
+  it("groups the notes by reason, most songs first, each group closed", () => {
     const base = { ...review, title: "Pasted", language: "en", script: "Latn", songCount: 40 };
+    const note = (number: number, kind: "paragraph" | "margin" | "code") => ({
+      number,
+      title: `Song ${number}`,
+      kind,
+      message: "reason",
+    });
     const many = sheet({
       position: undefined,
       review: {
         ...base,
         verdict: { kind: "new" },
-        notes: [{ number: 1, title: "A", message: "Reads like a paragraph, not lines." }],
-        moreNotes: 21,
+        notes: [
+          note(1, "margin"),
+          note(2, "paragraph"),
+          note(3, "code"),
+          note(4, "paragraph"),
+          note(5, "paragraph"),
+          note(6, "code"),
+        ],
       },
     });
-    expect(many.container).toHaveTextContent("22 songs may not be songs");
-    expect(many.container).toHaveTextContent("And 21 more.");
+    expect(many.container).toHaveTextContent("6 songs may not be songs");
+    const groups = [...many.container.querySelectorAll<HTMLDetailsElement>("details.note-group")];
+    expect(groups.map((g) => g.querySelector("summary")?.textContent)).toEqual([
+      "3 songs read like a paragraph",
+      "2 songs read like code",
+      "1 song has lines cut at a margin",
+    ]);
+    expect(groups.every((g) => !g.open)).toBe(true);
+    expect(groups[0]).toHaveTextContent("Song 2");
+    expect(groups[0]).not.toHaveTextContent("reason");
+    expect(many.container.textContent?.match(/added anyway/g)).toHaveLength(1);
     many.unmount();
     const none = sheet({ position: undefined, review: { ...base, verdict: { kind: "new" } } });
     expect(none.container.querySelector(".callout-notes")).toBeNull();
@@ -100,7 +128,7 @@ describe("ReviewSheet", () => {
       review: {
         ...review,
         violations: [{ rule: "container", where: "file", message: "not a hymnbook container" }],
-        notes: [{ number: 1, title: "A", message: "x" }],
+        notes: [{ number: 1, title: "A", kind: "code", message: "x" }],
       },
     });
     expect(container.querySelector(".callout-notes")).toBeNull();

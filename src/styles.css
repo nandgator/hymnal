@@ -5575,6 +5575,45 @@ fieldset.book-main {
   list-style: none;
   overflow-wrap: anywhere;
 }
+/* The song-text check's notes (ADR-0034): one flat accordion per reason, closed. */
+.note-groups {
+  display: flex;
+  flex-direction: column;
+}
+.note-group-summary {
+  /* As .advanced-summary: the chevron's glyph sits on the heading's edge. */
+  --note-inset: calc(1.25rem * 337 / 960);
+  display: flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  align-self: flex-start;
+  min-height: 2.5rem;
+  margin-inline-start: calc(-1 * (var(--note-inset) + 0.5rem));
+  padding-inline: 0.5rem 0.75rem;
+  border-radius: var(--shape-sm);
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+}
+.note-group-summary::-webkit-details-marker {
+  display: none;
+}
+.note-group-chevron {
+  flex: none;
+  transition: transform var(--motion-short) var(--motion-emphasized);
+}
+.note-group[open] .note-group-chevron {
+  transform: rotate(90deg);
+}
+.note-group .callout-notes {
+  padding-block: 0 var(--space-xs);
+  padding-inline-start: 1.5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .note-group-chevron {
+    transition: none;
+  }
+}
 .callout-quiet {
   background: none;
   padding-inline: var(--space-xs);
