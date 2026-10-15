@@ -275,6 +275,26 @@ const median = (values: number[]): number => {
 };
 
 /**
+ * In a cased script, most lines after a paragraph's first begin with a capital:
+ * verse set line by line, each line a line of the song. Prose cut at a margin
+ * continues its sentences, so its continuation lines begin in lower case. An
+ * uncased script has no such sign and is left to the other rules.
+ */
+function capitalised(groups: string[][]): boolean {
+  let upper = 0;
+  let lower = 0;
+  for (const g of groups) {
+    for (const l of g.slice(1)) {
+      const first = /[\p{L}]/u.exec(l)?.[0];
+      if (!first) continue;
+      if (/\p{Lu}|\p{Lt}/u.test(first)) upper++;
+      else if (/\p{Ll}/u.test(first)) lower++;
+    }
+  }
+  return upper >= 3 && upper >= (upper + lower) * 0.75;
+}
+
+/**
  * Lines of near one width that stop mid-sentence: text cut at a margin. The last
  * line of each paragraph is shorter and is left out.
  */
@@ -285,6 +305,7 @@ function wrapped(groups: string[][]): boolean {
   const widest = Math.max(...lengths);
   const near = share(lengths.filter((n) => n >= widest * 0.8).length, body.length);
   const ends = shareOf(body, (l) => /[\p{P}\p{S}\u0e2f\u0e5a\u0e5b]$/u.test(l));
+  if (capitalised(groups)) return false;
   // Short lines are a song's. Only a long run with no stanza break and no stops is a page.
   if (widest < 40) return body.length >= 10 && groups.length === 1 && near >= 0.75 && ends <= 0.2;
   return near >= 0.75 && ends <= 0.5;
