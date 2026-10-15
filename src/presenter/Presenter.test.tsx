@@ -914,7 +914,7 @@ describe("Presenter", () => {
     await screen.findByText("Test Hymn");
     const toolbar = screen.getByRole("toolbar", { name: "Output controls" });
     const names = [...toolbar.querySelectorAll("button")].map((b) => b.textContent);
-    expect(names).toEqual(["BlankRestore", "HoldRelease", "Present Here", "End Live"]);
+    expect(names).toEqual(["BlankRestore", "HoldRelease", "End Live"]);
     // One row under the preview (not in the heading), each member with an
     // icon and a label, each the transport's tonal button.
     expect(toolbar.parentElement).toHaveClass("stage-live-bar");
@@ -932,55 +932,20 @@ describe("Presenter", () => {
     expect(onEndLive).toHaveBeenCalled();
   });
 
-  it("keeps Present Here between Hold and End Live, whether or not an Output window is live", async () => {
-    const onPresentHere = vi.fn();
+  it("has no Present Here button, live or not: Blank, Hold and End Live only", async () => {
     render(() => (
-      <Presenter
-        hymnbookId="book"
-        hymnNumber={7}
-        store={fakeStore()}
-        userState={fakeUserState()}
-        presenting
-        outputWindow
-        onPresentHere={onPresentHere}
-      />
+      <Presenter hymnbookId="book" hymnNumber={7} store={fakeStore()} userState={fakeUserState()} />
     ));
     await screen.findByText("Test Hymn");
     const toolbar = screen.getByRole("toolbar", { name: "Output controls" });
     expect([...toolbar.querySelectorAll("button")].map((b) => b.textContent)).toEqual([
       "BlankRestore",
       "HoldRelease",
-      "Present Here",
       "End Live",
     ]);
-    const here = screen.getByRole("button", { name: /^Present Here/ });
-    expect(here).toHaveAttribute("aria-keyshortcuts", "Shift+P");
-    expect(here.querySelector(".icon-here")).not.toBeNull();
-    fireEvent.click(here);
-    expect(onPresentHere).toHaveBeenCalled();
-  });
-
-  it("shows Present Here, enabled, while not live, with Blank, Hold and End Live disabled", async () => {
-    const onPresentHere = vi.fn();
-    render(() => (
-      <Presenter
-        hymnbookId="book"
-        hymnNumber={7}
-        store={fakeStore()}
-        userState={fakeUserState()}
-        onPresentHere={onPresentHere}
-      />
-    ));
-    await screen.findByText("Test Hymn");
-    const toolbar = screen.getByRole("toolbar", { name: "Output controls" });
-    expect(toolbar.querySelectorAll("button")).toHaveLength(4);
-    const here = screen.getByRole("button", { name: /^Present Here/ });
-    expect(here).toBeEnabled();
-    expect(here).toHaveAttribute("title", expect.not.stringContaining("closing"));
+    expect(screen.queryByRole("button", { name: /Present Here/ })).toBeNull();
     expect(screen.getByRole("button", { name: /^Hold/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /^End Live/ })).toBeDisabled();
-    fireEvent.click(here);
-    expect(onPresentHere).toHaveBeenCalled();
   });
 
   it("draws Blank as a slashed circle, Restore as a dot, and Hold as pause in a circle", async () => {

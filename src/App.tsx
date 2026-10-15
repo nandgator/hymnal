@@ -918,21 +918,6 @@ function Operator(props: Shared) {
       ?.catch?.(() => {});
   };
 
-  // "Present on This Screen" from the live menu: the window ends first (it
-  // would take the audience back), and this tab presents once its bye lands.
-  const [switchingHere, setSwitchingHere] = createSignal(false);
-  const switchToHere = () => {
-    if (!presentingOutput()) return presentHere();
-    setSwitchingHere(true);
-    setTimeout(() => setSwitchingHere(false), 3000);
-    endLive();
-  };
-  createEffect(() => {
-    if (!switchingHere() || presentingOutput()) return;
-    setSwitchingHere(false);
-    presentHere();
-  });
-
   const go = (next: Section) => {
     // Present with no song up is Search, over the page the person is on; the empty card is
     // only what Present shows when it is reached some other way (SDD-0001 §13.4).
@@ -1533,7 +1518,7 @@ function Operator(props: Shared) {
                 in place, so nothing beside it ever moves. Not live, one click
                 decides (an external screen known: the Output window; else
                 this tab, SDD-0001 §16.7). Live, it brings the Output
-                forward; End Live and Present Here are Live's toolbar's. */}
+                forward; End Live is Live's toolbar's. */}
               <button
                 type="button"
                 class="present-button"
@@ -1669,8 +1654,6 @@ function Operator(props: Shared) {
                   held={held()}
                   onToggleHold={toggleHold}
                   onEndLive={endLive}
-                  onPresentHere={switchToHere}
-                  outputWindow={presentingOutput()}
                   presenting={presentingOutput() || presentingHere()}
                   away={section() !== "present"}
                   panes={preferences.preferences().panes}

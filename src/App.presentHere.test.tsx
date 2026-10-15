@@ -76,14 +76,15 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
   const region = () => screen.queryByRole("region", { name: "Presenting on this screen" });
   const lit = () => region()?.querySelector(".output-line-current")?.textContent;
   async function presentHere() {
-    fireEvent.click(await screen.findByRole("button", { name: "Go Live" }));
+    await screen.findByRole("button", { name: "Go Live" });
+    fireEvent.keyDown(window, { key: "P", shiftKey: true });
     await screen.findByRole("region", { name: "Presenting on this screen" });
   }
 
   it("Go Live presents here when no external screen is known, with no second button in the header", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
     await songUp();
-    // Present Here lives in Live's toolbar, not beside Go Live.
+    // Present Here has no button: Shift+P and the command list are its ways.
     expect(screen.getAllByRole("button", { name: /Go Live|On Air/ })).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Go Live" }));
     await screen.findByRole("region", { name: "Presenting on this screen" });
@@ -490,41 +491,24 @@ describe("App: one-screen presenting (Board #41, SDD-0001 §16.7)", () => {
     output.close();
   });
 
-  it("keeps Present Here in Live's toolbar always, and End Live once an Output window is live, with their keys", async () => {
+  it("keeps Live's toolbar to Blank, Hold and End Live, with no Present Here button, live or not", async () => {
     await songUp();
     const toolbar = screen.getByRole("toolbar", { name: "Output controls" });
-    // Not live: Present Here is there and enabled, End Live waits.
-    expect(within(toolbar).getByRole("button", { name: /^Present Here/ })).toBeEnabled();
+    const labels = () =>
+      within(toolbar)
+        .getAllByRole("button")
+        .map((b) => b.textContent);
+    expect(labels()).toEqual(["BlankRestore", "HoldRelease", "End Live"]);
     expect(within(toolbar).getByRole("button", { name: /^End Live/ })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /Present Here/ })).toBeNull();
     const output = new BroadcastChannel("hymnal-output");
     output.postMessage({ type: "hello", id: "test-output" });
     await screen.findByRole("button", { name: "On Air" });
     const end = within(toolbar).getByRole("button", { name: /^End Live/ });
-    const here = within(toolbar).getByRole("button", { name: /^Present Here/ });
+    expect(end).toBeEnabled();
     expect(end).toHaveAttribute("aria-keyshortcuts", "Shift+E");
-    expect(here).toHaveAttribute("aria-keyshortcuts", "Shift+P");
-    output.close();
-  });
-
-  it("presents here from Live's toolbar when not live", async () => {
-    await songUp();
-    fireEvent.click(screen.getByRole("button", { name: /^Present Here/ }));
-    await screen.findByRole("region", { name: "Presenting on this screen" });
-    expect(requestFullscreen).toHaveBeenCalledTimes(1);
-  });
-
-  it("presents here from Live's toolbar once the Output window has closed", async () => {
-    await songUp();
-    const output = new BroadcastChannel("hymnal-output");
-    output.onmessage = (event) => {
-      if ((event.data as { type?: string }).type === "close")
-        output.postMessage({ type: "bye", id: "test-output" });
-    };
-    output.postMessage({ type: "hello", id: "test-output" });
-    await screen.findByRole("button", { name: "On Air" });
-    fireEvent.click(screen.getByRole("button", { name: /^Present Here/ }));
-    await screen.findByRole("region", { name: "Presenting on this screen" });
-    expect(requestFullscreen).toHaveBeenCalledTimes(1);
+    expect(labels()).toEqual(["BlankRestore", "HoldRelease", "End Live"]);
+    expect(screen.queryByRole("button", { name: /Present Here/ })).toBeNull();
     output.close();
   });
 
