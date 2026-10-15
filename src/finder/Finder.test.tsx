@@ -92,6 +92,20 @@ describe("Finder", () => {
     expect(within(malayalam).getAllByRole("option")).toHaveLength(1);
   });
 
+  it("heads a book's list with its title, not All songs, which reads as every book's", async () => {
+    render(() => (
+      <Finder
+        hymnbookId="book"
+        books={[{ key: "book", title: "Songs of Zion" }]}
+        store={fakeStore({ listHymns: async () => book(3) })}
+        userState={fakeUserState()}
+        onSelect={vi.fn()}
+      />
+    ));
+    expect(await screen.findByRole("group", { name: "Songs of Zion" })).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "All songs" })).not.toBeInTheDocument();
+  });
+
   it("with nothing typed, lists the whole book as All songs: a window of it, not all of it", async () => {
     render(() => (
       <Finder

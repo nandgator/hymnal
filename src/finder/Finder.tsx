@@ -63,6 +63,8 @@ const OVERSCAN_ROWS = 6;
 /** Slots rendered before the list has been placed: enough to fill a tall sheet. */
 const FIRST_SLOTS = 18;
 /** The group a browsed book's songs are in when the book has no languages. */
+// A book's group is headed by its title ("All songs" would read as every book's); this only
+// where the title is not known.
 const ALL_SONGS = "All songs";
 
 export interface FinderProps {
@@ -310,7 +312,8 @@ export function Finder(props: FinderProps) {
   const bookGroups = (key: HymnbookId, all: readonly HymnSummary[]): FinderGroup[] => {
     const languages = new Set(all.map((hymn) => hymn.language ?? ""));
     if (languages.size < 2 || languages.has("")) {
-      return [{ id: key, title: ALL_SONGS, current: true, items: all.map((h) => itemOf(h, key)) }];
+      const title = props.books?.find((book) => book.key === key)?.title || ALL_SONGS;
+      return [{ id: key, title, current: true, items: all.map((h) => itemOf(h, key)) }];
     }
     const groups: FinderGroup[] = [];
     for (const hymn of all) {
@@ -330,7 +333,7 @@ export function Finder(props: FinderProps) {
   const browseGroups = createMemo((): FinderGroup[] => {
     const books = browsedSongs().filter((book) => book.hymns.length > 0);
     if (!browsing() || books.length === 0 || recentCount() === undefined) return [];
-    // One book: its own languages or All songs. Several: each under its title, as a search.
+    // One book: its own languages or its title. Several: each under its title, as a search.
     if (books.length === 1 && browseKeys().length === 1) {
       const only = books[0];
       return only ? bookGroups(only.key, only.hymns) : [];
