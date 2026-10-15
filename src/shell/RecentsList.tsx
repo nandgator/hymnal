@@ -19,7 +19,10 @@ import { glideList } from "./glideList.ts";
 import { visibleInterval } from "./visibleInterval.ts";
 
 export interface RecentsListProps {
+  /** The book the screen is in: its songs carry no book name, any other's do. */
   hymnbookId: HymnbookId;
+  /** The books held, to name a recent song's book when it is not `hymnbookId` (SDD-0001 §16.4). */
+  books?: readonly { key: HymnbookId; title: string }[];
   /** The hymn up now, if any, marked; its change also refreshes the list,
    * since opening a hymn records it as recent (SDD-0001 §14). */
   current?: HymnNumber;
@@ -27,7 +30,8 @@ export interface RecentsListProps {
   store?: ContentStore;
   /** Defaults to the {@link defaultUserState} singleton; overridable for tests. */
   userState?: UserState;
-  onSelect: (number: HymnNumber) => void;
+  /** The song chosen and its own book, whichever book the screen is in. */
+  onSelect: (number: HymnNumber, book: HymnbookId) => void;
   /** Changes when the stored recents were written from outside (a restore): the list is read again. */
   refresh?: number;
   /** Say nothing when there are none, instead of "No recent songs yet": the
@@ -47,30 +51,23 @@ const EMPHASIZED = `cubic-bezier(${EMPHASIZED_BEZIER.join(", ")})`;
 /** A heading whose group has emptied fades out quicker than rows travel. */
 const GHOST_FADE_MS = 150;
 
-/** The last list read, per user state and book, shown at once on the next
+/** The last list read, per user state, shown at once on the next
  * mount and replaced by the read every mount makes, so it's never older
  * than one screen. Memory only: the user's own song numbers and titles,
  * already on this device. */
-const lastReads = new WeakMap<UserState, Map<HymnbookId, RecentRow[]>>();
+const lastReads = new WeakMap<UserState, RecentRow[]>();
 
-/** Recents (SDD-0001 §16.4): this book's recent hymns, newest first, as
- * number, title and when. One list wherever recents show — the Operator's
+/** Recents (SDD-0001 §16.4): the recent hymns of every book, newest first, as
+ * number, title (and its book, when not this screen's) and when. One list wherever recents show — the Operator's
  * tab, the Finder, the song picker — so they never drift apart. */
 export function RecentsList(props: RecentsListProps) {
   const store = () => props.store ?? getContentStore();
   const state = () => props.userState ?? defaultUserState;
-  const lastRead = () => {
-    const byBook = lastReads.get(state()) ?? new Map<HymnbookId, RecentRow[]>();
-    lastReads.set(state(), byBook);
-    return byBook;
-  };
   // Entries and titles read together, so each row arrives whole. The list
   // mounts only once its screen has loaded, so a fresh read would always
   // land a frame after the rest: the last list read shows at once, and the
   // read that follows refreshes it.
-  const [recents, setRecents] = createSignal<RecentRow[] | undefined>(
-    lastRead().get(props.hymnbookId),
-  );
+  const [recents, setRecents] = createSignal<RecentRow[] | undefined>(lastReads.get(state()));
   // Now, for the words and the groups: it moves on, so a row that was "Just
   // now" ages, and at midnight Today becomes Yesterday, with the list open.
   const [now, setNow] = createSignal(Date.now());
@@ -159,17 +156,36 @@ export function RecentsList(props: RecentsListProps) {
   let latest = 0;
   createEffect(
     on(
-      () => ({ id: props.hymnbookId, current: props.current, refresh: props.refresh }),
-      async ({ id }) => {
+      () => ({ current: props.current, book: props.hymnbookId, refresh: props.refresh }),
+      async () => {
         const read = ++latest;
-        const [entries, titles] = await Promise.all([state().getRecents(), store().listHymns(id)]);
+        const entries = await state().getRecents();
+        // Each book's titles, read once however many of its songs are recent.
+        const keys = [...new Set(entries.map((entry) => entry.hymnbookId))];
+        const lists = new Map(
+          await Promise.all(
+            keys.map(
+              async (key) =>
+                [
+                  key,
+                  await store()
+                    .listHymns(key)
+                    .catch(() => []),
+                ] as const,
+            ),
+          ),
+        );
+        // A book no longer held has no recents to show (its own were dropped with it).
+        const held = props.books && new Set(props.books.map((book) => book.key));
         const rows = entries
-          .filter((entry) => entry.hymnbookId === id)
+          .filter((entry) => !held || held.has(entry.hymnbookId))
           .map((entry) => ({
             ...entry,
-            title: titles.find((hymn) => hymn.number === entry.hymnNumber)?.title ?? "",
+            title:
+              lists.get(entry.hymnbookId)?.find((hymn) => hymn.number === entry.hymnNumber)
+                ?.title ?? "",
           }));
-        lastRead().set(id, rows);
+        lastReads.set(state(), rows);
         if (read === latest) glide(() => setRecents(rows));
       },
     ),
@@ -216,15 +232,29 @@ export function RecentsList(props: RecentsListProps) {
                 <ul class="list">
                   <For each={groups()[group]}>
                     {(entry) => (
-                      <li data-glide={`hymn-${entry.hymnNumber}`}>
+                      <li data-glide={`hymn-${entry.hymnbookId}-${entry.hymnNumber}`}>
                         <button
                           type="button"
                           class="list-row recents-row"
-                          aria-current={entry.hymnNumber === props.current ? "true" : undefined}
-                          onClick={() => props.onSelect(entry.hymnNumber)}
+                          aria-current={
+                            entry.hymnbookId === props.hymnbookId &&
+                            entry.hymnNumber === props.current
+                              ? "true"
+                              : undefined
+                          }
+                          onClick={() => props.onSelect(entry.hymnNumber, entry.hymnbookId)}
                         >
                           <span class="recents-number">#{entry.hymnNumber}</span>
-                          <span class="recents-title">{titleCase(entry.title)}</span>
+                          <span class="recents-title">
+                            <span class="recents-name">{titleCase(entry.title)}</span>
+                            <Show when={entry.hymnbookId !== props.hymnbookId}>
+                              <span class="recents-book">
+                                {"\u00b7 "}
+                                {props.books?.find((book) => book.key === entry.hymnbookId)
+                                  ?.title ?? ""}
+                              </span>
+                            </Show>
+                          </span>
                           <span class="recents-when">{whenLabel(entry.viewedAt, now())}</span>
                         </button>
                       </li>

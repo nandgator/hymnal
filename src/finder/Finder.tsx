@@ -1096,7 +1096,8 @@ export function Finder(props: FinderProps) {
             refresh={props.recentsVersion}
             store={props.store}
             userState={props.userState}
-            onSelect={(number) => props.onSelect(number, id())}
+            books={props.books}
+            onSelect={props.onSelect}
             quietWhenEmpty={songsExpected()}
             onCount={setRecentCount}
           />

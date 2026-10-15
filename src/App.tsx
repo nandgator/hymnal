@@ -1664,7 +1664,8 @@ function Operator(props: Shared) {
                       workspace,
                     })
                   }
-                  onSelectHymn={(number) => chooseHymn(number, presentedKey())}
+                  books={installed().map((book) => ({ key: book.key, title: book.title }))}
+                  onSelectHymn={pickHymn}
                   scrollSync={preferences.preferences().scrollSync ?? true}
                   onActions={(actions) => setPresenterActions(() => actions)}
                   hymnbookTitle={presentedBook()?.title}

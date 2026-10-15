@@ -146,7 +146,10 @@ export interface PresenterProps {
   workspace?: unknown;
   onWorkspaceChange?: (workspace: Workspace) => void;
   /** Opens another hymn in place — the Recents tab. */
-  onSelectHymn?: (number: HymnNumber) => void;
+  /** A recent song chosen, with its own book (SDD-0001 §16.4). */
+  onSelectHymn?: (number: HymnNumber, book: HymnbookId) => void;
+  /** The books held, naming a recent song's book when it is not the one up. */
+  books?: readonly { key: HymnbookId; title: string }[];
   /** Whether a scroll of the Output moves the focus (SDD-0001 §16.1);
    * defaults to on. */
   scrollSync?: boolean;
@@ -1249,7 +1252,8 @@ export function Presenter(props: PresenterProps) {
                   current={loaded().number}
                   store={props.store}
                   userState={props.userState}
-                  onSelect={(number) => props.onSelectHymn?.(number)}
+                  books={props.books}
+                  onSelect={(number, book) => props.onSelectHymn?.(number, book)}
                 />
               </div>
             </Match>

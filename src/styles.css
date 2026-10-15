@@ -3031,6 +3031,8 @@ input[type="checkbox"].switch:disabled {
 }
 
 .recents-title {
+  display: flex;
+  gap: var(--space-xs);
   min-width: 0;
   /* Malayalam glyphs overhang their advance; the clip box leaves them room
      rather than cutting one at the gap. */
@@ -3038,6 +3040,24 @@ input[type="checkbox"].switch:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The title takes the room first; another book's name after it is quiet and
+   gives way sooner, cut with its own ellipsis. */
+.recents-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recents-book {
+  flex: 0 3 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
 }
 
 /* MD3 segmented button on native radios. A segment's width always has room

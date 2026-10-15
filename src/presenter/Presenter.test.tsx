@@ -504,6 +504,10 @@ describe("Presenter", () => {
               { hymnbookId: "other-book", hymnNumber: 9, viewedAt: 1 },
             ],
           })}
+          books={[
+            { key: "book", title: "This Book" },
+            { key: "other-book", title: "Songs of Zion" },
+          ]}
           onWorkspaceChange={onWorkspaceChange}
           onSelectHymn={onSelectHymn}
         />
@@ -516,12 +520,17 @@ describe("Presenter", () => {
       );
       fireEvent.click(screen.getByRole("tab", { name: "Recents" }));
       expect(onWorkspaceChange).toHaveBeenLastCalledWith(expect.objectContaining({ main: 0 }));
-      // This book's recents only, the one up now marked.
+      // Every book's recents, the one up now marked; another book's names its book.
       const row = await screen.findByRole("button", { name: /#7/ });
       expect(row).toHaveAttribute("aria-current", "true");
-      expect(screen.queryByRole("button", { name: /#9/ })).not.toBeInTheDocument();
+      expect(row).not.toHaveTextContent("This Book");
+      const other = screen.getByRole("button", { name: /#9/ });
+      expect(other).toHaveTextContent("Songs of Zion");
+      expect(other).not.toHaveAttribute("aria-current");
       fireEvent.click(row);
-      expect(onSelectHymn).toHaveBeenCalledWith(7);
+      expect(onSelectHymn).toHaveBeenLastCalledWith(7, "book");
+      fireEvent.click(other);
+      expect(onSelectHymn).toHaveBeenLastCalledWith(9, "other-book");
 
       fireEvent.keyDown(window, { key: "n" });
       expect(screen.getByRole("tab", { name: "This Song" })).toHaveAttribute(
