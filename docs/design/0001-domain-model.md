@@ -1925,13 +1925,13 @@ workspace, the dock.
   forward; it has no chevron and no menu. Its glyph is the state's: the screen
   (Go Live), broadcasting (On Air), a slashed circle (Blanked), pause in a
   circle (Held). The **Live toolbar** (a row under the Live preview, the phone
-  strip) is Blank, Hold, **Present Here** and End Live (Shift+E), in that order,
-  all the transport's tonal buttons. Present Here (Shift+P) is always there: not
-  live it presents in this tab (whatever Go Live opens says); with an Output
-  window open it closes the window and presents in this tab, as the old menu row
-  did. Hold and End Live wait, disabled, while not live; Blank does not (§16.5).
-  Go Live itself decides between the Output window and presenting here by the Go
-  Live opens setting (§16.7).
+  strip) is Blank, Hold and End Live (Shift+E), in that order, all the
+  transport's tonal buttons. Hold and End Live wait, disabled, while not live;
+  Blank does not (§16.5). Present Here has no button (Board #77): Go Live is the
+  way in, deciding between the Output window and presenting here by the Go Live
+  opens setting (§16.7), and Shift+P and its command stay for a keyboard. To
+  move from the Output window to this screen mid-service is End Live, then Go
+  Live (or Shift+P).
 - **Hiding Live is "Hide Live Preview"**, never "Hide Live", so it is not
   confused with ending Live: the pane toggle (**L**, Settings' "Show Live
   Preview", the command menu) hides the preview and does nothing to the Output.
@@ -2147,13 +2147,13 @@ the app's own tab, fullscreen, with the Operator's state its only source.
   button's tooltip says what it will do under the setting. Present here has no
   button of its own. The explicit choices remain: the commands "Open the Output
   Window" (O) and "Present on This Screen" (Shift+P, a chord, so a stray key
-  cannot take the tab over), and the **Present Here** button of Live's toolbar
-  (§16.4), which is always there: with an Output window open it closes the
-  window and then presents here once its `bye` has landed (the click's
-  activation still serves fullscreen). It needs a book, as Go Live does (a song
-  may be chosen from the switcher). The key and the command are **not offered
-  while an Output window is open**: one audience, one place. An Output window
-  that opens or answers late while presenting here ends presenting here.
+  cannot take the tab over). Live's toolbar has no Present Here button (Board
+  #77; §16.4). Presenting here needs a book, as Go Live does (a song may be
+  chosen from the switcher). The key and the command are **not offered while an
+  Output window is open**: one audience, one place; End Live first. An Output
+  window that opens or answers late while presenting here ends presenting here.
+  Opening the Output on an attached display by itself, with no permission
+  prompt, waits for a native wrapper (ADR-0006 defers one).
 - **What it shows.** `PresentHere` (`src/output/PresentHere.tsx`) renders the
   same `OutputView` as the Output window, full-bleed over the shell
   (`position: fixed`, above everything, the shell `inert` underneath), in the

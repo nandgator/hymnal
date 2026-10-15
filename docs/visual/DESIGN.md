@@ -507,9 +507,9 @@ view is close enough to the frame to need a smaller unit.
   - **What they see**, a rail on the right from 840px: **Live** (the anchor, a
     true miniature of the Output at its 16:9 shape, with the part before and
     after dimmed), under it its controls in a row of their own (the Live
-    toolbar: Blank, Hold, Present Here, End Live; § The Live toolbar), then a
-    divider and **Parts**: the Repeat row (Repeat · ×2 · Undo · Reset, holding
-    its height) and the keypad (Chorus full width, verses in fixed-width cells).
+    toolbar: Blank, Hold, End Live; § The Live toolbar), then a divider and
+    **Parts**: the Repeat row (Repeat · ×2 · Undo · Reset, holding its height)
+    and the keypad (Chorus full width, verses in fixed-width cells).
   - **This hymn**: the lyrics in sung order, tap a part or a line to send it
     live (ProPresenter's click-a-slide-to-go-live).
   - **Coming up**: Recents now, the service queue later (Board #22).
@@ -591,36 +591,33 @@ view is close enough to the frame to need a smaller unit.
     the same control). The operator can keep navigating behind it (SDD-0001
     §16.5). The On Air status reads **Blanked**, its glyph a slashed circle, so
     it shows on every screen, Live on screen or not.
-  - **The Live toolbar**: **Blank, Hold, Present Here and End Live** are one row
-    of their own, full width under the Live preview (the preview's width, its
-    margins), as the transport's row sits under Parts; Live's heading keeps only
-    its "Live" label. On the phone strip they stay at the strip's end. They are
-    the Live actions' one home (the header's button has no menu), and the
-    transport's buttons (§ Buttons): equal-width tonal rounded rectangles on the
-    neutral fill, one 8px gap between every pair, equal in height, in every
-    state. The stage is at most 440px (40% of the width), too narrow for
-    "Present Here" beside an icon in a quarter of the row, so in the row each
-    button stacks its icon over its word (56px tall, the word at 12px).
+  - **The Live toolbar**: **Blank, Hold and End Live** are one row of their own,
+    full width under the Live preview (the preview's width, its margins), as the
+    transport's row sits under Parts; Live's heading keeps only its "Live"
+    label. On the phone strip they stay at the strip's end. They are the Live
+    actions' one home (the header's button has no menu), and the transport's
+    buttons (§ Buttons): equal-width tonal rounded rectangles on the neutral
+    fill, one 8px gap between every pair, equal in height, in every state. The
+    stage is at most 440px (40% of the width) and as little as 336px, so in the
+    row each button stacks its icon over its word (56px tall, the word at 12px).
     **Icon-only only where space forces it**: the phone strip (48px squares),
     and any row too narrow even so, decided by the row's own width (rem, so the
-    text size counts): under 22rem, where four columns can no longer hold the
-    widest word plus padding. All go icon-only together, the name kept as the
-    accessible name and the tooltip. If the Live pane is hidden the toolbar goes
-    with it; the header status, Ctrl+K and the keys remain. **Pressed**
-    (Blanked, Held) is the selected tone, the secondary container, as the
-    keypad's selected part. **Present Here** (Shift+P) is always there, so the
-    row is always four equal columns: not live, it starts presenting in this
-    tab, whatever Settings' Go Live opens; with an Output window live, it ends
-    the window and presents in this tab. Blank, Hold and End Live wait,
-    disabled, while not live. (While presenting here the shell is off screen, so
-    the row is too.) End Live closes the Output window.
+    text size counts): where three columns can no longer hold the widest word
+    plus padding. All go icon-only together, the name kept as the accessible
+    name and the tooltip. If the Live pane is hidden the toolbar goes with it;
+    the header status, Ctrl+K and the keys remain. **Pressed** (Blanked, Held)
+    is the selected tone, the secondary container, as the keypad's selected
+    part. The row is always three equal columns. **Present Here has no button**
+    (Board #77): Go Live and Settings' Go Live opens are the way in, Shift+P and
+    its command stay. Hold and End Live wait, disabled, while not live. (While
+    presenting here the shell is off screen, so the row is too.) End Live closes
+    the Output window.
   - **One round family, each with its own mark**, so the row reads as one set
     and none is mistaken at a glance, all filled circles: Blank, going dark, a
     slashed circle (`hide_source`); Restore, coming back, a plain dot
     (`circle`); Hold pause in a circle (`pause_circle`; Release `play_circle`);
-    Present Here two swap arrows (`swap_horizontal_circle`, to this screen); End
-    Live a stop in a circle (`stop_circle`). Go Live keeps the only screen. The
-    same Blank and Hold glyphs mark the header status.
+    End Live a stop in a circle (`stop_circle`). Go Live keeps the only screen.
+    The same Blank and Hold glyphs mark the header status.
   - **Hold**: beside Blank, in Live's toolbar and on the phone strip. Pressed
     and reading **Release** while the Output is held; off while no Output is
     open. Live keeps showing what the audience sees, undimmed, with a small
@@ -700,14 +697,14 @@ view is close enough to the frame to need a smaller unit.
   search beside it never moves, whatever the state: the longest label's room
   (**Blanked**; SwapLabel keeps every label's room). It is never a split button:
   not live, it is Go Live; live, the status, which brings the Output forward.
-  End Live and Present Here live in Live's toolbar. Ending is one click there;
-  Go Live is one click, Blank and Hold one click in Live. **Go Live decides for
-  you**, by Settings' Go Live opens: Automatic, with an external screen known
-  (Window Management lists a second screen, or the chosen screen is attached),
-  opens the Output window there, otherwise **presents here**; This Screen always
-  presents here; Output Window always opens the window. Its tooltip says which.
-  The explicit choices stay in the command menu (Open the Output Window, O;
-  Present on This Screen, Shift+P).
+  End Live lives in Live's toolbar. Ending is one click there; Go Live is one
+  click, Blank and Hold one click in Live. **Go Live decides for you**, by
+  Settings' Go Live opens: Automatic, with an external screen known (Window
+  Management lists a second screen, or the chosen screen is attached), opens the
+  Output window there, otherwise **presents here**; This Screen always presents
+  here; Output Window always opens the window. Its tooltip says which. The
+  explicit choices stay in the command menu (Open the Output Window, O; Present
+  on This Screen, Shift+P).
 - **Present here** (Board #41; SDD-0001 §16.7) is no button of its own: Go Live
   starts it where no external screen is known, and Live's toolbar and Shift+P
   offer it otherwise. Presenting, the app tab is the Output's own view
@@ -1281,9 +1278,9 @@ One rule, for every button in the app, so a row never looks half-dressed:
 
 - **A group carries icons all or none.** Text buttons side by side in one
   toolbar, row or button group (the Repeat row: Repeat, Undo, Reset; Live's
-  toolbar: Blank, Hold, Present Here, End Live; the transport) either all have
-  an icon or none do. When the group is narrow, all of them go icon-only
-  together, never one by one.
+  toolbar: Blank, Hold, End Live; the transport) either all have an icon or none
+  do. When the group is narrow, all of them go icon-only together, never one by
+  one.
 - **A lone text action has no icon**, unless the icon carries meaning the word
   does not: the one standalone button of a sheet, card or notice (Done, Cancel,
   Retry, Got It, Use Here) is its word. An icon that is part of what the button
