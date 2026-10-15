@@ -2171,16 +2171,19 @@ the app's own tab, fullscreen, with the Operator's state its only source.
   an external screen is known (Window Management is granted and
   `screen.isExtended`, or the screen the operator chose is attached) it opens
   the Output window as before (ADR-0028); otherwise it presents here. The
-  button's tooltip says what it will do under the setting. Present here has no
-  button of its own. The explicit choices remain: the commands "Open the Output
-  Window" (O) and "Present on This Screen" (Shift+P, a chord, so a stray key
-  cannot take the tab over). Live's toolbar has no Present Here button (Board
-  #77; §16.4). Presenting here needs a book, as Go Live does (a song may be
-  chosen from the switcher). The key and the command are **not offered while an
-  Output window is open**: one audience, one place; End Live first. An Output
-  window that opens or answers late while presenting here ends presenting here.
-  Opening the Output on an attached display by itself, with no permission
-  prompt, waits for a native wrapper (ADR-0006 defers one).
+  button's tooltip says what it will do under the setting, and with no song up
+  that the Output stays dark until one is picked: Go Live works before the first
+  song, so the projector can be set up early (maintainer, 2026-10-15). Present
+  in the navigation, with no song up, says "Find a song", which is what it does
+  (§4). Present here has no button of its own. The explicit choices remain: the
+  commands "Open the Output Window" (O) and "Present on This Screen" (Shift+P, a
+  chord, so a stray key cannot take the tab over). Live's toolbar has no Present
+  Here button (Board #77; §16.4). Presenting here needs a book, as Go Live does
+  (a song may be chosen from the switcher). The key and the command are **not
+  offered while an Output window is open**: one audience, one place; End Live
+  first. An Output window that opens or answers late while presenting here ends
+  presenting here. Opening the Output on an attached display by itself, with no
+  permission prompt, waits for a native wrapper (ADR-0006 defers one).
 - **What it shows.** `PresentHere` (`src/output/PresentHere.tsx`) renders the
   same `OutputView` as the Output window, full-bleed over the shell
   (`position: fixed`, above everything, the shell `inert` underneath), in the
