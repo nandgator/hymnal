@@ -2339,7 +2339,10 @@ them; Report a Problem opens `REPORT_URL` with no query. The look at 390×844 an
 
 Board #75, after OBS's Studio Mode. Live already shows what the audience sees;
 **Preview** adds a step before a song gets there, so a mis-tap in the Finder or
-Recents cannot change the Output mid-service. Not built yet.
+Recents cannot change the Output mid-service. Built in two parts: the setting,
+the waiting song, Send, Clear, the toolbar swap and the desktop pane are built;
+the phone strip, Enter, End Live keeping the song and Present Here sending it
+are not.
 
 - **A setting, off out of the box, then remembered.** Settings, Presentation:
   "Preview a song before it goes live" (the `preview` preference, `false` when
@@ -2351,6 +2354,9 @@ Recents cannot change the Output mid-service. Not built yet.
   Repeat, Undo, Blank and the Presentation settings act at once, on the live
   song, as today. Picking another song while one waits replaces the waiting one.
   Not live, there is nothing to protect: a pick is the current song, as today.
+  Likewise with no song up yet: the Output is dark, so the first pick is the
+  current song. A pick that goes straight to the Output (not live, or no song
+  up) also drops a song still waiting, since it is no longer the next one.
 - **Send** makes the waiting song the current one and puts it on the Output (a
   new song, so it snaps, §16.1), and Preview is empty again. **Enter** sends,
   only while a song waits and nothing else has the focus that Enter means

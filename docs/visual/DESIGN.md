@@ -509,7 +509,12 @@ view is close enough to the frame to need a smaller unit.
     after dimmed), under it its controls in a row of their own (the Live
     toolbar: Blank, Hold, End Live; § The Live toolbar), then a divider and
     **Parts**: the Repeat row (Repeat · ×2 · Undo · Reset, holding its height)
-    and the keypad (Chorus full width, verses in fixed-width cells).
+    and the keypad (Chorus full width, verses in fixed-width cells). With
+    Preview on (SDD-0001 §16.11), the **Preview pane** sits above Live: the same
+    16:9 miniature, a "Preview" label in Live's heading style, **Clear** as a
+    text button at the heading's end, and a divider below. With nothing waiting
+    the miniature's box stays, dashed, reading "Pick a song to preview it", so
+    Live never moves as a song starts or stops waiting.
   - **This hymn**: the lyrics in sung order, tap a part or a line to send it
     live (ProPresenter's click-a-slide-to-go-live).
   - **Coming up**: Recents now, the service queue later (Board #22).
@@ -609,15 +614,19 @@ view is close enough to the frame to need a smaller unit.
     is the selected tone, the secondary container, as the keypad's selected
     part. The row is always three equal columns. **Present Here has no button**
     (Board #77): Go Live and Settings' Go Live opens are the way in, Shift+P and
-    its command stay. Hold and End Live wait, disabled, while not live. (While
-    presenting here the shell is off screen, so the row is too.) End Live closes
-    the Output window.
+    its command stay. Hold and End Live wait, disabled, while not live. With
+    Preview on, **Send** takes Hold's place (Blank, Send, End Live): enabled
+    only while a song waits, otherwise disabled with the tooltip and description
+    "Pick a song to preview it"; a hold already on keeps Hold, reading Release,
+    until it is released. (While presenting here the shell is off screen, so the
+    row is too.) End Live closes the Output window.
   - **One round family, each with its own mark**, so the row reads as one set
     and none is mistaken at a glance, all filled circles: Blank, going dark, a
     slashed circle (`hide_source`); Restore, coming back, a plain dot
     (`circle`); Hold pause in a circle (`pause_circle`; Release `play_circle`);
-    End Live a stop in a circle (`stop_circle`). Go Live keeps the only screen.
-    The same Blank and Hold glyphs mark the header status.
+    End Live a stop in a circle (`stop_circle`); Send an arrow up in a circle
+    (`arrow_circle_up`). Go Live keeps the only screen. The same Blank and Hold
+    glyphs mark the header status.
   - **Hold**: beside Blank, in Live's toolbar and on the phone strip. Pressed
     and reading **Release** while the Output is held; off while no Output is
     open. Live keeps showing what the audience sees, undimmed, with a small
