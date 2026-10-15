@@ -451,3 +451,42 @@ describe("Finder scope chips (SDD-0001 §13.4)", () => {
     expect(chip("1 Book")).toBeInTheDocument();
   });
 });
+
+describe("Finder with nothing typed follows the scope (SDD-0001 §13.4)", () => {
+  const songs: Record<string, { number: number; title: string }[]> = {
+    cur: [{ number: 1, title: "Current One" }],
+    two: [
+      { number: 1, title: "Second One" },
+      { number: 2, title: "Second Two" },
+    ],
+    three: [{ number: 5, title: "Third Five" }],
+  };
+  const browseStore = () => fakeStore({ listHymns: async (key: string) => songs[key] ?? [] });
+  const titles = () => screen.getAllByRole("option").map((o) => o.textContent ?? "");
+
+  it("lists only the chosen book's songs when it is not the current book", async () => {
+    renderFinder({ scope: { mode: "books", books: ["two"] } }, browseStore());
+    await screen.findByRole("option", { name: /Second Two/ });
+    expect(screen.queryByRole("option", { name: /Current One/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Second One/ })).toBeInTheDocument();
+  });
+
+  it("lists each chosen book's songs under its title, as a search groups them", async () => {
+    renderFinder({ scope: { mode: "books", books: ["two", "three"] } }, browseStore());
+    await screen.findByRole("option", { name: /Third Five/ });
+    expect(screen.getByRole("group", { name: "Second Book" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Third Book" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Current One/ })).not.toBeInTheDocument();
+    expect(titles().join("|")).toMatch(/Second Two.*Third Five/);
+  });
+
+  it("lists every book under All Books, and only the current book under This Book", async () => {
+    renderFinder({ scope: { mode: "all" } }, browseStore());
+    await screen.findByRole("option", { name: /Third Five/ });
+    expect(screen.getByRole("option", { name: /Current One/ })).toBeInTheDocument();
+    cleanup();
+    renderFinder({ scope: { mode: "this" } }, browseStore());
+    await screen.findByRole("option", { name: /Current One/ });
+    expect(screen.queryByRole("option", { name: /Second One/ })).not.toBeInTheDocument();
+  });
+});
