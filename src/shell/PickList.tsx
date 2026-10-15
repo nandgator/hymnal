@@ -2,6 +2,12 @@ import { createEffect, type JSX, onCleanup } from "solid-js";
 import { type GlideList, glideList } from "./glideList.ts";
 import { placeMenu } from "./menuPlacement.ts";
 
+/**
+ * With more rows than this a picker has a filter field above them: six rows of 48px fill the
+ * menu's 20rem without one, a seventh would scroll. One rule for every PickList.
+ */
+export const FILTER_FROM = 6;
+
 export interface PickListProps {
   id: string;
   /** The listbox's accessible name. */
@@ -12,8 +18,6 @@ export interface PickListProps {
   track?: () => unknown;
   /** The list element, for scrolling the active row into view. */
   listRef?: (el: HTMLDivElement) => void;
-  /** A tap on the scrim behind the list: close it. */
-  onDismiss?: () => void;
   /** A field fixed above the rows (a filter): the list is then a frame, and only the rows scroll. */
   head?: JSX.Element;
   /** The least width of the list, in px, where the box is narrower (a chip). Kept inside the card. */
@@ -28,56 +32,20 @@ export interface PickListProps {
 }
 
 /**
- * The list of a picker (the language list, Add to): a popover in the top
- * layer, placed from the field's rect like the app's menus, so it floats over
- * the sheet and never changes its size or adds a scrollbar. Kept 16px inside
- * the sheet's card, flipped above the field when there is no room below, with
- * a fade at an edge while more scrolls that way (scrollFade.ts). The rows are
- * `.pick-row`; the active one is `aria-selected="true"` (the hover highlight
- * glides to it) and the current one carries `data-current` (the tonal pill).
- *
- * While it is open the sheet's card behind it wears a scrim (`.pick-scrim`, a
- * layer in the card, not in the top layer): the card's content dimmed and
- * blurred to texture, so nothing of the form reads half cut at the list's edge.
- * The field the list belongs to is lifted above it. A tap on the scrim closes
- * the list and goes no further.
+ * The list of a picker (the language list, Add to, the Finder's books): an MD3 menu, a popover in
+ * the top layer anchored to the field's rect like the app's menus, so it floats over the sheet
+ * and never changes its size or adds a scrollbar. Nothing dims or blurs behind it. Kept 16px
+ * inside the sheet's card, flipped above the field when there is no room below, with a fade at an
+ * edge while more scrolls that way (scrollFade.ts). The rows are `.pick-row`, 48px; the active
+ * one is `aria-selected="true"` (the hover highlight glides to it) and the current one carries
+ * `data-current` (the tonal pill) and a check. The pickers close it when focus leaves; it keeps
+ * to its field while the field settles (a chip's check sliding in).
  */
 export function PickList(props: PickListProps) {
   // The popover; with a `head` it is a frame, and `rows` (the listbox) is the scroller inside it.
   let list: HTMLDivElement | undefined;
   let rows: HTMLDivElement | undefined;
   let glide: GlideList | undefined;
-
-  // The scrim lives in the card (the dialog, which clips its corners) from the list's
-  // opening to its closing, and fades in and out with the list.
-  createEffect(() => {
-    const box = props.box();
-    const card = box?.closest("dialog");
-    if (!box || !card) return;
-    const lifted = box.closest<HTMLElement>(".field") ?? box;
-    const scrim = document.createElement("div");
-    scrim.className = "pick-scrim";
-    scrim.setAttribute("aria-hidden", "true");
-    // Pressing it must not move focus from the field (that would close the list
-    // by blur and let the tap fall on what is under): the click closes it.
-    scrim.addEventListener("pointerdown", (e) => e.preventDefault());
-    scrim.addEventListener("mousedown", (e) => e.preventDefault());
-    scrim.addEventListener("click", (e) => {
-      e.stopPropagation();
-      props.onDismiss?.();
-    });
-    card.append(scrim);
-    lifted.classList.add("pick-lifted");
-    onCleanup(() => {
-      lifted.classList.remove("pick-lifted");
-      scrim.dataset.leaving = "";
-      const done = () => scrim.remove();
-      scrim.addEventListener("animationend", done, { once: true });
-      // No animation (reduced motion, or none running): gone at once.
-      if (!scrim.getAnimations || scrim.getAnimations().length === 0 || !card.isConnected) done();
-      else setTimeout(done, 400);
-    });
-  });
 
   // The highlight is Enter's target, as well as the pointer's: the one layer
   // follows the active row, so the arrow keys and typing move it too.
@@ -122,12 +90,46 @@ export function PickList(props: PickListProps) {
   createEffect(() => {
     props.track?.();
     queueMicrotask(place);
+  });
+  // The field can move after the list is placed with nothing here changing: a sibling chip's
+  // check slides in or out (a transition) and shifts it, and the next row the pointer touched
+  // placed the list again, 26px over. The list keeps to the field, frame by frame while a
+  // transition runs elsewhere on the page, and once more when it ends.
+  createEffect(() => {
+    let frame = 0;
+    const running = () =>
+      typeof document.getAnimations === "function" &&
+      typeof CSSTransition !== "undefined" &&
+      document
+        .getAnimations()
+        .some(
+          (a) =>
+            a instanceof CSSTransition &&
+            a.playState === "running" &&
+            !list?.contains((a.effect as KeyframeEffect | null)?.target ?? null),
+        );
+    const follow = () => {
+      frame = 0;
+      place();
+      if (running()) frame = requestAnimationFrame(follow);
+    };
+    const start = () => {
+      if (frame === 0) frame = requestAnimationFrame(follow);
+    };
     const again = () => place();
     document.addEventListener("scroll", again, true);
     window.addEventListener("resize", again);
+    document.addEventListener("transitionrun", start, true);
+    document.addEventListener("transitionend", again, true);
+    document.addEventListener("transitioncancel", again, true);
+    start();
     onCleanup(() => {
+      cancelAnimationFrame(frame);
       document.removeEventListener("scroll", again, true);
       window.removeEventListener("resize", again);
+      document.removeEventListener("transitionrun", start, true);
+      document.removeEventListener("transitionend", again, true);
+      document.removeEventListener("transitioncancel", again, true);
     });
   });
 

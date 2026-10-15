@@ -118,6 +118,12 @@ only, here:
 
 ## Log
 
+- 2026-10-15 — every PickList (Search's books, the language picker, Add to) is
+  an MD3 menu anchored to its trigger: no scrim or blur over the sheet, 48px
+  rows, a check on the chosen row, a filter field over six rows (one rule,
+  `FILTER_FROM`). Fixed: the list jumped 26px sideways on the first hover, as it
+  was placed while This Book's check was still sliding out of the way (SDD-0001
+  §13.4, DESIGN.md)
 - 2026-10-15 — #77 built: Live's toolbar is Blank, Hold, End Live (three
   columns, icon-only under 12rem); Present Here's button and its
   close-the-window path are gone; Go Live and its setting are the way in,

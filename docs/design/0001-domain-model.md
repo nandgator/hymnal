@@ -1165,21 +1165,28 @@ field narrows it.
   Here's switcher (§16.7), which searches the current book alone.
 - **This Book** is the current book, the one the Finder was opened on. With no
   current book the chip is not drawn (a disabled chip would explain nothing).
-- **The set chip opens a list of the books**: a PickList (the language picker's
-  list: DESIGN.md), a multi-select `listbox` named _Books to search_
-  (`aria-multiselectable`, `aria-selected` on each ticked row; a listbox, not a
-  menu of `menuitemcheckbox`, because that is what PickList is). Rows are the
-  held books' titles in the Library's order, one line with an ellipsis and the
-  full title as a tooltip, and a check mark at the row's **end** when ticked; no
+- **The set chip opens a menu of the books**: a PickList (the language picker's
+  list: DESIGN.md), an **MD3 menu** anchored under the chip (above when there is
+  no room below): no scrim and no blur over the sheet, which stays as it was. A
+  multi-select `listbox` named _Books to search_ (`aria-multiselectable`,
+  `aria-selected` on each ticked row; a listbox, not a menu of
+  `menuitemcheckbox`, because that is what PickList is). Rows are 48px, the held
+  books' titles in the Library's order, one line with an ellipsis and the full
+  title as a tooltip, and a check mark at the row's **end** when ticked; no
   checkbox squares. **In All Books every book is ticked.** A tap toggles a book
   and **applies at once**: no Done, no draft. Unticking narrows the scope and
   the chip reads **N Books**; ticking every book again is **All Books**. **The
   last ticked book cannot be unticked**: its row is `aria-disabled="true"` and a
-  tap or key on it does nothing, so no empty scope exists. With **more than six
-  books** a filter field heads the list (`maxlength` from `SEARCH_MAX`; it
-  filters by title, every word typed, case and Latin accents ignored, any
-  script); the rows scroll under it with the app's edge fades. Escape or a tap
-  outside closes the list alone, and focus returns to the chip.
+  tap or key on it does nothing, so no empty scope exists. **A filter field
+  heads the menu whenever its rows would otherwise scroll** (the same rule for
+  every PickList: more than six rows, the count that fills the menu's maximum
+  height of 20rem with a field above it); it has `maxlength` from `SEARCH_MAX`
+  and filters by title, every word typed, case and Latin accents ignored, any
+  script; the rows scroll under it with the app's edge fades. The menu holds its
+  place while the pointer moves over it and while the chips settle (the check on
+  This Book sliding out moves the set chip: the menu follows the chip until it
+  rests). Escape or a tap outside closes the menu alone, and focus returns to
+  the chip.
 - **One tap on the chip.** With This Book pressed, a tap on the set chip returns
   to the set it left (All Books, or the N Books last chosen) **and opens the
   list** (decided: one large target, 40px tall, on a phone, rather than a label
