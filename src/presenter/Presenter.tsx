@@ -138,11 +138,6 @@ export interface PresenterProps {
    * the Output is live, so the song keeps its place; its keys act only
    * while live, and N (a tab of this screen) not at all. */
   away?: boolean;
-  /** The Output is a window (not this tab): Present Here's tooltip says it
-   * closes it (SDD-0001 §16.7). */
-  outputWindow?: boolean;
-  /** Presents in this tab, ending the Output window first if one is open. */
-  onPresentHere?: () => void;
   /** Which supporting panes show, by id; absent means shown (SDD-0001
    * §16.4). The shell keeps it in preferences. */
   panes?: Record<string, boolean>;
@@ -808,28 +803,6 @@ export function Presenter(props: PresenterProps) {
     </button>
   );
 
-  // Present Here (SDD-0001 §16.7), always there: not live, it presents in
-  // this tab; with an Output window live, the window ends and this tab
-  // presents instead. (While presenting here the shell is not on screen.)
-  const presentHereControl = () => (
-    <button
-      type="button"
-      class="btn-tonal live-control"
-      aria-keyshortcuts={ariaKeys("present-here")}
-      title={withKey(
-        props.outputWindow
-          ? "Present on this screen, closing the Output window"
-          : "Present on this screen",
-        "present-here",
-        expanded(),
-      )}
-      onClick={() => props.onPresentHere?.()}
-    >
-      <span class="icon icon-here" aria-hidden="true" />
-      <span class="live-control-label">Present Here</span>
-    </button>
-  );
-
   // End Live (SDD-0001 §16.4), the toolbar's last member: it closes the
   // Output window, so like Hold it waits for one.
   const endLiveControl = () => (
@@ -862,7 +835,6 @@ export function Presenter(props: PresenterProps) {
     >
       {blankControl()}
       {holdControl()}
-      {presentHereControl()}
       {endLiveControl()}
     </div>
   );
