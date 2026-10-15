@@ -1118,8 +1118,8 @@ two modes and never mixes them.
   or **Commands**, so the person knows where they are. It is not a group
   heading: books and languages keep theirs under it. **Songs is hidden while the
   box is empty** (maintainer, 2026-10-14): the empty list has its own Recents
-  and All songs headings, so the mode heading would only repeat them; it shows
-  once anything is typed. Commands stays as it is. The placeholder (maintainer,
+  and book headings, so the mode heading would only repeat them; it shows once
+  anything is typed. Commands stays as it is. The placeholder (maintainer,
   2026-10-14) says what to type, not how to switch: _Number, title or words_ in
   songs, _Find a command_ in commands; sentence case, short enough for 375px. It
   does not mention `>` or commands: the shortcut list (`?`) documents `>` and
@@ -1221,7 +1221,7 @@ field narrows it.
   Present Here's switcher is not scoped. With nothing typed the list follows the
   scope (maintainer, 2026-10-15; it showed the current book's songs whatever the
   chips said): This Book is the current book's songs; one chosen book is that
-  book's songs, its own language groups or **All songs** heading, as a single
+  book's songs, its own language groups or its title as the heading, as a single
   book has them; several are each book's songs under its title, a sticky
   heading, as a multi-book search groups them (§13.1), in the windowed list
   (§13.2). Recents above it are not scoped: they are every book's (§16.4). A
@@ -1282,9 +1282,10 @@ row and clear the number column as before.
 Assorted Hymns by language, then title (SDD-0004 §17). Where the book has
 languages the songs are in groups under the language's name, as the books are in
 a multi-book search (§13.1): a heading is `position: sticky` under the field, so
-the language you are in stays in view. A book without languages is one group,
-**All songs**, whose heading sticks the same way. A typed number still jumps:
-the number's suggestions replace the list as before.
+the language you are in stays in view. A book without languages is one group
+under the **book's title** (never "All songs", which reads as every book's;
+maintainer, 2026-10-15), whose heading sticks the same way. A typed number still
+jumps: the number's suggestions replace the list as before.
 
 **Keys.** The box stays focused and the listbox is reached by
 `aria-activedescendant`. With nothing typed no row is highlighted, and Enter
