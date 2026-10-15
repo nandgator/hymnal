@@ -3,11 +3,8 @@ import type { HymnbookId } from "../domain/types.ts";
 import { ClearSearch } from "../shell/ClearSearch.tsx";
 import { SEARCH_MAX } from "../shell/limits.ts";
 import { fold } from "../shell/matchText.ts";
-import { PickList } from "../shell/PickList.tsx";
+import { FILTER_FROM, PickList } from "../shell/PickList.tsx";
 import type { ScopeMode } from "./sources.ts";
-
-/** With more books than this the list has a filter field above it. */
-export const FILTER_FROM = 6;
 
 export interface ScopeChipsProps {
   /** The books held, in the Library's order. */
@@ -36,8 +33,8 @@ let instances = 0;
  * rows): every book is ticked in All Books; a tap toggles one and applies at once; ticking all again
  * is All Books; the last ticked row is `aria-disabled`, so none is never a state. One tap on the
  * chip while This Book is pressed returns to the set and opens the list too (one target, large
- * on a phone, rather than a label and a small chevron to aim at). Over six books a filter field
- * heads the list (a combobox, so Space types there); otherwise the listbox itself takes the keys,
+ * on a phone, rather than a label and a small chevron to aim at). Over six books (FILTER_FROM) a filter field
+ * heads the menu (a combobox, so Space types there); otherwise the listbox itself takes the keys,
  * Space included. Tab reaches the pressed chip, the arrow keys move along the row.
  */
 export function ScopeChips(props: ScopeChipsProps) {
@@ -218,7 +215,6 @@ export function ScopeChips(props: ScopeChipsProps) {
           minWidth={288}
           multiselectable
           active="[data-active]"
-          onDismiss={() => close(true)}
           track={() => [active(), shown(), props.mode, props.keys]}
           listRef={(el) => {
             setListEl(el);

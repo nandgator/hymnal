@@ -205,7 +205,6 @@ export function LanguagePicker(props: LanguagePickerProps) {
             id={listId}
             label="Languages"
             box={() => box}
-            onDismiss={close}
             track={() => [active(), shown()]}
             listRef={(el) => {
               list = el;
@@ -231,9 +230,14 @@ export function LanguagePicker(props: LanguagePickerProps) {
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => pick(entry.o.code)}
                   >
-                    <span class="lang-native">{entry.o.native}</span>{" "}
-                    <Show when={entry.o.native !== entry.o.english}>
-                      <span class="lang-english">— {entry.o.english}</span>
+                    <span class="pick-row-text">
+                      <span class="lang-native">{entry.o.native}</span>{" "}
+                      <Show when={entry.o.native !== entry.o.english}>
+                        <span class="lang-english">— {entry.o.english}</span>
+                      </Show>
+                    </span>
+                    <Show when={entry.o.code === props.value}>
+                      <span class="pick-row-check icon icon-check" aria-hidden="true" />
                     </Show>
                   </div>
                 </>

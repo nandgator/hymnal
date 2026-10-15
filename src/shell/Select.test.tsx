@@ -122,3 +122,46 @@ describe("Select", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 });
+
+describe("Select with many options", () => {
+  const MANY = Array.from({ length: 8 }, (_, i) => ({
+    value: `v${i}`,
+    label: `Book ${i} ${i % 2 ? "Odd" : "Even"}`,
+  }));
+  const open = (options = MANY) => {
+    const onChange = vi.fn();
+    render(() => (
+      <>
+        <label for="many">Add to</label>
+        <Select id="many" label="Add to" options={options} value="v0" onChange={onChange} />
+      </>
+    ));
+    fireEvent.click(screen.getByRole("combobox", { name: "Add to" }));
+    return { onChange };
+  };
+
+  it("has a filter field above the rows only past six options", () => {
+    open(MANY.slice(0, 6));
+    expect(screen.queryByRole("combobox", { name: "Filter Add to" })).not.toBeInTheDocument();
+    document.body.replaceChildren();
+    open();
+    expect(screen.getByRole("combobox", { name: "Filter Add to" })).toBeInTheDocument();
+    expect(screen.getAllByRole("option")).toHaveLength(8);
+  });
+
+  it("filters by every word typed, and Enter picks the first match", () => {
+    const { onChange } = open();
+    const filter = screen.getByRole("combobox", { name: "Filter Add to" });
+    fireEvent.input(filter, { target: { value: "odd 5" } });
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Book 5 Odd"]);
+    fireEvent.keyDown(filter, { key: "Enter" });
+    expect(onChange).toHaveBeenCalledWith("v5");
+  });
+
+  it("marks the chosen option with a check", () => {
+    open();
+    const rows = screen.getAllByRole("option");
+    expect(rows[0]?.querySelector(".pick-row-check")).not.toBeNull();
+    expect(rows[1]?.querySelector(".pick-row-check")).toBeNull();
+  });
+});

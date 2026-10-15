@@ -1,5 +1,8 @@
-import { createSignal, For } from "solid-js";
-import { PickList } from "./PickList.tsx";
+import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
+import { ClearSearch } from "./ClearSearch.tsx";
+import { SEARCH_MAX } from "./limits.ts";
+import { fold } from "./matchText.ts";
+import { FILTER_FROM, PickList } from "./PickList.tsx";
 
 export interface SelectOption {
   value: string;
@@ -17,11 +20,12 @@ export interface SelectProps {
 }
 
 /**
- * A single choice from a short list, in the language picker's list (PickList):
- * a field that shows the choice, with a chevron, and opens the list under it.
- * A click on the field toggles the list, Enter, Space or the down arrow opens
- * it, arrows move, Enter or Space picks, Escape closes the list (not the
- * sheet it is in), Tab or a tap outside closes it.
+ * A single choice from a short list, in the language picker's menu (PickList):
+ * a field that shows the choice, with a chevron, and opens the menu under it.
+ * A click on the field toggles the menu, Enter, Space or the down arrow opens
+ * it, arrows move, Enter or Space picks, Escape closes the menu (not the
+ * sheet it is in), Tab or a tap outside closes it. With more options than
+ * FILTER_FROM a filter field heads the menu and takes the keys (Space types).
  */
 export function Select(props: SelectProps) {
   const [open, setOpen] = createSignal(false);
@@ -29,16 +33,28 @@ export function Select(props: SelectProps) {
   let field: HTMLButtonElement | undefined;
   let box: HTMLDivElement | undefined;
   let list: HTMLDivElement | undefined;
+  let filterField: HTMLInputElement | undefined;
+  const [filter, setFilter] = createSignal("");
+  const filtering = () => props.options.length > FILTER_FROM;
+  /** The rows: every option, or those whose label has every word typed. */
+  const rows = createMemo(() => {
+    const words = fold(filter()).split(/\s+/).filter(Boolean);
+    if (words.length === 0) return props.options;
+    return props.options.filter((o) => words.every((w) => fold(o.label).includes(w)));
+  });
 
   const listId = `${props.id}-list`;
   const optionId = (value: string) => `${props.id}-opt-${value}`;
   const shown = () => props.options.find((o) => o.value === props.value)?.label ?? "";
   const activeId = () => {
-    const at = props.options[active()];
+    const at = rows()[active()];
     return at ? optionId(at.value) : undefined;
   };
 
-  const close = () => setOpen(false);
+  const close = () => {
+    setOpen(false);
+    setFilter("");
+  };
   const openList = () => {
     if (open()) return;
     setActive(
@@ -55,11 +71,40 @@ export function Select(props: SelectProps) {
     field?.focus();
   };
   const move = (to: number) => {
-    setActive(Math.max(0, Math.min(props.options.length - 1, to)));
+    setActive(Math.max(0, Math.min(rows().length - 1, to)));
     queueMicrotask(() =>
       list?.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ block: "nearest" }),
     );
   };
+
+  /** The keys of the field, or of the filter (`typing`: Space is a letter there). */
+  const onKey = (e: KeyboardEvent, typing: boolean) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (open()) move(active() + 1);
+      else openList();
+    } else if (e.key === "ArrowUp" && open()) {
+      e.preventDefault();
+      move(active() - 1);
+    } else if (e.key === "Enter" || (!typing && e.key === " ")) {
+      e.preventDefault();
+      const at = rows()[active()];
+      if (open() && at) pick(at.value);
+      else openList();
+    } else if (e.key === "Escape" && open()) {
+      // Closes the menu, not the sheet.
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+      field?.focus();
+    }
+  };
+
+  // With a filter, focus goes to it once the menu is shown.
+  createEffect(() => {
+    if (!open() || !filtering()) return;
+    queueMicrotask(() => queueMicrotask(() => filterField?.focus({ preventScroll: true })));
+  });
 
   return (
     <>
@@ -85,32 +130,14 @@ export function Select(props: SelectProps) {
             }
           }}
           onBlur={(e) => {
-            if (!list?.contains(e.relatedTarget as Node)) close();
+            const to = e.relatedTarget as Node | null;
+            if (!(to && (list?.closest(".pick-list") ?? list)?.contains(to))) close();
           }}
           onKeyUp={(e) => {
             // Space would click on release (Firefox); the keydown already acted.
             if (e.key === " ") e.preventDefault();
           }}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown") {
-              e.preventDefault();
-              if (open()) move(active() + 1);
-              else openList();
-            } else if (e.key === "ArrowUp" && open()) {
-              e.preventDefault();
-              move(active() - 1);
-            } else if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              const at = props.options[active()];
-              if (open() && at) pick(at.value);
-              else openList();
-            } else if (e.key === "Escape" && open()) {
-              // Closes the list, not the sheet.
-              e.preventDefault();
-              e.stopPropagation();
-              close();
-            }
-          }}
+          onKeyDown={(e) => onKey(e, false)}
         >
           <span class="pick-value">{shown()}</span>
         </button>
@@ -121,13 +148,52 @@ export function Select(props: SelectProps) {
           id={listId}
           label={props.label}
           box={() => box}
-          onDismiss={close}
-          track={() => active()}
+          track={() => [active(), rows()]}
           listRef={(el) => {
             list = el;
+            const popover = el.closest<HTMLElement>(".pick-list") ?? el;
+            popover.addEventListener("focusout", (event) => {
+              const to = event.relatedTarget as Node | null;
+              if (to && !popover.contains(to) && !box?.contains(to)) close();
+            });
           }}
+          head={
+            filtering() ? (
+              <label class="text-field">
+                <input
+                  ref={filterField}
+                  type="text"
+                  role="combobox"
+                  aria-label={`Filter ${props.label}`}
+                  aria-expanded="true"
+                  aria-controls={listId}
+                  aria-autocomplete="list"
+                  aria-activedescendant={activeId()}
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck={false}
+                  enterkeyhint="done"
+                  placeholder="Filter"
+                  maxlength={SEARCH_MAX}
+                  value={filter()}
+                  onInput={(e) => {
+                    setFilter(e.currentTarget.value);
+                    setActive(0);
+                  }}
+                  onKeyDown={(e) => onKey(e, true)}
+                />
+                <ClearSearch
+                  visible={filter() !== ""}
+                  onClear={() => {
+                    setFilter("");
+                    setActive(0);
+                  }}
+                />
+              </label>
+            ) : undefined
+          }
         >
-          <For each={props.options}>
+          <For each={rows()}>
             {(option, i) => (
               // biome-ignore lint/a11y/useKeyWithClickEvents: the combobox carries the keys
               <div
@@ -141,10 +207,18 @@ export function Select(props: SelectProps) {
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(option.value)}
               >
-                {option.label}
+                <span class="pick-row-text">{option.label}</span>
+                <Show when={option.value === props.value}>
+                  <span class="pick-row-check icon icon-check" aria-hidden="true" />
+                </Show>
               </div>
             )}
           </For>
+          <Show when={rows().length === 0}>
+            <div class="lang-none" role="presentation">
+              No match.
+            </div>
+          </Show>
         </PickList>
       )}
     </>
