@@ -39,6 +39,7 @@ import {
   outputCuesOf,
   type Preferences,
   pinChorusOf,
+  previewOf,
   type UserState,
   type UserStateHandle,
   wholeSongOf,
@@ -102,6 +103,10 @@ export const SETTING_COPY = {
   goLive: {
     title: "Go Live opens",
     hint: "Where Go Live shows the song: a projector window when one is found, or this screen.",
+  },
+  preview: {
+    title: "Preview a song before it goes live",
+    hint: "While live, a picked song waits in Preview until you press Send.",
   },
   outputTheme: {
     title: "Output theme",
@@ -676,6 +681,20 @@ export function Settings(props: SettingsProps) {
             </div>
           </Disclosure>
         </Show>
+        <label class="settings-row">
+          <span class="settings-label">
+            {SETTING_COPY.preview.title}
+            <span class="settings-supporting">{SETTING_COPY.preview.hint}</span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            class="switch"
+            checked={previewOf(preferences())}
+            aria-checked={previewOf(preferences())}
+            onChange={(event) => update({ ...preferences(), preview: event.currentTarget.checked })}
+          />
+        </label>
         <div class="settings-row">
           <span class="settings-label">
             {SETTING_COPY.outputTheme.title}

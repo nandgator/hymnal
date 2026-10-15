@@ -9,6 +9,7 @@ import {
   DEFAULT_PREFERENCES,
   goLiveOf,
   openUserState,
+  previewOf,
   type SearchScope,
   type UserStateHandle,
 } from "./user-state.ts";
@@ -134,6 +135,15 @@ describe("preferences", () => {
     await state.setPreferences({ theme: "light", fontScale: 1, goLive: "projector" } as never);
     expect(await state.getPreferences()).toEqual({ theme: "light", fontScale: 1 });
     expect(goLiveOf({ theme: "light", fontScale: 1, goLive: 3 } as never)).toBe("auto");
+  });
+
+  it("reads Preview as off when none is stored, keeps it when set, and drops a wrong value", async () => {
+    expect(previewOf(await state.getPreferences())).toBe(false);
+    await state.setPreferences({ theme: "light", fontScale: 1, preview: true });
+    expect(previewOf(await state.getPreferences())).toBe(true);
+    await state.setPreferences({ theme: "light", fontScale: 1, preview: "yes" } as never);
+    expect(await state.getPreferences()).toEqual({ theme: "light", fontScale: 1 });
+    expect(previewOf({ theme: "light", fontScale: 1, preview: 1 } as never)).toBe(false);
   });
 
   it("keeps the Finder's search scope across sessions, and drops a malformed one", async () => {

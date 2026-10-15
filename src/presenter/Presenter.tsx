@@ -129,6 +129,15 @@ export interface PresenterProps {
   /** Holds the Output on what it shows, or releases it: the button beside
    * Blank. */
   onToggleHold?: () => void;
+  /** Preview is on (SDD-0001 §16.11): Send takes Hold's place in Live's
+   * toolbar and the Preview pane sits above Live. */
+  preview?: boolean;
+  /** The song waiting in Preview, if one is. */
+  waiting?: { number: HymnNumber; hymnbookId: HymnbookId };
+  /** Sends the waiting song: it becomes the current one, live. */
+  onSend?: () => void;
+  /** Drops the waiting song. */
+  onClear?: () => void;
   /** Ends Live: closes the Output window, the third button of Live's
    * toolbar (SDD-0001 §16.4). */
   onEndLive?: () => void;
@@ -308,29 +317,54 @@ export function Presenter(props: PresenterProps) {
   // message, so the preview can't disagree with the audience screen
   // (§16.4). Unmounting blanks the Output rather than leaving the last
   // hymn frozen on the audience's screen.
+  const contentOf = (
+    e: SequenceEngine,
+    hymnbookTitle: string | undefined,
+  ): Extract<OutputMessage, { type: "content" }> => ({
+    type: "content",
+    hymnbookId: e.hymn.hymnbookId,
+    number: e.hymn.number,
+    title: titleCase(e.hymn.title),
+    ...flattenLines(e),
+    hymnbookTitle,
+    part: partCueLabel(e.current().part),
+    repeat: e.current().repeatOrdinal,
+    // Only the chorus recurs, so only it pins; bridges and tags stay in
+    // the verse column, boxed while sung like it (SDD-0001 §16.1).
+    chorus: e.hymn.parts.find((part) => part.kind === "chorus")?.id,
+    // Printed order, for the whole-song layout (SDD-0005).
+    parts: e.hymn.parts.map((part) => ({
+      id: part.id,
+      lines: [...part.lines],
+      marker: partMarker(part),
+    })),
+  });
   const outputMessage = createMemo((): Extract<OutputMessage, { type: "content" }> | undefined => {
     version();
     const e = engine();
-    if (!e) return undefined;
-    return {
-      type: "content",
-      hymnbookId: e.hymn.hymnbookId,
-      number: e.hymn.number,
-      title: titleCase(e.hymn.title),
-      ...flattenLines(e),
-      hymnbookTitle: props.hymnbookTitle,
-      part: partCueLabel(e.current().part),
-      repeat: e.current().repeatOrdinal,
-      // Only the chorus recurs, so only it pins; bridges and tags stay in
-      // the verse column, boxed while sung like it (SDD-0001 §16.1).
-      chorus: e.hymn.parts.find((part) => part.kind === "chorus")?.id,
-      // Printed order, for the whole-song layout (SDD-0005).
-      parts: e.hymn.parts.map((part) => ({
-        id: part.id,
-        lines: [...part.lines],
-        marker: partMarker(part),
-      })),
-    };
+    return e ? contentOf(e, props.hymnbookTitle) : undefined;
+  });
+  // The waiting song's first part (SDD-0001 §16.11), for the Preview pane:
+  // loaded without being recorded as a recent, since nothing has opened it.
+  const [waitingHymn] = createResource(
+    () => (props.preview && props.waiting ? props.waiting : undefined),
+    async (key): Promise<Hymn | undefined> => {
+      try {
+        const source = await (props.store ?? getContentStore()).getHymn(key.hymnbookId, key.number);
+        return { hymnbookId: key.hymnbookId, ...source };
+      } catch {
+        return undefined;
+      }
+    },
+  );
+  const previewMessage = createMemo(() => {
+    const waiting = props.waiting;
+    const loaded = waitingHymn.state === "ready" ? waitingHymn() : undefined;
+    if (!waiting || !loaded || loaded.number !== waiting.number) return undefined;
+    return contentOf(
+      createSequenceEngine(loaded),
+      props.books?.find((book) => book.key === loaded.hymnbookId)?.title,
+    );
   });
   createEffect(() => {
     const message = outputMessage();
@@ -806,6 +840,22 @@ export function Presenter(props: PresenterProps) {
     </button>
   );
 
+  // Send (SDD-0001 §16.11), where Hold was while Preview is on: the waiting
+  // song becomes the current one and goes live. Off while nothing waits.
+  const sendControl = () => (
+    <button
+      type="button"
+      class="btn-tonal live-control"
+      disabled={!props.waiting}
+      aria-description={!props.waiting ? "Pick a song to preview it" : undefined}
+      title={!props.waiting ? "Pick a song to preview it" : "Send the waiting song live"}
+      onClick={() => props.onSend?.()}
+    >
+      <span class="icon icon-send" aria-hidden="true" />
+      <span class="live-control-label">Send</span>
+    </button>
+  );
+
   // End Live (SDD-0001 §16.4), the toolbar's last member: it closes the
   // Output window, so like Hold it waits for one.
   const endLiveControl = () => (
@@ -837,7 +887,9 @@ export function Presenter(props: PresenterProps) {
       ref={(el) => onCleanup(hoverGroup(el, ".live-control:enabled", { gap: 150 }))}
     >
       {blankControl()}
-      {holdControl()}
+      {/* Preview steps Hold aside (SDD-0001 §16.11), though a hold already
+          on stays until it is released. */}
+      {props.preview && !props.held ? sendControl() : holdControl()}
       {endLiveControl()}
     </div>
   );
@@ -1342,6 +1394,46 @@ export function Presenter(props: PresenterProps) {
                   <Show when={shown("live")}>
                     {/* The strip names itself; only the full preview gets
                         the header. */}
+                    {/* Preview sits above Live (SDD-0001 §16.11): the same
+                        miniature, with the waiting song's first part. */}
+                    <Show when={roomy() && props.preview}>
+                      <div class="area-header">
+                        <h3 class="area-title">Preview</h3>
+                        <button
+                          type="button"
+                          class="btn-text"
+                          disabled={!props.waiting}
+                          onClick={() => props.onClear?.()}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      <section class="live-pane preview-pane" aria-label="Preview">
+                        <Show
+                          when={previewMessage()}
+                          fallback={
+                            <p class="preview-empty">
+                              {props.waiting ? "" : "Pick a song to preview it"}
+                            </p>
+                          }
+                        >
+                          {(message) => (
+                            <OutputView
+                              message={message()}
+                              variant="mini"
+                              label="Preview output preview"
+                              cues={props.cues}
+                              reveal={props.revealCues}
+                              pinChorus={props.pinChorus}
+                              wholeSong={props.wholeSong}
+                              landscape={props.liveLandscape}
+                              highlight={props.highlight}
+                            />
+                          )}
+                        </Show>
+                      </section>
+                      <div class="stage-divider" />
+                    </Show>
                     <Show when={roomy()}>
                       <div class="area-header">
                         <h3
