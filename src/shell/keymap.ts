@@ -35,6 +35,7 @@ export type ShortcutId =
   | "hold"
   | "output"
   | "end-live"
+  | "send"
   | "present-here"
   | "leave-present"
   | "tab"
@@ -83,6 +84,13 @@ export const SHORTCUTS: Shortcut[] = [
     id: "end-live",
     keys: ["Shift+E"],
     label: "End Live: close the Output window",
+    scope: "presentation",
+  },
+  {
+    id: "send",
+    keys: ["Enter"],
+    label: "Send the waiting song live (with Preview on)",
+    note: "Only while a song waits, and nothing focused already uses Enter.",
     scope: "presentation",
   },
   {

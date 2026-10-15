@@ -2010,6 +2010,7 @@ work too.
 | H                       | Light the whole song / the part  | presentation |
 | Shift+H                 | Hold the Output / release        | presentation |
 | Shift+E                 | End Live: close the Output       | presentation |
+| Enter                   | Send the waiting song (§16.11)   | presentation |
 | F, Esc                  | Leave presenting here (§16.7)    | presentation |
 | O                       | Open or focus the Output window  | operator     |
 | Shift+P                 | Present on this screen (§16.7)   | operator     |
@@ -2339,10 +2340,10 @@ them; Report a Problem opens `REPORT_URL` with no query. The look at 390×844 an
 
 Board #75, after OBS's Studio Mode. Live already shows what the audience sees;
 **Preview** adds a step before a song gets there, so a mis-tap in the Finder or
-Recents cannot change the Output mid-service. Built in two parts: the setting,
-the waiting song, Send, Clear, the toolbar swap and the desktop pane are built;
-the phone strip, Enter, End Live keeping the song and Present Here sending it
-are not.
+Recents cannot change the Output mid-service. Built in two parts, both built:
+part 1 the setting, the waiting song, Send, Clear, the toolbar swap and the
+desktop pane; part 2 the pane's live-only shape, the phone strip, Enter, End
+Live keeping the song and Present Here sending it.
 
 - **A setting, off out of the box, then remembered.** Settings, Presentation:
   "Preview a song before it goes live" (the `preview` preference, `false` when
@@ -2358,29 +2359,44 @@ are not.
   current song. A pick that goes straight to the Output (not live, or no song
   up) also drops a song still waiting, since it is no longer the next one.
 - **Send** makes the waiting song the current one and puts it on the Output (a
-  new song, so it snaps, §16.1), and Preview is empty again. **Enter** sends,
-  only while a song waits and nothing else has the focus that Enter means
-  something to (a field, a button, a list, an open sheet or the Finder). It is a
-  `presentation` key, so the Output window forwards it (§16.5). **Clear** (a
-  text button on the Preview pane) drops the waiting song.
+  new song, so it snaps, §16.1), and Preview is empty again. **Enter** sends
+  (the `send` shortcut, listed in the `?` sheet), only while a song waits, the
+  Output is live and nothing else has the focus that Enter means something to (a
+  field, a button, a link, a list or option, an open sheet or the Finder). It is
+  a `presentation` key, so the Output window forwards it (§16.5); from there it
+  sends whatever the Operator has focused. Send is disabled while nothing waits
+  ("Pick a song to preview it") and while not live ("Go Live to send it").
+  **Clear** (a text button on the Preview pane) drops the waiting song.
 - **Hold steps aside.** While Preview is on, Live's toolbar is Blank, **Send**,
   End Live: Send takes Hold's place, and Shift+H and the Hold commands are not
   offered, since a song no longer reaches the Output unasked. Send is disabled
   while nothing waits and says why ("Pick a song to preview it"). Turning
   Preview on while the Output is held keeps Hold until Release; then it steps
   aside.
-- **The Operator shows it.** A **Preview** pane sits above Live, the same 16:9
-  miniature of the Output, showing the waiting song's first part under a
-  "Preview" label, with Clear; with nothing waiting it reads "Pick a song to
-  preview it". This Song keeps showing the live song (its parts are what
-  stepping moves). On a phone, a strip above Live's strip names the waiting
-  song, with Send and Clear.
-- **End Live keeps it waiting.** A waiting song survives End Live, and the next
-  Go Live opens on it (it is sent as the Output opens). Nothing the operator
-  picked is lost. It is not persisted: a reload empties Preview.
+- **The Operator shows it, only while live.** The **Preview** pane sits above
+  Live in the rail, and only while Preview is on and the Output is live; not
+  live, there is no pane (nothing can be sent). Live with nothing waiting, it is
+  a **slim one-line row** under the "Preview" label, quiet: "Pick a song to
+  preview it", with Clear hidden. A song waiting, the pane grows to the same
+  16:9 miniature of the Output, showing the song's first part, in one smooth
+  change of height (none under `prefers-reduced-motion`), and its label names
+  the song: its number and title ("#2 River of Stones"), on one line,
+  ellipsized; from another book, the book's name too, as the cross-book Recents
+  rows do. Clear is a text button at the label's end. The Parts keypad always
+  keeps its room: Live and Preview give way first (DESIGN.md § Structure, Height
+  matters). This Song keeps showing the live song (its parts are what stepping
+  moves). On a phone, a strip above Live's strip names the waiting song, with
+  Send and Clear, shown only while live with Preview on; nothing waiting, no
+  strip (Send in the toolbar stays disabled with its reason).
+- **End Live keeps it waiting.** A waiting song survives End Live (the pane is
+  gone with the Output, the song is not), and the next Go Live opens on it: it
+  is sent as the Output opens. A pick made meanwhile, not live, is the current
+  song and drops it, as any direct pick does. Nothing the operator picked is
+  lost. It is not persisted: a reload empties Preview.
 - **Not in Present Here.** The operator's tab is the audience's screen there, so
   the switcher's pick goes live at once, as today (§16.7). A song waiting when
-  presenting here starts is sent with it.
+  presenting here starts (Present Here, Shift+P, or Go Live to This Screen) is
+  sent as it starts, so the audience's screen opens on it.
 
 ### 16.12 Two columns
 

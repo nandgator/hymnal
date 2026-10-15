@@ -2367,9 +2367,13 @@ input[type="checkbox"].switch:disabled {
   overflow: clip;
 }
 
+/* The keypad keeps its room before anything else in the rail gives: the Repeat row
+   (2.5rem), the gap (1.5rem) and two rows of keys (2.5rem each and a 0.5rem gap), so
+   a second row is never left behind the transport. Live (and Preview) shrink first;
+   a song with more rows scrolls inside the keypad. */
 .stage .parts-navigator {
   flex: 1 1 0;
-  min-height: 7.5rem;
+  min-height: 9.5rem;
 }
 
 .stage .parts-navigator > section {
@@ -6817,22 +6821,134 @@ fieldset.book-main {
   color: var(--md-sys-color-on-surface-variant);
 }
 
-/* The Preview pane's empty ground (SDD-0001 §16.11): the miniature's own
-   box, so the pane keeps its height with nothing waiting and Live never
-   jumps as a song starts or stops waiting. */
-.preview-empty {
+/* The Preview pane (SDD-0001 §16.11): a heading that names the waiting song, a slim quiet
+   row while nothing waits, and the miniature, which opens and closes in one height change
+   (a grid row from 0fr to 1fr; reduced motion applies it at once). */
+.preview-header {
+  min-height: 2.5rem;
+  gap: var(--space-sm);
+}
+
+.preview-song {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  max-width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: var(--space-md);
-  border: 1px dashed var(--md-sys-color-outline-variant);
-  border-radius: var(--shape-md);
-  aspect-ratio: 16 / 9;
+  flex: 1 1 auto;
+  gap: var(--space-xs);
+  min-width: 0;
+  /* Malayalam glyphs overhang their advance and rise above the line box. */
+  padding-inline-end: var(--space-xxs);
+  color: var(--md-sys-color-on-surface);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.preview-song-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-song-book {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+}
+
+.preview-song-book::before {
+  content: "\00b7\00a0";
+}
+
+.preview-empty {
+  margin: 0 var(--space-md) var(--space-xs);
+  padding-inline-start: var(--space-xs);
   color: var(--md-sys-color-on-surface-variant);
   font-size: 0.875rem;
-  text-align: center;
+  line-height: 1.6;
+}
+
+.preview-fold {
+  display: grid;
+  flex: 0 1 auto;
+  grid-template-rows: 0fr;
+  min-height: 0;
+  transition: grid-template-rows var(--motion-medium) var(--motion-emphasized);
+}
+
+.preview-fold[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.preview-fold > div {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The phone's strip (above Live's): one line, 48px targets, in Live's width. */
+.live-stack {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+}
+
+.preview-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 3rem;
+  margin-block-end: var(--space-sm);
+  padding-inline: var(--space-md) var(--space-xs);
+  border-radius: var(--shape-md);
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+/* The strip's name is its aria-label: the room goes to the song. Another book's name sits
+   under the title, as Recents does on a phone. */
+.preview-strip-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.preview-strip .preview-song {
+  flex-direction: column;
+  gap: 0;
+  justify-content: center;
+}
+
+.preview-strip .preview-song-book {
+  max-width: none;
+  line-height: 1.4;
+}
+
+.preview-strip .preview-song-book::before {
+  content: none;
+}
+
+.preview-strip .btn-tonal,
+.preview-strip .btn-text {
+  flex: none;
+  min-height: 3rem;
+}
+
+.preview-strip .btn-text {
+  padding-inline: var(--space-sm);
+}
+
+.preview-strip .btn-tonal {
+  padding-inline: var(--space-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-fold {
+    transition: none;
+  }
 }

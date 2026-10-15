@@ -1482,3 +1482,101 @@ describe("stepping with the chorus pinned and the whole song lit (SDD-0001 §5.5
     expect(heading()).toHaveTextContent("Chorus");
   });
 });
+
+describe("The Preview pane (Board #75, SDD-0001 §16.11)", () => {
+  const books = [
+    { key: "book", title: "Main Book" },
+    { key: "other", title: "Other Book" },
+  ];
+  const open = (extra: Partial<Parameters<typeof Presenter>[0]> = {}) =>
+    render(() => (
+      <Presenter
+        hymnbookId="book"
+        hymnNumber={7}
+        store={fakeStore()}
+        userState={fakeUserState()}
+        books={books}
+        preview
+        {...extra}
+      />
+    ));
+
+  it("is not there while the Output is not live", async () => {
+    open();
+    await screen.findByText("Test Hymn");
+    expect(screen.queryByRole("heading", { name: "Preview" })).toBeNull();
+    expect(screen.queryByText("Pick a song to preview it")).toBeNull();
+  });
+
+  it("is a slim row with nothing waiting while live, with no Clear", async () => {
+    open({ presenting: true });
+    await screen.findByText("Test Hymn");
+    expect(screen.getByRole("heading", { name: "Preview" })).toBeInTheDocument();
+    expect(screen.getByText("Pick a song to preview it")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
+    expect(screen.queryByRole("img", { name: "Preview output preview" })).toBeNull();
+  });
+
+  it("names the waiting song by number and title, and its book when it is another", async () => {
+    open({ presenting: true, waiting: { number: 7, hymnbookId: "other" } });
+    await screen.findByRole("img", { name: "Preview output preview" });
+    const label = document.querySelector(".preview-song") as HTMLElement;
+    await vi.waitFor(() => expect(label).toHaveTextContent("#7 Test Hymn"));
+    expect(label).toHaveTextContent("Other Book");
+    expect(screen.queryByText("Pick a song to preview it")).toBeNull();
+    expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
+    expect(document.querySelector(".preview-fold")).toHaveAttribute("data-open", "true");
+  });
+
+  it("on a phone: a strip names the waiting song, with Send and Clear, only while live", async () => {
+    stubMedia(() => false);
+    try {
+      const onSend = vi.fn();
+      const onClear = vi.fn();
+      const view = open({
+        presenting: true,
+        waiting: { number: 7, hymnbookId: "other" },
+        onSend,
+        onClear,
+      });
+      await screen.findByText("Test Hymn");
+      const strip = screen.getByRole("region", { name: "Preview" });
+      await vi.waitFor(() => expect(strip).toHaveTextContent("#7 Test Hymn"));
+      expect(strip).toHaveTextContent("Other Book");
+      // Above Live's strip.
+      expect(strip.closest(".live-stack")?.querySelector(".live-strip")).not.toBeNull();
+      fireEvent.click(within(strip).getByRole("button", { name: "Send" }));
+      fireEvent.click(within(strip).getByRole("button", { name: "Clear" }));
+      expect(onSend).toHaveBeenCalledTimes(1);
+      expect(onClear).toHaveBeenCalledTimes(1);
+      view.unmount();
+
+      // Not live: no strip.
+      open({ waiting: { number: 7, hymnbookId: "other" } });
+      await screen.findAllByText("Test Hymn");
+      expect(screen.queryByRole("region", { name: "Preview" })).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("on a phone: no strip with nothing waiting, and Send in the toolbar says why", async () => {
+    stubMedia(() => false);
+    try {
+      open({ presenting: true });
+      await screen.findByText("Test Hymn");
+      expect(screen.queryByRole("region", { name: "Preview" })).toBeNull();
+      const send = screen.getByRole("button", { name: "Send" });
+      expect(send).toBeDisabled();
+      expect(send).toHaveAccessibleDescription("Pick a song to preview it");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("leaves the book out for a song of the book that is up", async () => {
+    open({ presenting: true, waiting: { number: 7, hymnbookId: "book" } });
+    await screen.findByRole("img", { name: "Preview output preview" });
+    expect(document.querySelector(".preview-song-book")).toBeNull();
+  });
+});

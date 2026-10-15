@@ -366,6 +366,32 @@ export function Presenter(props: PresenterProps) {
       props.books?.find((book) => book.key === loaded.hymnbookId)?.title,
     );
   });
+  // The miniature stays as it was while the pane closes, so it folds away with its picture.
+  let keptPreview: ReturnType<typeof previewMessage>;
+  const shownPreview = createMemo(() => {
+    const message = previewMessage();
+    if (message) keptPreview = message;
+    return props.waiting ? message : keptPreview;
+  });
+  const waitingTitle = () => {
+    const waiting = props.waiting;
+    const loaded = waitingHymn.state === "ready" ? waitingHymn() : undefined;
+    const same = loaded?.number === waiting?.number && loaded?.hymnbookId === waiting?.hymnbookId;
+    return same && loaded ? titleCase(loaded.title) : "";
+  };
+  // The waiting song's book, named only when it is not the one up, as Recents does.
+  const waitingBook = () => {
+    const waiting = props.waiting;
+    if (!waiting || waiting.hymnbookId === props.hymnbookId) return undefined;
+    return props.books?.find((book) => book.key === waiting.hymnbookId)?.title;
+  };
+  // The song as the pane's heading and the phone's strip name it; kept as it was while they close.
+  let keptSong: { number: number; name: string; book?: string } | undefined;
+  const songLabel = createMemo(() => {
+    const waiting = props.waiting;
+    if (waiting) keptSong = { number: waiting.number, name: waitingTitle(), book: waitingBook() };
+    return keptSong;
+  });
   createEffect(() => {
     const message = outputMessage();
     if (message) publishOutput(message);
@@ -842,13 +868,59 @@ export function Presenter(props: PresenterProps) {
 
   // Send (SDD-0001 §16.11), where Hold was while Preview is on: the waiting
   // song becomes the current one and goes live. Off while nothing waits.
+  const songName = () => (
+    <span class="preview-song">
+      <span class="preview-song-name">
+        #{songLabel()?.number} {songLabel()?.name}
+      </span>
+      <Show when={songLabel()?.book}>
+        {(book) => <span class="preview-song-book">{book()}</span>}
+      </Show>
+    </span>
+  );
+  // The phone's strip above Live's (SDD-0001 §16.11): only while live with Preview on, and
+  // only with a song waiting; it opens and closes in one height change.
+  const previewStrip = () => (
+    <Show when={props.preview && props.presenting}>
+      <div class="preview-fold" data-open={props.waiting ? "true" : "false"}>
+        <div
+          class="preview-strip-pad"
+          inert={!props.waiting}
+          aria-hidden={props.waiting ? undefined : "true"}
+        >
+          <section class="preview-strip" aria-label="Preview">
+            <span class="preview-strip-label">Preview</span>
+            {songName()}
+            <button
+              type="button"
+              class="btn-tonal preview-strip-send"
+              title="Send the waiting song live"
+              onClick={() => props.onSend?.()}
+            >
+              Send
+            </button>
+            <button type="button" class="btn-text" onClick={() => props.onClear?.()}>
+              Clear
+            </button>
+          </section>
+        </div>
+      </div>
+    </Show>
+  );
+  const sendReason = () =>
+    !props.waiting
+      ? "Pick a song to preview it"
+      : !props.presenting
+        ? "Go Live to send it"
+        : undefined;
   const sendControl = () => (
     <button
       type="button"
       class="btn-tonal live-control"
-      disabled={!props.waiting}
-      aria-description={!props.waiting ? "Pick a song to preview it" : undefined}
-      title={!props.waiting ? "Pick a song to preview it" : "Send the waiting song live"}
+      disabled={!!sendReason()}
+      aria-description={sendReason()}
+      title={sendReason() ?? withKey("Send the waiting song live", "send", expanded())}
+      aria-keyshortcuts={ariaKeys("send")}
       onClick={() => props.onSend?.()}
     >
       <span class="icon icon-send" aria-hidden="true" />
@@ -1380,7 +1452,12 @@ export function Presenter(props: PresenterProps) {
                 // Under 840px (DESIGN.md § Structure): the Live strip, then
                 // the tabs merged, Parts among them; the dock below.
                 <div class="operator-phone">
-                  <Show when={shown("live")}>{liveStrip()}</Show>
+                  <Show when={shown("live")}>
+                    <div class="live-stack">
+                      {previewStrip()}
+                      {liveStrip()}
+                    </div>
+                  </Show>
                   <Index each={groups()}>{(group) => tabGroup(group, loaded)}</Index>
                 </div>
               }
@@ -1396,42 +1473,44 @@ export function Presenter(props: PresenterProps) {
                         the header. */}
                     {/* Preview sits above Live (SDD-0001 §16.11): the same
                         miniature, with the waiting song's first part. */}
-                    <Show when={roomy() && props.preview}>
-                      <div class="area-header">
+                    <Show when={roomy() && props.preview && props.presenting}>
+                      <div class="area-header preview-header">
                         <h3 class="area-title">Preview</h3>
-                        <button
-                          type="button"
-                          class="btn-text"
-                          disabled={!props.waiting}
-                          onClick={() => props.onClear?.()}
-                        >
-                          Clear
-                        </button>
-                      </div>
-                      <section class="live-pane preview-pane" aria-label="Preview">
-                        <Show
-                          when={previewMessage()}
-                          fallback={
-                            <p class="preview-empty">
-                              {props.waiting ? "" : "Pick a song to preview it"}
-                            </p>
-                          }
-                        >
-                          {(message) => (
-                            <OutputView
-                              message={message()}
-                              variant="mini"
-                              label="Preview output preview"
-                              cues={props.cues}
-                              reveal={props.revealCues}
-                              pinChorus={props.pinChorus}
-                              wholeSong={props.wholeSong}
-                              landscape={props.liveLandscape}
-                              highlight={props.highlight}
-                            />
-                          )}
+                        <Show when={props.waiting}>
+                          {songName()}
+                          <button type="button" class="btn-text" onClick={() => props.onClear?.()}>
+                            Clear
+                          </button>
                         </Show>
-                      </section>
+                      </div>
+                      <Show when={!props.waiting}>
+                        <p class="preview-empty">Pick a song to preview it</p>
+                      </Show>
+                      {/* The miniature opens and closes in one height change. */}
+                      <div class="preview-fold" data-open={props.waiting ? "true" : "false"}>
+                        <div
+                          inert={!props.waiting}
+                          aria-hidden={props.waiting ? undefined : "true"}
+                        >
+                          <section class="live-pane preview-pane" aria-label="Preview">
+                            <Show when={shownPreview()}>
+                              {(message) => (
+                                <OutputView
+                                  message={message()}
+                                  variant="mini"
+                                  label="Preview output preview"
+                                  cues={props.cues}
+                                  reveal={props.revealCues}
+                                  pinChorus={props.pinChorus}
+                                  wholeSong={props.wholeSong}
+                                  landscape={props.liveLandscape}
+                                  highlight={props.highlight}
+                                />
+                              )}
+                            </Show>
+                          </section>
+                        </div>
+                      </div>
                       <div class="stage-divider" />
                     </Show>
                     <Show when={roomy()}>

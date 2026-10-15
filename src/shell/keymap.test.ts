@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ariaKeys, keyCaps, keyHint, SHORTCUTS, withKey } from "./keymap.ts";
+import { ariaKeys, isPresentationKey, keyCaps, keyHint, SHORTCUTS, withKey } from "./keymap.ts";
 import { PANES } from "./panes.ts";
 
 describe("keymap", () => {
@@ -69,6 +69,13 @@ describe("keymap", () => {
       .map((key) => key.toLowerCase());
     expect(taken).not.toContain("shift+p");
     expect(taken).not.toContain("f");
+  });
+
+  it("makes Enter the Send key, a presentation key the Output forwards (Board #75)", () => {
+    expect(keyHint("send")).toBe("Enter");
+    expect(ariaKeys("send")).toBe("Enter");
+    expect(SHORTCUTS.find((shortcut) => shortcut.id === "send")?.scope).toBe("presentation");
+    expect(isPresentationKey("Enter", false)).toBe(true);
   });
 
   it("keeps every pane's key in the table", () => {
