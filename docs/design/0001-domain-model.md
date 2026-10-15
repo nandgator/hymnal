@@ -2381,3 +2381,37 @@ are not.
 - **Not in Present Here.** The operator's tab is the audience's screen there, so
   the switcher's pick goes live at once, as today (§16.7). A song waiting when
   presenting here starts is sent with it.
+
+### 16.12 Two columns
+
+Board #78 (maintainer, 2026-10-15). The Output can show two texts side by side,
+so a hymn is sung from two books at once (Malayalam beside English, say), and
+later a song beside its transliteration (#15) or one song split by voice (with
+annotations). **Another song** comes first; the other two use the same split
+when their groundwork is built. Not built.
+
+- **Part by part only.** The Output splits down the middle. **Show Beside** in
+  Whole song switches the layout to Part by part, with a snackbar ("Layout is
+  now Part by part", Undo). Going back to Whole song is one column again.
+- **Choosing it.** In Search, a song row's menu (and a key) has **Show Beside**:
+  it fills the right column, the left stays the current song. The same hymn in
+  other books (as Load Books' "also in" knows it) is offered first. With Preview
+  on (§16.11) the pair waits in Preview and Send puts both live.
+- **Pairing.** Parts pair by label: verse 2 beside verse 2, chorus beside
+  chorus. A part with no partner leaves that column quiet for the step.
+- **Linked or not.** Linked, one step moves both columns; unlinked, each has its
+  own cursor. The default is smart: transliteration and voices start linked; two
+  songs start linked only when they are known as the same hymn, otherwise
+  independent. The operator can change it; the change lasts until the split ends
+  and is not remembered.
+- **One text size.** Both columns share the size that fits the longer one, so
+  they read as a pair and their lines align.
+- **The Operator.** This Song gets two columns, parts aligned by label. Linked,
+  a tap or a key moves both. Unlinked, keys drive the column last touched (its
+  header marked); Tab swaps columns. On a phone the columns stack in portrait
+  (top and bottom) and sit side by side in landscape; turning the phone moves
+  them with a smooth rotation.
+- **Ending it.** A labelled text button, **One Column**, on the second song's
+  header (never icon-only, so it cannot be read as closing the Output), and the
+  command menu. Picking a new song for the left ends the split too, with a
+  snackbar ("One column again", Undo). Blank and Hold act on the whole Output.
