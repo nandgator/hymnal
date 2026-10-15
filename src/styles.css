@@ -2367,9 +2367,13 @@ input[type="checkbox"].switch:disabled {
   overflow: clip;
 }
 
+/* The keypad keeps its room before anything else in the rail gives: the Repeat row
+   (2.5rem), the gap (1.5rem) and two rows of keys (2.5rem each and a 0.5rem gap), so
+   a second row is never left behind the transport. Live (and Preview) shrink first;
+   a song with more rows scrolls inside the keypad. */
 .stage .parts-navigator {
   flex: 1 1 0;
-  min-height: 7.5rem;
+  min-height: 9.5rem;
 }
 
 .stage .parts-navigator > section {
