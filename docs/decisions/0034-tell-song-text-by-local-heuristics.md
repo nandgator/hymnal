@@ -78,7 +78,9 @@ short on prose.** The neural model and Gemini Nano are ruled out.
    whose rights are cleared (the public-domain sample; a Malayalam corpus once
    its rights are settled), never on a draft whose rights are unknown.
 4. **A note, never a block.** A song that fails shows a note on review (the
-   parser's `TextNote`), with the reason; adding still works.
+   parser's `TextNote`), with the reason; adding still works. Songs that share a
+   reason are listed together, one closed accordion per reason, headed by the
+   count and the reason in a phrase (`NOTE_HEADERS` in `songcheck.ts`).
 5. **Where it runs:** From Text and received books, on review.
 6. **Any script, by Unicode category, never by `a–z` or the space.** A letter is
    a letter (`\p{L}`) or a combining mark (`\p{M}`): Malayalam's vowel signs are

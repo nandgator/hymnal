@@ -9,10 +9,36 @@
  * ASCII. An emoji is one grapheme however many code points it takes (§7).
  */
 
-export type SongCheck = { ok: true } | { ok: false; reason: string };
+/** What a note is about, so notes that agree can be listed together (ADR-0034). */
+export type NoteKind = keyof typeof NOTE_HEADERS;
+
+/**
+ * The header of a group of notes, in one phrase after the count: "3 songs read like a
+ * paragraph", "1 song has lines cut at a margin". `one` follows "1 song", `many` follows
+ * "N songs".
+ */
+export const NOTE_HEADERS = {
+  emoji: { one: "is mostly emoji", many: "are mostly emoji" },
+  maths: { one: "reads like maths", many: "read like maths" },
+  numbers: { one: "is mostly numbers", many: "are mostly numbers" },
+  code: { one: "reads like code", many: "read like code" },
+  markup: { one: "reads like markup", many: "read like markup" },
+  email: { one: "reads like an email", many: "read like an email" },
+  links: { one: "is links or addresses", many: "are links or addresses" },
+  paths: { one: "is file paths", many: "are file paths" },
+  table: { one: "reads like a table", many: "read like a table" },
+  settings: { one: "reads like settings", many: "read like settings" },
+  log: { one: "reads like a log or a chat", many: "read like a log or a chat" },
+  list: { one: "reads like a list", many: "read like a list" },
+  paragraph: { one: "reads like a paragraph", many: "read like a paragraph" },
+  margin: { one: "has lines cut at a margin", many: "have lines cut at a margin" },
+  numbered: { one: "has numbered lines", many: "have numbered lines" },
+} as const;
+
+export type SongCheck = { ok: true } | { ok: false; kind: NoteKind; reason: string };
 
 const OK: SongCheck = { ok: true };
-const no = (reason: string): SongCheck => ({ ok: false, reason });
+const no = (kind: NoteKind, reason: string): SongCheck => ({ ok: false, kind, reason });
 
 const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
@@ -130,40 +156,41 @@ export function checkSongText(text: string): SongCheck {
 
   // Emoji (§7): a few as decoration pass, mostly emoji do not.
   const emoji = s.marks.filter((g) => EMOJI.test(g)).length;
-  if (share(emoji, total) >= 0.3) return no("Lines are mostly emoji, not words.");
+  if (share(emoji, total) >= 0.3) return no("emoji", "Lines are mostly emoji, not words.");
   const words = s.marks.filter((g) => !EMOJI.test(g));
 
   // Maths.
   if ((text.match(/\\[A-Za-z]{2,}/g) ?? []).length >= 2 || /\$[^$\n]+\$/.test(text)) {
-    return no("Lines have formulas in them.");
+    return no("maths", "Lines have formulas in them.");
   }
   if (
     lines.length >= 3 &&
     shareOf(lines, (l) => /=/.test(l) && DIGIT.test(l) && !/[{};[\]]|=>/.test(l)) >= 0.5
   ) {
-    return no("Lines are equations.");
+    return no("maths", "Lines are equations.");
   }
   const sm = words.filter((g) => /^\p{Sm}$/u.test(g) && !/^[<>=+|~]$/.test(g)).length;
-  if (sm >= 3 && share(sm, words.length) >= 0.06) return no("Lines are equations.");
+  if (sm >= 3 && share(sm, words.length) >= 0.06) return no("maths", "Lines are equations.");
   const digits = words.filter((g) => DIGIT.test(g)).length;
-  if (share(digits, words.length) >= 0.3) return no("Lines are mostly numbers.");
+  if (share(digits, words.length) >= 0.3) return no("numbers", "Lines are mostly numbers.");
 
   // Code and markup: ASCII symbols and line shapes.
   const symbols = words.filter((g) => CODE_SYMBOL.test(g)).length;
   if (symbols >= 4 && share(symbols, words.length) >= 0.05) {
-    return no(`Lines are full of ${commonSymbols(words)} like code.`);
+    return no("code", `Lines are full of ${commonSymbols(words)} like code.`);
   }
   if (lines.length >= 2 && shareOf(lines, (l) => CODE_LINE.test(l)) >= 0.4) {
-    return no("Lines read like code.");
+    return no("code", "Lines read like code.");
   }
   if (lines.length >= 3 && shareOf(lines, (l) => /<\/?[A-Za-z][^>]*>/.test(l)) >= 0.3) {
-    return no("Lines are full of tags like markup.");
+    return no("markup", "Lines are full of tags like markup.");
   }
 
   // Email.
-  if (lines.filter((l) => MAIL_HEADER.test(l)).length >= 2) return no("Reads like an email.");
+  if (lines.filter((l) => MAIL_HEADER.test(l)).length >= 2)
+    return no("email", "Reads like an email.");
   if (lines.filter((l) => l.startsWith(">")).length >= 2 || /wrote:$|^Sent from my /m.test(text)) {
-    return no("Reads like an email.");
+    return no("email", "Reads like an email.");
   }
   const first = groups[0];
   const last = groups[groups.length - 1];
@@ -175,15 +202,15 @@ export function checkSongText(text: string): SongCheck {
     last.length <= 4 &&
     /[,，]$/.test(last[0] ?? "")
   ) {
-    return no("Reads like an email.");
+    return no("email", "Reads like an email.");
   }
 
   // Links and paths.
   if (lines.length >= 2 && shareOf(lines, (l) => LINK.test(l)) >= 0.3) {
-    return no("Lines are links or addresses.");
+    return no("links", "Lines are links or addresses.");
   }
   if (lines.length >= 3 && shareOf(lines, (l) => /^(?:\/|~\/|\.\/|[A-Za-z]:\\)\S/.test(l)) >= 0.5) {
-    return no("Lines are file paths.");
+    return no("paths", "Lines are file paths.");
   }
 
   // Data: columns, settings, times.
@@ -193,33 +220,33 @@ export function checkSongText(text: string): SongCheck {
     columns(lines, ";", 2) ||
     (lines.length >= 4 && columns(lines, ",", 2))
   ) {
-    return no("Lines are split into columns, like a table.");
+    return no("table", "Lines are split into columns, like a table.");
   }
   if (lines.length >= 3 && shareOf(lines, (l) => /^[A-Za-z_][\w.-]*\s*=\s*\S/.test(l)) >= 0.6) {
-    return no("Lines look like settings (name = value).");
+    return no("settings", "Lines look like settings (name = value).");
   }
   if (lines.length >= 3 && shareOf(lines, (l) => l.startsWith("|")) >= 0.5) {
-    return no("Lines are split into columns, like a table.");
+    return no("table", "Lines are split into columns, like a table.");
   }
   if (
     lines.length >= 5 &&
     shareOf(lines, (l) => /^(?:- )?[A-Za-z_][\w-]*:(?:\s+\S.*)?$/.test(l)) >= 0.7
   ) {
-    return no("Lines look like settings (name: value).");
+    return no("settings", "Lines look like settings (name: value).");
   }
   if (lines.length >= 3 && shareOf(lines, (l) => STAMP.test(l)) >= 0.5) {
-    return no("Lines start with times or dates, like a log or a chat.");
+    return no("log", "Lines start with times or dates, like a log or a chat.");
   }
   if (
     lines.length >= 3 &&
     shareOf(lines, (l) => /^\S+\s.*\d[\d\-.]*$/.test(l) && /\d{3}/.test(l)) >= 0.6
   ) {
-    return no("Lines end in numbers, like a list.");
+    return no("list", "Lines end in numbers, like a list.");
   }
 
   // Chat.
   if (lines.length >= 3 && shareOf(lines, (l) => /^<[^>\s]{1,24}>\s/.test(l)) >= 0.5) {
-    return no("Lines start with a name in < >, like a chat.");
+    return no("log", "Lines start with a name in < >, like a chat.");
   }
   const speaker = /^([\p{L}\p{M}\d_. -]{1,24}):\s+\S/u;
   if (lines.length >= 4 && shareOf(lines, (l) => speaker.test(l)) >= 0.6) {
@@ -229,29 +256,29 @@ export function checkSongText(text: string): SongCheck {
       if (name) names.set(name, (names.get(name) ?? 0) + 1);
     }
     if (names.size <= 4 && [...names.values()].every((n) => n >= 2)) {
-      return no("Lines start with a name and a colon, like a chat.");
+      return no("log", "Lines start with a name and a colon, like a chat.");
     }
   }
   if (
     lines.length >= 3 &&
     shareOf(lines, (l) => /\b\d{1,2}:\d\d\s*(?:[AaPp][Mm])?$/.test(l)) >= 0.2
   ) {
-    return no("Lines carry times, like a chat.");
+    return no("log", "Lines carry times, like a chat.");
   }
 
   // Prose: paragraphs, not lines.
   const longest = Math.max(...s.lengths);
   const single = groups.every((g) => g.length === 1);
-  if (longest >= 220) return no("Reads like a paragraph, not lines.");
+  if (longest >= 220) return no("paragraph", "Reads like a paragraph, not lines.");
   if (single && longest >= 100 && (lines.length <= 3 || groups.length >= 3)) {
-    return no("Reads like a paragraph, not lines.");
+    return no("paragraph", "Reads like a paragraph, not lines.");
   }
   if (single && groups.length >= 2 && median(s.lengths) >= 40) {
-    return no("Reads like paragraphs, not lines.");
+    return no("paragraph", "Reads like paragraphs, not lines.");
   }
-  if (wrapped(groups)) return no("Lines are cut at a margin, like a paragraph.");
+  if (wrapped(groups)) return no("margin", "Lines are cut at a margin, like a paragraph.");
   if (numbered(lines) && longest >= 60) {
-    return no("Lines are numbered, like verses or articles read from a page.");
+    return no("numbered", "Lines are numbered, like verses or articles read from a page.");
   }
 
   return OK;

@@ -440,9 +440,13 @@ Library; this says what it shows and does.
   then the **summary** (ADR-0027): title, language and script, song count, the
   violations if any (all of them, by song and rule; none repaired), the verdict
   and its choices (§8), how many songs are held elsewhere, by book, and a
-  **note** for each song that does not look like a song (code, maths, a table, a
-  chat, a paragraph; ADR-0034), with the reason in plain words. A note is
-  advice: the book loads as before. Nothing is written until a button is
+  **note** for the songs that do not look like songs (code, maths, a table, a
+  chat, a paragraph; ADR-0034). The note is one block with a closed accordion
+  for each reason, flat, most songs first, its header the count and the reason
+  in one phrase ("3 songs read like a paragraph", "1 song has lines cut at a
+  margin"); opened, it lists number and title for each song, without the reason
+  repeated. "They are added anyway." follows once, under the accordions. A note
+  is advice: the book loads as before. Nothing is written until a button is
   pressed. Cancel throws the parsed book away. A long read or write shows its
   phase and count on a bar (§14).
 - **Remove**: chosen, by the maintainer: a loaded book only (the row's ⋯ menu,
@@ -977,9 +981,9 @@ title).
 
 The songs are reviewed as a book is (ADR-0027), as a container the person never
 sees; so the song-text check (ADR-0034) runs here too, in the worker, on the
-songs of the container (`LoadReview.notes`, at most 20, with `moreNotes` for the
-rest), and a pasted code listing shows a note and can still be added. Each book
-of yours answers the review with a status: its next number, the songs it holds
+songs of the container (`LoadReview.notes`, every song with its reason kind),
+and a pasted code listing shows a note and can still be added. Each book of
+yours answers the review with a status: its next number, the songs it holds
 already by hash, the numbers the others take, and a problem when a number is not
 free. The button is **Add Song** or **Add Songs**; with every song held already
 it is **Open Song**.
