@@ -863,35 +863,35 @@ view is close enough to the frame to need a smaller unit.
     (the search field's fill, a 2px `primary` ring on focus): the **language**,
     labelled "Song's language" ("Songs' language" for several), a searchable
     picker of languages by name, each in its own name and in English ("മലയാളം —
-    Malayalam"), grouped Common then All languages. Its list is a popover in the
-    top layer, placed from the field's rect in the menu's surface with its
-    shadow; it is clamped to the card's box (its room ends 16px short of the
-    card's edge), flips above the field when there is no room below, scrolls
-    inside its own maximum height with a soft blur and fade at an edge only
-    while more scrolls that way, with a **scrim** over the card's content while
-    it is open (a layer in the card, clipped by its corners: a 6px blur and the
-    card's colour at 88%, so the form reads as texture; the field it belongs to
-    stays above it; fades with the list, snaps under reduced motion; a tap on it
-    closes the list and goes no further), and never changes the card's size. A
-    click on the field or its chevron toggles it, Escape closes the list and not
-    the sheet, a tap outside closes it. It ends in **Other…** to type a code. A
-    suggestion from the song text ("Looks like …") fills the language until the
-    person picks. Once a language is set, a quiet line, "Script: Malayalam
-    (Mlym) · Change", the script derived from the language and a field ("Script
-    code", with Done) only after Change; a code typed by hand is checked as it
-    is typed (four letters and a script the device knows) and set in its usual
-    case. Then the song text area in the hymn face (with **Open .txt Files**,
-    several at once) and its hint, "12 lines, 2 songs. Put --- on its own line
-    between songs." The optional song number sits under **Advanced**. One filled
-    button, **Review** (**Review Song**, **Review 3 Songs**), is pinned at the
-    bottom as the review's is. **The card is one size**: a fixed height (the
-    tallest state, within 88% of the screen), the form scrolling inside it with
-    a stable scrollbar gutter, so it does not change when the destination
-    changes, Advanced opens or the list opens. **Every error is a field error**:
-    the field gets the `error` outline and its helper text turns `error`, under
-    the field, and it **goes the moment that field is edited**; a new error
-    shows again only on the next Review. Parse errors are listed under the song
-    text, one line each, "Line 12: message", and go when the text is edited. No
+    Malayalam"), grouped Common then All languages. Its list is an **MD3 menu**
+    (PickList): a popover in the top layer, anchored to the field and placed
+    from its rect, in the menu's surface (surface-container-high, level-3
+    shadow, the menu radius, like the app's Menu), 48px rows. It is clamped to
+    the card's box (its room ends 16px short of the card's edge), flips above
+    the field when there is no room below, scrolls inside its own maximum height
+    with a soft blur and fade at an edge only while more scrolls that way. There
+    is **no scrim**: nothing dims or blurs behind it and the field is not
+    lifted, so the form stays as it was. It never changes the card's size. The
+    field is the list's filter, so no second field is drawn. A click on the
+    field or its chevron toggles it, Escape closes the list and not the sheet, a
+    tap outside closes it. It ends in **Other…** to type a code. A suggestion
+    from the song text ("Looks like …") fills the language until the person
+    picks. Once a language is set, a quiet line, "Script: Malayalam (Mlym) ·
+    Change", the script derived from the language and a field ("Script code",
+    with Done) only after Change; a code typed by hand is checked as it is typed
+    (four letters and a script the device knows) and set in its usual case. Then
+    the song text area in the hymn face (with **Open .txt Files**, several at
+    once) and its hint, "12 lines, 2 songs. Put --- on its own line between
+    songs." The optional song number sits under **Advanced**. One filled button,
+    **Review** (**Review Song**, **Review 3 Songs**), is pinned at the bottom as
+    the review's is. **The card is one size**: a fixed height (the tallest
+    state, within 88% of the screen), the form scrolling inside it with a stable
+    scrollbar gutter, so it does not change when the destination changes,
+    Advanced opens or the list opens. **Every error is a field error**: the
+    field gets the `error` outline and its helper text turns `error`, under the
+    field, and it **goes the moment that field is edited**; a new error shows
+    again only on the next Review. Parse errors are listed under the song text,
+    one line each, "Line 12: message", and go when the text is edited. No
     callout, no table. The first field in error is scrolled into view (and
     focused, except the language). The review that follows is the same sheet,
     with no source check (withdrawn, ADR-0029 point 4); a refusal there offers
@@ -1360,10 +1360,13 @@ hymnal rather than a chat app or a console. So:
   1.5px ring in the tone's text colour. The row is one line and never wraps or
   scrolls; chips share it by their text, and the row clips nothing at 390px with
   the longest label (_All Books_ becomes _3 Books_). The All Books chip has a
-  chevron after its label and opens a PickList of the book titles (the language
-  picker's list, a filter field above it past six books, a check mark at the end
-  of a ticked row, no checkbox squares, no Done: a tap applies), not a sheet
-  over the sheet. Names are Title Case (§ Words).
+  chevron after its label and opens a PickList of the book titles: an MD3 menu
+  anchored under the chip (the language picker's list), with no scrim over the
+  sheet, 48px rows, a filter field above the rows whenever they would scroll
+  (past six), a check mark at the end of a ticked row, no checkbox squares, no
+  Done: a tap applies. Not a sheet over the sheet. The menu holds still under
+  the pointer and follows the chip while the chips settle. Names are Title Case
+  (§ Words).
 - **A search dialog holds its size.** Search, Settings, the Menu and Hymnbooks
   keep one height, whatever the results: the card is `min(44rem, 75dvh)` (so it
   still follows a short screen and a phone), the results glide up 8px and fade
