@@ -467,8 +467,14 @@ describe("App", () => {
     expect(settings).toHaveAttribute("title", "Settings (Ctrl+,)");
     expect(settings).toHaveAttribute("aria-keyshortcuts", "Control+,");
     const goLive = screen.getByRole("button", { name: "Go Live" });
-    expect(goLive).toHaveAttribute("title", "Go Live: present on this screen (Shift+P)");
+    // No song up yet: Go Live still opens the Output, and says it stays dark till one is picked.
+    expect(goLive).toHaveAttribute(
+      "title",
+      "Go Live: present on this screen (Shift+P). It stays dark until you pick a song",
+    );
     expect(goLive).toHaveAttribute("aria-keyshortcuts", "O");
+    // Present, with no song up, opens Search: it says so.
+    expect(screen.getByRole("button", { name: "Present" })).toHaveAttribute("title", "Find a song");
   });
 
   it("offers Split and Make main only where two tab groups fit (SDD-0001 §16.5)", async () => {

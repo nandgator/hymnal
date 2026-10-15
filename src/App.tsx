@@ -1374,6 +1374,8 @@ function Operator(props: Shared) {
       class={variant === "rail" ? "rail-item" : "list-row menu-item"}
       aria-current={section() === item.id ? "page" : undefined}
       disabled={item.id === "present" && !hymnbook()}
+      // With no song up, Present opens Search (go): it says so.
+      title={item.id === "present" && hymnbook() && !hymnNumber() ? "Find a song" : undefined}
       onClick={() => go(item.id)}
     >
       <span class={variant === "rail" ? "rail-indicator" : ""}>
@@ -1534,9 +1536,11 @@ function Operator(props: Shared) {
                   !canGoLive()
                     ? "Load a songbook first"
                     : !presentingOutput()
-                      ? goLiveTarget() === "window"
-                        ? withKey("Go Live: open the Output window", "output", expanded())
-                        : withKey("Go Live: present on this screen", "present-here", expanded())
+                      ? `${
+                          goLiveTarget() === "window"
+                            ? withKey("Go Live: open the Output window", "output", expanded())
+                            : withKey("Go Live: present on this screen", "present-here", expanded())
+                        }${hymnNumber() ? "" : ". It stays dark until you pick a song"}`
                       : blanked()
                         ? `The Output is blanked${expanded() ? `; ${keyHint("blank")} restores it` : ""}. ${withKey("Bring it forward", "output", expanded())}`
                         : held()
