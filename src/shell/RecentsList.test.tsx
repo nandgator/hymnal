@@ -1,11 +1,15 @@
-import { cleanup, render, screen } from "@solidjs/testing-library";
+import { cleanup, fireEvent, render, screen } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ContentStore } from "../persistence/content-store.ts";
 import type { RecentEntry, UserState } from "../persistence/user-state.ts";
 import { RecentsList } from "./RecentsList.tsx";
 
-const store = (listHymns = vi.fn(async () => [{ number: 42, title: "Forty-Second Hymn" }])) =>
-  ({ listHymns }) as unknown as ContentStore;
+const store = (
+  listHymns: (key: string) => Promise<{ number: number; title: string }[]> = vi.fn(async () => [
+    { number: 42, title: "Forty-Second Hymn" },
+    { number: 7, title: "Seventh Hymn" },
+  ]),
+) => ({ listHymns }) as unknown as ContentStore;
 
 const userState = (getRecents: () => Promise<RecentEntry[]>) =>
   ({ getRecents }) as unknown as UserState;
@@ -16,18 +20,70 @@ const RECENTS: RecentEntry[] = [
 ];
 
 describe("RecentsList", () => {
-  it("shows this book's recents whole: number, title and when", async () => {
+  it("shows every book's recents whole: number, title and when, newest first", async () => {
+    const titles = vi.fn(async (key: string) =>
+      key === "book"
+        ? [{ number: 42, title: "Forty-Second Hymn" }]
+        : [{ number: 7, title: "മലയാളം ഗീതം" }],
+    );
     render(() => (
       <RecentsList
         hymnbookId="book"
-        store={store()}
+        store={store(titles)}
         userState={userState(async () => RECENTS)}
         onSelect={() => {}}
       />
     ));
     const row = await screen.findByRole("button", { name: /Forty-Second Hymn/ });
     expect(row).toHaveTextContent("#42");
-    expect(screen.queryByText("#7")).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /മലയാളം ഗീതം/ })).toHaveTextContent("#7");
+    expect(titles).toHaveBeenCalledWith("other");
+  });
+
+  it("names a song's book only when it is not this screen's", async () => {
+    render(() => (
+      <RecentsList
+        hymnbookId="book"
+        books={[
+          { key: "book", title: "Here Book" },
+          { key: "other", title: "Songs of Zion" },
+        ]}
+        store={store(vi.fn(async () => [{ number: 42, title: "Forty-Second Hymn" }]))}
+        userState={userState(async () => RECENTS)}
+        onSelect={() => {}}
+      />
+    ));
+    const here = await screen.findByRole("button", { name: /#42/ });
+    expect(here).not.toHaveTextContent("Here Book");
+    expect(screen.getByRole("button", { name: /#7/ })).toHaveTextContent("· Songs of Zion");
+  });
+
+  it("opens a song in its own book", async () => {
+    const onSelect = vi.fn();
+    render(() => (
+      <RecentsList
+        hymnbookId="book"
+        store={store()}
+        userState={userState(async () => RECENTS)}
+        onSelect={onSelect}
+      />
+    ));
+    fireEvent.click(await screen.findByRole("button", { name: /#7/ }));
+    expect(onSelect).toHaveBeenCalledWith(7, "other");
+  });
+
+  it("leaves out a recent of a book that is no longer held", async () => {
+    render(() => (
+      <RecentsList
+        hymnbookId="book"
+        books={[{ key: "book", title: "Here Book" }]}
+        store={store()}
+        userState={userState(async () => RECENTS)}
+        onSelect={() => {}}
+      />
+    ));
+    await screen.findByRole("button", { name: /#42/ });
+    expect(screen.queryByRole("button", { name: /#7/ })).not.toBeInTheDocument();
   });
 
   it("says there are none only once it knows", async () => {

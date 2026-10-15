@@ -605,16 +605,16 @@ hook are gone, along with the defaults that read it:
   choosing another book does not blank the Output (SDD-0001 §16.4). **Decided
   after the first look, by the maintainer: two meanings, kept apart.** The
   current book is the Finder's **scope** (what a search looks in; the Finder
-  says which book, under its field; Recents in the Finder are that book's; a
-  first load adopts its book as the scope when there is none). The **song's
-  book** (the presented book, from the hymn itself) is what the header's crumb,
-  This Song, the Operator's Recents and the removal check name. The crumb is
-  never a book paired with a song that is not in it. Choosing a book (the
-  header's Hymnbooks picker or the Library) sets the scope and opens the Finder;
-  the song on screen and the Output stay until a song is picked. A Finder closed
-  without a pick puts the scope back on the song's book. A recents entry that
-  names a key no longer held is skipped. `lastPosition` is unwired today
-  (SDD-0001 §11) and is not used for this.
+  says which book, under its field; Recents in the Finder are every book's
+  (SDD-0001 §16.4); a first load adopts its book as the scope when there is
+  none). The **song's book** (the presented book, from the hymn itself) is what
+  the header's crumb, This Song, the Operator's Recents and the removal check
+  name. The crumb is never a book paired with a song that is not in it. Choosing
+  a book (the header's Hymnbooks picker or the Library) sets the scope and opens
+  the Finder; the song on screen and the Output stay until a song is picked. A
+  Finder closed without a pick puts the scope back on the song's book. A recents
+  entry that names a key no longer held is skipped. `lastPosition` is unwired
+  today (SDD-0001 §11) and is not used for this.
 - **Decided in part 5, by the orchestrator: the book on the Output cannot be
   removed while the Output is live.** If the book being removed is the one the
   hymn on screen is from (the presented book) and the Output is live (On Air or

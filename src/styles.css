@@ -3025,6 +3025,8 @@ input[type="checkbox"].switch:disabled {
 }
 
 .recents-title {
+  display: flex;
+  gap: var(--space-xs);
   min-width: 0;
   /* Malayalam glyphs overhang their advance; the clip box leaves them room
      rather than cutting one at the gap. */
@@ -3032,6 +3034,49 @@ input[type="checkbox"].switch:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The title takes the room first; another book's name after it is quiet and
+   gives way sooner, cut with its own ellipsis. */
+.recents-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recents-book {
+  flex: 0 0 auto;
+  /* Never squeezed away by a long title: it is cut only past this. */
+  max-width: 45%;
+  overflow: hidden;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+}
+
+/* On a phone every row has two lines, so the title keeps its room and a row
+   never changes height: another book's name sits under the title, without the
+   dot that joins it on one line. */
+@media (max-width: 599px) {
+  .recents-row {
+    align-items: center;
+    min-height: 3.25rem;
+  }
+
+  .recents-title {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .recents-book {
+    max-width: none;
+    line-height: 1.4;
+  }
+
+  .recents-dot {
+    display: none;
+  }
 }
 
 /* MD3 segmented button on native radios. A segment's width always has room

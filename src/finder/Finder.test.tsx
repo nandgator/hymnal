@@ -501,22 +501,31 @@ describe("Finder", () => {
     expect(rows[0]?.querySelector(".recents-when")).not.toBeNull();
   });
 
-  it("shows only this book's recents", async () => {
+  it("shows every book's recents, naming another book, and opens a song in its own", async () => {
     const recents: RecentEntry[] = [
       { hymnbookId: "other", hymnNumber: 7, viewedAt: 2 },
       { hymnbookId: "book", hymnNumber: 42, viewedAt: 1 },
     ];
+    const onSelect = vi.fn();
     render(() => (
       <Finder
         hymnbookId="book"
+        books={[
+          { key: "book", title: "This Book" },
+          { key: "other", title: "Songs of Zion" },
+        ]}
         store={fakeStore()}
         userState={fakeUserState({ getRecents: async () => recents })}
-        onSelect={vi.fn()}
+        onSelect={onSelect}
       />
     ));
     await screen.findByRole("heading", { name: "Recents" });
-    await screen.findAllByRole("button", { name: /Forty-Second Hymn/ });
-    expect(screen.queryByText("#7")).not.toBeInTheDocument();
+    const here = (await screen.findAllByRole("button", { name: /Forty-Second Hymn/ }))[0];
+    expect(here).not.toHaveTextContent("Songs of Zion");
+    const other = await screen.findByText("#7");
+    expect(other.closest("button")).toHaveTextContent("Songs of Zion");
+    fireEvent.click(other);
+    expect(onSelect).toHaveBeenCalledWith(7, "other");
   });
 
   it("hands an exact hymn number straight to onSelect", async () => {
