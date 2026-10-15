@@ -249,7 +249,7 @@ export function RecentsList(props: RecentsListProps) {
                             <span class="recents-name">{titleCase(entry.title)}</span>
                             <Show when={entry.hymnbookId !== props.hymnbookId}>
                               <span class="recents-book">
-                                {"\u00b7 "}
+                                <span class="recents-dot">{"\u00b7 "}</span>
                                 {props.books?.find((book) => book.key === entry.hymnbookId)
                                   ?.title ?? ""}
                               </span>

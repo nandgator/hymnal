@@ -280,22 +280,25 @@ export function Finder(props: FinderProps) {
     scope().mode === "this" ? "This Book" : booksLabel(scope().keys?.length ?? 0);
 
   // The books the empty list shows: the scope's (SDD-0001 §13.4), every book held for All Books.
-  const browseKeys = (): HymnbookId[] => {
-    if (props.compact) return [id()];
-    const keys = scoped() ?? heldKeys();
-    return keys.length > 0 ? [...keys] : [id()];
-  };
-  const [browseRead] = createResource(
-    () => browseKeys(),
-    (keys) =>
-      Promise.all(
-        keys.map(async (key) => ({
-          key,
-          hymns: await store()
-            .listHymns(key)
-            .catch(() => []),
-        })),
-      ),
+  // Equal by value, so a books list handed again does not read the songs again.
+  const browseKeys = createMemo(
+    (): HymnbookId[] => {
+      if (props.compact) return [id()];
+      const keys = scoped() ?? heldKeys();
+      return keys.length > 0 ? [...keys] : [id()];
+    },
+    undefined,
+    { equals: (x, y) => x.join("\n") === y.join("\n") },
+  );
+  const [browseRead] = createResource(browseKeys, (keys) =>
+    Promise.all(
+      keys.map(async (key) => ({
+        key,
+        hymns: await store()
+          .listHymns(key)
+          .catch(() => []),
+      })),
+    ),
   );
   const browsedSongs = () => (browseRead.loading ? [] : (browseRead() ?? []));
 

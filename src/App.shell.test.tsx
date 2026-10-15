@@ -344,7 +344,7 @@ describe("App", () => {
     expect(
       within(menu).queryByRole("option", { name: /Blank the Output/ }),
     ).not.toBeInTheDocument();
-    expect(within(menu).getByRole("group", { name: "All songs" })).toBeInTheDocument();
+    expect(await within(menu).findByRole("group", { name: "All songs" })).toBeInTheDocument();
   });
 
   it("opens Search in commands with Ctrl+Shift+P, in songs with Ctrl+K (SDD-0001 §13.3)", async () => {
