@@ -2304,3 +2304,44 @@ this order:
 text holds every field and no title, recent or lyric line from a store that has
 them; Report a Problem opens `REPORT_URL` with no query. The look at 390×844 and
 1280×800, light and dark, by hand.
+
+### 16.11 Preview
+
+Board #75, after OBS's Studio Mode. Live already shows what the audience sees;
+**Preview** adds a step before a song gets there, so a mis-tap in the Finder or
+Recents cannot change the Output mid-service. Not built yet.
+
+- **A setting, off out of the box, then remembered.** Settings, Presentation:
+  "Preview a song before it goes live" (the `preview` preference, `false` when
+  missing). The command menu has Turn Preview On / Turn Preview Off. Off,
+  nothing on this page applies and the Operator is as today.
+- **What waits.** With Preview on and the Output live, picking a song (the
+  Finder, Recents, a book's list, the switcher row) puts it in Preview, not on
+  the Output: it **waits**. Only a song change waits. Stepping parts and lines,
+  Repeat, Undo, Blank and the Presentation settings act at once, on the live
+  song, as today. Picking another song while one waits replaces the waiting one.
+  Not live, there is nothing to protect: a pick is the current song, as today.
+- **Send** makes the waiting song the current one and puts it on the Output (a
+  new song, so it snaps, §16.1), and Preview is empty again. **Enter** sends,
+  only while a song waits and nothing else has the focus that Enter means
+  something to (a field, a button, a list, an open sheet or the Finder). It is a
+  `presentation` key, so the Output window forwards it (§16.5). **Clear** (a
+  text button on the Preview pane) drops the waiting song.
+- **Hold steps aside.** While Preview is on, Live's toolbar is Blank, **Send**,
+  End Live: Send takes Hold's place, and Shift+H and the Hold commands are not
+  offered, since a song no longer reaches the Output unasked. Send is disabled
+  while nothing waits and says why ("Pick a song to preview it"). Turning
+  Preview on while the Output is held keeps Hold until Release; then it steps
+  aside.
+- **The Operator shows it.** A **Preview** pane sits above Live, the same 16:9
+  miniature of the Output, showing the waiting song's first part under a
+  "Preview" label, with Clear; with nothing waiting it reads "Pick a song to
+  preview it". This Song keeps showing the live song (its parts are what
+  stepping moves). On a phone, a strip above Live's strip names the waiting
+  song, with Send and Clear.
+- **End Live keeps it waiting.** A waiting song survives End Live, and the next
+  Go Live opens on it (it is sent as the Output opens). Nothing the operator
+  picked is lost. It is not persisted: a reload empties Preview.
+- **Not in Present Here.** The operator's tab is the audience's screen there, so
+  the switcher's pick goes live at once, as today (§16.7). A song waiting when
+  presenting here starts is sent with it.
